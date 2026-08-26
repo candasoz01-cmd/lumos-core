@@ -54,6 +54,11 @@ class Utterance:
     # aittir. `detect_lang` kural tabanlıdır, kalibre bir skor ÜRETMEZ;
     # uydurulmuş sayı yazmaktansa None kalır (bkz. rapor).
     language_detection_confidence: float | None = None
+    # Bağımsız söz-sonu doğrulaması (2026-08-26). `speech_end_ts` ÖLÇÜLMÜŞ değil,
+    # sunucunun `speech_stopped` olayından sabit geri sayımla TÜRETİLMİŞTİR; bu
+    # alan aynı ses akışından enerji tabanlı ikinci bir gözlemle arasındaki farkı
+    # taşır (bkz. representative.speech_end_probe). None = ölçüm yok.
+    server_stop_minus_local_end_ms: float | None = None
 
 
 @dataclass(frozen=True)
@@ -158,6 +163,11 @@ class UtteranceRecord:
     detected_language: str = ""
     # Çeviri güveni olan `confidence` ile KARIŞTIRILMAMALI.
     language_detection_confidence: float | None = None
+    # Sunucunun durma olayı ile YEREL enerji tabanlı söz sonu arasındaki fark.
+    # Beklenen ≈ MEET_VAD_SILENCE_MS. Sistematik olarak BÜYÜKSE `speech_end_ts`
+    # geri sayması yetersiz demektir ve `e2e_first_audio_ms` olduğundan İYİ
+    # görünüyor demektir. None = ölçülmedi (0.0 ile karıştırılmamalı).
+    server_stop_minus_local_end_ms: float | None = None
     # Metin katmanının durumu (2026-08-25 saklama kararı): "" = metin yerinde,
     # "not_persisted" = politika gereği hiç yazılmadı (sıfır saklama),
     # "expired" = süresi doldu, silindi. Boşken jsonl satırına HİÇ yazılmaz
@@ -685,6 +695,7 @@ class InterpreterPipeline:
             direction_reason=utterance.direction_reason,
             detected_language=utterance.detected_language,
             language_detection_confidence=utterance.language_detection_confidence,
+            server_stop_minus_local_end_ms=utterance.server_stop_minus_local_end_ms,
         )
         self._transcript.append(record)
         if self._on_record is not None:

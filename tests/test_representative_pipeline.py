@@ -394,6 +394,11 @@ def test_every_timing_field_is_rounded_at_record_creation():
     )
     for name in TIMING_FIELDS:
         value = getattr(record, name)
+        if value is None:
+            # Ölçülmemiş alan (ör. `server_stop_minus_local_end_ms` yerel
+            # gözlem yokken). None yuvarlanamaz ve yuvarlanmamalı: "ölçüm yok"
+            # ile "0.0 ölçüldü" ayrımı bilinçli.
+            continue
         assert round(value, 1) == value, f"{name} tek ondalığa yuvarlanmadı"
     assert record.latency_ms == 9983.7
     assert record.recorded_at == 1234.6
@@ -479,6 +484,8 @@ def test_jsonl_lines_carry_at_most_one_decimal(tmp_path):
     with open(path, encoding="utf-8") as f:
         data = json.loads(f.read().splitlines()[0])
     for name in TIMING_FIELDS:
+        if data[name] is None:
+            continue  # ölçülmemiş alan `null` yazılır; ondalık sorusu doğmaz
         text = repr(data[name])
         assert len(text.split(".")[1]) <= 1, f"{name} dosyaya uzun yazıldı: {text}"
 

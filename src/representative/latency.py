@@ -127,6 +127,8 @@ class LatencyReport:
     # tarihsel testler) kırılmaz, yalnız kırılım görünmez.
     tts_substage_p50_ms: dict[str, float] = field(default_factory=dict)
     tts_substage_p90_ms: dict[str, float] = field(default_factory=dict)
+    # Sunucu durma olayı − yerel gözlenen söz sonu (ms). Boş = ölçüm yok.
+    speech_end_offsets_ms: tuple[float, ...] = ()
 
     @property
     def p50_ok(self) -> bool:
@@ -249,6 +251,11 @@ def analyze(
         slowest=slowest,
         tts_substage_p50_ms=tts_substage_p50,
         tts_substage_p90_ms=tts_substage_p90,
+        speech_end_offsets_ms=tuple(
+            float(r["server_stop_minus_local_end_ms"])
+            for r in measured
+            if r.get("server_stop_minus_local_end_ms") is not None
+        ),
     )
 
 
@@ -301,6 +308,23 @@ def format_report(report: LatencyReport) -> str:
             lines.append(f"  {name}: p50 {p50v / 1000:.2f} sn  p90 {p90v / 1000:.2f} sn{share}")
     else:
         lines.append("  (bu kayıtta alt-aşama damgası yok — ölçüm öncesi dosya)")
+    lines.append("")
+    # Söz-sonu referansının doğruluğu (2026-08-26). `speech_end_ts` ölçülmez,
+    # sunucu olayından sabit geri sayımla türetilir; bu satır o türetmeyi
+    # bağımsız yerel gözlemle karşılaştırır.
+    offsets = list(report.speech_end_offsets_ms)
+    lines.append("Söz-sonu referansı (sunucu durma olayı − yerel gözlenen son ses):")
+    if offsets:
+        lines.append(
+            f"  n={len(offsets)}  p50 {percentile_ms(offsets, 50):.0f} ms  "
+            f"p90 {percentile_ms(offsets, 90):.0f} ms  "
+            f"min {min(offsets):.0f}  max {max(offsets):.0f}"
+        )
+        lines.append(
+            "  → beklenen ≈ VAD penceresi; sistematik BÜYÜKSE e2e iyimser ölçülüyor"
+        )
+    else:
+        lines.append("  (bu kayıtta yerel söz-sonu gözlemi yok — ölçüm öncesi dosya)")
     lines.append("")
     lines.append(
         "İşaret dağılımı: " + ", ".join(f"{k}={v}" for k, v in sorted(report.by_flag_reason.items()))

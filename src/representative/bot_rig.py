@@ -59,6 +59,7 @@ from representative.pipeline import (
 # davranışını ezdi: yön belirlenemeyen söz artık sessizce kayda geçer.
 from representative.retention import POLICIES, text_layer_for
 from representative.routing import Direction, DirectionRouter
+from representative.speech_end_probe import SpeechEndProbe
 from representative.stt import LUMOS_TERMS_PROMPT
 from representative.transcript_view import (
     attribution_note,
@@ -195,6 +196,8 @@ def speak_assembled_turns(
     suppressor: RepeatSuppressor,
     recent: deque[str],
     now: float,
+    probe: SpeechEndProbe | None = None,
+    vad_silence_ms: int = MEET_VAD_SILENCE_MS,
 ) -> int:
     """Play finished consecutive turns only. Incomplete fragments stay silent.
 
@@ -217,6 +220,14 @@ def speak_assembled_turns(
             print(f"  (tekrar bastırıldı: {show(turn.text)})")
             pipeline.record_unspoken(turn.text, flag_reason="suppressed_duplicate")
             continue
+        # ÖLÇÜM (davranışa etkisi yok): `turn.speech_end_ts` sunucu olayından
+        # sabit geri sayımla türetilmişti; sunucu olayının kendisi onun
+        # vad_silence_ms sonrasıdır. Yerel gözlemle farkını kayda geçir.
+        offset_ms = (
+            probe.offset_ms(turn.speech_end_ts + vad_silence_ms / 1000.0)
+            if probe is not None
+            else None
+        )
         decision = router.route(turn.text)
         if decision.reason == "fallback_unknown":
             # Kurucu kararı (2026-08-24): dil belirlenemeyen söz SABİT
@@ -244,6 +255,7 @@ def speak_assembled_turns(
                 stt_final_ts=now,
                 direction_reason=decision.reason,
                 detected_language=decision.detected,
+                server_stop_minus_local_end_ms=offset_ms,
             )
         )
         recent.append(turn.text)
@@ -620,9 +632,15 @@ def main(argv: list[str] | None = None) -> int:
     recent: deque[str] = deque(maxlen=4)
     assembler = TurnAssembler()
 
+    # Bağımsız söz-sonu gözlemcisi: sesi TÜKETMEZ, aynı kareyi yalnız izler.
+    # Amaç `speech_end_ts` türetmesinin doğruluğunu sınamak (ölçüm işi).
+    probe = SpeechEndProbe()
+
     def pump_audio() -> None:
         while True:
-            stt.feed(resample_16k_to_24k(inbound.get()))
+            frame = inbound.get()
+            probe.observe(frame, time.monotonic())
+            stt.feed(resample_16k_to_24k(frame))
 
     threading.Thread(target=pump_audio, daemon=True).start()
     print(
@@ -644,6 +662,8 @@ def main(argv: list[str] | None = None) -> int:
                     suppressor=suppressor,
                     recent=recent,
                     now=now,
+                    probe=probe,
+                    vad_silence_ms=args.vad_silence_ms,
                 )
                 continue
             if not utt.text or is_prompt_echo(utt.text, LUMOS_TERMS_PROMPT):
@@ -654,6 +674,8 @@ def main(argv: list[str] | None = None) -> int:
                     suppressor=suppressor,
                     recent=recent,
                     now=now,
+                    probe=probe,
+                    vad_silence_ms=args.vad_silence_ms,
                 )
                 continue
             heard = corrector.correct(utt.text)
@@ -664,6 +686,8 @@ def main(argv: list[str] | None = None) -> int:
                 suppressor=suppressor,
                 recent=recent,
                 now=now,
+                probe=probe,
+                vad_silence_ms=args.vad_silence_ms,
             )
     except KeyboardInterrupt:
         end_reason.append("kill_switch")
