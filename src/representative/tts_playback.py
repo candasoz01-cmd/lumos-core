@@ -97,12 +97,45 @@ def _wrap_long(text: str, max_chars: int) -> list[str]:
     return out
 
 
+def _span_ms(start: float | None, end: float | None) -> float:
+    """İki damga arası ms. Damgalardan biri yoksa 0.0 — uydurma yok."""
+    if start is None or end is None:
+        return 0.0
+    return max(0.0, (end - start) * 1000.0)
+
+
 @dataclass(frozen=True)
 class TtsPlayback:
     tts_start_ts: float
     first_audio_ts: float
     chunks_planned: int
     chunks_started: int
+    # Alt-aşama damgaları (2026-08-25, ÖLÇÜM işi — davranış değişmedi).
+    # `first_audio_ts` tek bir toplam veriyordu; 2026-08-24 Meet provasında bu
+    # toplam p50 2.49 sn ile en büyük aşamaydı ama NEDEN'i dosyadan
+    # okunamıyordu. Üç damga üç ayrı işi ayırır: OpenAI TTS gidiş-dönüşü,
+    # yarı-çift-yönlü kapının alınması, Recall output_audio POST'u.
+    #
+    # Ölçüm yoksa None kalır — 0.0 varsayılanı "ölçtük, sıfır çıktı" gibi
+    # okunurdu. Damgasız oynatıcılar ve eski kayıtlar 0.0 görür.
+    synth_done_ts: float | None = None
+    gate_acquired_ts: float | None = None
+    deliver_done_ts: float | None = None
+
+    @property
+    def synth_ms(self) -> float:
+        """tts-start → `_synthesize` döndü (OpenAI TTS gidiş-dönüşü)."""
+        return _span_ms(self.tts_start_ts, self.synth_done_ts)
+
+    @property
+    def gate_wait_ms(self) -> float:
+        """`_synthesize` döndü → kapı alındı (yarı-çift-yönlü bekleme)."""
+        return _span_ms(self.synth_done_ts, self.gate_acquired_ts)
+
+    @property
+    def deliver_ms(self) -> float:
+        """kapı alındı → `_deliver` döndü (base64 + Recall output_audio POST)."""
+        return _span_ms(self.gate_acquired_ts, self.deliver_done_ts)
 
 
 class ChunkedTtsPlayer:
@@ -160,9 +193,14 @@ class ChunkedTtsPlayer:
         tts_start = self._clock()
         first = chunks[0]
         payload = self._synthesize(first, lang)
+        synth_done = self._clock()
         with self._gate:
+            gate_acquired = self._clock()
             self._deliver(payload, first, lang)
-            first_audio = self._clock()
+            deliver_done = self._clock()
+            # first-audio TANIMI DEĞİŞMEDİ: teslim POST'u döndüğü an. Eskiden
+            # burada ayrı bir saat okuması vardı; aynı an, tek okuma.
+            first_audio = deliver_done
             if self._hold_after_deliver:
                 self._sleeper(estimate_speech_seconds(first))
         rest = chunks[1:]
@@ -175,6 +213,9 @@ class ChunkedTtsPlayer:
             first_audio_ts=first_audio,
             chunks_planned=len(chunks),
             chunks_started=1,
+            synth_done_ts=synth_done,
+            gate_acquired_ts=gate_acquired,
+            deliver_done_ts=deliver_done,
         )
 
     def _kick_worker(self) -> None:

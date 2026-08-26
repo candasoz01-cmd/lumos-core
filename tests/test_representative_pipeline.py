@@ -495,3 +495,176 @@ def test_unspoken_records_are_rounded_too():
     )
     record = pipeline.record_unspoken("What?", flag_reason="fallback_unknown")
     assert record.recorded_at == 4322.0
+
+
+# --------------------------------------------------------------------------
+# Alt-aşama kırılımı kaydı (2026-08-25). Ölçüm işi: `record_unspoken()` bu
+# alanların hiçbirini yazmaz, bu yüzden hepsi VARSAYILANLI olmak zorundadır.
+# --------------------------------------------------------------------------
+
+
+def test_record_carries_tts_substages_and_they_sum_to_the_parent_stage():
+    from representative.tts_playback import TtsPlayback
+
+    class _StampingTts:
+        def speak(self, text, lang):
+            # tts_start 20.0; synth 0.8 sn, kapı 0.1 sn, teslim 0.6 sn.
+            return TtsPlayback(
+                tts_start_ts=20.0,
+                first_audio_ts=21.5,
+                chunks_planned=1,
+                chunks_started=1,
+                synth_done_ts=20.8,
+                gate_acquired_ts=20.9,
+                deliver_done_ts=21.5,
+            )
+
+    transcript = BilingualTranscript()
+    pipeline = InterpreterPipeline(
+        translator=StubTranslator("see you", confidence=0.95),
+        tts=_StampingTts(),
+        gate=ConfidenceGate(0.8),
+        transcript=transcript,
+    )
+    record = pipeline.process(
+        Utterance(text="görüşürüz", source_lang="tr", target_lang="en", speech_end_ts=19.0)
+    )
+
+    assert record.tts_synth_ms == pytest.approx(800.0)
+    assert record.tts_gate_wait_ms == pytest.approx(100.0)
+    assert record.tts_deliver_ms == pytest.approx(600.0)
+    assert record.tts_to_first_audio_ms == pytest.approx(1500.0)
+    parts = record.tts_synth_ms + record.tts_gate_wait_ms + record.tts_deliver_ms
+    assert parts == pytest.approx(record.tts_to_first_audio_ms)
+
+
+def test_record_unspoken_still_builds_without_any_timing_fields():
+    """Alt-aşamalar ZORUNLU olsaydı bu yol TypeError ile patlardı."""
+
+    class _NeverCalledTts:
+        def speak(self, text, lang):  # pragma: no cover - çağrılmamalı
+            raise AssertionError("record_unspoken TTS'e dokunmamalı")
+
+    transcript = BilingualTranscript()
+    pipeline = InterpreterPipeline(
+        translator=StubTranslator("x", confidence=1.0),
+        tts=_NeverCalledTts(),
+        gate=ConfidenceGate(0.8),
+        transcript=transcript,
+    )
+    record = pipeline.record_unspoken("What?", flag_reason="fallback_unknown")
+
+    assert record.delivered is False
+    assert (record.tts_synth_ms, record.tts_gate_wait_ms, record.tts_deliver_ms) == (
+        0.0,
+        0.0,
+        0.0,
+    )
+
+
+def test_unstamped_tts_leaves_substages_zero_without_breaking_parent_stage():
+    """Damgasız oynatıcı (stub/eski TTS): üst aşama eskisi gibi hesaplanır."""
+    transcript = BilingualTranscript()
+    pipeline = InterpreterPipeline(
+        translator=StubTranslator("see you", confidence=0.95),
+        tts=RecordingTTS(),
+        gate=ConfidenceGate(0.8),
+        transcript=transcript,
+        clock=QueueClock([10.8, 10.8, 12.0]),
+    )
+    record = pipeline.process(
+        Utterance(
+            text="yarın görüşürüz",
+            source_lang="tr",
+            target_lang="en",
+            speech_end_ts=10.0,
+            stt_final_ts=10.4,
+        )
+    )
+
+    assert record.tts_to_first_audio_ms == pytest.approx(1200.0)
+    assert (record.tts_synth_ms, record.tts_gate_wait_ms, record.tts_deliver_ms) == (
+        0.0,
+        0.0,
+        0.0,
+    )
+
+
+def test_summary_substage_p50_ignores_unspoken_records():
+    """`records` değil `measured`: sessiz satırlar üçünü birden aşağı çekerdi."""
+    from representative.pipeline import UtteranceRecord
+
+    transcript = BilingualTranscript()
+    for i in range(6):
+        transcript.append(
+            UtteranceRecord(
+                source_text=f"s{i}",
+                source_lang="tr",
+                translated_text=f"t{i}",
+                target_lang="en",
+                confidence=0.9,
+                flagged=False,
+                flag_reason="ok",
+                latency_ms=3000.0,
+                recorded_at=0.0,
+                stt_ms=500.0,
+                translate_ms=1000.0,
+                tts_to_first_audio_ms=1500.0,
+                tts_synth_ms=1200.0,
+                tts_gate_wait_ms=20.0,
+                tts_deliver_ms=280.0,
+                e2e_first_audio_ms=3000.0,
+            )
+        )
+    clean = summarize_latencies_ms(transcript)
+
+    for i in range(6):
+        transcript.append(
+            UtteranceRecord(
+                source_text=f"sessiz{i}",
+                source_lang="",
+                translated_text="",
+                target_lang="",
+                confidence=None,
+                flagged=True,
+                flag_reason="fallback_unknown",
+                latency_ms=0.0,
+                recorded_at=0.0,
+                delivered=False,
+            )
+        )
+    polluted = summarize_latencies_ms(transcript)
+
+    assert clean["tts_synth_p50_ms"] == pytest.approx(1200.0)
+    assert clean["tts_gate_wait_p50_ms"] == pytest.approx(20.0)
+    assert clean["tts_deliver_p50_ms"] == pytest.approx(280.0)
+    for key in ("tts_synth_p50_ms", "tts_gate_wait_p50_ms", "tts_deliver_p50_ms"):
+        assert polluted[key] == clean[key], f"{key} sessiz kayıtlarla deflate oldu"
+    assert polluted["count"] == 12, "olaylar sayımda görünmeye devam etmeli"
+
+
+def test_empty_measured_summary_still_exposes_substage_keys():
+    """Yalnız sessiz kayıt: anahtarlar var, hepsi 0.0, PASS uydurulmaz."""
+    from representative.pipeline import UtteranceRecord
+
+    transcript = BilingualTranscript()
+    transcript.append(
+        UtteranceRecord(
+            source_text="What?",
+            source_lang="",
+            translated_text="",
+            target_lang="",
+            confidence=None,
+            flagged=True,
+            flag_reason="fallback_unknown",
+            latency_ms=0.0,
+            recorded_at=0.0,
+            delivered=False,
+        )
+    )
+    summary = summarize_latencies_ms(transcript)
+
+    assert summary["tts_synth_p50_ms"] == 0.0
+    assert summary["tts_gate_wait_p50_ms"] == 0.0
+    assert summary["tts_deliver_p50_ms"] == 0.0
+    assert summary["first_audio_budget_pass"] is False
