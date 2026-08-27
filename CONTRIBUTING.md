@@ -80,21 +80,35 @@ If the head changes, the counters reset. Human approval is SHA-bound: it is
 asked only after gates 1–2 are SUCCESS on that SHA, and it does not carry
 over to a later SHA.
 
-1. **Required CI green** (today’s test gate). GitHub CheckRuns from
-   [`.github/workflows/ci.yml`](.github/workflows/ci.yml): `test`, `rust`,
-   `macos-app-build`, `ui-smoke`, `ui-e2e`.
-2. **Security review complete and clean** (today’s security gate). This is a
-   real CheckRun produced by the Cursor Security Reviewer automation, not only
-   a PR review or comment. Verified name:
-   `Cursor Security Agent: Security Reviewer` (GitHub app `cursor`;
-   `candasoz01-cmd/lumos-core#755` head `596253e` and `#762` · Checks API ·
-   2026-08-19T17:31Z). A missing run is pending. The marketplace template
-   triggers are **PR Opened** and **PR Pushed**: opening a *draft* does not
-   fire PR Opened; PR Pushed fires only on new commits to an *existing* PR.
+1. **Required CI green** (today’s test gate; **physical**). GitHub CheckRuns
+   from [`.github/workflows/ci.yml`](.github/workflows/ci.yml): `test`,
+   `rust`, `macos-app-build`, `ui-smoke`, `ui-e2e`. These five names are on
+   `main` `required_status_checks`, owned by GitHub Actions **app_id 15368**.
+   Name proof: `candasoz01-cmd/lumos-core#806` head `279492c9` · Checks API ·
+   2026-08-27T07:04:13Z. This integration cannot GET branch protection
+   (HTTP 403). That 403 is **not** evidence the list is empty; the user
+   confirmed the five checks independently. Do not “fix” a 403 by treating
+   `required_status_checks` as empty.
+2. **Security review complete and clean** (today’s security gate; **written
+   contract**, not a GitHub required check). This is a real CheckRun produced
+   by the Cursor Security Reviewer automation, not only a PR review or
+   comment. Verified name: `Cursor Security Agent: Security Reviewer`
+   (GitHub app `cursor` / 1210556; `candasoz01-cmd/lumos-core#755` head
+   `596253e` and `#762` · Checks API · 2026-08-19T17:31Z; present on
+   `#806`). A missing run is pending. The marketplace template triggers are
+   **PR Opened** and **PR Pushed**: opening a *draft* does not fire PR
+   Opened; PR Pushed fires only on new commits to an *existing* PR. The
+   CheckRun is **not** in `required_status_checks`. That is conscious:
+   Cursor App access was not expanded.
 3. **Explicit human approval** (temporary stand-in for the controlled writer
    plus high-risk authority). An agent, bot, or GitHub App review does not
    count. GitHub’s required-review counter cannot tell a human from an agent;
-   this gate is a written norm. Tentative phrasing is not approval.
+   this gate is a written norm. **Required review count is 0 by decision**,
+   not by omission. Raising it to 1 would let an agent review satisfy the
+   counter. `require_last_push_approval` is not used. With write access,
+   `cursor[bot]` can merge while `auto_merge` is null: `#777`, `#804`,
+   `#805`; `#806` was merged by `candasoz01-cmd`. Tentative phrasing is not
+   approval.
 
 Agent-facing counterpart: [`AGENTS.md`](AGENTS.md).
 
@@ -102,11 +116,19 @@ Scheduled [`layer1a.yml`](.github/workflows/layer1a.yml) (`pulse`) and manual
 [`prod-smoke.yml`](.github/workflows/prod-smoke.yml) are not pull-request merge
 gates.
 
-**Physical lock (GitHub Settings, not this file):** `main` is protected, but
-`required_status_checks` is empty. Until the CheckRun names above are added as
-required checks, GitHub will not block merge while the security reviewer is
-still running. Adding them is an admin action; this repository cannot set
-branch protection from a docs PR.
+**Physical lock (GitHub Settings, not this file):** Gate 1 is now enforced by
+GitHub `required_status_checks` (the five `ci.yml` jobs, app 15368). Gate 2
+is not a required check. Gate 3 cannot be fully enforced by GitHub’s review
+counter. Docs PRs must not PATCH/PUT branch protection, rulesets, or
+auto-merge. Do not add `standing-class` to `required_status_checks`. Do not
+raise the required review count. Do not enable Merge Queue or Automations
+“Automatically Approve PRs”.
+
+GitHub `allow_auto_merge` is **false**; rulesets are `[]`; GraphQL
+`autoMergeAllowed` is false (`candasoz01-cmd/lumos-core` · GitHub API ·
+2026-08-27T07:03:53Z). Cursor Cloud Agents dashboard has **no** agent
+auto-merge switch
+([cloud-agent settings](https://cursor.com/docs/cloud-agent/settings.md)).
 
 **Standing class (ADR-028 gate 0):** `python -m standing_merge.classify` on
 changed paths. The CheckRun trust root is
@@ -120,8 +142,13 @@ and `tests/` paths that miss the hariç rules can be eligible. CheckRun
 `standing-class` fails when the class is excluded. That failure forbids
 standing merge; it does not forbid a human merge. Do **not** add
 `standing-class` to GitHub `required_status_checks` — that would block
-human-approved excluded PRs too. Physical lock needs a separate
-merge-authority model. Incident: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).
+human-approved excluded PRs too. Physical lock for standing still needs a
+separate merge-authority model; Gate 1’s CI lock does not close that gap.
+Incident: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).
+
+Live verification of this record: `candasoz01-cmd/lumos-core` · GitHub API /
+Checks API · 2026-08-27T07:04:13Z (auto-merge / rulesets ·
+2026-08-27T07:03:53Z).
 
 ## Public repository boundary
 
