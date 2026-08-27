@@ -50,6 +50,7 @@ Lumos, kurallarını ve yetkilerini arka planda tek başına yenileyen bir **oto
 - **Hatırlama:** Tercihler ve bağlam, daha iyi yardım içindir; ürün kimliğini veya güvenlik çizgisini kullanıcı fark etmeden yeniden tanımlamak değildir.
 - **Geri bildirim:** Dinlenir ve ürün kararına dönüşür; tek başına “öğrendim, artık böyleyim” demez.
 - **Gelişim:** Kullanıcı onayı ve açık sürümle gelir; hızlı, ölçülü ve şeffaftır.
+- **Kendini yönetme (yön, 2026-08-27):** Aynı panel üç merceğe dönüşür — **Kontrol merkezi** (ne çalışıyor, ne harcıyor, hangi işlem) → **Denetim merkezi** (doğru muydu, yetkili miydi, kayıt var mı) → **Güven kurulu** (kritik adım için insan/onay/kural). Yeni sayfa veya yeni ürün değildir. Ayrıntı: [`analysis/lumos-self-governance-surface.md`](analysis/lumos-self-governance-surface.md).
 
 ---
 
@@ -82,7 +83,7 @@ Panel, tarayıcı ana sayfası veya tüketim akışı değil; **güvenli komuta 
 
 - **Sol:** kalıcı hızlı erişim (Sohbet, Görevler, Dosyalar, Görsel analiz, Ses, Posta, Takvim, Cihaz, Ayarlar/güvenlik).
 - **Orta:** ana çalışma alanı — büyük sohbet/komut, görev merkezi (“Bugün ne yapıyoruz?”), az sayıda panel-içi kısayol kartı.
-- **Sağ veya alt (mobilde):** operasyon özeti — aktif görevler, onay bekleyenler, son işlemler, geri alınabilir işlemler.
+- **Sağ veya alt (mobilde):** operasyon özeti — aktif görevler, onay bekleyenler, son işlemler, geri alınabilir işlemler. Bu özet **kontrol** merceğidir; bir işlem seçilince **denetim** (kanıt/yetki/kayıt), kritik kapıda **güven kurulu** (onay/kural) aynı kabukta açılır — ayrı rota yok.
 - **Üst:** bağlantı, kullanıcı kimliği, dil/ülke, güvenlik seviyesi, plan/sürüm (bilgi; reklam değil).
 
 **Bilinçli olarak yok**
@@ -104,3 +105,5 @@ Panel, tarayıcı ana sayfası veya tüketim akışı değil; **güvenli komuta 
 ## Tek cümlelik ürün vaadi
 
 **Lumos yardım eder ve yönlendirir; kalıcı veya riskli adım kullanıcı onayı olmadan atmaz.**
+
+**Lumos sadece sistemi çalıştırmaz; sistemin kendini nasıl yönettiğini de gösterir.**
