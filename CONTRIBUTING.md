@@ -71,8 +71,8 @@ Lumos writer** lands `main`. Humans are the final authority on the constitution,
 authority limits, and high-risk exceptions — not the merge button on every PR.
 
 That writer does not exist yet. Until it does, `main` uses the **temporary
-three-gate regime** below. “A human merges every PR” is the current safety
-stand-in, not the permanent model.
+three-gate regime** below. An explicit human OK is the current safety
+stand-in — not an agent’s own “done”, and not the permanent model.
 
 `main` is merged only when **all three** gates hold on the **current head
 SHA**. Missing, queued, in-progress, or non-success results are not a pass.
@@ -101,14 +101,20 @@ over to a later SHA.
    CheckRun is **not** in `required_status_checks`. That is conscious:
    Cursor App access was not expanded.
 3. **Explicit human approval** (temporary stand-in for the controlled writer
-   plus high-risk authority). An agent, bot, or GitHub App review does not
-   count. GitHub’s required-review counter cannot tell a human from an agent;
-   this gate is a written norm. **Required review count is 0 by decision**,
-   not by omission. Raising it to 1 would let an agent review satisfy the
-   counter. `require_last_push_approval` is not used. With write access,
-   `cursor[bot]` can merge while `auto_merge` is null: `#777`, `#804`,
-   `#805`; `#806` was merged by `candasoz01-cmd`. Tentative phrasing is not
-   approval.
+   plus high-risk authority). Constitution §2: the newest explicit human
+   decision is authority. An explicit OK **inside Lumos** is that human
+   approval. Sequence: show evidence → obtain approval → apply it as
+   representative → prove the result. Lumos does not press the merge
+   button; it applies Candaş’s approval. An agent, bot, or GitHub App
+   review is not this gate. An agent’s own “done” is not OK. Tentative
+   phrasing is not approval.
+
+   GitHub cannot fully lock this gate. **Required review count is 0 by
+   decision**, not by omission: the counter cannot tell a human from an
+   App, and the repository owner cannot approve their own PR. Raising it
+   to 1 is an agent-approval trap. `require_last_push_approval` is not
+   used. With write access, `cursor[bot]` can merge while `auto_merge` is
+   null: `#777`, `#804`, `#805`; `#806` was merged by `candasoz01-cmd`.
 
 Agent-facing counterpart: [`AGENTS.md`](AGENTS.md).
 
