@@ -107,3 +107,5 @@ Panel, tarayıcı ana sayfası veya tüketim akışı değil; **güvenli komuta 
 **Lumos yardım eder ve yönlendirir; kalıcı veya riskli adım kullanıcı onayı olmadan atmaz.**
 
 **Lumos sadece sistemi çalıştırmaz; sistemin kendini nasıl yönettiğini de gösterir.**
+
+**Güvenlik gerekçesi (yeni yön değil):** Lumos’ta güvenlik sadece erişimi kesmek değil; izin verilen yolların da davranışını izlemek olmalı.

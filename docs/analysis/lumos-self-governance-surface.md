@@ -85,3 +85,23 @@ FAZ-1 bitmeden kod yok. Panel işi açılırsa sıra:
 3. Yeni rota açma.
 
 Canonical yön: [`ROADMAP.md`](../ROADMAP.md) § Panel kendini yönetme yüzeyi. Ürün cümlesi: [`PRODUCT_SUMMARY.md`](../PRODUCT_SUMMARY.md).
+
+---
+
+## Gerekçe malzemesi (2026-08-28) — yeni yön değil
+
+Kontrol dili güçlenir; ROADMAP, STOP LIST ve uygulama merdiveni **değişmez**. Bu maddeler yeni sayfa, yeni SOC, yeni cihaz entegrasyonu veya yeni CI ürünü **açmaz**.
+
+> **Lumos’ta güvenlik sadece erişimi kesmek değil; izin verilen yolların da davranışını izlemek olmalı.**
+
+Özet kural: [`security-architecture.md`](../security-architecture.md) SEC-006.
+
+| Malzeme | Güçlenen ilke | Lumos karşılığı | Ne değildir |
+|---------|---------------|-----------------|-------------|
+| **Sandbox yetmez** | Guardrails dosyası ≠ gerçek izolasyon + izleme | Workspace sandbox + guard; denetim merceği | Yeni sandbox ürünü |
+| **İç servis yan kanalı** | Ajan internete çıkmasa bile paket yöneticisi / log / depo izinli haberleşme kanalı olabilir; **izinli kanal da denetlenir** | SEC-021 köprü + evidence / audit | Yeni IDS |
+| **AI SOC elemesi** | Yalnız triage değil; yaşam döngüsü boyunca **kayıtlı aksiyon ve onay** | Denetim merceği + güven kurulu; confirmation + evidence | Yeni SOC ürünü |
+| **Ev/cihaz gizliliği** | Router hareket, araba ekranı, TV/proxy, WebAudio parmak izi — kişisel cihaz katmanının **kanıtı** | Mevcut cihaz/presence/gizlilik anlatısı | Yeni entegrasyon (STOP LIST) |
+| **Tedarik zinciri** | Geliştirici araçları, paketler, CI, sahte demo siteleri | Mevcut dependency / CI / merge kapısı | Yeni CI ürünü |
+
+Panel zamanı gelince bağlanan yüzey hâlâ aynıdır: özet + kanıt + pending onay. İzinli yolun izlenmesi denetim merceğinin gerekçesidir; üçüncü bir merkez değildir.
