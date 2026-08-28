@@ -6,7 +6,7 @@
 | Tarih | 2026-08-27 kullanıcı kararı |
 | Kanıt merdiveni | Model: **KARAR**. Uygulama: **FİKİR** ([scope-accounting](./scope-accounting.md)) |
 | Üst sınır | [`CONSTITUTION.md`](../CONSTITUTION.md) §1/§5, [`ROADMAP.md`](../ROADMAP.md) STOP LIST, [`lumos-karar-sozlesmesi.md`](../lumos-karar-sozlesmesi.md) |
-| İlgili | [ADR-007](../decisions/ADR-007-trust-engine-layer.md), [ADR-010](../decisions/ADR-010-guard-policy-trust-terminology.md), [ADR-019](../decisions/ADR-019-product-surface-separation-modelregistry.md), [ADR-027](../decisions/ADR-027-controlled-core-writer.md), [ADR-028](../decisions/ADR-028-standing-low-risk-merge-approval.md), [ADR-029](../decisions/ADR-029-dashboard-health-earned-responsibility.md), [`lumos-log-vs-approval.md`](./lumos-log-vs-approval.md), [`lumos-audit-log-contract.md`](./lumos-audit-log-contract.md), [`PRODUCT_SUMMARY.md`](../PRODUCT_SUMMARY.md), KA-005 |
+| İlgili | [ADR-007](../decisions/ADR-007-trust-engine-layer.md), [ADR-010](../decisions/ADR-010-guard-policy-trust-terminology.md), [ADR-017](../decisions/ADR-017-regulated-service-entity-boundaries.md), [ADR-019](../decisions/ADR-019-product-surface-separation-modelregistry.md), [ADR-027](../decisions/ADR-027-controlled-core-writer.md), [ADR-028](../decisions/ADR-028-standing-low-risk-merge-approval.md), [ADR-029](../decisions/ADR-029-dashboard-health-earned-responsibility.md), OD-011 [`payment-scope-decision.md`](../memory/payment-scope-decision.md), [`welockai-charter-draft.md`](./welockai-charter-draft.md), [`lumos-log-vs-approval.md`](./lumos-log-vs-approval.md), [`lumos-audit-log-contract.md`](./lumos-audit-log-contract.md), [`PRODUCT_SUMMARY.md`](../PRODUCT_SUMMARY.md), KA-005 |
 
 **Sınır notu:** Bu kayıt yeni ürün, yeni rota veya yeni orchestration katmanı **açmaz**. FAZ-1 STOP LIST (`yeni sayfa`, `yeni özellik`, `yeni agent / orchestration katmanı`) yürürlükte kalır. Uygulama ayrı kullanıcı kararı ister.
 
@@ -73,12 +73,13 @@ ADR-029’un üç cümlesi aynı merdivendir: **izler** (kontrol) → **düzelti
 - WeLockAI ticari audit arşivinin public kopyası
 - KA-005’in (`Lumos’u aç` birleşik durum) **DOĞRULANDI** ilanı — kontrol merceği o fikri kapsar; kanıt merdiveni yükselmez
 - FAZ-1 uygulama izni
+- Yeni küresel bordro / payroll ürünü, ülke seçici UI, public-repo üretim ödemesi
 
 ---
 
 ## Sonraki adım (uygulama değil)
 
-**Sıra (2026-08-28, en yeni açık kullanıcı kararı):** önce insan **FAZ-1 kapanış onayı**; sonra panel bağlantısı. Bu ajan FAZ-1'i kapatmaz, `main`'e merge etmez, FAZ-1 bitti demez.
+**Sıra (2026-08-28):** önce insan **FAZ-1 kapanış onayı**; sonra panel bağlantısı. 2026-08-28 ülke/ödeme güven-mimarisi kaydı bu sırayı **değiştirmez** — yeni faz veya panel işi değildir. Bu ajan FAZ-1'i kapatmaz, `main`'e merge etmez, FAZ-1 bitti demez.
 
 Gözlem (kapanış iddiası değil): ROADMAP'te FAZ-1 ürününün en zayıf halkası hâlâ **iOS / TestFlight**.
 
@@ -111,3 +112,39 @@ Kontrol dili güçlenir; ROADMAP, STOP LIST ve uygulama merdiveni **değişmez**
 | **Tedarik zinciri** | Geliştirici araçları, paketler, CI, sahte demo siteleri | Mevcut dependency / CI / merge kapısı | Yeni CI ürünü |
 
 Panel zamanı gelince bağlanan yüzey hâlâ aynıdır: özet + kanıt + pending onay. İzinli yolun izlenmesi denetim merceğinin gerekçesidir; üçüncü bir merkez değildir.
+
+---
+
+## Gerekçe malzemesi (2026-08-28) — ülke ve güven mimarisi; yeni yön değil
+
+Kontrol dili büyür; kapsam büyümez. Bu madde FAZ-5, yeni sayfa, yeni katkıcı ürünü veya STOP LIST istisnası **açmaz**. SEC-006 durur; bu bitişik güven gerekçesidir, yerine geçmez. Sıra değişmez: önce insan FAZ-1 kapanış onayı, sonra panel bağlantısı.
+
+> **Ülke, fırsata duvar olmamalı; ödeme, kur, vergi ve uyum ise güven mimarisinin parçasıdır.**
+
+Küresel ekip ve katkıcı modeli ülke sınırına takılmaz. Kullanıcının veya katkıcının ülkesi fırsata gereksiz duvar olmaz.
+
+Ödeme, kur (FX), vergi ve uyum ürünün dışına dökülen detay değildir; **güven mimarisinin** parçasıdır. Güven kurulu bunların insan / onay / kural yüzüdür — yeni Trust Engine (ADR-007) veya yeni ticari ürün değildir. Üretim yeri WeLockAI / private katmandır; public `lumos-core` production billing, PSP credential veya PII **almaz**.
+
+Özet kural: [`security-architecture.md`](../security-architecture.md) SEC-007. Kuruluş sınırları: [ADR-017](../decisions/ADR-017-regulated-service-entity-boundaries.md). Ödeme uygulama parkı: OD-011 / [DL-E01](../decision-log.md).
+
+| Malzeme | Güçlenen ilke | Lumos karşılığı | Ne değildir |
+|---------|---------------|-----------------|-------------|
+| **Ülke ≠ fırsat duvarı** | Global katılım ülke sınırına takılmaz; ülke sahte ürün duvarı değildir | Lumos Dünya küresel yüzey (ADR-017); güven kurulu | Ülke seçici UI; yeni katkıcı ürünü; ülke sistemi uygulaması |
+| **Ödeme / kur / vergi / uyum** | «Başkasının sorunu» diye dışarı atılmaz; güven mimarisinde durur | Güven kurulu + WeLockAI ticari omurga; OD-011 parkı durur | Public-repo üretim ödemesi; checkout/PSP kodu; FAZ-1 kapanışı |
+| **Kamu / ülke sistemi** | Bağlantı markasız private/sözleşmeli katmandır; otorite algısı yok | ADR-017 Ülke Sistemleri Entegrasyon Katmanı | Lumos Devlet; kamu yönetim yüzeyi |
+
+### Ne değildir (bu madde)
+
+- Yeni küresel bordro / payroll ürünü
+- Yeni ülke seçici UI veya ülke bazlı fırsat duvarı
+- FAZ-1 kapanışı veya panel kodu / panel bağlama
+- Public repoda üretim ödemesi, faturalama, PSP, PII
+- OD-011 uygulama parkının açılması veya ADR-017 kuruluş birimlerinin birleşmesi
+
+### DECISION_CONFLICT — yok; gerilim kaydı
+
+ADR-017 ve OD-011 / DL-E01 **sessizce geçersiz kılınmaz**. Gerilim şudur: ödeme «aktif kapsam dışı» park edilmiş; yeni cümle ödeme/vergi/kur/uyumu güven mimarisine koyuyor. Çözüm (2026-08-28 kullanıcı hizası):
+
+- **Uygulama parkı durur.** DL-E01 / OD-011 checkout, PSP, settlement, fatura motoru yazdırmaz. Bu kayıt «şimdi kod» değildir.
+- **Konu dışarı atılmaz.** Park, ödeme/vergi/kur/uyumun «başkasının sorunu» olduğu anlamına gelmez; güven mimarisinde durur. Üretim WeLockAI / private; OSS demo-safe kalır ([`public-repo-boundary.md`](../memory/public-repo-boundary.md), [`welockai-charter-draft.md`](./welockai-charter-draft.md)).
+- **Ülke sahte ürün duvarı değildir.** ADR-017 Lumos Dünya’yı küresel katılım yüzeyi, ülke sistemini markasız private katman sayar. Bu kayıt ülke sistemi uygulaması veya `country_pack` açmaz; katkıcı/kullanıcı fırsatını ülke ile kesmez.
