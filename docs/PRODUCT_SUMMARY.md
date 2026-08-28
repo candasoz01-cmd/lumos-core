@@ -50,7 +50,7 @@ Lumos, kurallarını ve yetkilerini arka planda tek başına yenileyen bir **oto
 - **Hatırlama:** Tercihler ve bağlam, daha iyi yardım içindir; ürün kimliğini veya güvenlik çizgisini kullanıcı fark etmeden yeniden tanımlamak değildir.
 - **Geri bildirim:** Dinlenir ve ürün kararına dönüşür; tek başına “öğrendim, artık böyleyim” demez.
 - **Gelişim:** Kullanıcı onayı ve açık sürümle gelir; hızlı, ölçülü ve şeffaftır.
-- **Kendini yönetme (yön, 2026-08-27):** Aynı panel üç merceğe dönüşür — **Kontrol merkezi** (ne çalışıyor, ne harcıyor, hangi işlem) → **Denetim merkezi** (doğru muydu, yetkili miydi, kayıt var mı) → **Güven kurulu** (kritik adım için insan/onay/kural). Yeni sayfa veya yeni ürün değildir. Ayrıntı: [`analysis/lumos-self-governance-surface.md`](analysis/lumos-self-governance-surface.md).
+- **Kendini yönetme (yön, 2026-08-27):** Aynı panel üç merceğe dönüşür — **Kontrol merkezi** (ne çalışıyor, ne harcıyor, hangi işlem) → **Denetim merkezi** (doğru muydu, yetkili miydi, kayıt var mı) → **Güven kurulu** (kritik adım için insan/onay/kural). Yeni sayfa veya yeni ürün değildir. Panel bağlama FAZ-1 kapanış onayından sonra. Ayrıntı: [`analysis/lumos-self-governance-surface.md`](analysis/lumos-self-governance-surface.md).
 
 ---
 

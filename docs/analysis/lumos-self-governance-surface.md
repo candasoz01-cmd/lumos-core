@@ -78,7 +78,13 @@ ADR-029’un üç cümlesi aynı merdivendir: **izler** (kontrol) → **düzelti
 
 ## Sonraki adım (uygulama değil)
 
-FAZ-1 bitmeden kod yok. Panel işi açılırsa sıra:
+**Sıra (2026-08-28, en yeni açık kullanıcı kararı):** önce insan **FAZ-1 kapanış onayı**; sonra panel bağlantısı. Bu ajan FAZ-1'i kapatmaz, `main`'e merge etmez, FAZ-1 bitti demez.
+
+Gözlem (kapanış iddiası değil): ROADMAP'te FAZ-1 ürününün en zayıf halkası hâlâ **iOS / TestFlight**.
+
+O onay gelene kadar: kod yok, yeni panel yok, yeni sayfa yok; STOP LIST sürer. Panel bağlama (mevcut operasyon özeti + kanıt şeridi + pending onay, aynı `/panel`) **ancak** o onaydan sonra.
+
+Panel işi açılırsa sıra değişmez:
 
 1. Mevcut sağ/alt özet + evidence şeridi + pending onay kartını **aynı mercek sözleşmesine** bağla.
 2. Ölçülmeyen göstergeyi yeşil yapma (ADR-029).

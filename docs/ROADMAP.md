@@ -208,8 +208,9 @@ Cümle: **Lumos sadece sistemi çalıştırmaz; sistemin kendini nasıl
 yönettiğini de gösterir.**
 
 Bu kayıt FAZ-1 uygulama izni değildir. STOP LIST (`yeni sayfa`, `yeni
-özellik`) sürer. Sağlayıcı/model adı kullanıcı merceğine sızmaz
-(ADR-019); o ayrıntı Agent Wall’dadır. Normatif taslak:
+özellik`) sürer. Panel bağlama FAZ-1 kapanış onayından sonra.
+Sağlayıcı/model adı kullanıcı merceğine sızmaz (ADR-019); o ayrıntı
+Agent Wall’dadır. Normatif taslak:
 [`docs/analysis/lumos-self-governance-surface.md`](analysis/lumos-self-governance-surface.md).
 
 ## v2 rafı (şimdi konuşulmaz)
