@@ -88,7 +88,12 @@ const lockupClass = [
     >
       {logo && (
         <span class="brand-lockup__mark" aria-hidden="true">
-          <img src={logo} alt="" decoding="async" />
+          <img
+            src={logo}
+            alt=""
+            decoding="async"
+            onerror="this.closest('.brand-lockup__mark')?.remove();this.closest('.brand-lockup')?.classList.add('brand-lockup--text')"
+          />
         </span>
       )}
       <span class="brand-lockup__name">{name}</span>
@@ -97,32 +102,18 @@ const lockupClass = [
     <span class:list={lockupClass}>
       {logo && (
         <span class="brand-lockup__mark" aria-hidden="true">
-          <img src={logo} alt="" decoding="async" />
+          <img
+            src={logo}
+            alt=""
+            decoding="async"
+            onerror="this.closest('.brand-lockup__mark')?.remove();this.closest('.brand-lockup')?.classList.add('brand-lockup--text')"
+          />
         </span>
       )}
       <span class="brand-lockup__name">{name}</span>
     </span>
   )
 }
-
-<script>
-  function hideBrokenBrandMarks() {
-    document.querySelectorAll(".brand-lockup__mark img").forEach((node) => {
-      const img = node as HTMLImageElement;
-      const hide = () => {
-        const mark = img.closest(".brand-lockup__mark");
-        const lockup = img.closest(".brand-lockup");
-        mark?.remove();
-        lockup?.classList.add("brand-lockup--text");
-      };
-      img.addEventListener("error", hide);
-      if (img.complete && img.naturalWidth === 0) hide();
-    });
-  }
-
-  hideBrokenBrandMarks();
-  document.addEventListener("astro:page-load", hideBrokenBrandMarks);
-</script>
 
 <style>
   .brand-lockup {
