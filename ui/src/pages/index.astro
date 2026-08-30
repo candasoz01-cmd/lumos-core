@@ -2100,6 +2100,11 @@ const showMay19Commemoration = isMay19CommemorationDay();
       }
       .lumos-may19-card--sideline {
         margin-top: clamp(0.35rem, 1.2vw, 0.65rem);
+        display: grid;
+        grid-template-columns: minmax(0, 0.82fr) minmax(280px, 1.18fr);
+        gap: clamp(0.9rem, 2.4vw, 1.45rem);
+        align-items: center;
+        padding: clamp(1rem, 2.4vw, 1.35rem);
       }
       .lumos-may19-card h2.lumos-may19-card__heading--inline {
         display: flex;
@@ -2138,6 +2143,32 @@ const showMay19Commemoration = isMay19CommemorationDay();
         line-height: 1.58;
         color: var(--lumos-text-muted);
         max-width: 62ch;
+      }
+      .lumos-may19-card__body {
+        min-width: 0;
+      }
+      .lumos-may19-card__visual {
+        position: relative;
+        min-width: 0;
+        margin: 0;
+        overflow: hidden;
+        border-radius: 12px;
+        border: 1px solid rgb(var(--lumos-land-warm-deep) / 0.2);
+        background: #05070d;
+        box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
+      }
+      .lumos-may19-card__visual img {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: clamp(220px, 34vw, 440px);
+        object-fit: contain;
+        object-position: center center;
+      }
+      @media (max-width: 767.98px) {
+        .lumos-may19-card--sideline {
+          grid-template-columns: 1fr;
+        }
       }
 
       /**
@@ -2464,11 +2495,11 @@ const showMay19Commemoration = isMay19CommemorationDay();
           <div class="lumos-hero-scene" aria-hidden="true">
             <img
               class="lumos-hero-scene__img"
-              src="/chatlumos-task-focus.png"
+              src="/lumos-hero-ata-scene.png"
               data-i18n-src="landing.assets.heroAtaScene"
               alt=""
-              width="1942"
-              height="809"
+              width="900"
+              height="448"
               decoding="async"
               fetchpriority="high"
             />
@@ -2800,47 +2831,59 @@ const showMay19Commemoration = isMay19CommemorationDay();
 
       {/* Kalıcı saygı — kaldırılmaz; 19 Mayıs köşesi ayrıca bayram günü kalır */}
       <aside class="lumos-may19-card lumos-may19-card--sideline" id="saygi" aria-labelledby="saygi-baslik">
-        <h2 id="saygi-baslik" class="lumos-may19-card__heading--inline">
-          <span class="lumos-may19-card__flag-badges" aria-hidden="true">
-            <img
-              class="lumos-may19-card__flag-badge"
-              src="/assets/flags/tr.svg"
-              alt=""
-              width="24"
-              height="16"
-              decoding="async"
-            />
-            <img
-              class="lumos-may19-card__flag-badge"
-              src="/assets/flags/kktc.svg"
-              alt=""
-              width="24"
-              height="16"
-              decoding="async"
-            />
-          </span>
-          <span>Gazi Mustafa Kemal Atatürk</span>
-        </h2>
-        <p>
-          Gazi Mustafa Kemal Atatürk’ü saygı ve minnetle anıyoruz. Bu sahne ve bu metin site yenilense de kalır —
-          kaldırılmaz.
-        </p>
-        <p data-i18n="landing.may19.p3">
-          19 Mayıs’ın taşıdığı gençlik, bilim, bağımsız düşünce ve gelecek fikrini yalnızca bir ülkenin sınırları içinde
-          değil, insanlık için de değerli bir hatırlatma olarak görüyorum.
-        </p>
-        <p data-i18n="landing.may19.p4">
-          Lumos’u da bu anlayışla; geleceği kuracak gençlere ve teknolojiyi insan yararına kullanmak isteyen herkese küçük
-          ama samimi bir armağan olarak görüyorum.
-        </p>
-        <div class="lumos-may19-card__actions">
-          <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/auth">Lumos ile giriş</a>
-          {showMay19Commemoration && (
-            <button type="button" class="lumos-may19-open-btn" id="lumos-may19-open" data-i18n="landing.may19.openBtn">
-              Saygı anını başlat
-            </button>
-          )}
+        <div class="lumos-may19-card__body">
+          <h2 id="saygi-baslik" class="lumos-may19-card__heading--inline">
+            <span class="lumos-may19-card__flag-badges" aria-hidden="true">
+              <img
+                class="lumos-may19-card__flag-badge"
+                src="/assets/flags/tr.svg"
+                alt=""
+                width="24"
+                height="16"
+                decoding="async"
+              />
+              <img
+                class="lumos-may19-card__flag-badge"
+                src="/assets/flags/kktc.svg"
+                alt=""
+                width="24"
+                height="16"
+                decoding="async"
+              />
+            </span>
+            <span>Gazi Mustafa Kemal Atatürk</span>
+          </h2>
+          <p>
+            Gazi Mustafa Kemal Atatürk’ü saygı ve minnetle anıyoruz. Bu sahne ve bu metin site yenilense de kalır —
+            kaldırılmaz.
+          </p>
+          <p data-i18n="landing.may19.p3">
+            19 Mayıs’ın taşıdığı gençlik, bilim, bağımsız düşünce ve gelecek fikrini yalnızca bir ülkenin sınırları içinde
+            değil, insanlık için de değerli bir hatırlatma olarak görüyorum.
+          </p>
+          <p data-i18n="landing.may19.p4">
+            Lumos’u da bu anlayışla; geleceği kuracak gençlere ve teknolojiyi insan yararına kullanmak isteyen herkese küçük
+            ama samimi bir armağan olarak görüyorum.
+          </p>
+          <div class="lumos-may19-card__actions">
+            <a class="lumos-hero-btn lumos-hero-btn--ghost" href="/auth">Lumos ile giriş</a>
+            {showMay19Commemoration && (
+              <button type="button" class="lumos-may19-open-btn" id="lumos-may19-open" data-i18n="landing.may19.openBtn">
+                Saygı anını başlat
+              </button>
+            )}
+          </div>
         </div>
+        <figure class="lumos-may19-card__visual" aria-label="Atatürk anma sahnesi">
+          <img
+            src="/lumos-hero-ata-scene.png"
+            alt=""
+            width="900"
+            height="448"
+            loading="lazy"
+            decoding="async"
+          />
+        </figure>
       </aside>
 
       <section
