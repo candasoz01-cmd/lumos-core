@@ -337,7 +337,7 @@ const landingEn: typeof landingTr = {
   },
   assets: {
     worldMapDecor: "/lumos-world-map.jpg",
-    heroAtaScene: "/lumos-hero-ata-scene.png",
+    heroAtaScene: "/chatlumos-task-focus.png",
     ogImage: "https://welockai.com/chatlumos-task-focus.png",
   },
 };
