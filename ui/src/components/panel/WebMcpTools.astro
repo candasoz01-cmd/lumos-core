@@ -1,0 +1,235 @@
+---
+/**
+ * WebMCP tool kaydı — 2026-08-25 sonrası eklendi (WebMCP Challenge dilimi).
+ *
+ * Bu bileşen mevcut Lumos panelini yeniden tasarlamaz. Panelin hâlihazırda
+ * çalışan Görevler + insan onay kodunu `document.modelContext.registerTool()`
+ * ile ajanlara açar. Tüm yazma tool'ları PanelRuntime.astro içindeki
+ * `window.__lumosPanelWebMcp` köprüsünü çağırır; köprü de panelin onay
+ * modalinden geçmeden hiçbir mutasyon yapmaz.
+ *
+ * Kaynak: https://github.com/webmachinelearning/webmcp (document.modelContext)
+ */
+---
+
+<script>
+  (function () {
+    "use strict";
+
+    /** Test/hata ayıklama yüzeyi: e2e bu nesneyi okur. */
+    const status = {
+      version: "1.0.0",
+      supported: false,
+      registered: [],
+      failed: [],
+      reason: "init",
+    };
+    window.__lumosWebMcpStatus = status;
+
+    function markRoot(state) {
+      try {
+        document.documentElement.dataset.lumosWebmcp = state;
+      } catch (_) {
+        /* ignore */
+      }
+    }
+    markRoot("pending");
+
+    function bridge() {
+      const b = window.__lumosPanelWebMcp;
+      return b && typeof b.listTasks === "function" ? b : null;
+    }
+
+    function textResult(payload) {
+      return {
+        content: [{ type: "text", text: JSON.stringify(payload) }],
+      };
+    }
+
+    function bridgeMissingResult() {
+      return textResult({
+        ok: false,
+        reason: "panel_bridge_unavailable",
+        hint: "Lumos panel runtime is not ready yet; retry after the panel finishes loading.",
+      });
+    }
+
+    /** Panelin görev listesi — okuma, onay istemez. */
+    const LIST_TASKS_TOOL = {
+      name: "lumos-list-tasks",
+      description:
+        "Lists the tasks currently shown in the user's Lumos panel task board "
+        + "(title, priority, status, optional schedule). Read-only: it never "
+        + "changes anything and never asks the user for approval.",
+      inputSchema: { type: "object", properties: {} },
+      execute() {
+        const b = bridge();
+        if (!b) return bridgeMissingResult();
+        return textResult(b.listTasks());
+      },
+    };
+
+    /** Görev önerisi — panelin insan onay modalinden geçer. */
+    const PROPOSE_TASK_TOOL = {
+      name: "lumos-propose-task",
+      description:
+        "Proposes a new task for the user's Lumos panel task board. The task is "
+        + "NOT created until the user approves it in the panel's own confirmation "
+        + "dialog. If the user declines, nothing is written and the result reports "
+        + "approved:false. Never claim the task exists unless ok is true.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          title: {
+            type: "string",
+            description: "Short task title, as the user would read it on the board.",
+          },
+          priority: {
+            type: "string",
+            enum: ["dusuk", "orta", "yuksek"],
+            description: "Priority: dusuk (low), orta (medium, default), yuksek (high).",
+          },
+          when: {
+            type: "string",
+            description:
+              "Optional human-readable schedule hint shown on the task row, e.g. 'Yarın 14:00'.",
+          },
+        },
+        required: ["title"],
+      },
+      async execute(args) {
+        const b = bridge();
+        if (!b) return bridgeMissingResult();
+        return textResult(await b.proposeTask(args || {}));
+      },
+    };
+
+    /** Görevi tamamlama — panelin insan onay modalinden geçer. */
+    const COMPLETE_TASK_TOOL = {
+      name: "lumos-complete-task",
+      description:
+        "Marks an existing Lumos panel task as completed. The task is NOT completed "
+        + "until the user approves it in the panel's own confirmation dialog. If the "
+        + "user declines, nothing is written and the result reports approved:false. "
+        + "Use lumos-list-tasks first to get a valid ref.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          ref: {
+            type: "string",
+            description: "Task id from lumos-list-tasks, or the exact task title.",
+          },
+        },
+        required: ["ref"],
+      },
+      async execute(args) {
+        const b = bridge();
+        if (!b) return bridgeMissingResult();
+        return textResult(await b.completeTask(args || {}));
+      },
+    };
+
+    const TOOLS = [LIST_TASKS_TOOL, PROPOSE_TASK_TOOL, COMPLETE_TASK_TOOL];
+    status.declared = TOOLS.map(function (t) {
+      return t.name;
+    });
+
+    /**
+     * Spec yüzeyi: document.modelContext (webmachinelearning/webmcp).
+     * Bazı erken sürümler aynı nesneyi navigator/window üstünde taşır —
+     * ChatGPT in-app browser ve WebMCP açık Chrome ikisini de kapsasın diye
+     * üçü de yoklanır. Shim YOK: yoksa kayıt yapılmaz, panel normal çalışır.
+     */
+    function findModelContext() {
+      const hosts = [
+        typeof document !== "undefined" ? document : null,
+        typeof navigator !== "undefined" ? navigator : null,
+        typeof window !== "undefined" ? window : null,
+      ];
+      for (let i = 0; i < hosts.length; i++) {
+        const h = hosts[i];
+        if (!h) continue;
+        const mc = h.modelContext;
+        if (mc && typeof mc.registerTool === "function") return mc;
+      }
+      return null;
+    }
+
+    async function registerAll(mc) {
+      for (let i = 0; i < TOOLS.length; i++) {
+        const tool = TOOLS[i];
+        try {
+          await mc.registerTool(tool);
+          status.registered.push(tool.name);
+        } catch (err) {
+          status.failed.push({
+            name: tool.name,
+            error: String((err && err.name) || err || "register_failed"),
+          });
+        }
+      }
+      if (status.registered.length === TOOLS.length) {
+        status.reason = "registered";
+        markRoot("registered");
+      } else if (status.registered.length > 0) {
+        status.reason = "partial";
+        markRoot("partial");
+      } else {
+        status.reason = "register_failed";
+        markRoot("register-failed");
+      }
+      try {
+        window.dispatchEvent(
+          new CustomEvent("lumos:webmcp-tools", { detail: { ...status } }),
+        );
+      } catch (_) {
+        /* ignore */
+      }
+    }
+
+    /** Köprü ve modelContext ikisi de hazır olana kadar kısa süre bekler. */
+    const BOOT_TIMEOUT_MS = 8000;
+    const BOOT_POLL_MS = 120;
+
+    function boot() {
+      const startedAt = Date.now();
+
+      function attempt() {
+        const mc = findModelContext();
+        if (!mc) {
+          if (Date.now() - startedAt < BOOT_TIMEOUT_MS) {
+            window.setTimeout(attempt, BOOT_POLL_MS);
+            return;
+          }
+          status.supported = false;
+          status.reason = "modelcontext_unavailable";
+          markRoot("unsupported");
+          return;
+        }
+        status.supported = true;
+        if (!bridge()) {
+          if (Date.now() - startedAt < BOOT_TIMEOUT_MS) {
+            window.setTimeout(attempt, BOOT_POLL_MS);
+            return;
+          }
+          status.reason = "panel_bridge_unavailable";
+          markRoot("bridge-missing");
+          return;
+        }
+        void registerAll(mc);
+      }
+
+      attempt();
+    }
+
+    /** Tekrar kayıt olmasın: panel tek sayfa, tek kayıt. */
+    if (!window.__lumosWebMcpBooted) {
+      window.__lumosWebMcpBooted = true;
+      if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot, { once: true });
+      } else {
+        boot();
+      }
+    }
+  })();
+</script>

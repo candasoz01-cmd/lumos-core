@@ -2792,6 +2792,14 @@ const {
             finish(false);
           }
           function onClose() {
+            /**
+             * `close` olayı kuyruğa alınır: bir önceki onayın kapanışı, bir
+             * sonraki showModal()'dan SONRA gelebilir ve yeni diyaloğu kendi
+             * kendine "vazgeçildi" yapar. Diyalog şu an açıksa bu olay bize
+             * ait değildir. (WebMCP tool'ları ardışık onay açtığı için görünür
+             * oldu; kullanıcı hızlı iki onay açtığında da aynı hata oluşuyordu.)
+             */
+            if (dlg.open) return;
             finish(false);
           }
           approveBtn.addEventListener("click", onApprove);
@@ -3528,8 +3536,13 @@ const {
 
         let createRes;
         let apiUnreachable = false;
+        /** WebMCP: onay kapısı zaten geçildiyse confirmation_id taşınır (çift diyalog olmaz). */
+        const createBody = { title };
+        const carriedConfirmationId =
+          opts && opts.confirmationId != null ? String(opts.confirmationId).trim() : "";
+        if (carriedConfirmationId) createBody.confirmation_id = carriedConfirmationId;
         try {
-          createRes = await tasksApiPost("/tasks", { title });
+          createRes = await tasksApiPost("/tasks", createBody);
         } catch {
           apiUnreachable = true;
         }
@@ -9942,5 +9955,196 @@ const {
       // OAuth dönüşü: ?source=google_web
       if (new URLSearchParams(location.search).get("source") === "google_web") {
         void refreshPanelAuth();
+      }
+
+      /* ──────────────────────────────────────────────────────────────────────
+       * WebMCP köprüsü (2026-08-25 sonrası eklendi — WebMCP Challenge dilimi)
+       *
+       * Bu blok panel çekirdeğini DEĞİŞTİRMEZ; yalnızca mevcut Görevler + onay
+       * kodunu dar bir yüzeyle dışarı açar. `document.modelContext` tool'ları
+       * WebMcpTools.astro içinde kayıt edilir ve buradaki köprüyü çağırır.
+       *
+       * Güvenlik sözleşmesi:
+       *  - Okuma (listTasks) onay istemez.
+       *  - Dış etkili her yazma (proposeTask / completeTask) panelin mevcut
+       *    insan onay kapısından geçer: sunucu onayı açıksa
+       *    panelEnsureMutationConfirmation (POST /lumos-confirm/request +
+       *    modal), kapalıysa yerel showPanelConfirmationModal.
+       *  - Kullanıcı "Vazgeç" derse hiçbir mutasyon yapılmaz; ajana
+       *    approved:false döner. Kapıyı atlayan bir yol yoktur.
+       * ────────────────────────────────────────────────────────────────────── */
+      const PANEL_WEBMCP_BRIDGE_VERSION = "1.0.0";
+      const PANEL_WEBMCP_TITLE_MAX_LEN = 200;
+
+      function panelWebMcpTaskView(row) {
+        if (!row || typeof row !== "object") return null;
+        const out = {
+          title: String(row.title || ""),
+          priority: String(row.priority || "orta"),
+          status: String(row.status || "bekliyor"),
+        };
+        if (row.id) out.id = String(row.id);
+        if (row.when) out.when = String(row.when);
+        return out;
+      }
+
+      function panelWebMcpListTasks() {
+        const tasks = [];
+        for (let i = 0; i < panelGorevlerTasks.length; i++) {
+          const v = panelWebMcpTaskView(panelGorevlerTasks[i]);
+          if (v) tasks.push(v);
+        }
+        return { ok: true, count: tasks.length, tasks };
+      }
+
+      /**
+       * Onay modali Görevler modülünün içinde yaşar; modül kapalıyken
+       * showModal() görünmez kalır. Ajan kaynaklı onayda kullanıcı kararını
+       * göreceği yere getirilir (kullanıcının kendi tıklayacağı sekme).
+       */
+      function panelWebMcpEnsureTasksModuleVisible() {
+        try {
+          const panel = document.querySelector('[data-module-panel="gorevler"]');
+          if (panel && panel.getAttribute("data-active") === "true") return;
+          const btn = document.querySelector('.panel-body button[data-module="gorevler"]');
+          if (btn && typeof btn.click === "function") btn.click();
+        } catch (_) {
+          /* modül yoksa modal yine de açılmayı dener */
+        }
+      }
+
+      /**
+       * Ajan kaynaklı mutasyonlar için insan onay kapısı.
+       * Dönüş: { approved, confirmationId }. approved false ise çağıran
+       * hiçbir yazma yapmamalıdır.
+       */
+      async function panelWebMcpHumanGate(mutationPath, mutationBody, fallbackPreview) {
+        const dlg = document.getElementById("lumos-confirm-dialog");
+        if (dlg && dlg.open === true) {
+          /* Başka bir onay ekranda: ajana "reddedildi" demek yanıltıcı olur. */
+          return { approved: false, confirmationId: "", busy: true };
+        }
+        panelWebMcpEnsureTasksModuleVisible();
+        if (isPanelConfirmationEnabled()) {
+          const confirmationId = await panelEnsureMutationConfirmation(
+            mutationPath,
+            mutationBody,
+          );
+          if (!confirmationId) return { approved: false, confirmationId: "" };
+          return { approved: true, confirmationId };
+        }
+        const approved = await showPanelConfirmationModal(fallbackPreview);
+        return { approved: approved === true, confirmationId: "" };
+      }
+
+      async function panelWebMcpProposeTask(input) {
+        const src = input && typeof input === "object" ? input : {};
+        let title = String(src.title != null ? src.title : "").trim();
+        if (!title) return { ok: false, approved: false, reason: "title_required" };
+        if (title.length > PANEL_WEBMCP_TITLE_MAX_LEN) {
+          title = title.slice(0, PANEL_WEBMCP_TITLE_MAX_LEN);
+        }
+        const priority = ["dusuk", "orta", "yuksek"].includes(String(src.priority))
+          ? String(src.priority)
+          : "orta";
+        const whenSummary = src.when != null && String(src.when).trim()
+          ? String(src.when).trim().slice(0, PANEL_WEBMCP_TITLE_MAX_LEN)
+          : null;
+
+        const gate = await panelWebMcpHumanGate(
+          "/tasks",
+          { title },
+          { what: "create_task", where: title, effect: "local_task_create" },
+        );
+        if (!gate.approved) {
+          return {
+            ok: false,
+            approved: false,
+            reason: gate.busy ? "confirmation_busy" : "user_rejected",
+          };
+        }
+
+        const row = await persistPanelGorevCreateViaApi({
+          title,
+          whenSummary,
+          priority,
+          status: "bekliyor",
+          confirmationId: gate.confirmationId || "",
+        });
+        if (!row) return { ok: false, approved: true, reason: "create_failed" };
+        return { ok: true, approved: true, task: panelWebMcpTaskView(row) };
+      }
+
+      async function panelWebMcpCompleteTask(input) {
+        const src = input && typeof input === "object" ? input : {};
+        const ref = String(src.ref != null ? src.ref : "").trim();
+        if (!ref) return { ok: false, approved: false, reason: "ref_required" };
+
+        const row = findPanelGorevlerRow(ref, ref);
+        if (!row) return { ok: false, approved: false, reason: "task_not_found" };
+        if (row.status === "tamamlandi") {
+          return {
+            ok: true,
+            approved: true,
+            reason: "already_completed",
+            task: panelWebMcpTaskView(row),
+          };
+        }
+
+        const mutationRef = row.id ? String(row.id).trim() : String(row.title || "").trim();
+        const gate = await panelWebMcpHumanGate(
+          "/tasks/complete",
+          { ref: mutationRef },
+          { what: "complete_task", where: row.title, effect: "local_task_complete" },
+        );
+        if (!gate.approved) {
+          return {
+            ok: false,
+            approved: false,
+            reason: gate.busy ? "confirmation_busy" : "user_rejected",
+          };
+        }
+
+        function finishLocalComplete() {
+          row.status = "tamamlandi";
+          persistPanelGorevlerTasks();
+          const er = evidenceRefFromGorevlerRow(row);
+          if (er.ref) enqueueEvidencePendingOp("complete", er.ref, er.refKind);
+          if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
+          return { ok: true, approved: true, task: panelWebMcpTaskView(row) };
+        }
+
+        if (shouldSkipGorevlerTasksApi()) return finishLocalComplete();
+
+        const completeBody = { ref: mutationRef };
+        if (gate.confirmationId) completeBody.confirmation_id = gate.confirmationId;
+
+        let res;
+        let apiUnreachable = false;
+        try {
+          res = await tasksApiPost("/tasks/complete", completeBody);
+        } catch {
+          apiUnreachable = true;
+        }
+        if (apiUnreachable || !res || !res.ok || !res.data || !res.data.ok) {
+          if (shouldFallbackGorevlerTasksLocal(apiUnreachable)) return finishLocalComplete();
+          return { ok: false, approved: true, reason: "complete_failed" };
+        }
+
+        await refreshPanelGorevlerFromTasksApi();
+        const after = findPanelGorevlerRow(ref, ref);
+        return { ok: true, approved: true, task: panelWebMcpTaskView(after || row) };
+      }
+
+      window.__lumosPanelWebMcp = Object.freeze({
+        version: PANEL_WEBMCP_BRIDGE_VERSION,
+        listTasks: panelWebMcpListTasks,
+        proposeTask: panelWebMcpProposeTask,
+        completeTask: panelWebMcpCompleteTask,
+      });
+      try {
+        window.dispatchEvent(new CustomEvent("lumos:webmcp-bridge-ready"));
+      } catch (_) {
+        /* CustomEvent yoksa WebMcpTools yoklama ile bulur */
       }
 </script>

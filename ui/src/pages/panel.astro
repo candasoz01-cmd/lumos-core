@@ -5,6 +5,7 @@ import LanguageSwitcher from "../components/LanguageSwitcher.astro";
 import I18nInit from "../components/I18nInit.astro";
 import PanelRuntime from "../components/panel/PanelRuntime.astro";
 import BridgeLlmHealthCard from "../components/panel/BridgeLlmHealthCard.astro";
+import WebMcpTools from "../components/panel/WebMcpTools.astro";
 
 /**
  * POST /chat tam URL (örn. `https://host/chat`).
@@ -6472,5 +6473,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
     />
     <I18nInit />
     <BridgeLlmHealthCard />
+    <!-- WebMCP tool kaydı (2026-08-25 sonrası) — PanelRuntime köprüsünden sonra yüklenir. -->
+    <WebMcpTools />
   </body>
 </html>
