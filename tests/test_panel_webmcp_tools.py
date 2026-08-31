@@ -20,6 +20,7 @@ _PANEL_COMPONENTS = _REPO_ROOT / "ui" / "src" / "components" / "panel"
 _WEBMCP_TOOLS = _PANEL_COMPONENTS / "WebMcpTools.astro"
 _PANEL_RUNTIME = _PANEL_COMPONENTS / "PanelRuntime.astro"
 _E2E = _REPO_ROOT / "ui" / "e2e" / "webmcp-panel-tools.mjs"
+_E2E_NATIVE = _REPO_ROOT / "ui" / "e2e" / "webmcp-native-verify.mjs"
 
 TOOL_NAMES = ("lumos-list-tasks", "lumos-propose-task", "lumos-complete-task")
 WRITE_TOOL_BRIDGE_CALLS = ("b.proposeTask(", "b.completeTask(")
@@ -173,7 +174,72 @@ def test_already_completed_shortcut_does_not_leak_task_content() -> None:
     start = src.index("async function panelWebMcpCompleteTask(")
     body = src[start : start + 1400]
     assert 'reason: "already_completed"' in body
-    assert "if (panelWebMcpReadConsentGranted) out.task = panelWebMcpTaskView(row);" in body
+    # İçerik doğrudan değil, izin kapısı olan yardımcıdan geçerek eklenir.
+    assert "panelWebMcpAttachTask(" in body
+    assert "task: panelWebMcpTaskView(" not in body
+
+
+def test_task_echo_helper_is_gated_on_read_consent() -> None:
+    """`task` alanını zarfa ekleyen tek yer, okuma iznini kontrol eder."""
+    src = _runtime_src()
+    start = src.index("function panelWebMcpAttachTask(")
+    body = src[start : src.index("async function panelWebMcpRequestReadConsent(")]
+    assert "panelWebMcpReadConsentGranted === true" in body
+    assert "out.task = view;" in body
+    # İzin kontrolü, görünümün zarfa yazılmasından ÖNCE gelir.
+    assert body.index("panelWebMcpReadConsentGranted === true") < body.index("out.task =")
+
+
+def test_no_bridge_path_attaches_task_data_outside_the_consent_helper() -> None:
+    """Mutasyon onayı okuma izni değildir: hiçbir yol `task`ı elle eklemez.
+
+    Ajan bir başlığı tahmin edip yalnızca "tamamla" onayı alarak okuma
+    kapısını atlayamamalı; başarı zarfı da içerik taşımamalı.
+    """
+    src = _runtime_src()
+    bridge_start = src.index("const PANEL_WEBMCP_BRIDGE_VERSION")
+    bridge_end = src.index("window.__lumosPanelWebMcp = Object.freeze(")
+    bridge = src[bridge_start:bridge_end]
+    # Zarfa `task` yazan elle kurulmuş bir yol kalmamalı.
+    assert "task: panelWebMcpTaskView(" not in bridge
+    assert "out.task = panelWebMcpTaskView(" not in bridge
+    # `panelWebMcpTaskView` yalnızca üç yerde geçer: tanımı, izin kapısı olan
+    # yardımcı, ve zaten izinli olduğu kanıtlanmış listTasks gövdesi.
+    # Yeni bir çağrı eklenirse bu sayı değişir ve test kırmızıya döner.
+    assert bridge.count("panelWebMcpTaskView(") == 3
+    list_body = bridge[
+        bridge.index("async function panelWebMcpListTasks(") : bridge.index(
+            "function panelWebMcpEnsureTasksModuleVisible("
+        )
+    ]
+    assert list_body.count("panelWebMcpTaskView(") == 1
+
+
+def test_success_envelopes_go_through_the_consent_helper() -> None:
+    """propose/complete başarı yolları da aynı kapıdan geçer."""
+    src = _runtime_src()
+    propose = src[
+        src.index("async function panelWebMcpProposeTask(") : src.index(
+            "async function panelWebMcpCompleteTask("
+        )
+    ]
+    complete = src[
+        src.index("async function panelWebMcpCompleteTask(") : src.index(
+            "window.__lumosPanelWebMcp = Object.freeze("
+        )
+    ]
+    assert propose.count("panelWebMcpAttachTask(") == 1
+    # already_completed + yerel tamamlama + API sonrası tamamlama.
+    assert complete.count("panelWebMcpAttachTask(") == 3
+
+
+def test_complete_tool_description_states_the_no_echo_rule() -> None:
+    """Ajan, `task` yokluğunu 'yazılmadı' sanmamalı."""
+    src = _tools_src()
+    start = src.index('name: "lumos-complete-task"')
+    body = src[start : start + 1200]
+    assert "NOT permission to read the board" in body
+    assert "already_completed" in body
 
 
 def test_list_tool_tells_the_agent_consent_is_required() -> None:
@@ -287,3 +353,31 @@ def test_e2e_scenario_covers_read_consent_and_dialog_fields() -> None:
     assert "Zaman alanı gerçek değeri göstermiyor" in e2e
     assert "Verilmeyen 'when' alanı belirtilmedi olarak işaretlenmemiş" in e2e
     assert "Verilmeyen öncelik 'belirtilmedi' işaretlenmemiş" in e2e
+
+
+def test_native_e2e_proves_no_leak_without_read_consent() -> None:
+    """Bayraklı gerçek Chrome kanıtı: izinsiz hiçbir yol veri döndürmez."""
+    assert _E2E_NATIVE.is_file()
+    e2e = _E2E_NATIVE.read_text(encoding="utf-8")
+    # Sayfaya enjeksiyon yok — kanıtın temeli (yorumda geçebilir, ÇAĞRI olamaz).
+    assert "addInitScript(" not in e2e
+    assert "document.modelContext.executeTool(" in e2e
+    # İzin panelin kendi düğmesiyle geri alınır, sonra üç durum sınanır.
+    assert "gorevler-webmcp-consent-revoke" in e2e
+    assert "function assertNoTaskData(" in e2e
+    for label in (
+        "native already_completed (izinsiz)",
+        "native propose onaylı (izinsiz)",
+        "native complete onaylı (izinsiz)",
+        "native task_not_found",
+        "native ref_required",
+    ):
+        assert label in e2e, label
+    # Zarf anahtar bazında da taranır, değer bazında da.
+    assert '"task", "title", "priority", "when", "id", "status"' in e2e
+    # Yazmanın gerçekten olduğu ajan yüzeyinden değil panelden doğrulanır.
+    assert "lumos_panel_gorevler_list_v1" in e2e
+    # Regresyon: izin geri verilince içerik yeniden döner.
+    assert "izin varken içerik dönmedi (regresyon)" in e2e
+    # Chrome 152'de test yüzeyinin yokluğu kayda geçer.
+    assert "modelContextTestingType" in e2e

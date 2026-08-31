@@ -88,7 +88,10 @@
         "Proposes a new task for the user's Lumos panel task board. The task is "
         + "NOT created until the user approves it in the panel's own confirmation "
         + "dialog. If the user declines, nothing is written and the result reports "
-        + "approved:false. Never claim the task exists unless ok is true.",
+        + "approved:false. Never claim the task exists unless ok is true. The "
+        + "result echoes the stored task only when the user has separately "
+        + "approved sharing the board (see lumos-list-tasks); otherwise ok:true "
+        + "arrives with no 'task' field and that still means it was written.",
       inputSchema: {
         type: "object",
         properties: {
@@ -123,7 +126,10 @@
         "Marks an existing Lumos panel task as completed. The task is NOT completed "
         + "until the user approves it in the panel's own confirmation dialog. If the "
         + "user declines, nothing is written and the result reports approved:false. "
-        + "Use lumos-list-tasks first to get a valid ref.",
+        + "Use lumos-list-tasks first to get a valid ref. Approving a completion is "
+        + "NOT permission to read the board: unless the user has separately approved "
+        + "sharing it, the result carries no 'task' field — no title, priority, "
+        + "schedule or id — on any path, including reason 'already_completed'.",
       inputSchema: {
         type: "object",
         properties: {

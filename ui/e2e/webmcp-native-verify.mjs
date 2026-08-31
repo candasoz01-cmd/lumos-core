@@ -113,6 +113,14 @@ const NATIVE_PROOF = function () {
     /* Sayfa/harness enjekte etseydi bu true olurdu (Object.defineProperty(document,…)). */
     ownPropertyOnDocument: Object.prototype.hasOwnProperty.call(document, "modelContext"),
     globalInterfaces: ["ModelContext", "WebMCPEvent"].filter((n) => n in window),
+    /**
+     * Chrome 152'de ajan tarafını taklit eden bir TEST yüzeyi
+     * (`navigator.modelContextTesting`) YOKTUR. Bunu kayda geçiriyoruz ki
+     * ileride eklendiğinde fark edilsin; çağrılar `document.modelContext`
+     * üstünden yapılır.
+     */
+    modelContextTestingType: typeof navigator.modelContextTesting,
+    modelContextTestingInNavigator: "modelContextTesting" in navigator,
     /* Sayfanın kendi kayıt durumu — shim yok, gerçek kayıt. */
     pageStatus: window.__lumosWebMcpStatus ? { ...window.__lumosWebMcpStatus } : null,
   };
@@ -290,6 +298,133 @@ try {
     fail("Native tamamlama başarısız: " + JSON.stringify(completed));
   }
 
+  // ── 6) MUTASYON ONAYI OKUMA İZNİ DEĞİLDİR ─────────────────────────────────
+  // Ajan bir başlığı TAHMİN edip yalnızca "tamamla"/"oluştur" onayı alarak
+  // okuma kapısını atlayamamalı. İzin, panelin kendi düğmesiyle geri alınır;
+  // ardından hiçbir yol (already_completed, onaylı tamamlama, onaylı oluşturma,
+  // hata yolları) görev içeriği taşımamalı.
+  await page.click("#gorevler-webmcp-consent-revoke");
+  if ((await page.getAttribute("#gorevler-webmcp-consent", "data-granted")) !== "false") {
+    fail("Native: okuma izni geri alınamadı");
+  }
+
+  /** Zarfta ne `task` ne de herhangi bir görev alanı/değeri bulunmalı. */
+  const LEAK_KEYS = ["task", "title", "priority", "when", "id", "status", "tasks", "count"];
+  function assertNoTaskData(label, payload, needles) {
+    for (const k of LEAK_KEYS) {
+      if (k in payload) {
+        fail(label + ": izin yokken zarfta '" + k + "' var → " + JSON.stringify(payload));
+      }
+    }
+    const serialized = JSON.stringify(payload);
+    for (const n of needles) {
+      if (n && serialized.indexOf(n) !== -1) {
+        fail(label + ": izin yokken görev verisi sızdı (" + n + ") → " + serialized);
+      }
+    }
+  }
+
+  /** Yazma gerçekten oldu mu? Ajan yüzeyinden değil, panelin kendi listesinden. */
+  const panelHasTitle = (title) =>
+    page.evaluate((t) => {
+      try {
+        const raw = localStorage.getItem("lumos_panel_gorevler_list_v1");
+        return raw ? JSON.parse(raw).some((r) => r && r.title === t) : false;
+      } catch {
+        return false;
+      }
+    }, title);
+
+  // 6a) izin YOK + görev ZATEN TAMAMLANMIŞ → onay ekranı açılmaz, veri dönmez.
+  const alreadyNoConsent = await page.evaluate(NATIVE_CALL_TOOL, {
+    name: "lumos-complete-task",
+    args: { ref: TITLE },
+  });
+  if (alreadyNoConsent.reason !== "already_completed") {
+    fail("Native: already_completed beklenirken " + JSON.stringify(alreadyNoConsent));
+  }
+  assertNoTaskData("native already_completed (izinsiz)", alreadyNoConsent, [
+    TITLE,
+    "yuksek",
+    "Yarın 14:00",
+  ]);
+
+  // 6b) izin YOK + görev BEKLİYOR + kullanıcı yazmayı ONAYLADI → yine veri yok.
+  const PENDING_TITLE = "Native bekleyen " + Date.now();
+  const makePendingPromise = page
+    .evaluate(NATIVE_CALL_TOOL, {
+      name: "lumos-propose-task",
+      args: { title: PENDING_TITLE, priority: "dusuk", when: "Cuma 09:00" },
+    })
+    .catch((e) => ({ __err: String(e && e.message) }));
+  await page.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
+  await page.click("#lumos-confirm-approve");
+  const madePending = await makePendingPromise;
+  if (madePending.ok !== true || madePending.approved !== true) {
+    fail("Native izinsiz oluşturma yazmadı: " + JSON.stringify(madePending));
+  }
+  assertNoTaskData("native propose onaylı (izinsiz)", madePending, [
+    PENDING_TITLE,
+    "dusuk",
+    "Cuma 09:00",
+  ]);
+  if (!(await panelHasTitle(PENDING_TITLE))) {
+    fail("Native: onaylanan görev panelin listesine yazılmamış — ok:true yanıltıcı");
+  }
+
+  const completeNoConsentPromise = page
+    .evaluate(NATIVE_CALL_TOOL, { name: "lumos-complete-task", args: { ref: PENDING_TITLE } })
+    .catch((e) => ({ __err: String(e && e.message) }));
+  await page.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
+  await page.click("#lumos-confirm-approve");
+  const completedNoConsent = await completeNoConsentPromise;
+  if (completedNoConsent.ok !== true || completedNoConsent.approved !== true) {
+    fail("Native izinsiz tamamlama başarısız: " + JSON.stringify(completedNoConsent));
+  }
+  assertNoTaskData("native complete onaylı (izinsiz)", completedNoConsent, [
+    PENDING_TITLE,
+    "dusuk",
+    "Cuma 09:00",
+    "tamamlandi",
+  ]);
+
+  // 6c) izin YOK + hata yolları da veri taşımaz.
+  const notFound = await page.evaluate(NATIVE_CALL_TOOL, {
+    name: "lumos-complete-task",
+    args: { ref: "native-olmayan-" + Date.now() },
+  });
+  if (notFound.reason !== "task_not_found") {
+    fail("Native task_not_found beklenirken: " + JSON.stringify(notFound));
+  }
+  assertNoTaskData("native task_not_found", notFound, [TITLE, PENDING_TITLE]);
+  const refRequired = await page.evaluate(NATIVE_CALL_TOOL, {
+    name: "lumos-complete-task",
+    args: {},
+  });
+  if (refRequired.reason !== "ref_required") {
+    fail("Native ref_required beklenirken: " + JSON.stringify(refRequired));
+  }
+  assertNoTaskData("native ref_required", refRequired, [TITLE, PENDING_TITLE]);
+
+  // 6d) REGRESYON: izin geri verilince aynı yol içeriği yeniden döndürür.
+  const regrantPromise = page
+    .evaluate(NATIVE_CALL_TOOL, { name: "lumos-list-tasks", args: {} })
+    .catch((e) => ({ __err: String(e && e.message) }));
+  await page.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
+  await page.click("#lumos-confirm-approve");
+  const regranted = await regrantPromise;
+  if (!regranted.ok) fail("Native: izin yeniden verilemedi: " + JSON.stringify(regranted));
+  const withConsent = await page.evaluate(NATIVE_CALL_TOOL, {
+    name: "lumos-complete-task",
+    args: { ref: TITLE },
+  });
+  if (!withConsent.task || withConsent.task.title !== TITLE) {
+    fail("Native: izin varken içerik dönmedi (regresyon): " + JSON.stringify(withConsent));
+  }
+  if (withConsent.task.priority !== "yuksek" || withConsent.task.when !== "Yarın 14:00") {
+    fail("Native: izinli zarf eksik alan döndürdü: " + JSON.stringify(withConsent));
+  }
+
   console.log("WEBMCP_NATIVE_RESULT: PASS");
   console.log("chrome binary:  " + CHROME_BIN);
   console.log("chrome flags:   --enable-features=" + WEBMCP_FEATURES
@@ -308,6 +443,8 @@ try {
       documentPrototypeGetter: proof.documentPrototypeGetter,
       ownPropertyOnDocument: proof.ownPropertyOnDocument,
       globalInterfaces: proof.globalInterfaces,
+      modelContextTestingType: proof.modelContextTestingType,
+      modelContextTestingInNavigator: proof.modelContextTestingInNavigator,
       pageRegistered: proof.pageStatus && proof.pageStatus.registered,
     },
     null,
@@ -319,6 +456,14 @@ try {
   console.log("propose declined     : nothing written");
   console.log("propose approved     : " + approved.task.title);
   console.log("complete approved    : " + completed.task.status);
+  console.log("--- izin geri alındıktan sonra (mutasyon onayı ≠ okuma izni) ---");
+  console.log("already_completed    : " + JSON.stringify(alreadyNoConsent));
+  console.log("propose approved     : " + JSON.stringify(madePending) + "  (yazıldı, içerik yok)");
+  console.log("complete approved    : " + JSON.stringify(completedNoConsent));
+  console.log("task_not_found       : " + JSON.stringify(notFound));
+  console.log("ref_required         : " + JSON.stringify(refRequired));
+  console.log("izin geri verilince  : task.title=" + withConsent.task.title
+    + " priority=" + withConsent.task.priority + " when=" + withConsent.task.when);
   console.log("url: " + PANEL_URL);
 
   await browser.close();

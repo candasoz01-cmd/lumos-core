@@ -10160,6 +10160,23 @@ const {
       }
 
       /**
+       * Sonuç zarfına görev görünümünü YALNIZCA okuma izni varken ekler.
+       *
+       * Mutasyon onayı okuma izni DEĞİLDİR: kullanıcı "tamamla"yı onaylarken
+       * başlığı/önceliği/zamanı/kimliği ajana vermeyi onaylamış olmaz. Aksi
+       * halde ajan bir başlığı tahmin edip tamamlama onayı alarak okuma
+       * kapısını atlar ve hiç göremeyeceği alanları geri okur. İzin yoksa
+       * zarf içerik taşımadan döner (ok/approved yine doğrudur).
+       */
+      function panelWebMcpAttachTask(out, row) {
+        if (panelWebMcpReadConsentGranted === true && row) {
+          const view = panelWebMcpTaskView(row);
+          if (view) out.task = view;
+        }
+        return out;
+      }
+
+      /**
        * Paylaşım izni diyaloğu — kullanıcı neyin paylaşılacağını, kapsamı ve
        * nasıl geri alacağını GÖREREK onaylar. Sunucu onay akışı değil: okuma
        * izni yereldir, mutasyon değildir.
@@ -10379,7 +10396,7 @@ const {
           confirmationId: gate.confirmationId || "",
         });
         if (!row) return { ok: false, approved: true, reason: "create_failed" };
-        return { ok: true, approved: true, task: panelWebMcpTaskView(row) };
+        return panelWebMcpAttachTask({ ok: true, approved: true }, row);
       }
 
       async function panelWebMcpCompleteTask(input) {
@@ -10395,9 +10412,10 @@ const {
            * içeriğini geri vermek, okuma iznini atlayan bir yan kanal olurdu.
            * İçerik yalnızca kullanıcı tahtayı paylaşmayı onayladıysa döner.
            */
-          const out = { ok: true, approved: true, reason: "already_completed" };
-          if (panelWebMcpReadConsentGranted) out.task = panelWebMcpTaskView(row);
-          return out;
+          return panelWebMcpAttachTask(
+            { ok: true, approved: true, reason: "already_completed" },
+            row,
+          );
         }
 
         const mutationRef = row.id ? String(row.id).trim() : String(row.title || "").trim();
@@ -10474,7 +10492,7 @@ const {
           const er = evidenceRefFromGorevlerRow(row);
           if (er.ref) enqueueEvidencePendingOp("complete", er.ref, er.refKind);
           if (typeof panelGorevlerTasksRender === "function") panelGorevlerTasksRender();
-          return { ok: true, approved: true, task: panelWebMcpTaskView(row) };
+          return panelWebMcpAttachTask({ ok: true, approved: true }, row);
         }
 
         if (shouldSkipGorevlerTasksApi()) return finishLocalComplete();
@@ -10496,7 +10514,7 @@ const {
 
         await refreshPanelGorevlerFromTasksApi();
         const after = findPanelGorevlerRow(ref, ref);
-        return { ok: true, approved: true, task: panelWebMcpTaskView(after || row) };
+        return panelWebMcpAttachTask({ ok: true, approved: true }, after || row);
       }
 
       /* Görünür izin durumu: sayfa açılışında yüklenir ve panelde gösterilir. */
