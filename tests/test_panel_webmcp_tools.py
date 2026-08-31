@@ -3,7 +3,9 @@
 Bu testler kaynak sözleşmesini korur:
   * tool'lar gerçekten `document.modelContext.registerTool()` ile kaydedilir,
   * her dış etkili tool panelin insan onay kapısından geçer,
-  * onay kapısını atlayan bir kısayol eklenmemiştir.
+  * onay kapısını atlayan bir kısayol eklenmemiştir,
+  * OKUMA da izne bağlıdır: izin yokken görev içeriği ajana dönmez,
+  * onay ekranı, yazılacak HER alanı gerçek değerinden türeterek gösterir.
 
 Çalışan uçtan uca doğrulama ayrıca: `npm run e2e:webmcp --prefix ui`.
 """
@@ -71,7 +73,8 @@ def test_bridge_write_paths_go_through_human_confirmation_gate() -> None:
     assert src.count("await panelWebMcpHumanGate(") == 2
     # Kapı: sunucu onayı açıksa confirmation akışı, kapalıysa yerel modal.
     gate_start = src.index("async function panelWebMcpHumanGate(")
-    gate_body = src[gate_start : gate_start + 1200]
+    # Sabit uzunluk yerine gerçek sınır: kapı büyüdükçe test kör kalmasın.
+    gate_body = src[gate_start : src.index("async function panelWebMcpProposeTask(")]
     assert "isPanelConfirmationEnabled()" in gate_body
     assert "panelEnsureMutationConfirmation(" in gate_body
     assert "showPanelConfirmationModal(" in gate_body
@@ -88,12 +91,170 @@ def test_rejected_gate_never_writes() -> None:
     )
 
 
-def test_read_tool_has_no_confirmation_dependency() -> None:
+def test_read_tool_is_not_a_mutation_path() -> None:
+    """Okuma izin ister ama mutasyon kapısını kullanmaz; hiçbir şey yazmaz."""
     src = _runtime_src()
-    list_start = src.index("function panelWebMcpListTasks(")
-    list_body = src[list_start : list_start + 400]
+    list_start = src.index("async function panelWebMcpListTasks(")
+    list_body = src[list_start : src.index("function panelWebMcpEnsureTasksModuleVisible(")]
     assert "panelWebMcpHumanGate" not in list_body
     assert "tasksApiPost" not in list_body
+    assert "persistPanelGorevlerTasks" not in list_body
+
+
+# ── Mahremiyet: okuma izni kapısı ────────────────────────────────────────────
+
+
+def test_read_tool_withholds_content_without_consent() -> None:
+    """İzin yoksa görev içeriği DÖNMEZ; ret, içerik toplamadan önce olur."""
+    src = _runtime_src()
+    list_start = src.index("async function panelWebMcpListTasks(")
+    list_body = src[list_start : src.index("function panelWebMcpEnsureTasksModuleVisible(")]
+    # Ret, listeyi kurmadan önce gelir.
+    assert list_body.index("panelWebMcpReadRefusal(") < list_body.index("panelGorevlerTasks[i]")
+    assert "if (!panelWebMcpReadConsentGranted) {" in list_body
+
+
+def test_refusal_payload_is_explicit_and_carries_no_task_data() -> None:
+    """Sessiz boş liste değil: ajana neden reddedildiği açıkça söylenir."""
+    src = _runtime_src()
+    start = src.index("function panelWebMcpReadRefusal(")
+    body = src[start : src.index("async function panelWebMcpRequestReadConsent(")]
+    assert 'reason: "read_consent_required"' in body
+    assert "ok: false" in body
+    assert "approved: false" in body
+    assert "hint:" in body
+    # Ret gövdesi görev verisi taşımamalı.
+    assert "tasks" not in body
+    assert "count" not in body
+    assert "panelGorevlerTasks" not in body
+
+
+def test_read_consent_is_session_scoped_and_fails_closed() -> None:
+    src = _runtime_src()
+    assert 'PANEL_WEBMCP_READ_CONSENT_SCOPE = "session"' in src
+    assert "let panelWebMcpReadConsentGranted = false;" in src
+    # Kalıcılık oturum düzeyinde: localStorage değil sessionStorage.
+    load_start = src.index("function panelWebMcpReadConsentLoad(")
+    load_body = src[load_start : src.index("function panelWebMcpReadConsentPersist(")]
+    assert "window.sessionStorage.getItem" in load_body
+    assert "localStorage" not in load_body
+
+
+def test_read_consent_is_visible_and_revocable_in_the_panel() -> None:
+    page = _PANEL_PAGE.read_text(encoding="utf-8")
+    assert 'id="gorevler-webmcp-consent"' in page
+    assert 'id="gorevler-webmcp-consent-revoke"' in page
+    src = _runtime_src()
+    assert "function panelWebMcpRevokeReadConsent(" in src
+    assert "function panelWebMcpRenderConsentState(" in src
+    # Geri alma düğmesi gerçekten bağlanır.
+    assert 'getElementById("gorevler-webmcp-consent-revoke")' in src
+    # Görünür durum sayfa açılışında yüklenir.
+    assert "panelWebMcpReadConsentLoad();" in src
+    assert "panelWebMcpRenderConsentState();" in src
+
+
+def test_consent_prompt_is_shown_to_the_user_before_sharing() -> None:
+    """İzin sessizce verilemez: kullanıcının gördüğü diyalogdan geçer."""
+    src = _runtime_src()
+    start = src.index("async function panelWebMcpRequestReadConsent(")
+    body = src[start : src.index("async function panelWebMcpListTasks(")]
+    assert "showPanelConfirmationModal(" in body
+    assert "panelWebMcpEnsureTasksModuleVisible();" in body
+    # Onay alınmadan izin yazılmaz.
+    assert body.index("if (approved !== true) return false;") < body.index(
+        "panelWebMcpReadConsentGranted = true;"
+    )
+
+
+def test_already_completed_shortcut_does_not_leak_task_content() -> None:
+    """Onay ekranı açılmayan tek yazma yolu da izinsiz içerik döndürmemeli."""
+    src = _runtime_src()
+    start = src.index("async function panelWebMcpCompleteTask(")
+    body = src[start : start + 1400]
+    assert 'reason: "already_completed"' in body
+    assert "if (panelWebMcpReadConsentGranted) out.task = panelWebMcpTaskView(row);" in body
+
+
+def test_list_tool_tells_the_agent_consent_is_required() -> None:
+    src = _tools_src()
+    assert "read_consent_required" in src
+    assert "await b.listTasks()" in src
+
+
+# ── Onay ekranı: yazılacak alanların tamamı ──────────────────────────────────
+
+
+def test_confirmation_dialog_has_a_field_list_section() -> None:
+    page = _PANEL_PAGE.read_text(encoding="utf-8")
+    assert 'id="lumos-confirm-preview-fields-wrap"' in page
+    assert 'id="lumos-confirm-preview-fields"' in page
+    src = _runtime_src()
+    assert "function renderPanelConfirmationFields(" in src
+    assert "renderPanelConfirmationFields(p.fields);" in src
+
+
+def test_field_values_are_rendered_as_text_not_markup() -> None:
+    """Alan değerleri ajandan gelir; HTML olarak yorumlanmamalı."""
+    src = _runtime_src()
+    start = src.index("function renderPanelConfirmationFields(")
+    body = src[start : src.index("function showPanelConfirmationModal(")]
+    assert "dd.textContent" in body
+    assert "innerHTML" not in body
+
+
+def test_propose_dialog_shows_every_written_field_from_real_values() -> None:
+    """priority ve when dahil, yazılacak her alan onay ekranında görünür."""
+    src = _runtime_src()
+    start = src.index("async function panelWebMcpProposeTask(")
+    body = src[start : src.index("async function panelWebMcpCompleteTask(")]
+    for key in ('key: "title"', 'key: "priority"', 'key: "when"', 'key: "status"', 'key: "source"'):
+        assert key in body, key
+    # Değerler sabit metin değil, çağrının gerçek değişkenlerinden gelir.
+    assert "value: title," in body
+    assert "panelWebMcpPriorityLabel(priority)" in body
+    assert "? whenSummary" in body
+    # Alanlar kapıya taşınır — yoksa ekranda görünmez.
+    assert "fields: previewFields," in body
+    # Ekranda gösterilen durum, yazılan durumla aynı değişkendir.
+    assert "status: proposeStatus," in body
+
+
+def test_propose_dialog_marks_unset_fields_explicitly() -> None:
+    """Boş/varsayılan alan gizlenmez: kullanıcı neyi onayladığını bilir."""
+    src = _runtime_src()
+    start = src.index("async function panelWebMcpProposeTask(")
+    body = src[start : src.index("async function panelWebMcpCompleteTask(")]
+    assert 'panelWebMcpT("valueUnsetPrefix"' in body
+    assert 'panelWebMcpT("valueDefaultPrefix"' in body
+    assert "unset: !priorityGiven," in body
+    assert "unset: !whenSummary," in body
+
+
+def test_complete_dialog_shows_the_status_transition() -> None:
+    """Tamamlama: durum değişikliği neyi neye çeviriyor, ekranda yazar."""
+    src = _runtime_src()
+    start = src.index("async function panelWebMcpCompleteTask(")
+    body = src[start : src.index("window.__lumosPanelWebMcp = Object.freeze(")]
+    assert 'const statusFrom = String(row.status || "bekliyor");' in body
+    assert 'const statusTo = "tamamlandi";' in body
+    assert 'key: "status_change"' in body
+    assert "panelWebMcpStatusLabel(statusFrom)" in body
+    assert "panelWebMcpStatusLabel(statusTo)" in body
+    assert "fields: completeFields," in body
+
+
+def test_server_confirmation_path_also_receives_the_fields() -> None:
+    """Sunucu onay akışında da alanlar ekrana taşınır — iki yol ayrışamaz."""
+    src = _runtime_src()
+    assert (
+        "async function panelEnsureMutationConfirmation(mutationPath, mutationBody, previewFields)"
+        in src
+    )
+    gate_start = src.index("async function panelWebMcpHumanGate(")
+    gate_body = src[gate_start : src.index("async function panelWebMcpProposeTask(")]
+    assert "previewFields," in gate_body
+    assert "fallbackPreview.fields" in gate_body
 
 
 def test_confirmation_modal_ignores_stale_close_event() -> None:
@@ -111,3 +272,18 @@ def test_e2e_scenario_exists_and_covers_rejection() -> None:
     assert "lumos-confirm-approve" in e2e
     assert "onay kapısı atlanmış" in e2e
     assert "WEBMCP_PANEL_E2E_RESULT" in e2e
+
+
+def test_e2e_scenario_covers_read_consent_and_dialog_fields() -> None:
+    e2e = _E2E.read_text(encoding="utf-8")
+    # İzin yokken içerik dönmüyor.
+    assert "read_consent_required" in e2e
+    assert "İzinsiz okumada görev içeriği sızmış" in e2e
+    # İzin görünür ve geri alınabilir.
+    assert "gorevler-webmcp-consent-revoke" in e2e
+    assert "Geri alma sonrası okuma engellenmedi" in e2e
+    # Diyalog priority/when'i gerçek değerlerle gösteriyor.
+    assert "lumos-confirm-preview-fields" in e2e
+    assert "Zaman alanı gerçek değeri göstermiyor" in e2e
+    assert "Verilmeyen 'when' alanı belirtilmedi olarak işaretlenmemiş" in e2e
+    assert "Verilmeyen öncelik 'belirtilmedi' işaretlenmemiş" in e2e

@@ -2753,6 +2753,45 @@ const {
         return v;
       }
 
+      /**
+       * Onay ekranının "Yazılacak alanlar" bölümü.
+       *
+       * Sözleşme: kullanıcı GÖRMEDİĞİ bir şeyi onaylamamalı. Mutasyonda
+       * gerçekten yazılacak her alan, çağrıdaki GERÇEK değeriyle burada
+       * listelenir; alan boş veya varsayılansa bu da açıkça yazılır
+       * (ör. "Öncelik: belirtilmedi (varsayılan: orta)"). Değerler sabit
+       * metinden değil, mutasyonu üreten koddan gelir.
+       *
+       * `fields` verilmeyen eski çağrılar için bölüm gizli kalır — mevcut
+       * onay akışlarının davranışı değişmez.
+       */
+      function renderPanelConfirmationFields(fields) {
+        const wrap = document.getElementById("lumos-confirm-preview-fields-wrap");
+        const dl = document.getElementById("lumos-confirm-preview-fields");
+        if (!wrap || !dl) return;
+        dl.textContent = "";
+        const list = Array.isArray(fields) ? fields : [];
+        let shown = 0;
+        for (let i = 0; i < list.length; i++) {
+          const f = list[i];
+          if (!f || typeof f !== "object") continue;
+          const label = String(f.label != null ? f.label : "").trim();
+          if (!label) continue;
+          const dt = document.createElement("dt");
+          dt.textContent = label;
+          const dd = document.createElement("dd");
+          const value = String(f.value != null ? f.value : "").trim();
+          /* textContent: değer ajandan gelir, asla HTML olarak yorumlanmaz. */
+          dd.textContent = value || "—";
+          if (f.unset === true) dd.dataset.unset = "true";
+          if (f.key) dd.dataset.field = String(f.key);
+          dl.appendChild(dt);
+          dl.appendChild(dd);
+          shown++;
+        }
+        wrap.hidden = shown === 0;
+      }
+
       function showPanelConfirmationModal(preview) {
         return new Promise((resolve) => {
           const dlg = document.getElementById("lumos-confirm-dialog");
@@ -2769,6 +2808,7 @@ const {
           whatEl.textContent = panelConfirmationPreviewLabel("what", p.what);
           whereEl.textContent = String(p.where || "—");
           effectEl.textContent = panelConfirmationPreviewLabel("effect", p.effect);
+          renderPanelConfirmationFields(p.fields);
 
           let settled = false;
           function finish(ok) {
@@ -2836,10 +2876,19 @@ const {
         return data;
       }
 
-      async function panelEnsureMutationConfirmation(mutationPath, mutationBody) {
+      /**
+       * `previewFields` (opsiyonel): sunucu önizlemesi yalnızca ne/hedef/etki
+       * döner; mutasyonda yazılacak alanların tamamını çağıran taraf bilir ve
+       * buradan onay ekranına taşır. Verilmezse davranış eskisiyle aynıdır.
+       */
+      async function panelEnsureMutationConfirmation(mutationPath, mutationBody, previewFields) {
         const pending = await requestPanelConfirmation(mutationPath, mutationBody);
         if (!pending) return null;
-        const approved = await showPanelConfirmationModal(pending.preview || {});
+        const preview = { ...(pending.preview || {}) };
+        if (Array.isArray(previewFields) && previewFields.length > 0) {
+          preview.fields = previewFields;
+        }
+        const approved = await showPanelConfirmationModal(preview);
         if (!approved) return null;
         return String(pending.confirmation_id || "").trim() || null;
       }
@@ -9988,13 +10037,210 @@ const {
         return out;
       }
 
-      function panelWebMcpListTasks() {
+      /**
+       * i18n anahtarı yoksa panelT anahtarın kendisini döndürür; onay ekranında
+       * ham anahtar görünmesin diye her etiketin yerel yedeği vardır.
+       */
+      function panelWebMcpT(key, fallback) {
+        const full = "panel.shell.infra.webmcp." + key;
+        const v = panelT(full);
+        return v && v !== full ? v : fallback;
+      }
+
+      function panelWebMcpPriorityLabel(p) {
+        if (p === "dusuk") return panelWebMcpT("priorityLow", "düşük");
+        if (p === "yuksek") return panelWebMcpT("priorityHigh", "yüksek");
+        return panelWebMcpT("priorityNormal", "orta");
+      }
+
+      function panelWebMcpStatusLabel(s) {
+        if (s === "tamamlandi") return panelWebMcpT("statusDone", "tamamlandı");
+        if (s === "onay_bekliyor") return panelWebMcpT("statusAwaiting", "onay bekliyor");
+        return panelWebMcpT("statusPending", "bekliyor");
+      }
+
+      function panelWebMcpSourceValue(toolName) {
+        return panelWebMcpT("valueAgentSource", "Ajan · WebMCP") + " · " + toolName;
+      }
+
+      /* ────────────────────────────────────────────────────────────────────
+       * Okuma izni (mahremiyet kapısı).
+       *
+       * Görev başlıkları, hedefleri ve zaman planları kişisel/iş açısından
+       * hassas veridir. Ajan tarafı bunları kullanıcı haberi olmadan dışarı
+       * taşıyabilir. Bu yüzden `lumos-list-tasks` de bir kapının arkasındadır:
+       *
+       *  - İzin YOKSA hiçbir görev içeriği (başlık, sayı, durum) dönmez;
+       *    ajana sessiz boş liste değil, açık bir ret verilir:
+       *    { ok:false, approved:false, reason:"read_consent_required", ... }
+       *  - İzin, kullanıcının GÖRDÜĞÜ onay diyaloğunda tek seferlik verilir.
+       *  - İzin oturum düzeyindedir (sessionStorage): sekme kapanınca biter.
+       *  - Panelde görünür durum olarak gösterilir ve "İzni geri al" ile
+       *    kullanıcı tarafından her an iptal edilebilir.
+       * ──────────────────────────────────────────────────────────────────── */
+      const PANEL_WEBMCP_READ_CONSENT_KEY = "lumos_panel_webmcp_read_consent_v1";
+      const PANEL_WEBMCP_READ_CONSENT_SCOPE = "session";
+      let panelWebMcpReadConsentGranted = false;
+      let panelWebMcpReadConsentAt = "";
+
+      function panelWebMcpReadConsentLoad() {
+        try {
+          const raw = window.sessionStorage.getItem(PANEL_WEBMCP_READ_CONSENT_KEY);
+          if (!raw) return;
+          const doc = JSON.parse(raw);
+          if (doc && doc.granted === true) {
+            panelWebMcpReadConsentGranted = true;
+            panelWebMcpReadConsentAt = String(doc.at || "");
+          }
+        } catch (_) {
+          /* sessionStorage kapalıysa izin verilmemiş sayılır (fail-closed) */
+        }
+      }
+
+      function panelWebMcpReadConsentPersist() {
+        try {
+          if (panelWebMcpReadConsentGranted) {
+            window.sessionStorage.setItem(
+              PANEL_WEBMCP_READ_CONSENT_KEY,
+              JSON.stringify({ granted: true, at: panelWebMcpReadConsentAt }),
+            );
+          } else {
+            window.sessionStorage.removeItem(PANEL_WEBMCP_READ_CONSENT_KEY);
+          }
+        } catch (_) {
+          /* kalıcılık yoksa izin yalnızca bu sayfa ömrü boyunca geçerlidir */
+        }
+      }
+
+      /** Panelde görünür durum: açık/kapalı + geri alma düğmesi. */
+      function panelWebMcpRenderConsentState() {
+        const box = document.getElementById("gorevler-webmcp-consent");
+        const textEl = document.getElementById("gorevler-webmcp-consent-text");
+        const revokeBtn = document.getElementById("gorevler-webmcp-consent-revoke");
+        if (!box || !textEl) return;
+        const granted = panelWebMcpReadConsentGranted === true;
+        box.dataset.granted = granted ? "true" : "false";
+        textEl.textContent = granted
+          ? panelWebMcpT(
+              "consentOn",
+              "Ajan paylaşımı: açık (bu oturum) — görev listesi ajanlara okunabilir.",
+            )
+          : panelWebMcpT(
+              "consentOff",
+              "Ajan paylaşımı: kapalı — görev listesi ajanlara verilmiyor.",
+            );
+        textEl.setAttribute(
+          "data-i18n",
+          granted ? "panel.shell.infra.webmcp.consentOn" : "panel.shell.infra.webmcp.consentOff",
+        );
+        if (revokeBtn) revokeBtn.hidden = !granted;
+      }
+
+      function panelWebMcpRevokeReadConsent() {
+        panelWebMcpReadConsentGranted = false;
+        panelWebMcpReadConsentAt = "";
+        panelWebMcpReadConsentPersist();
+        panelWebMcpRenderConsentState();
+      }
+
+      /** Ajana içerik yerine dönen açık ret. Görev verisi TAŞIMAZ. */
+      function panelWebMcpReadRefusal(detail) {
+        const out = {
+          ok: false,
+          approved: false,
+          reason: "read_consent_required",
+          consent: { granted: false, scope: PANEL_WEBMCP_READ_CONSENT_SCOPE },
+          hint:
+            "The user has not shared their Lumos task board with agents. Task "
+            + "content is withheld — this is not an empty board. Ask the user to "
+            + "approve the sharing prompt in the Lumos panel, then retry.",
+        };
+        if (detail) out.detail = detail;
+        return out;
+      }
+
+      /**
+       * Paylaşım izni diyaloğu — kullanıcı neyin paylaşılacağını, kapsamı ve
+       * nasıl geri alacağını GÖREREK onaylar. Sunucu onay akışı değil: okuma
+       * izni yereldir, mutasyon değildir.
+       */
+      async function panelWebMcpRequestReadConsent() {
+        const dlg = document.getElementById("lumos-confirm-dialog");
+        if (dlg && dlg.open === true) return false;
+        panelWebMcpEnsureTasksModuleVisible();
+        const count = Array.isArray(panelGorevlerTasks) ? panelGorevlerTasks.length : 0;
+        const approved = await showPanelConfirmationModal({
+          what: "share_task_board",
+          where:
+            panelWebMcpT("consentTarget", "Görev tahtası") + " · " + String(count) + " görev",
+          effect: "agent_read_task_board",
+          fields: [
+            {
+              key: "shared_fields",
+              label: panelWebMcpT("fieldShared", "Paylaşılan alanlar"),
+              value: panelWebMcpT(
+                "valueSharedFields",
+                "Görev başlığı, öncelik, durum ve zaman notu",
+              ),
+            },
+            {
+              key: "scope",
+              label: panelWebMcpT("fieldScope", "Kapsam"),
+              value: panelWebMcpT(
+                "valueScopeSession",
+                "Yalnızca bu tarayıcı oturumu (sekme kapanınca sona erer)",
+              ),
+            },
+            {
+              key: "revoke",
+              label: panelWebMcpT("fieldRevoke", "Geri alma"),
+              value: panelWebMcpT(
+                "valueRevokeHere",
+                "Görevler modülündeki “İzni geri al” düğmesi",
+              ),
+            },
+            {
+              key: "source",
+              label: panelWebMcpT("fieldSource", "Kaynak"),
+              value: panelWebMcpSourceValue("lumos-list-tasks"),
+            },
+          ],
+        });
+        if (approved !== true) return false;
+        panelWebMcpReadConsentGranted = true;
+        panelWebMcpReadConsentAt = new Date().toISOString();
+        panelWebMcpReadConsentPersist();
+        panelWebMcpRenderConsentState();
+        return true;
+      }
+
+      /**
+       * Okuma tool'u. İzin yoksa önce kullanıcıya sorar; kullanıcı vermezse
+       * görev içeriği DÖNMEZ ve ajan reddin sebebini açıkça öğrenir.
+       */
+      async function panelWebMcpListTasks() {
+        if (!panelWebMcpReadConsentGranted) {
+          const dlg = document.getElementById("lumos-confirm-dialog");
+          if (dlg && dlg.open === true) return panelWebMcpReadRefusal("confirmation_busy");
+          const granted = await panelWebMcpRequestReadConsent();
+          if (!granted) return panelWebMcpReadRefusal("user_rejected");
+        }
         const tasks = [];
         for (let i = 0; i < panelGorevlerTasks.length; i++) {
           const v = panelWebMcpTaskView(panelGorevlerTasks[i]);
           if (v) tasks.push(v);
         }
-        return { ok: true, count: tasks.length, tasks };
+        return {
+          ok: true,
+          approved: true,
+          consent: {
+            granted: true,
+            scope: PANEL_WEBMCP_READ_CONSENT_SCOPE,
+            at: panelWebMcpReadConsentAt,
+          },
+          count: tasks.length,
+          tasks,
+        };
       }
 
       /**
@@ -10025,10 +10271,21 @@ const {
           return { approved: false, confirmationId: "", busy: true };
         }
         panelWebMcpEnsureTasksModuleVisible();
+        /**
+         * Yazılacak alanların tamamı İKİ yolda da ekrana çıkar. Sunucu onay
+         * akışı yalnızca ne/hedef/etki döndürür; priority/when gibi alanlar
+         * yalnızca burada bilinir, bu yüzden önizlemeye buradan taşınır.
+         * Kullanıcı görmediği bir alanı onaylamaz.
+         */
+        const previewFields =
+          fallbackPreview && Array.isArray(fallbackPreview.fields)
+            ? fallbackPreview.fields
+            : [];
         if (isPanelConfirmationEnabled()) {
           const confirmationId = await panelEnsureMutationConfirmation(
             mutationPath,
             mutationBody,
+            previewFields,
           );
           if (!confirmationId) return { approved: false, confirmationId: "" };
           return { approved: true, confirmationId };
@@ -10051,10 +10308,59 @@ const {
           ? String(src.when).trim().slice(0, PANEL_WEBMCP_TITLE_MAX_LEN)
           : null;
 
+        /**
+         * Onay ekranı alanları — hepsi bu çağrının GERÇEK değerlerinden
+         * türetilir, sabit metinden değil. Ajan bir alanı vermediyse bu da
+         * açıkça yazılır: kullanıcı hangi varsayılanı onayladığını bilir.
+         */
+        const proposeStatus = "bekliyor";
+        const priorityGiven = ["dusuk", "orta", "yuksek"].includes(String(src.priority));
+        const previewFields = [
+          {
+            key: "title",
+            label: panelWebMcpT("fieldTitle", "Başlık"),
+            value: title,
+          },
+          {
+            key: "priority",
+            label: panelWebMcpT("fieldPriority", "Öncelik"),
+            value: priorityGiven
+              ? panelWebMcpPriorityLabel(priority) + " (" + priority + ")"
+              : panelWebMcpT("valueUnsetPrefix", "belirtilmedi")
+                + " (" + panelWebMcpT("valueDefaultPrefix", "varsayılan") + ": "
+                + panelWebMcpPriorityLabel(priority) + ")",
+            unset: !priorityGiven,
+          },
+          {
+            key: "when",
+            label: panelWebMcpT("fieldWhen", "Zaman"),
+            value: whenSummary
+              ? whenSummary
+              : panelWebMcpT("valueUnsetPrefix", "belirtilmedi")
+                + " (" + panelWebMcpT("valueNoSchedule", "zaman planlanmıyor") + ")",
+            unset: !whenSummary,
+          },
+          {
+            key: "status",
+            label: panelWebMcpT("fieldStatus", "Durum"),
+            value: panelWebMcpStatusLabel(proposeStatus) + " (" + proposeStatus + ")",
+          },
+          {
+            key: "source",
+            label: panelWebMcpT("fieldSource", "Kaynak"),
+            value: panelWebMcpSourceValue("lumos-propose-task"),
+          },
+        ];
+
         const gate = await panelWebMcpHumanGate(
           "/tasks",
           { title },
-          { what: "create_task", where: title, effect: "local_task_create" },
+          {
+            what: "create_task",
+            where: title,
+            effect: "local_task_create",
+            fields: previewFields,
+          },
         );
         if (!gate.approved) {
           return {
@@ -10068,7 +10374,8 @@ const {
           title,
           whenSummary,
           priority,
-          status: "bekliyor",
+          /* Onay ekranında gösterilen durumla aynı değişken — ikisi ayrışamaz. */
+          status: proposeStatus,
           confirmationId: gate.confirmationId || "",
         });
         if (!row) return { ok: false, approved: true, reason: "create_failed" };
@@ -10083,19 +10390,75 @@ const {
         const row = findPanelGorevlerRow(ref, ref);
         if (!row) return { ok: false, approved: false, reason: "task_not_found" };
         if (row.status === "tamamlandi") {
-          return {
-            ok: true,
-            approved: true,
-            reason: "already_completed",
-            task: panelWebMcpTaskView(row),
-          };
+          /**
+           * Yapacak bir şey yok. Ama burada hiçbir onay ekranı açılmadı: görev
+           * içeriğini geri vermek, okuma iznini atlayan bir yan kanal olurdu.
+           * İçerik yalnızca kullanıcı tahtayı paylaşmayı onayladıysa döner.
+           */
+          const out = { ok: true, approved: true, reason: "already_completed" };
+          if (panelWebMcpReadConsentGranted) out.task = panelWebMcpTaskView(row);
+          return out;
         }
 
         const mutationRef = row.id ? String(row.id).trim() : String(row.title || "").trim();
+        /**
+         * Tamamlamada da aynı ilke: durum değişikliğinin NEYİ NEYE çevirdiği
+         * ekranda yazar; hangi satırın hangi referansla eşleştiği de öyle.
+         */
+        const statusFrom = String(row.status || "bekliyor");
+        const statusTo = "tamamlandi";
+        const completeFields = [
+          {
+            key: "task",
+            label: panelWebMcpT("fieldTask", "Görev"),
+            value: String(row.title || ""),
+          },
+          {
+            key: "status_change",
+            label: panelWebMcpT("fieldStatusChange", "Durum değişikliği"),
+            value:
+              panelWebMcpStatusLabel(statusFrom) + " → " + panelWebMcpStatusLabel(statusTo)
+              + " (" + statusFrom + " → " + statusTo + ")",
+          },
+          {
+            key: "priority",
+            label: panelWebMcpT("fieldPriority", "Öncelik"),
+            value:
+              panelWebMcpPriorityLabel(String(row.priority || "orta"))
+              + " (" + panelWebMcpT("valueUnchanged", "değişmiyor") + ")",
+          },
+          {
+            key: "when",
+            label: panelWebMcpT("fieldWhen", "Zaman"),
+            value: row.when
+              ? String(row.when) + " (" + panelWebMcpT("valueUnchanged", "değişmiyor") + ")"
+              : panelWebMcpT("valueUnsetPrefix", "belirtilmedi")
+                + " (" + panelWebMcpT("valueUnchanged", "değişmiyor") + ")",
+            unset: !row.when,
+          },
+          {
+            key: "ref",
+            label: panelWebMcpT("fieldTaskRef", "Eşleşen referans"),
+            value: row.id
+              ? String(row.id)
+              : mutationRef + " (" + panelWebMcpT("valueMatchedByTitle", "başlıkla eşleşti") + ")",
+            unset: !row.id,
+          },
+          {
+            key: "source",
+            label: panelWebMcpT("fieldSource", "Kaynak"),
+            value: panelWebMcpSourceValue("lumos-complete-task"),
+          },
+        ];
         const gate = await panelWebMcpHumanGate(
           "/tasks/complete",
           { ref: mutationRef },
-          { what: "complete_task", where: row.title, effect: "local_task_complete" },
+          {
+            what: "complete_task",
+            where: row.title,
+            effect: "local_task_complete",
+            fields: completeFields,
+          },
         );
         if (!gate.approved) {
           return {
@@ -10136,11 +10499,37 @@ const {
         return { ok: true, approved: true, task: panelWebMcpTaskView(after || row) };
       }
 
+      /* Görünür izin durumu: sayfa açılışında yüklenir ve panelde gösterilir. */
+      panelWebMcpReadConsentLoad();
+      panelWebMcpRenderConsentState();
+      (function bindPanelWebMcpConsentRevoke() {
+        const btn = document.getElementById("gorevler-webmcp-consent-revoke");
+        if (!btn) return;
+        btn.addEventListener("click", function () {
+          panelWebMcpRevokeReadConsent();
+        });
+      })();
+      /* Dil değişince görünür durum metni de değişsin. */
+      try {
+        window.addEventListener("lumos:locale-changed", panelWebMcpRenderConsentState);
+      } catch (_) {
+        /* olay yoksa metin ilk render'daki dilde kalır */
+      }
+
       window.__lumosPanelWebMcp = Object.freeze({
         version: PANEL_WEBMCP_BRIDGE_VERSION,
         listTasks: panelWebMcpListTasks,
         proposeTask: panelWebMcpProposeTask,
         completeTask: panelWebMcpCompleteTask,
+        /* Kullanıcı yüzeyi: panelin kendi düğmesiyle aynı yol. Ajana AÇILMAZ. */
+        readConsentState: function () {
+          return {
+            granted: panelWebMcpReadConsentGranted === true,
+            scope: PANEL_WEBMCP_READ_CONSENT_SCOPE,
+            at: panelWebMcpReadConsentAt,
+          };
+        },
+        revokeReadConsent: panelWebMcpRevokeReadConsent,
       });
       try {
         window.dispatchEvent(new CustomEvent("lumos:webmcp-bridge-ready"));

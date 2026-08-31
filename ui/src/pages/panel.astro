@@ -1758,11 +1758,58 @@ const PANEL_DEBUG = import.meta.env.DEV;
         color: rgba(245, 240, 230, 0.94);
         word-break: break-word;
       }
+      .lumos-confirm-preview-fields-wrap {
+        margin-top: 0.7rem;
+        padding-top: 0.7rem;
+        border-top: 1px solid rgba(212, 182, 128, 0.16);
+      }
+      .lumos-confirm-preview-fields-wrap[hidden] {
+        display: none !important;
+      }
+      .lumos-confirm-preview-fields-title {
+        margin: 0 0 0.45rem;
+        font-size: 0.74rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: rgba(212, 182, 128, 0.82);
+      }
+      /* Boş/varsayılan alanlar gizlenmez — soluk ama okunur gösterilir. */
+      .lumos-confirm-preview-dl dd[data-unset="true"] {
+        color: rgba(214, 208, 196, 0.72);
+        font-style: italic;
+      }
       .lumos-confirm-dialog-actions {
         display: flex;
         justify-content: flex-end;
         gap: 0.5rem;
         padding: 0 1rem 1rem;
+      }
+      /* WebMCP okuma izni — görünür durum satırı. */
+      .gorevler-webmcp-consent {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 0 0 0.6rem;
+        padding: 0.45rem 0.7rem;
+        border-radius: var(--panel-radius-sm, 0.5rem);
+        border: 1px solid rgba(212, 182, 128, 0.22);
+        background: rgba(10, 14, 22, 0.55);
+        font-size: 0.74rem;
+        line-height: 1.45;
+        color: rgba(214, 208, 196, 0.9);
+      }
+      .gorevler-webmcp-consent[data-granted="true"] {
+        border-color: rgba(228, 198, 138, 0.45);
+        color: rgba(245, 240, 230, 0.95);
+      }
+      .gorevler-webmcp-consent #gorevler-webmcp-consent-revoke {
+        margin-left: auto;
+        font-size: 0.72rem;
+      }
+      .gorevler-webmcp-consent #gorevler-webmcp-consent-revoke[hidden] {
+        display: none !important;
       }
       .gorevler-detail--fallback#gorevler-detail.gorevler-detail {
         box-shadow: var(--panel-edge-inset), var(--panel-shadow-ambient);
@@ -5229,6 +5276,34 @@ const PANEL_DEBUG = import.meta.env.DEV;
             >
               Bu panel önizleme sürümüdür; riskli işlemlerde durur ve onay ister.
             </p>
+            <!--
+              WebMCP okuma izni — görünür durum. Görev tahtası kişisel veridir;
+              kullanıcı açıkça izin vermeden ajana verilmez. İzin bu oturuma
+              bağlıdır ve buradan geri alınabilir.
+            -->
+            <p
+              id="gorevler-webmcp-consent"
+              class="gorevler-webmcp-consent"
+              role="status"
+              aria-live="polite"
+              data-granted="false"
+            >
+              <span
+                id="gorevler-webmcp-consent-text"
+                data-i18n="panel.shell.infra.webmcp.consentOff"
+              >
+                Ajan paylaşımı: kapalı — görev listesi ajanlara verilmiyor.
+              </span>
+              <button
+                type="button"
+                id="gorevler-webmcp-consent-revoke"
+                class="gorevler-clear-test-btn"
+                data-i18n="panel.shell.infra.webmcp.consentRevoke"
+                hidden
+              >
+                İzni geri al
+              </button>
+            </p>
             <div class="gorevler-proto">
               <div class="gorevler-form-panel">
                 <div class="gorevler-field">
@@ -5420,6 +5495,26 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       <dt data-i18n="panel.shell.infra.confirmation.labelEffect">Etki</dt>
                       <dd id="lumos-confirm-preview-effect"></dd>
                     </dl>
+                    <!--
+                      Yazılacak alanların tamamı. Onay ekranı, mutasyonda gerçekten
+                      yazılacak HER alanı çağrıdaki gerçek değerlerle gösterir;
+                      boş/varsayılan alanlar da açıkça yazılır. Alan yoksa gizli kalır.
+                    -->
+                    <section
+                      id="lumos-confirm-preview-fields-wrap"
+                      class="lumos-confirm-preview-fields-wrap"
+                      hidden
+                      aria-labelledby="lumos-confirm-preview-fields-title"
+                    >
+                      <h4
+                        id="lumos-confirm-preview-fields-title"
+                        class="lumos-confirm-preview-fields-title"
+                        data-i18n="panel.shell.infra.confirmation.labelFields"
+                      >
+                        Yazılacak alanlar
+                      </h4>
+                      <dl id="lumos-confirm-preview-fields" class="lumos-confirm-preview-dl"></dl>
+                    </section>
                   </div>
                   <div class="lumos-confirm-dialog-actions">
                     <button type="button" id="lumos-confirm-cancel" class="gorevler-clear-test-btn" data-i18n="panel.shell.infra.confirmation.cancel">

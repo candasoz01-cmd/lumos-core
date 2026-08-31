@@ -54,18 +54,30 @@
       });
     }
 
-    /** Panelin görev listesi — okuma, onay istemez. */
+    /**
+     * Panelin görev listesi — okuma da izne bağlıdır.
+     *
+     * Görev başlıkları ve zaman planları kişisel/iş açısından hassas veridir.
+     * Bu tool hiçbir şeyi değiştirmez ama içerik, kullanıcı görev tahtasını
+     * ajanla paylaşmayı açıkça onaylamadan DÖNMEZ. Onay yoksa sessiz boş
+     * liste değil, `read_consent_required` reddi döner.
+     */
     const LIST_TASKS_TOOL = {
       name: "lumos-list-tasks",
       description:
-        "Lists the tasks currently shown in the user's Lumos panel task board "
-        + "(title, priority, status, optional schedule). Read-only: it never "
-        + "changes anything and never asks the user for approval.",
+        "Lists the tasks in the user's Lumos panel task board (title, priority, "
+        + "status, optional schedule). Read-only: it never changes anything. "
+        + "Task content is private: the user must explicitly approve sharing the "
+        + "board with agents in the panel's own dialog. Without that consent this "
+        + "returns ok:false with reason 'read_consent_required' and NO task data — "
+        + "that is a refusal, not an empty board, so never report the board as "
+        + "empty. Consent lasts for the browser session and the user can revoke it "
+        + "from the panel at any time.",
       inputSchema: { type: "object", properties: {} },
-      execute() {
+      async execute() {
         const b = bridge();
         if (!b) return bridgeMissingResult();
-        return textResult(b.listTasks());
+        return textResult(await b.listTasks());
       },
     };
 
