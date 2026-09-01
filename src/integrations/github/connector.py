@@ -217,11 +217,17 @@ class GitHubReadOnlyConnector:
             expires_at=expires_at,
             verification_source="github_authenticated_user",
         )
-        if not self._registry.upsert(binding):
+        upsert_result = self._registry.upsert_with_replaced_ref(binding)
+        if not upsert_result.applied:
             # Registry kaybettiyse (eşzamanlı yarış), az önce vault'a yazılan
             # secret'ı yetim bırakmamak için en iyi çaba ile geri al.
             self._vault.delete_credential(vault_ref, PURPOSE_GITHUB_METADATA_READ)
             return GitHubConnectionResult(False, error="stale_connection_completion")
+        if upsert_result.replaced_vault_ref:
+            self._vault.delete_credential(
+                upsert_result.replaced_vault_ref,
+                PURPOSE_GITHUB_METADATA_READ,
+            )
         return GitHubConnectionResult(
             True,
             account_id=key.account_id,
@@ -300,7 +306,16 @@ class GitHubReadOnlyConnector:
             repositories = self._api.list_repositories(resolution.secret_value, limit=limit)
         except GitHubApiError as exc:
             if exc.reason == "github_credential_rejected":
-                self._registry.revoke(key, revoked_at=now)
+                revoked = self._registry.revoke_if_current(
+                    key,
+                    expected_vault_ref=binding.vault_ref,
+                    revoked_at=now,
+                )
+                if revoked:
+                    self._vault.delete_credential(
+                        binding.vault_ref,
+                        binding.key.purpose_code,
+                    )
                 return GitHubReadResult(
                     False,
                     access_action=CredentialAccessAction.APPROVAL_REQUIRED,
