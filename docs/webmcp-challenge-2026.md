@@ -194,6 +194,8 @@ Uygulama notları:
   "kullanıcı reddetti" gibi yanıltıcı bir cevap verilmez. Yoğunluk kilidi
   (`panelConfirmationInFlight`) **ilk await'ten önce** alınır — sunucu onayı
   beklenirken açılan ikinci çağrı da ilk diyaloğa dokunmadan busy döner.
+  Kilit `panelEnsureMutationConfirmation` içinde tutulur; böylece panel UI
+  (`tasksApiPost`) ile WebMCP aynı tek-uçuş korumasını paylaşır.
 
 ### Bu dilimde ortaya çıkan gerçek hata düzeltmesi
 

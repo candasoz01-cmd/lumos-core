@@ -93,22 +93,36 @@ def test_rejected_gate_never_writes() -> None:
 
 
 def test_confirmation_lock_taken_before_first_await() -> None:
-    """Eşzamanlı onaylar: kilit ilk await'ten önce alınır; busy ilk diyaloğa dokunmaz."""
+    """Eşzamanlı onaylar: kilit ilk await'ten önce; WebMCP + tasksApiPost ortak."""
     src = _runtime_src()
     assert "let panelConfirmationInFlight = false;" in src
     assert "function isPanelConfirmationBusy()" in src
+    # Paylaşılan sunucu yolu: kilit panelEnsureMutationConfirmation'da (tasksApiPost da buradan geçer).
+    ensure_start = src.index("async function panelEnsureMutationConfirmation(")
+    ensure_body = src[ensure_start : src.index("async function tasksApiPost(")]
+    assert 'reason: "confirmation_busy"' in ensure_body
+    assert ensure_body.index("isPanelConfirmationBusy()") < ensure_body.index(
+        "panelConfirmationInFlight = true;"
+    )
+    assert ensure_body.index("panelConfirmationInFlight = true;") < ensure_body.index(
+        "await requestPanelConfirmation("
+    )
+    assert "finally {" in ensure_body
+    assert "panelConfirmationInFlight = false;" in ensure_body
+    # Yerel WebMCP yolu: kilit humanGate içinde, showModal await'inden önce.
     gate_start = src.index("async function panelWebMcpHumanGate(")
     gate_body = src[gate_start : src.index("async function panelWebMcpProposeTask(")]
     assert 'reason: "confirmation_busy"' in gate_body
-    # Kilit, panelEnsureMutationConfirmation / showPanelConfirmationModal await'inden önce.
-    assert gate_body.index("panelConfirmationInFlight = true;") < gate_body.index(
-        "await panelEnsureMutationConfirmation("
-    )
     assert gate_body.index("panelConfirmationInFlight = true;") < gate_body.index(
         "await showPanelConfirmationModal("
     )
-    assert "finally {" in gate_body
-    assert "panelConfirmationInFlight = false;" in gate_body
+    # Sunucu yolunda humanGate kilidi tekrar almaz (çift kilit / self-busy olmaz).
+    server_branch = gate_body[
+        gate_body.index("if (isPanelConfirmationEnabled())") : gate_body.index(
+            "await panelEnsureMutationConfirmation("
+        )
+    ]
+    assert "panelConfirmationInFlight = true;" not in server_branch
 
 
 def test_gate_distinguishes_user_reject_from_server_failure() -> None:

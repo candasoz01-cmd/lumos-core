@@ -2909,35 +2909,47 @@ const {
        * döner; mutasyonda yazılacak alanların tamamını çağıran taraf bilir ve
        * buradan onay ekranına taşır. Verilmezse davranış eskisiyle aynıdır.
        *
+       * Tek-uçuş kilidi burada alınır (WebMCP + tasksApiPost ortak yol). İlk
+       * await'ten önce; ikinci çağrı `confirmation_busy` döner ve açık
+       * diyaloğa dokunmaz.
+       *
        * Dönüş: `{ ok: true, confirmationId }` veya
-       * `{ ok: false, reason: "user_rejected"|"confirmation_unavailable"|"confirmation_failed" }`.
+       * `{ ok: false, reason: "confirmation_busy"|"user_rejected"|"confirmation_unavailable"|"confirmation_failed" }`.
        */
       async function panelEnsureMutationConfirmation(mutationPath, mutationBody, previewFields) {
-        const pending = await requestPanelConfirmation(mutationPath, mutationBody);
-        if (!pending || pending.ok !== true || !pending.data) {
-          return {
-            ok: false,
-            reason:
-              pending && pending.reason
-                ? pending.reason
-                : "confirmation_failed",
-          };
+        if (isPanelConfirmationBusy()) {
+          return { ok: false, reason: "confirmation_busy" };
         }
-        const preview = { ...(pending.data.preview || {}) };
-        if (Array.isArray(previewFields) && previewFields.length > 0) {
-          preview.fields = previewFields;
+        panelConfirmationInFlight = true;
+        try {
+          const pending = await requestPanelConfirmation(mutationPath, mutationBody);
+          if (!pending || pending.ok !== true || !pending.data) {
+            return {
+              ok: false,
+              reason:
+                pending && pending.reason
+                  ? pending.reason
+                  : "confirmation_failed",
+            };
+          }
+          const preview = { ...(pending.data.preview || {}) };
+          if (Array.isArray(previewFields) && previewFields.length > 0) {
+            preview.fields = previewFields;
+          }
+          const decision = await showPanelConfirmationModal(preview);
+          if (!decision || decision.approved !== true) {
+            return {
+              ok: false,
+              reason:
+                decision && decision.reason ? decision.reason : "confirmation_failed",
+            };
+          }
+          const confirmationId = String(pending.data.confirmation_id || "").trim();
+          if (!confirmationId) return { ok: false, reason: "confirmation_failed" };
+          return { ok: true, confirmationId };
+        } finally {
+          panelConfirmationInFlight = false;
         }
-        const decision = await showPanelConfirmationModal(preview);
-        if (!decision || decision.approved !== true) {
-          return {
-            ok: false,
-            reason:
-              decision && decision.reason ? decision.reason : "confirmation_failed",
-          };
-        }
-        const confirmationId = String(pending.data.confirmation_id || "").trim();
-        if (!confirmationId) return { ok: false, reason: "confirmation_failed" };
-        return { ok: true, confirmationId };
       }
 
       async function tasksApiPost(path, body) {
@@ -10336,41 +10348,42 @@ const {
        * confirmation_failed.
        */
       async function panelWebMcpHumanGate(mutationPath, mutationBody, fallbackPreview) {
+        panelWebMcpEnsureTasksModuleVisible();
+        /**
+         * Yazılacak alanların tamamı İKİ yolda da ekrana çıkar. Sunucu onay
+         * akışı yalnızca ne/hedef/etki döndürür; priority/when gibi alanlar
+         * yalnızca burada bilinir, bu yüzden önizlemeye buradan taşınır.
+         * Kullanıcı görmediği bir alanı onaylamaz.
+         */
+        const previewFields =
+          fallbackPreview && Array.isArray(fallbackPreview.fields)
+            ? fallbackPreview.fields
+            : [];
+        if (isPanelConfirmationEnabled()) {
+          /* Sunucu yolu: kilit panelEnsureMutationConfirmation içinde (tasksApiPost ile ortak). */
+          const confirmation = await panelEnsureMutationConfirmation(
+            mutationPath,
+            mutationBody,
+            previewFields,
+          );
+          if (!confirmation || confirmation.ok !== true || !confirmation.confirmationId) {
+            return {
+              approved: false,
+              confirmationId: "",
+              reason:
+                confirmation && confirmation.reason
+                  ? confirmation.reason
+                  : "confirmation_failed",
+            };
+          }
+          return { approved: true, confirmationId: confirmation.confirmationId };
+        }
+        /* Yerel modal yolu: kilit burada — tasksApiPost sunucu yolunu kullanır. */
         if (isPanelConfirmationBusy()) {
-          /* Başka bir onay uçuşta veya ekranda: "reddedildi" demek yanıltıcı. */
           return { approved: false, confirmationId: "", reason: "confirmation_busy" };
         }
         panelConfirmationInFlight = true;
         try {
-          panelWebMcpEnsureTasksModuleVisible();
-          /**
-           * Yazılacak alanların tamamı İKİ yolda da ekrana çıkar. Sunucu onay
-           * akışı yalnızca ne/hedef/etki döndürür; priority/when gibi alanlar
-           * yalnızca burada bilinir, bu yüzden önizlemeye buradan taşınır.
-           * Kullanıcı görmediği bir alanı onaylamaz.
-           */
-          const previewFields =
-            fallbackPreview && Array.isArray(fallbackPreview.fields)
-              ? fallbackPreview.fields
-              : [];
-          if (isPanelConfirmationEnabled()) {
-            const confirmation = await panelEnsureMutationConfirmation(
-              mutationPath,
-              mutationBody,
-              previewFields,
-            );
-            if (!confirmation || confirmation.ok !== true || !confirmation.confirmationId) {
-              return {
-                approved: false,
-                confirmationId: "",
-                reason:
-                  confirmation && confirmation.reason
-                    ? confirmation.reason
-                    : "confirmation_failed",
-              };
-            }
-            return { approved: true, confirmationId: confirmation.confirmationId };
-          }
           const decision = await showPanelConfirmationModal(fallbackPreview);
           if (decision && decision.approved === true) {
             return { approved: true, confirmationId: "" };
