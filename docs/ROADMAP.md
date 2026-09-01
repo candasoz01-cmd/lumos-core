@@ -195,6 +195,24 @@ kullanır, ayrı bir motor kurmaz.
 Kullanıcı yüzüne sağlayıcı/model adı, `session_id`, `instance_id`, worktree,
 heartbeat, PR/merge kapısı ve iç ajan koordinasyonu **sızmaz**.
 
+## Panel kendini yönetme yüzeyi (FAZ-1 sonrası yön)
+
+2026-08-27 kullanıcı kararı: panel **dönüşebilir**; üç ayrı ürün veya üç
+yeni sayfa **açılmaz**. Aynı `/panel` üç mercek gösterir:
+
+1. **Kontrol merkezi** — ne çalışıyor, ne harcıyor, hangi işlem.
+2. **Denetim merkezi** — doğru muydu, yetkili miydi, kayıt var mı.
+3. **Güven kurulu** — kritik adım için insan / onay / kural.
+
+Cümle: **Lumos sadece sistemi çalıştırmaz; sistemin kendini nasıl
+yönettiğini de gösterir.**
+
+Bu kayıt FAZ-1 uygulama izni değildir. STOP LIST (`yeni sayfa`, `yeni
+özellik`) sürer. Panel bağlama FAZ-1 kapanış onayından sonra.
+Sağlayıcı/model adı kullanıcı merceğine sızmaz (ADR-019); o ayrıntı
+Agent Wall’dadır. Normatif taslak:
+[`docs/analysis/lumos-self-governance-surface.md`](analysis/lumos-self-governance-surface.md).
+
 ## v2 rafı (şimdi konuşulmaz)
 
 - **Media** (video üretimi, render, ses, kolaj)
@@ -209,3 +227,4 @@ heartbeat, PR/merge kapısı ve iç ajan koordinasyonu **sızmaz**.
 - Modül envanteri: [`docs/MODULES.md`](MODULES.md)
 - Teknik borç: [`docs/TECHNICAL_DEBT.md`](TECHNICAL_DEBT.md)
 - Kanıt merdiveni: [`docs/analysis/scope-accounting.md`](analysis/scope-accounting.md)
+- Kendini yönetme yüzeyi: [`docs/analysis/lumos-self-governance-surface.md`](analysis/lumos-self-governance-surface.md)

@@ -27,6 +27,7 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **güvenl
 | SEC-003 | İç katmanlar dışarıdan komut veya veri doğrudan kabul etmez; akış Lumos geçidinden geçer. | **güvenlik kuralı** |
 | SEC-004 | Offline modda dış/network erişimi yok; online modda yalnızca çağrıldığında çalışır. | **güvenlik kuralı** |
 | SEC-005 | Emin olunmayan durumda dış etkili işlem yapılmaz. | **güvenlik kuralı** |
+| SEC-006 | **İzinli yol da denetlenir.** Güvenlik yalnız erişimi kesmek değil; izin verilen yolların davranışını izlemektir. Guardrails dosyası gerçek izolasyon + izleme sayılmaz. Ajan doğrudan internete çıkmasa bile paket yöneticisi, log veya depo gibi izinli servisler yan kanal olabilir. | **güvenlik kuralı** — gerekçe 2026-08-28; uygulama izni değil — [`lumos-self-governance-surface.md`](analysis/lumos-self-governance-surface.md) |
 
 ---
 
@@ -95,7 +96,8 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **güvenl
 - `docs/decision-log.md` — karar ve erteleme günlüğü
 - `docs/contracts/stt-data-boundary-v1.md` — Meet STT veri sınırı (ADR-025)
 - `docs/contracts/task-execution-grant-v1.md` — görev yürütme anahtarı (ADR-031)
+- `docs/analysis/lumos-self-governance-surface.md` — denetim merceği; izinli yol gerekçesi (SEC-006)
 
 ---
 
-Son güncelleme: 2026-08-21
+Son güncelleme: 2026-08-28 (SEC-006 izinli yol denetimi — yeni yön değil)
