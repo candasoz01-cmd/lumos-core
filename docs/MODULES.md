@@ -14,7 +14,7 @@ Durum sözlüğü: **Çalışıyor** (canlıda/testli kullanılabilir) · **Geli
 | Core — agent runner, brain, evidence | Çalışıyor | 80 | v1 | `src/core` (55 py), `src/kando` (22 py); tam takım 1440 test yeşil |
 | Kimlik — Google OAuth + oturum | Çalışıyor | 90 | v1 | `api/auth/*` canlı; hata sayfaları TR; state/CSRF korumalı |
 | Chat — hosted bridge | Çalışıyor | 70 | v1 | `api/bridge/chat.js` OpenAI/Gemini; limit/UX eksikleri var |
-| Panel | Çalışıyor | 70 | v1 | `ui/src/pages/panel.astro` canlı; 4.6k satır tek dosya (borç kaydı var) |
+| Panel | Çalışıyor | 70 | v1 | `ui/src/pages/panel.astro` canlı; 4.6k satır tek dosya (borç kaydı var). Kendini yönetme yüzeyi (Kontrol→Denetim→Güven) **FİKİR/yön** — yeni sayfa yok; [`lumos-self-governance-surface.md`](analysis/lumos-self-governance-surface.md) |
 | Görev sistemi | Geliştiriliyor | 60 | v1 | `src/task_engine` (27 py); panel/TaskEngine store ayrıklığı (borç kaydı var) |
 | Dosya akışı | Çalışıyor | 70 | **v0.5 kabul** | Panel Dosya seç / Yükle + `UPLOAD_URL`→`/api/bridge/panel/upload` canlı; #659/#661; `prod-verify` **RESULT PASS** (2026-07-22 ve yeniden 2026-08-12 UTC, exit 0). Auth’suz POST→401 `bridge_proxy_unauthorized` (uç ayakta). Sandbox/trash derinliği Faz 1 dışı. |
 | Memory | Geliştiriliyor | 50 | v1 kısmi | `src/memory` secure store, chat memory prompt; Memory Graph (ADR-005) fikir |

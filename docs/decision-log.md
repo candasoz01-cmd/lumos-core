@@ -28,6 +28,7 @@
 | DL-E04 | 2026-07-13 | Ticari birimler, Lumos Dünya ve ülke entegrasyonu | Lumos Bank/Sepet/POS ayrı sorumluluk alanları; Lumos Dünya küresel yüzey; eski Lumos Devlet adı kaldırıldı; ülke bağlantısı markasız private/sözleşmeli entegrasyon katmanı. Canlı ödeme ve ülke sistemi bağlantısı bekliyor | OD-060, [ADR-017](decisions/ADR-017-regulated-service-entity-boundaries.md), [`lumos-institutional-service-foundation.md`](analysis/lumos-institutional-service-foundation.md), `candasoz01-cmd/Lumos` #102/#103 |
 | DL-E05 | 2026-07-23 | İç katman adlandırma | Legacy katman adları emekli; güncel: Core / Local / Sentinel; tarihçe yalnız Legacy Naming | OD-061, [ADR-018](decisions/ADR-018-internal-layers-core-local-sentinel.md), [`legacy-naming.md`](memory/legacy-naming.md) |
 | DL-E06 | 2026-08-08 | Ürün yüzü ayrımı + ModelRegistry | Lumos User Surface / Command Wall (iç operatör yüzeyi) ayrıldı, motor ortak: Router → **ModelRegistry** → Providers. `ModelRegistry` ≠ `IntegrationRegistry` (normatif). Kullanıcı yalnız Lumos görür; model seçtirme geri çekildi; sağlayıcı adı, `session_id`, worktree, heartbeat, PR gate sızmaz. Kimi/Moonshot FAZ-1 sonrası evaluation backlog'una alındı; OpenAI → Claude → DeepSeek sırası korundu. **Karar onaylı, uygulama bekliyor — kod yazılmadı, STOP LIST sürüyor** | OD-062, [ADR-019](decisions/ADR-019-product-surface-separation-modelregistry.md), [ADR-004](decisions/ADR-004-ai-router-routing-layer.md) § ModelRegistry sınırı, [`ROADMAP.md`](ROADMAP.md), [`product-rules.md`](product-rules.md) PR-005 |
+| DL-E07 | 2026-08-27 | Panel kendini yönetme yüzeyi | Aynı `/panel` üç merceğe dönüşür: Kontrol merkezi → Denetim merkezi → Güven kurulu. Yeni sayfa/ürün yok. Cümle: «Lumos sadece sistemi çalıştırmaz; sistemin kendini nasıl yönettiğini de gösterir.» Model adı kullanıcı merceğine sızmaz (ADR-019). **2026-08-28:** izinli yol gerekçesi eklendi (SEC-006) — yeni yön değil. **2026-08-28 sıra (addendum, yeni yön değil):** önce insan FAZ-1 kapanış onayı; sonra panel bağlantısı. Ajan FAZ-1'i kapatmaz. **Yüzey modeli karar; uygulama yok — STOP LIST sürüyor** | [`lumos-self-governance-surface.md`](analysis/lumos-self-governance-surface.md), [`ROADMAP.md`](ROADMAP.md), [`PRODUCT_SUMMARY.md`](PRODUCT_SUMMARY.md), [`security-architecture.md`](security-architecture.md) SEC-006 |
 
 ### Geçici ertelendi
 
@@ -173,4 +174,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-06-21 (Internal Alpha operasyonel faz — DL-C23)
+Son güncelleme: 2026-08-28 (DL-E07 sıra addendum — önce FAZ-1 kapanış onayı, sonra panel bağlama)

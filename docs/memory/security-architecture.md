@@ -29,6 +29,7 @@ Taşıma süreci ve durum tanımları: [`chatgpt-saved-memories-migration.md`](.
 | 2 | Silinen içerik kalıcı yok edilmez; **trash/silinen alana** taşınır. | veri yaşam döngüsü | Taşındı |
 | 3 | İç katmanlar dışarıdan komut veya veri **doğrudan kabul etmez**; akış Lumos geçidinden geçer. | mimari sınır | Taşındı |
 | 4 | Kod tabanı: **değişmez çekirdek**, kontrollü geliştirilebilir alanlar ve **sandbox ayrımı** korunur. | kod / repo | Taşındı — uygulama detayı kod sözleşmesinde |
+| 5 | **İzinli yol da denetlenir.** Güvenlik yalnız erişimi kesmek değil; izin verilen yolların davranışını izlemektir. Guardrails dosyası gerçek izolasyon + izleme değildir. | izinli kanal / denetim | 2026-08-28 gerekçe — yeni yön değil; özet [`../security-architecture.md`](../security-architecture.md) SEC-006; yüzey [`../analysis/lumos-self-governance-surface.md`](../analysis/lumos-self-governance-surface.md) |
 
 ---
 
@@ -135,4 +136,4 @@ Aşağıya henüz sınıflandırılmamış veya yeni kopyalanan maddeleri yapı�
 
 ---
 
-*Son güncelleme: 2026-06-17*
+*Son güncelleme: 2026-08-28 (izinli yol denetimi — SEC-006 gerekçe; yeni yön değil)*
