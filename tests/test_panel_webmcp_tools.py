@@ -84,12 +84,50 @@ def test_bridge_write_paths_go_through_human_confirmation_gate() -> None:
 def test_rejected_gate_never_writes() -> None:
     src = _runtime_src()
     # Onay alınmadan dönülür; mutasyon çağrısı kapının arkasında kalır.
-    assert src.count('reason: gate.busy ? "confirmation_busy" : "user_rejected",') == 2
+    assert src.count('reason: gate.reason || "user_rejected",') == 2
     propose_start = src.index("async function panelWebMcpProposeTask(")
     propose_body = src[propose_start : src.index("async function panelWebMcpCompleteTask(")]
     assert propose_body.index("panelWebMcpHumanGate(") < propose_body.index(
         "persistPanelGorevCreateViaApi("
     )
+
+
+def test_confirmation_lock_taken_before_first_await() -> None:
+    """Eşzamanlı onaylar: kilit ilk await'ten önce alınır; busy ilk diyaloğa dokunmaz."""
+    src = _runtime_src()
+    assert "let panelConfirmationInFlight = false;" in src
+    assert "function isPanelConfirmationBusy()" in src
+    gate_start = src.index("async function panelWebMcpHumanGate(")
+    gate_body = src[gate_start : src.index("async function panelWebMcpProposeTask(")]
+    assert 'reason: "confirmation_busy"' in gate_body
+    # Kilit, panelEnsureMutationConfirmation / showPanelConfirmationModal await'inden önce.
+    assert gate_body.index("panelConfirmationInFlight = true;") < gate_body.index(
+        "await panelEnsureMutationConfirmation("
+    )
+    assert gate_body.index("panelConfirmationInFlight = true;") < gate_body.index(
+        "await showPanelConfirmationModal("
+    )
+    assert "finally {" in gate_body
+    assert "panelConfirmationInFlight = false;" in gate_body
+
+
+def test_gate_distinguishes_user_reject_from_server_failure() -> None:
+    """user_rejected yalnız Vazgeç; sunucu/altyapı ayrı reason."""
+    src = _runtime_src()
+    req_start = src.index("async function requestPanelConfirmation(")
+    req_body = src[req_start : src.index("async function panelEnsureMutationConfirmation(")]
+    assert 'reason: "confirmation_unavailable"' in req_body
+    assert 'reason: "confirmation_failed"' in req_body
+    assert "catch {" in req_body
+    modal_start = src.index("function showPanelConfirmationModal(")
+    modal_body = src[modal_start : src.index("async function requestPanelConfirmation(")]
+    assert 'reason: "user_rejected"' in modal_body
+    assert "onCancel" in modal_body
+    assert 'finish({ approved: false, reason: "confirmation_failed" })' in modal_body
+    gate_start = src.index("async function panelWebMcpHumanGate(")
+    gate_body = src[gate_start : src.index("async function panelWebMcpProposeTask(")]
+    assert "confirmation.reason" in gate_body
+    assert "decision.reason" in gate_body
 
 
 def test_read_tool_is_not_a_mutation_path() -> None:
@@ -338,6 +376,18 @@ def test_e2e_scenario_exists_and_covers_rejection() -> None:
     assert "lumos-confirm-approve" in e2e
     assert "onay kapısı atlanmış" in e2e
     assert "WEBMCP_PANEL_E2E_RESULT" in e2e
+
+
+def test_e2e_scenario_covers_concurrent_busy_and_server_errors() -> None:
+    e2e = _E2E.read_text(encoding="utf-8")
+    assert "confirmation_busy" in e2e
+    assert "confirmation_failed" in e2e
+    assert "confirmation_unavailable" in e2e
+    assert "eşzamanlı" in e2e.lower() or "concurrent" in e2e.lower()
+    assert "HTTP 500" in e2e or "status: 500" in e2e
+    assert "bozuk JSON" in e2e or "invalid json" in e2e.lower() or "broken json" in e2e.lower()
+    for marker in ("lumos-confirm/request", "network"):
+        assert marker in e2e, marker
 
 
 def test_e2e_scenario_covers_read_consent_and_dialog_fields() -> None:

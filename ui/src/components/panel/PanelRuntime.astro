@@ -2719,6 +2719,13 @@ const {
       panelEvidenceRefreshStrip = refreshGorevlerEvidenceStrip;
 
       let panelConfirmationEnabled = false;
+      /**
+       * Tek uçuş onay kilidi. `dlg.open` yalnız modal gösterildikten sonra
+       * true olur; sunucu onayı sırasında ilk `await` öncesi ikinci çağrı
+       * bu kontrolden geçer ve `showModal()` başarısız olup açık diyaloğu
+       * kapatırdı. Kilit, ilk await'ten ÖNCE alınır.
+       */
+      let panelConfirmationInFlight = false;
 
       function syncPanelConfirmationEnabledFromDoc(doc) {
         if (!doc || typeof doc !== "object") return;
@@ -2728,7 +2735,20 @@ const {
       }
 
       function isPanelConfirmationEnabled() {
+        try {
+          const w = typeof window !== "undefined" ? window : null;
+          if (w && w.LUMOS_PANEL_CONFIRMATION_ENABLED === true) return true;
+          if (w && w.LUMOS_PANEL_CONFIRMATION_ENABLED === false) return false;
+        } catch (_) {
+          /* ignore */
+        }
         return panelConfirmationEnabled === true;
+      }
+
+      function isPanelConfirmationBusy() {
+        if (panelConfirmationInFlight) return true;
+        const dlg = document.getElementById("lumos-confirm-dialog");
+        return !!(dlg && dlg.open === true);
       }
 
       function isPanelConfirmationGateError(data) {
@@ -2801,7 +2821,7 @@ const {
           const approveBtn = document.getElementById("lumos-confirm-approve");
           const cancelBtn = document.getElementById("lumos-confirm-cancel");
           if (!dlg || !whatEl || !whereEl || !effectEl || !approveBtn || !cancelBtn) {
-            resolve(false);
+            resolve({ approved: false, reason: "confirmation_unavailable" });
             return;
           }
           const p = preview && typeof preview === "object" ? preview : {};
@@ -2811,7 +2831,7 @@ const {
           renderPanelConfirmationFields(p.fields);
 
           let settled = false;
-          function finish(ok) {
+          function finish(decision) {
             if (settled) return;
             settled = true;
             approveBtn.removeEventListener("click", onApprove);
@@ -2823,13 +2843,14 @@ const {
             } catch (_) {
               /* ignore */
             }
-            resolve(ok);
+            resolve(decision);
           }
           function onApprove() {
-            finish(true);
+            finish({ approved: true });
           }
           function onCancel() {
-            finish(false);
+            /* Vazgeç / ESC — yalnız gerçek kullanıcı reddi. */
+            finish({ approved: false, reason: "user_rejected" });
           }
           function onClose() {
             /**
@@ -2840,7 +2861,7 @@ const {
              * oldu; kullanıcı hızlı iki onay açtığında da aynı hata oluşuyordu.)
              */
             if (dlg.open) return;
-            finish(false);
+            finish({ approved: false, reason: "user_rejected" });
           }
           approveBtn.addEventListener("click", onApprove);
           cancelBtn.addEventListener("click", onCancel);
@@ -2850,47 +2871,73 @@ const {
             if (typeof dlg.showModal === "function") dlg.showModal();
             else dlg.setAttribute("open", "open");
           } catch (_) {
-            finish(false);
+            finish({ approved: false, reason: "confirmation_failed" });
           }
         });
       }
 
       async function requestPanelConfirmation(mutationPath, mutationBody) {
         const base = resolveGorevlerTasksApiBase();
-        if (!base) return null;
-        const r = await fetch(`${base}/lumos-confirm/request`, {
-          method: "POST",
-          headers: { Accept: "application/json", "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mutation_path: mutationPath,
-            mutation_body: mutationBody != null ? mutationBody : {},
-          }),
-        });
+        if (!base) return { ok: false, reason: "confirmation_unavailable" };
+        let r;
+        try {
+          r = await fetch(`${base}/lumos-confirm/request`, {
+            method: "POST",
+            headers: { Accept: "application/json", "Content-Type": "application/json" },
+            body: JSON.stringify({
+              mutation_path: mutationPath,
+              mutation_body: mutationBody != null ? mutationBody : {},
+            }),
+          });
+        } catch {
+          return { ok: false, reason: "confirmation_failed" };
+        }
         let data = null;
         try {
           data = await r.json();
         } catch {
           data = null;
         }
-        if (!r.ok || !data || !data.ok || !data.confirmation_id) return null;
-        return data;
+        if (!r.ok || !data || !data.ok || !data.confirmation_id) {
+          return { ok: false, reason: "confirmation_failed" };
+        }
+        return { ok: true, data };
       }
 
       /**
        * `previewFields` (opsiyonel): sunucu önizlemesi yalnızca ne/hedef/etki
        * döner; mutasyonda yazılacak alanların tamamını çağıran taraf bilir ve
        * buradan onay ekranına taşır. Verilmezse davranış eskisiyle aynıdır.
+       *
+       * Dönüş: `{ ok: true, confirmationId }` veya
+       * `{ ok: false, reason: "user_rejected"|"confirmation_unavailable"|"confirmation_failed" }`.
        */
       async function panelEnsureMutationConfirmation(mutationPath, mutationBody, previewFields) {
         const pending = await requestPanelConfirmation(mutationPath, mutationBody);
-        if (!pending) return null;
-        const preview = { ...(pending.preview || {}) };
+        if (!pending || pending.ok !== true || !pending.data) {
+          return {
+            ok: false,
+            reason:
+              pending && pending.reason
+                ? pending.reason
+                : "confirmation_failed",
+          };
+        }
+        const preview = { ...(pending.data.preview || {}) };
         if (Array.isArray(previewFields) && previewFields.length > 0) {
           preview.fields = previewFields;
         }
-        const approved = await showPanelConfirmationModal(preview);
-        if (!approved) return null;
-        return String(pending.confirmation_id || "").trim() || null;
+        const decision = await showPanelConfirmationModal(preview);
+        if (!decision || decision.approved !== true) {
+          return {
+            ok: false,
+            reason:
+              decision && decision.reason ? decision.reason : "confirmation_failed",
+          };
+        }
+        const confirmationId = String(pending.data.confirmation_id || "").trim();
+        if (!confirmationId) return { ok: false, reason: "confirmation_failed" };
+        return { ok: true, confirmationId };
       }
 
       async function tasksApiPost(path, body) {
@@ -2916,15 +2963,15 @@ const {
         }
 
         if (isPanelConfirmationEnabled() && !(payload && payload.confirmation_id)) {
-          const confirmationId = await panelEnsureMutationConfirmation(p, payload);
-          if (!confirmationId) {
+          const confirmation = await panelEnsureMutationConfirmation(p, payload);
+          if (!confirmation || confirmation.ok !== true || !confirmation.confirmationId) {
             return {
               ok: false,
               status: 0,
               data: { ok: false, error: "confirmation_cancelled" },
             };
           }
-          payload.confirmation_id = confirmationId;
+          payload.confirmation_id = confirmation.confirmationId;
         }
 
         let res = await doPost(payload);
@@ -2935,10 +2982,12 @@ const {
           if (retryPayload && typeof retryPayload === "object") {
             delete retryPayload.confirmation_id;
           }
-          const confirmationId = await panelEnsureMutationConfirmation(p, retryPayload);
-          if (!confirmationId) return res;
+          const confirmation = await panelEnsureMutationConfirmation(p, retryPayload);
+          if (!confirmation || confirmation.ok !== true || !confirmation.confirmationId) {
+            return res;
+          }
           if (retryPayload && typeof retryPayload === "object") {
-            retryPayload.confirmation_id = confirmationId;
+            retryPayload.confirmation_id = confirmation.confirmationId;
           }
           res = await doPost(retryPayload);
         }
@@ -10182,53 +10231,57 @@ const {
        * izni yereldir, mutasyon değildir.
        */
       async function panelWebMcpRequestReadConsent() {
-        const dlg = document.getElementById("lumos-confirm-dialog");
-        if (dlg && dlg.open === true) return false;
-        panelWebMcpEnsureTasksModuleVisible();
-        const count = Array.isArray(panelGorevlerTasks) ? panelGorevlerTasks.length : 0;
-        const approved = await showPanelConfirmationModal({
-          what: "share_task_board",
-          where:
-            panelWebMcpT("consentTarget", "Görev tahtası") + " · " + String(count) + " görev",
-          effect: "agent_read_task_board",
-          fields: [
-            {
-              key: "shared_fields",
-              label: panelWebMcpT("fieldShared", "Paylaşılan alanlar"),
-              value: panelWebMcpT(
-                "valueSharedFields",
-                "Görev başlığı, öncelik, durum ve zaman notu",
-              ),
-            },
-            {
-              key: "scope",
-              label: panelWebMcpT("fieldScope", "Kapsam"),
-              value: panelWebMcpT(
-                "valueScopeSession",
-                "Yalnızca bu tarayıcı oturumu (sekme kapanınca sona erer)",
-              ),
-            },
-            {
-              key: "revoke",
-              label: panelWebMcpT("fieldRevoke", "Geri alma"),
-              value: panelWebMcpT(
-                "valueRevokeHere",
-                "Görevler modülündeki “İzni geri al” düğmesi",
-              ),
-            },
-            {
-              key: "source",
-              label: panelWebMcpT("fieldSource", "Kaynak"),
-              value: panelWebMcpSourceValue("lumos-list-tasks"),
-            },
-          ],
-        });
-        if (approved !== true) return false;
-        panelWebMcpReadConsentGranted = true;
-        panelWebMcpReadConsentAt = new Date().toISOString();
-        panelWebMcpReadConsentPersist();
-        panelWebMcpRenderConsentState();
-        return true;
+        if (isPanelConfirmationBusy()) return false;
+        panelConfirmationInFlight = true;
+        try {
+          panelWebMcpEnsureTasksModuleVisible();
+          const count = Array.isArray(panelGorevlerTasks) ? panelGorevlerTasks.length : 0;
+          const decision = await showPanelConfirmationModal({
+            what: "share_task_board",
+            where:
+              panelWebMcpT("consentTarget", "Görev tahtası") + " · " + String(count) + " görev",
+            effect: "agent_read_task_board",
+            fields: [
+              {
+                key: "shared_fields",
+                label: panelWebMcpT("fieldShared", "Paylaşılan alanlar"),
+                value: panelWebMcpT(
+                  "valueSharedFields",
+                  "Görev başlığı, öncelik, durum ve zaman notu",
+                ),
+              },
+              {
+                key: "scope",
+                label: panelWebMcpT("fieldScope", "Kapsam"),
+                value: panelWebMcpT(
+                  "valueScopeSession",
+                  "Yalnızca bu tarayıcı oturumu (sekme kapanınca sona erer)",
+                ),
+              },
+              {
+                key: "revoke",
+                label: panelWebMcpT("fieldRevoke", "Geri alma"),
+                value: panelWebMcpT(
+                  "valueRevokeHere",
+                  "Görevler modülündeki “İzni geri al” düğmesi",
+                ),
+              },
+              {
+                key: "source",
+                label: panelWebMcpT("fieldSource", "Kaynak"),
+                value: panelWebMcpSourceValue("lumos-list-tasks"),
+              },
+            ],
+          });
+          if (!decision || decision.approved !== true) return false;
+          panelWebMcpReadConsentGranted = true;
+          panelWebMcpReadConsentAt = new Date().toISOString();
+          panelWebMcpReadConsentPersist();
+          panelWebMcpRenderConsentState();
+          return true;
+        } finally {
+          panelConfirmationInFlight = false;
+        }
       }
 
       /**
@@ -10237,8 +10290,7 @@ const {
        */
       async function panelWebMcpListTasks() {
         if (!panelWebMcpReadConsentGranted) {
-          const dlg = document.getElementById("lumos-confirm-dialog");
-          if (dlg && dlg.open === true) return panelWebMcpReadRefusal("confirmation_busy");
+          if (isPanelConfirmationBusy()) return panelWebMcpReadRefusal("confirmation_busy");
           const granted = await panelWebMcpRequestReadConsent();
           if (!granted) return panelWebMcpReadRefusal("user_rejected");
         }
@@ -10278,37 +10330,60 @@ const {
 
       /**
        * Ajan kaynaklı mutasyonlar için insan onay kapısı.
-       * Dönüş: { approved, confirmationId }. approved false ise çağıran
-       * hiçbir yazma yapmamalıdır.
+       * Dönüş: { approved, confirmationId, reason? }. approved false ise
+       * çağıran hiçbir yazma yapmamalıdır. `reason` yalnız ret yollarında:
+       * confirmation_busy | user_rejected | confirmation_unavailable |
+       * confirmation_failed.
        */
       async function panelWebMcpHumanGate(mutationPath, mutationBody, fallbackPreview) {
-        const dlg = document.getElementById("lumos-confirm-dialog");
-        if (dlg && dlg.open === true) {
-          /* Başka bir onay ekranda: ajana "reddedildi" demek yanıltıcı olur. */
-          return { approved: false, confirmationId: "", busy: true };
+        if (isPanelConfirmationBusy()) {
+          /* Başka bir onay uçuşta veya ekranda: "reddedildi" demek yanıltıcı. */
+          return { approved: false, confirmationId: "", reason: "confirmation_busy" };
         }
-        panelWebMcpEnsureTasksModuleVisible();
-        /**
-         * Yazılacak alanların tamamı İKİ yolda da ekrana çıkar. Sunucu onay
-         * akışı yalnızca ne/hedef/etki döndürür; priority/when gibi alanlar
-         * yalnızca burada bilinir, bu yüzden önizlemeye buradan taşınır.
-         * Kullanıcı görmediği bir alanı onaylamaz.
-         */
-        const previewFields =
-          fallbackPreview && Array.isArray(fallbackPreview.fields)
-            ? fallbackPreview.fields
-            : [];
-        if (isPanelConfirmationEnabled()) {
-          const confirmationId = await panelEnsureMutationConfirmation(
-            mutationPath,
-            mutationBody,
-            previewFields,
-          );
-          if (!confirmationId) return { approved: false, confirmationId: "" };
-          return { approved: true, confirmationId };
+        panelConfirmationInFlight = true;
+        try {
+          panelWebMcpEnsureTasksModuleVisible();
+          /**
+           * Yazılacak alanların tamamı İKİ yolda da ekrana çıkar. Sunucu onay
+           * akışı yalnızca ne/hedef/etki döndürür; priority/when gibi alanlar
+           * yalnızca burada bilinir, bu yüzden önizlemeye buradan taşınır.
+           * Kullanıcı görmediği bir alanı onaylamaz.
+           */
+          const previewFields =
+            fallbackPreview && Array.isArray(fallbackPreview.fields)
+              ? fallbackPreview.fields
+              : [];
+          if (isPanelConfirmationEnabled()) {
+            const confirmation = await panelEnsureMutationConfirmation(
+              mutationPath,
+              mutationBody,
+              previewFields,
+            );
+            if (!confirmation || confirmation.ok !== true || !confirmation.confirmationId) {
+              return {
+                approved: false,
+                confirmationId: "",
+                reason:
+                  confirmation && confirmation.reason
+                    ? confirmation.reason
+                    : "confirmation_failed",
+              };
+            }
+            return { approved: true, confirmationId: confirmation.confirmationId };
+          }
+          const decision = await showPanelConfirmationModal(fallbackPreview);
+          if (decision && decision.approved === true) {
+            return { approved: true, confirmationId: "" };
+          }
+          return {
+            approved: false,
+            confirmationId: "",
+            reason:
+              decision && decision.reason ? decision.reason : "confirmation_failed",
+          };
+        } finally {
+          panelConfirmationInFlight = false;
         }
-        const approved = await showPanelConfirmationModal(fallbackPreview);
-        return { approved: approved === true, confirmationId: "" };
       }
 
       async function panelWebMcpProposeTask(input) {
@@ -10383,7 +10458,7 @@ const {
           return {
             ok: false,
             approved: false,
-            reason: gate.busy ? "confirmation_busy" : "user_rejected",
+            reason: gate.reason || "user_rejected",
           };
         }
 
@@ -10482,7 +10557,7 @@ const {
           return {
             ok: false,
             approved: false,
-            reason: gate.busy ? "confirmation_busy" : "user_rejected",
+            reason: gate.reason || "user_rejected",
           };
         }
 

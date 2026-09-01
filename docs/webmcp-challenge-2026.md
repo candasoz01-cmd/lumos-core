@@ -33,9 +33,16 @@ Yazma tool'larının JSON gövdesi ajana kararı açıkça söyler:
 { "ok": true,  "approved": true,  "task": { "title": "…", "status": "bekliyor" } }
 ```
 
-`reason` değerleri: `user_rejected`, `confirmation_busy`, `title_required`,
+`reason` değerleri: `user_rejected`, `confirmation_busy`,
+`confirmation_unavailable`, `confirmation_failed`, `title_required`,
 `ref_required`, `task_not_found`, `create_failed`, `complete_failed`,
 `panel_bridge_unavailable`, `read_consent_required`.
+
+`user_rejected` yalnız kullanıcı onay diyaloğunda **Vazgeç** (veya ESC /
+diyaloğu kapatma) dediğinde kullanılır. Sunucu onay yolu kurulamamışsa
+(`confirmation_unavailable`) veya HTTP/JSON/ağ hatası varsa
+(`confirmation_failed`) ajan kullanıcıyı reddetmiş saymaz; yazma yine
+yapılmaz.
 
 ## 1b. Okuma da izne bağlı — mahremiyet kapısı
 
@@ -184,7 +191,9 @@ Uygulama notları:
   çağırdığında köprü önce o modülü öne alır — aksi halde `showModal()` görünmez
   kalır ve kullanıcı göremediği bir kapıyla karşılaşırdı.
 * Aynı anda ikinci bir onay isteği gelirse ajana `confirmation_busy` döner;
-  "kullanıcı reddetti" gibi yanıltıcı bir cevap verilmez.
+  "kullanıcı reddetti" gibi yanıltıcı bir cevap verilmez. Yoğunluk kilidi
+  (`panelConfirmationInFlight`) **ilk await'ten önce** alınır — sunucu onayı
+  beklenirken açılan ikinci çağrı da ilk diyaloğa dokunmadan busy döner.
 
 ### Bu dilimde ortaya çıkan gerçek hata düzeltmesi
 
@@ -194,6 +203,13 @@ kendine "vazgeçildi" yapıyordu. `showPanelConfirmationModal()` içindeki
 `onClose` artık `if (dlg.open) return;` ile bu bayat olayı yok sayar. Hata
 WebMCP tool'ları sayesinde görünür oldu; kullanıcı hızlı iki onay açtığında da
 oluşuyordu.
+
+Eşzamanlı iki mutasyon çağrısı (özellikle sunucu onayı `await` ederken)
+`dlg.open` kontrolünden ikisi de geçebiliyordu; ikinci `showModal()` başarısız
+olup ortak diyaloğu kapatıyordu. Tek uçuş kilidi bunu kapatır. Ayrı olarak,
+sunucu onayında API tabanı yok / HTTP hata / bozuk JSON / ağ istisnası artık
+`user_rejected` değil `confirmation_unavailable` veya `confirmation_failed`
+olarak raporlanır.
 
 ## 4. Dosyalar
 
@@ -251,7 +267,11 @@ diyaloğunun **`priority` ve `when`'i gerçek değerlerle** göstermesi; verilme
 alanların "belirtilmedi (varsayılan: …)" olarak yazılması; "Vazgeç"ten sonra
 **hiçbir görev yazılmaması**; "Onayla"dan sonra görevin hem tool sonucunda hem
 panelin kalıcı listesinde görünmesi; tamamlamanın aynı kapıdan geçmesi ve durum
-değişikliğini göstermesi; bilinmeyen referansta modalin hiç açılmaması.
+değişikliğini göstermesi; bilinmeyen referansta modalin hiç açılmaması;
+**eşzamanlı iki mutasyonda** ikincisinin `confirmation_busy` dönmesi ve ilk
+diyaloğun açık kalması; sunucu onayında **HTTP 500 / bozuk JSON / ağ istisnası**
+için `confirmation_failed` ve API tabanı yokken `confirmation_unavailable`
+(yanlış `user_rejected` yok).
 
 ### Uçtan uca — NATIVE WebMCP (gerçek tarayıcı desteği)
 

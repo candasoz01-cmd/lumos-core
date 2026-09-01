@@ -14,6 +14,10 @@
  *  5. Aynı tool "Onayla" ile gerçekten görev oluşturur ve panelde görünür.
  *  6. `lumos-complete-task` yine onay kapısından geçer ve durum değişikliğini
  *     (neyi neye çevirdiğini) ekranda yazar.
+ *  7. Eşzamanlı iki mutasyon: ikincisi `confirmation_busy`; ilk diyalog açık kalır.
+ *  8. Sunucu onay yolu: gecikmeli eşzamanlı çağrı, HTTP 500, bozuk JSON ve
+ *     ağ istisnası `user_rejected` değil `confirmation_failed` /
+ *     `confirmation_unavailable` olarak raporlanır; yazma yapılmaz.
  *
  * Not: Headless Chromium'da tarayıcının WebMCP uygulaması yok. Test yalnızca
  * TARAYICI TARAFINI (agent harness) taklit eder — sayfanın kendi kayıt ve
@@ -21,6 +25,7 @@
  * bkz. docs/webmcp-challenge-2026.md.
  */
 import { chromium } from "playwright";
+import http from "node:http";
 import { waitForPanelDom, PANEL_READY_MS } from "./lib/panel-helpers.mjs";
 import {
   closeServer,
@@ -85,6 +90,137 @@ const AGENT_HARNESS = function () {
   // Panel yerel modda kalsın: tasks REST yok, mutasyon yerel listeye yazılır.
   window.LUMOS_PANEL_TASKS_API_BASE = false;
 };
+
+/**
+ * Sunucu onay yolu için mock tasks API.
+ * `modeForHit(n)` → { delayMs?, status?, body?, rawBody?, drop? }
+ */
+function startConfirmMockServer(port, modeForHit) {
+  let confirmHits = 0;
+  const server = http.createServer((req, res) => {
+    const url = String(req.url || "").split("?")[0];
+    const cors = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type,Accept",
+    };
+    if (req.method === "OPTIONS") {
+      res.writeHead(204, cors);
+      res.end();
+      return;
+    }
+    if (req.method === "GET" && url === "/tasks") {
+      res.writeHead(200, { ...cors, "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true, tasks: [], confirmation_enabled: true }));
+      return;
+    }
+    if (req.method === "POST" && url === "/lumos-confirm/request") {
+      confirmHits += 1;
+      const hit = confirmHits;
+      let body = "";
+      req.on("data", (chunk) => {
+        body += chunk;
+      });
+      req.on("end", () => {
+        const mode =
+          typeof modeForHit === "function"
+            ? modeForHit(hit, body)
+            : modeForHit || {};
+        const respond = () => {
+          if (mode.drop) {
+            try {
+              req.socket.destroy();
+            } catch (_) {
+              /* ignore */
+            }
+            return;
+          }
+          const status = mode.status != null ? mode.status : 200;
+          res.writeHead(status, { ...cors, "Content-Type": "application/json" });
+          if (mode.rawBody != null) {
+            res.end(mode.rawBody);
+            return;
+          }
+          if (mode.body != null) {
+            res.end(JSON.stringify(mode.body));
+            return;
+          }
+          res.end(
+            JSON.stringify({
+              ok: true,
+              confirmation_id: "conf_mock_" + hit,
+              preview: {
+                what: "create_task",
+                where: "mock",
+                effect: "local_task_create",
+              },
+            }),
+          );
+        };
+        if (mode.delayMs > 0) setTimeout(respond, mode.delayMs);
+        else respond();
+      });
+      return;
+    }
+    res.writeHead(404, { ...cors, "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: false, error: "not_found" }));
+  });
+  return new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, "127.0.0.1", () => {
+      resolve({
+        server,
+        base: "http://127.0.0.1:" + port,
+        confirmHits: () => confirmHits,
+        close: () =>
+          new Promise((resClose) => {
+            server.close(() => resClose());
+          }),
+      });
+    });
+  });
+}
+
+function agentHarnessWithTasksApi(apiBase) {
+  const base = String(apiBase || "");
+  return function () {
+    const registry = new Map();
+    const modelContext = {
+      registerTool(tool) {
+        if (!tool || typeof tool.name !== "string" || typeof tool.execute !== "function") {
+          return Promise.reject(new TypeError("invalid tool"));
+        }
+        registry.set(tool.name, tool);
+        return Promise.resolve();
+      },
+      getTools() {
+        return Promise.resolve(
+          Array.from(registry.values()).map(function (t) {
+            return {
+              name: t.name,
+              description: t.description,
+              inputSchema: t.inputSchema,
+              origin: location.origin,
+            };
+          }),
+        );
+      },
+      executeTool(tool, args) {
+        const name = typeof tool === "string" ? tool : tool && tool.name;
+        const entry = registry.get(name);
+        if (!entry) return Promise.reject(new Error("unknown tool: " + name));
+        return Promise.resolve(entry.execute(args || {}));
+      },
+    };
+    Object.defineProperty(document, "modelContext", {
+      value: modelContext,
+      configurable: true,
+    });
+    window.LUMOS_PANEL_TASKS_API_BASE = base;
+    /* E2E: sunucu onay yolunu panel sync'ini beklemeden aç. */
+    window.LUMOS_PANEL_CONFIRMATION_ENABLED = true;
+  };
+}
 
 /** Ajan tool çağrısı: sonucu JSON payload'a çevirir. */
 const CALL_TOOL = function (payload) {
@@ -509,6 +645,63 @@ try {
     fail("İzin varken already_completed içerik döndürmedi: " + JSON.stringify(alreadyWithConsent));
   }
 
+  // ── 6c) Eşzamanlı onaylar (yerel yol): ikinci çağrı busy, ilk diyalog açık ──
+  const TITLE_CONCURRENT_A = "WebMCP concurrent A " + Date.now();
+  const TITLE_CONCURRENT_B = "WebMCP concurrent B " + Date.now();
+  const concurrentInfo = await page.evaluate(async ({ titleA, titleB }) => {
+    function parse(res) {
+      const text = res && res.content && res.content[0] ? res.content[0].text : "";
+      return JSON.parse(text);
+    }
+    const p1 = document.modelContext
+      .executeTool("lumos-propose-task", { title: titleA, priority: "orta" })
+      .then(parse);
+    await Promise.resolve();
+    const p2 = document.modelContext
+      .executeTool("lumos-propose-task", { title: titleB, priority: "dusuk" })
+      .then(parse);
+    const first = await Promise.race([
+      p1.then((r) => ({ slot: "a", r })),
+      p2.then((r) => ({ slot: "b", r })),
+    ]);
+    window.__webmcpConcurrent = { p1, p2 };
+    const dlg = document.getElementById("lumos-confirm-dialog");
+    return {
+      firstReason: first.r && first.r.reason,
+      firstOk: first.r && first.r.ok,
+      firstApproved: first.r && first.r.approved,
+      dlgOpen: !!(dlg && dlg.open === true),
+    };
+  }, { titleA: TITLE_CONCURRENT_A, titleB: TITLE_CONCURRENT_B });
+  if (concurrentInfo.firstReason !== "confirmation_busy") {
+    fail("Eşzamanlı ikinci çağrı confirmation_busy değil: " + JSON.stringify(concurrentInfo));
+  }
+  if (concurrentInfo.firstApproved !== false || concurrentInfo.firstOk !== false) {
+    fail("Eşzamanlı busy yanıtı onaylı görünüyor: " + JSON.stringify(concurrentInfo));
+  }
+  if (!concurrentInfo.dlgOpen) {
+    fail("Eşzamanlı çağrı ilk onay diyalogunu kapatmış");
+  }
+  await page.click("#lumos-confirm-cancel");
+  const concurrentBoth = await page.evaluate(async () => {
+    const pair = window.__webmcpConcurrent;
+    const [a, b] = await Promise.all([pair.p1, pair.p2]);
+    delete window.__webmcpConcurrent;
+    return { a, b };
+  });
+  const concurrentReasons = [concurrentBoth.a.reason, concurrentBoth.b.reason].sort();
+  if (concurrentReasons.join(",") !== "confirmation_busy,user_rejected") {
+    fail("Eşzamanlı sonuçlar beklenen değil: " + JSON.stringify(concurrentBoth));
+  }
+  const afterConcurrent = await page.evaluate(CALL_TOOL, { name: "lumos-list-tasks", args: {} });
+  if (
+    afterConcurrent.tasks.some(
+      (t) => t.title === TITLE_CONCURRENT_A || t.title === TITLE_CONCURRENT_B,
+    )
+  ) {
+    fail("Eşzamanlı reddedilen görevler yazılmış");
+  }
+
   // 7) İzin oturuma bağlı: yeni oturum (yeni context) izni devralmaz.
   const freshContext = await browser.newContext();
   await freshContext.addInitScript(AGENT_HARNESS);
@@ -526,6 +719,232 @@ try {
   }
   await freshContext.close();
 
+  // ── 8) Sunucu onay yolu: gecikmeli eşzamanlı + HTTP/JSON/ağ hataları ───────
+  const mockPort = Number(port) + 17;
+  const delayedMock = await startConfirmMockServer(mockPort, (hit) => ({
+    delayMs: hit === 1 ? 400 : 0,
+  }));
+  let apiPage = null;
+  let apiContext = null;
+  try {
+    apiContext = await browser.newContext();
+    await apiContext.addInitScript(agentHarnessWithTasksApi(delayedMock.base));
+    apiPage = await apiContext.newPage();
+    await apiPage.goto(PANEL_URL, { waitUntil: "domcontentloaded", timeout: PANEL_READY_MS });
+    await waitForPanelDom(apiPage, PANEL_READY_MS);
+    await apiPage.waitForFunction(
+      () => document.documentElement.dataset.lumosWebmcp === "registered",
+      null,
+      { timeout: PANEL_READY_MS },
+    );
+    // confirmation_enabled senkronu: panel GET /tasks çeker.
+    await apiPage.waitForFunction(
+      async (base) => {
+        try {
+          const r = await fetch(base + "/tasks");
+          const doc = await r.json();
+          return doc && doc.confirmation_enabled === true;
+        } catch {
+          return false;
+        }
+      },
+      delayedMock.base,
+      { timeout: PANEL_READY_MS },
+    );
+    // Panelin kendi sync'i de aynı bayrağı alsın.
+    await apiPage.evaluate(async (base) => {
+      const r = await fetch(base + "/tasks", { headers: { Accept: "application/json" } });
+      const doc = await r.json();
+      // refreshPanelGorevlerFromTasksApi kapalı kalmasın diye bir kez tetikle:
+      // panel zaten açılışta çağırır; yine de confirmation bayrağını zorla çek.
+      window.dispatchEvent(new Event("focus"));
+      return doc.confirmation_enabled === true;
+    }, delayedMock.base);
+    // Açılış sync'i kaçırdıysa Görevler sekmesine tıklayarak yenile.
+    await apiPage.click('.panel-body button[data-module="gorevler"]');
+    await new Promise((r) => setTimeout(r, 500));
+
+    const TITLE_DELAY_A = "WebMCP delay A " + Date.now();
+    const TITLE_DELAY_B = "WebMCP delay B " + Date.now();
+    const delayedRace = await apiPage.evaluate(async ({ titleA, titleB }) => {
+      function parse(res) {
+        const text = res && res.content && res.content[0] ? res.content[0].text : "";
+        return JSON.parse(text);
+      }
+      const p1 = document.modelContext
+        .executeTool("lumos-propose-task", { title: titleA })
+        .then(parse);
+      await new Promise((r) => setTimeout(r, 30));
+      const p2 = document.modelContext
+        .executeTool("lumos-propose-task", { title: titleB })
+        .then(parse);
+      const first = await Promise.race([
+        p1.then((r) => ({ slot: "a", r })),
+        p2.then((r) => ({ slot: "b", r })),
+      ]);
+      window.__webmcpDelayedConcurrent = { p1, p2 };
+      return { firstReason: first.r && first.r.reason, first: first.r };
+    }, { titleA: TITLE_DELAY_A, titleB: TITLE_DELAY_B });
+    if (delayedRace.firstReason !== "confirmation_busy") {
+      fail(
+        "Geciktirilmiş eşzamanlı çağrı confirmation_busy değil: " +
+          JSON.stringify(delayedRace),
+      );
+    }
+    if (delayedMock.confirmHits() < 1) {
+      fail("Geciktirilmiş eşzamanlı test sunucu onay yolunu kullanmadı (confirmHits=0)");
+    }
+    await apiPage.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
+    const delayedDlgStillOpen = await apiPage.evaluate(() => {
+      const dlg = document.getElementById("lumos-confirm-dialog");
+      return !!(dlg && dlg.open === true);
+    });
+    if (!delayedDlgStillOpen) {
+      fail("Geciktirilmiş eşzamanlı çağrı ilk diyaloğu kapatmış");
+    }
+    await apiPage.click("#lumos-confirm-cancel");
+    const delayedBoth = await apiPage.evaluate(async () => {
+      const pair = window.__webmcpDelayedConcurrent;
+      const [a, b] = await Promise.all([pair.p1, pair.p2]);
+      delete window.__webmcpDelayedConcurrent;
+      return { a, b };
+    });
+    const delayedReasons = [delayedBoth.a.reason, delayedBoth.b.reason].sort();
+    if (delayedReasons.join(",") !== "confirmation_busy,user_rejected") {
+      fail("Geciktirilmiş eşzamanlı sonuçlar hatalı: " + JSON.stringify(delayedBoth));
+    }
+  } finally {
+    if (apiContext) await apiContext.close().catch(() => {});
+    await delayedMock.close();
+  }
+
+  // 8b) HTTP 500 → confirmation_failed (user_rejected değil)
+  const err500Mock = await startConfirmMockServer(mockPort + 1, () => ({
+    status: 500,
+    body: { ok: false, error: "boom" },
+  }));
+  try {
+    apiContext = await browser.newContext();
+    await apiContext.addInitScript(agentHarnessWithTasksApi(err500Mock.base));
+    apiPage = await apiContext.newPage();
+    await apiPage.goto(PANEL_URL, { waitUntil: "domcontentloaded", timeout: PANEL_READY_MS });
+    await waitForPanelDom(apiPage, PANEL_READY_MS);
+    await apiPage.waitForFunction(
+      () => document.documentElement.dataset.lumosWebmcp === "registered",
+      null,
+      { timeout: PANEL_READY_MS },
+    );
+    await apiPage.click('.panel-body button[data-module="gorevler"]');
+    await new Promise((r) => setTimeout(r, 600));
+    const http500 = await apiPage.evaluate(CALL_TOOL, {
+      name: "lumos-propose-task",
+      args: { title: "WebMCP HTTP 500 " + Date.now() },
+    });
+    if (http500.reason !== "confirmation_failed") {
+      fail("HTTP 500 confirmation_failed olmalı: " + JSON.stringify(http500));
+    }
+    if (http500.approved !== false || http500.ok !== false) {
+      fail("HTTP 500 yazma yapmış görünüyor: " + JSON.stringify(http500));
+    }
+    const dlgAfter500 = await apiPage.evaluate(() => {
+      const dlg = document.getElementById("lumos-confirm-dialog");
+      return !!(dlg && dlg.open === true);
+    });
+    if (dlgAfter500) fail("HTTP 500 sonrası onay diyaloğu açılmış olmamalı");
+  } finally {
+    if (apiContext) await apiContext.close().catch(() => {});
+    apiContext = null;
+    await err500Mock.close();
+  }
+
+  // 8c) Bozuk JSON → confirmation_failed
+  const badJsonMock = await startConfirmMockServer(mockPort + 2, () => ({
+    status: 200,
+    rawBody: "{not-json",
+  }));
+  try {
+    apiContext = await browser.newContext();
+    await apiContext.addInitScript(agentHarnessWithTasksApi(badJsonMock.base));
+    apiPage = await apiContext.newPage();
+    await apiPage.goto(PANEL_URL, { waitUntil: "domcontentloaded", timeout: PANEL_READY_MS });
+    await waitForPanelDom(apiPage, PANEL_READY_MS);
+    await apiPage.waitForFunction(
+      () => document.documentElement.dataset.lumosWebmcp === "registered",
+      null,
+      { timeout: PANEL_READY_MS },
+    );
+    await apiPage.click('.panel-body button[data-module="gorevler"]');
+    await new Promise((r) => setTimeout(r, 600));
+    const badJson = await apiPage.evaluate(CALL_TOOL, {
+      name: "lumos-propose-task",
+      args: { title: "WebMCP bozuk JSON " + Date.now() },
+    });
+    if (badJson.reason !== "confirmation_failed") {
+      fail("Bozuk JSON confirmation_failed olmalı: " + JSON.stringify(badJson));
+    }
+  } finally {
+    if (apiContext) await apiContext.close().catch(() => {});
+    apiContext = null;
+    await badJsonMock.close();
+  }
+
+  // 8d) Ağ istisnası (kapalı port) → confirmation_failed
+  const deadBase = "http://127.0.0.1:" + (mockPort + 3);
+  // Önce confirmation_enabled'i canlı mock'tan al, sonra tabanı ölü porta çevir.
+  const seedMock = await startConfirmMockServer(mockPort + 4, () => ({
+    status: 200,
+    body: {
+      ok: true,
+      confirmation_id: "should_not_be_used",
+      preview: { what: "create_task", where: "x", effect: "local_task_create" },
+    },
+  }));
+  try {
+    apiContext = await browser.newContext();
+    await apiContext.addInitScript(agentHarnessWithTasksApi(seedMock.base));
+    apiPage = await apiContext.newPage();
+    await apiPage.goto(PANEL_URL, { waitUntil: "domcontentloaded", timeout: PANEL_READY_MS });
+    await waitForPanelDom(apiPage, PANEL_READY_MS);
+    await apiPage.waitForFunction(
+      () => document.documentElement.dataset.lumosWebmcp === "registered",
+      null,
+      { timeout: PANEL_READY_MS },
+    );
+    await apiPage.click('.panel-body button[data-module="gorevler"]');
+    await new Promise((r) => setTimeout(r, 600));
+    // confirmation bayrağı seed mock'tan geldi; network hatası için tabanı değiştir.
+    await apiPage.evaluate((base) => {
+      window.LUMOS_PANEL_TASKS_API_BASE = base;
+    }, deadBase);
+    const networkFail = await apiPage.evaluate(CALL_TOOL, {
+      name: "lumos-propose-task",
+      args: { title: "WebMCP network fail " + Date.now() },
+    });
+    if (networkFail.reason !== "confirmation_failed") {
+      fail("Ağ istisnası confirmation_failed olmalı: " + JSON.stringify(networkFail));
+    }
+    if (networkFail.reason === "user_rejected") {
+      fail("Ağ istisnası user_rejected sayılmış");
+    }
+
+    // 8e) API tabanı yokken (confirmation hâlâ açık) → confirmation_unavailable
+    await apiPage.evaluate(() => {
+      window.LUMOS_PANEL_TASKS_API_BASE = false;
+    });
+    const unavailable = await apiPage.evaluate(CALL_TOOL, {
+      name: "lumos-propose-task",
+      args: { title: "WebMCP unavailable " + Date.now() },
+    });
+    if (unavailable.reason !== "confirmation_unavailable") {
+      fail(
+        "API tabanı yokken confirmation_unavailable olmalı: " + JSON.stringify(unavailable),
+      );
+    }
+  } finally {
+    if (apiContext) await apiContext.close().catch(() => {});
+    await seedMock.close();
+  }
+
   await browser.close();
   browser = null;
   console.log("WEBMCP_PANEL_E2E_RESULT: PASS");
@@ -533,6 +952,9 @@ try {
   console.log("tools:", EXPECTED_TOOLS.join(", "));
   console.log("read consent: refused without approval, granted on approval, revocable");
   console.log("confirm dialog: title, priority, when, status, source rendered from real args");
+  console.log(
+    "confirmation lock: concurrent busy + server HTTP 500 / bozuk JSON / network attribution",
+  );
   console.log("url:", PANEL_URL);
 } catch (err) {
   if (browser) await browser.close().catch(() => {});
