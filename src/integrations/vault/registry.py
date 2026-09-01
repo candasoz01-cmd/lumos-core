@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,6 +16,12 @@ from integrations.vault.access import (
 )
 
 
+@dataclass(frozen=True)
+class CredentialBindingUpsertResult:
+    applied: bool
+    replaced_vault_ref: str | None = None
+
+
 class CredentialBindingRegistry:
     """Secret içermeyen doğrulanmış hesap bağları için yerel kayıt deposu."""
 
@@ -25,8 +32,28 @@ class CredentialBindingRegistry:
 
     def upsert(self, binding: CredentialBinding) -> bool:
         """Yalnızca daha yeni doğrulama kazanır; eski tamamlama sessizce düşer."""
+        return self.upsert_with_replaced_ref(binding).applied
+
+    def upsert_with_replaced_ref(
+        self,
+        binding: CredentialBinding,
+    ) -> CredentialBindingUpsertResult:
+        """Yeni bağı atomik yazar ve yerinden edilen opak vault ref'ini döndürür."""
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
+            previous_row = connection.execute(
+                """
+                SELECT vault_ref
+                FROM credential_bindings
+                WHERE owner_id = ? AND provider = ? AND account_id = ? AND purpose_code = ?
+                """,
+                (
+                    binding.key.owner_id,
+                    binding.key.provider,
+                    binding.key.account_id,
+                    binding.key.purpose_code,
+                ),
+            ).fetchone()
             cursor = connection.execute(
                 """
                 INSERT INTO credential_bindings (
@@ -70,7 +97,15 @@ class CredentialBindingRegistry:
                     _to_storage_datetime(binding.revoked_at) if binding.revoked_at else None,
                 ),
             )
-            return cursor.rowcount == 1
+            if cursor.rowcount != 1:
+                return CredentialBindingUpsertResult(applied=False)
+            previous_ref = str(previous_row["vault_ref"]) if previous_row is not None else None
+            return CredentialBindingUpsertResult(
+                applied=True,
+                replaced_vault_ref=(
+                    previous_ref if previous_ref and previous_ref != binding.vault_ref else None
+                ),
+            )
 
     def get(self, key: CredentialBindingKey) -> CredentialBinding | None:
         with self._connect() as connection:
@@ -115,25 +150,39 @@ class CredentialBindingRegistry:
         return evaluate_credential_access(self.get(request.key), request, now=now)
 
     def revoke(self, key: CredentialBindingKey, *, revoked_at: datetime | None = None) -> bool:
+        return self.revoke_if_current(key, expected_vault_ref=None, revoked_at=revoked_at)
+
+    def revoke_if_current(
+        self,
+        key: CredentialBindingKey,
+        *,
+        expected_vault_ref: str | None,
+        revoked_at: datetime | None = None,
+    ) -> bool:
         effective_at = revoked_at or datetime.now(timezone.utc)
         if effective_at.tzinfo is None or effective_at.utcoffset() is None:
             raise ValueError("revoked_at_must_be_timezone_aware")
+        expected_clause = "" if expected_vault_ref is None else " AND vault_ref = ?"
+        parameters: tuple[object, ...] = (
+            CredentialBindingStatus.REVOKED.value,
+            _to_storage_datetime(effective_at),
+            key.owner_id,
+            key.provider,
+            key.account_id,
+            key.purpose_code,
+        )
+        if expected_vault_ref is not None:
+            parameters += (expected_vault_ref,)
         with self._connect() as connection:
             connection.execute("BEGIN IMMEDIATE")
             cursor = connection.execute(
-                """
+                f"""
                 UPDATE credential_bindings
                 SET status = ?, revoked_at = ?
                 WHERE owner_id = ? AND provider = ? AND account_id = ? AND purpose_code = ?
+                {expected_clause}
                 """,
-                (
-                    CredentialBindingStatus.REVOKED.value,
-                    _to_storage_datetime(effective_at),
-                    key.owner_id,
-                    key.provider,
-                    key.account_id,
-                    key.purpose_code,
-                ),
+                parameters,
             )
             return cursor.rowcount == 1
 

@@ -37,6 +37,7 @@ class _FakeVault:
     def __init__(self) -> None:
         self.values: dict[str, str] = {}
         self.resolve_calls = 0
+        self.deleted_refs: list[str] = []
 
     def store_credential(
         self,
@@ -59,6 +60,7 @@ class _FakeVault:
         )
 
     def delete_credential(self, ref: str, purpose_code: str) -> CredentialWriteResult:
+        self.deleted_refs.append(ref)
         self.values.pop(ref, None)
         return CredentialWriteResult(True, purpose_code, ref)
 
@@ -236,6 +238,41 @@ def test_github_rejection_revokes_binding_and_next_read_requires_approval(tmp_pa
     assert second.reason == "credential_revoked_approval_required"
     assert binding is not None and binding.public_metadata()["status"] == "revoked"
     assert vault.resolve_calls == 1
+    assert binding.vault_ref in vault.deleted_refs
+    assert binding.vault_ref not in vault.values
+
+
+def test_github_rejection_does_not_revoke_concurrent_reconnect(tmp_path):
+    connector, vault, api, registry = _connector(tmp_path)
+    assert _complete(connector, token="token-old").ok is True
+
+    def reconnect_then_reject(
+        access_token: str,
+        *,
+        limit: int,
+    ) -> tuple[dict[str, object], ...]:
+        assert access_token == "token-old"
+        assert limit == 30
+        assert _complete(
+            connector,
+            token="token-new",
+            verified_at=NOW + timedelta(seconds=1),
+        ).ok is True
+        raise GitHubApiError("github_credential_rejected")
+
+    api.list_repositories = reconnect_then_reject
+
+    result = connector.list_repositories(
+        owner_id=OWNER_ID,
+        account_id=ACCOUNT_ID,
+        now=NOW + timedelta(minutes=1),
+    )
+    current = registry.get(github_binding_key(owner_id=OWNER_ID, account_id=ACCOUNT_ID))
+
+    assert result.error == "github_credential_rejected"
+    assert current is not None
+    assert current.public_metadata()["status"] == "active"
+    assert vault.values == {current.vault_ref: "token-new"}
 
 
 def test_expired_connection_requires_reauthentication_without_vault_read(tmp_path):
@@ -277,6 +314,28 @@ def test_concurrent_connection_completions_keep_newest_token_reference(tmp_path)
     assert binding is not None
     assert binding.verified_at == newer_at
     assert vault.values[binding.vault_ref] == "token-newer"
+    assert set(vault.values.values()) == {"token-newer"}
+
+
+def test_reconnect_deletes_replaced_vault_secret(tmp_path):
+    connector, vault, _, registry = _connector(tmp_path)
+    assert _complete(connector, token="token-old", verified_at=NOW).ok is True
+    old_ref = registry.get(
+        github_binding_key(owner_id=OWNER_ID, account_id=ACCOUNT_ID)
+    ).vault_ref
+
+    result = _complete(
+        connector,
+        token="token-new",
+        verified_at=NOW + timedelta(seconds=1),
+    )
+    current = registry.get(github_binding_key(owner_id=OWNER_ID, account_id=ACCOUNT_ID))
+
+    assert result.ok is True
+    assert current is not None
+    assert current.vault_ref != old_ref
+    assert vault.values == {current.vault_ref: "token-new"}
+    assert old_ref in vault.deleted_refs
 
 
 def test_stale_connection_completion_rolls_back_orphaned_vault_secret(tmp_path):
