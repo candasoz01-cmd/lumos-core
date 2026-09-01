@@ -25,6 +25,21 @@ def _clear_grant_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv(ENV_ENABLED, raising=False)
 
 
+@pytest.fixture(autouse=True)
+def _pin_substep_validator(monkeypatch: pytest.MonkeyPatch) -> None:
+    """These tests assert grant semantics, so no live model gets a vote here."""
+
+    def _allow(
+        step: dict,
+        parent: dict,
+        *,
+        fallback_marker_key: str = "llm_substep_validation",
+    ) -> dict:
+        return {"ok": True, "reason": "", "risk_hint": "low"}
+
+    monkeypatch.setattr("kando_runtime.lumos_gate.validate_substep_with_llm", _allow)
+
+
 def _ctx() -> object:
     return type(
         "Ctx",
