@@ -17,7 +17,9 @@
     "e2e:package:local": "node e2e/package-local.mjs",
     "e2e:package:api": "node e2e/package-api.mjs",
     "e2e:confirmation:api": "node e2e/confirmation-panel-api.mjs",
-    "e2e:tasks-offline-online": "node e2e/tasks-offline-online.mjs"
+    "e2e:tasks-offline-online": "node e2e/tasks-offline-online.mjs",
+    "e2e:webmcp": "node e2e/webmcp-panel-tools.mjs",
+    "e2e:webmcp:native": "node e2e/webmcp-native-verify.mjs"
   },
   "dependencies": {
     "astro": "^6.2.1"

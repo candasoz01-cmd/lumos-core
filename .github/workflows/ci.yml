@@ -114,6 +114,10 @@ jobs:
         working-directory: ui
         run: npm run e2e:cyber
 
+      - name: Run WebMCP panel E2E (simulated harness)
+        working-directory: ui
+        run: npm run e2e:webmcp
+
   ui-e2e:
     runs-on: ubuntu-latest
     steps:

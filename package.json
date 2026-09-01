@@ -9,6 +9,8 @@
     "e2e:package:api": "npm run build && npm run e2e:package:api --prefix ui",
     "e2e:confirmation:api": "npm run e2e:confirmation:api --prefix ui",
     "e2e:tasks-offline-online": "npm run build && npm run e2e:tasks-offline-online --prefix ui",
+    "e2e:webmcp": "npm run build && npm run e2e:webmcp --prefix ui",
+    "e2e:webmcp:native": "npm run build && npm run e2e:webmcp:native --prefix ui",
     "e2e:legacy:package": "npm run e2e:package --prefix archive/panel",
     "e2e:legacy:package:api": "npm run e2e:package:api --prefix archive/panel",
     "e2e:legacy:tasks-offline-online": "npm run e2e:tasks-offline-online --prefix archive/panel",
