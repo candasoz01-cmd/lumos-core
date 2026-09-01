@@ -181,45 +181,44 @@ function startConfirmMockServer(port, modeForHit) {
   });
 }
 
+/** Init script body: Playwright arg olarak apiBase geçirir (closure serileşmez). */
 function agentHarnessWithTasksApi(apiBase) {
   const base = String(apiBase || "");
-  return function () {
-    const registry = new Map();
-    const modelContext = {
-      registerTool(tool) {
-        if (!tool || typeof tool.name !== "string" || typeof tool.execute !== "function") {
-          return Promise.reject(new TypeError("invalid tool"));
-        }
-        registry.set(tool.name, tool);
-        return Promise.resolve();
-      },
-      getTools() {
-        return Promise.resolve(
-          Array.from(registry.values()).map(function (t) {
-            return {
-              name: t.name,
-              description: t.description,
-              inputSchema: t.inputSchema,
-              origin: location.origin,
-            };
-          }),
-        );
-      },
-      executeTool(tool, args) {
-        const name = typeof tool === "string" ? tool : tool && tool.name;
-        const entry = registry.get(name);
-        if (!entry) return Promise.reject(new Error("unknown tool: " + name));
-        return Promise.resolve(entry.execute(args || {}));
-      },
-    };
-    Object.defineProperty(document, "modelContext", {
-      value: modelContext,
-      configurable: true,
-    });
-    window.LUMOS_PANEL_TASKS_API_BASE = base;
-    /* E2E: sunucu onay yolunu panel sync'ini beklemeden aç. */
-    window.LUMOS_PANEL_CONFIRMATION_ENABLED = true;
+  const registry = new Map();
+  const modelContext = {
+    registerTool(tool) {
+      if (!tool || typeof tool.name !== "string" || typeof tool.execute !== "function") {
+        return Promise.reject(new TypeError("invalid tool"));
+      }
+      registry.set(tool.name, tool);
+      return Promise.resolve();
+    },
+    getTools() {
+      return Promise.resolve(
+        Array.from(registry.values()).map(function (t) {
+          return {
+            name: t.name,
+            description: t.description,
+            inputSchema: t.inputSchema,
+            origin: location.origin,
+          };
+        }),
+      );
+    },
+    executeTool(tool, args) {
+      const name = typeof tool === "string" ? tool : tool && tool.name;
+      const entry = registry.get(name);
+      if (!entry) return Promise.reject(new Error("unknown tool: " + name));
+      return Promise.resolve(entry.execute(args || {}));
+    },
   };
+  Object.defineProperty(document, "modelContext", {
+    value: modelContext,
+    configurable: true,
+  });
+  window.LUMOS_PANEL_TASKS_API_BASE = base;
+  /* E2E: sunucu onay yolunu panel sync'ini beklemeden aç. */
+  window.LUMOS_PANEL_CONFIRMATION_ENABLED = true;
 }
 
 /** Ajan tool çağrısı: sonucu JSON payload'a çevirir. */
@@ -728,7 +727,7 @@ try {
   let apiContext = null;
   try {
     apiContext = await browser.newContext();
-    await apiContext.addInitScript(agentHarnessWithTasksApi(delayedMock.base));
+    await apiContext.addInitScript(agentHarnessWithTasksApi, delayedMock.base);
     apiPage = await apiContext.newPage();
     await apiPage.goto(PANEL_URL, { waitUntil: "domcontentloaded", timeout: PANEL_READY_MS });
     await waitForPanelDom(apiPage, PANEL_READY_MS);
@@ -825,7 +824,7 @@ try {
   }));
   try {
     apiContext = await browser.newContext();
-    await apiContext.addInitScript(agentHarnessWithTasksApi(err500Mock.base));
+    await apiContext.addInitScript(agentHarnessWithTasksApi, err500Mock.base);
     apiPage = await apiContext.newPage();
     await apiPage.goto(PANEL_URL, { waitUntil: "domcontentloaded", timeout: PANEL_READY_MS });
     await waitForPanelDom(apiPage, PANEL_READY_MS);
@@ -864,7 +863,7 @@ try {
   }));
   try {
     apiContext = await browser.newContext();
-    await apiContext.addInitScript(agentHarnessWithTasksApi(badJsonMock.base));
+    await apiContext.addInitScript(agentHarnessWithTasksApi, badJsonMock.base);
     apiPage = await apiContext.newPage();
     await apiPage.goto(PANEL_URL, { waitUntil: "domcontentloaded", timeout: PANEL_READY_MS });
     await waitForPanelDom(apiPage, PANEL_READY_MS);
@@ -901,7 +900,7 @@ try {
   }));
   try {
     apiContext = await browser.newContext();
-    await apiContext.addInitScript(agentHarnessWithTasksApi(seedMock.base));
+    await apiContext.addInitScript(agentHarnessWithTasksApi, seedMock.base);
     apiPage = await apiContext.newPage();
     await apiPage.goto(PANEL_URL, { waitUntil: "domcontentloaded", timeout: PANEL_READY_MS });
     await waitForPanelDom(apiPage, PANEL_READY_MS);

@@ -201,9 +201,11 @@ def test_consent_prompt_is_shown_to_the_user_before_sharing() -> None:
     assert "showPanelConfirmationModal(" in body
     assert "panelWebMcpEnsureTasksModuleVisible();" in body
     # Onay alınmadan izin yazılmaz.
-    assert body.index("if (approved !== true) return false;") < body.index(
+    assert body.index("if (!decision || decision.approved !== true) return false;") < body.index(
         "panelWebMcpReadConsentGranted = true;"
     )
+    assert "panelConfirmationInFlight = true;" in body
+    assert "panelConfirmationInFlight = false;" in body
 
 
 def test_already_completed_shortcut_does_not_leak_task_content() -> None:
