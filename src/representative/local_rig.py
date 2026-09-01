@@ -34,6 +34,7 @@ from representative.pipeline import (
     Utterance,
     summarize_latencies_ms,
 )
+from representative.retention import POLICIES, text_layer_for
 from representative.routing import Direction, DirectionRouter
 from representative.tts_playback import ChunkedTtsPlayer
 from representative.turns import TurnAssembler
@@ -246,6 +247,9 @@ def run_audio_mode(
         threshold = calibrate_rms_threshold(calibration, floor=base_config.rms_threshold)
         config = dataclasses.replace(base_config, rms_threshold=threshold)
         segmenter = UtteranceSegmenter(config, gate=duplex_gate)
+        # Konsol da kalıcı yüzey (runbook: `nohup ... > prova.log`): sıfır
+        # saklamada metin ekrana da basılmaz, karar kayıtla aynı nesneden gelir.
+        show = pipeline.text_layer.show
         print(f"Eşik kalibre edildi: {threshold:.0f}")
         print("Mikrofon açık — TR veya EN konuş (yön kendiliğinden); Ctrl+C ile çık.")
         while True:
@@ -259,17 +263,17 @@ def run_audio_mode(
             if not heard.text:
                 continue
             if is_prompt_echo(heard.text, LUMOS_TERMS_PROMPT):
-                print(f"  (istem yankısı düşürüldü: {heard.text[:40]})")
+                print(f"  (istem yankısı düşürüldü: {show(heard.text[:40])})")
                 continue
             heard_text = corrector.correct(heard.text)
             if suppressor.should_drop(heard_text, time.monotonic()):
-                print(f"  (tekrar düşürüldü: {heard_text[:40]})")
+                print(f"  (tekrar düşürüldü: {show(heard_text[:40])})")
                 continue
             if heard_text != heard.text:
-                print(f"  (terim düzeltildi: {heard.text[:40]} → {heard_text[:40]})")
+                print(f"  (terim düzeltildi: {show(heard.text[:40])} → {show(heard_text[:40])})")
             stt_final = time.monotonic()
             decision = router.route(heard_text)
-            print(f"{decision.direction.source_lang.upper()}(duyulan)> {heard_text}")
+            print(f"{decision.direction.source_lang.upper()}(duyulan)> {show(heard_text)}")
             pipeline.interrupt_playback()
             record = pipeline.process(
                 Utterance(
@@ -282,7 +286,7 @@ def run_audio_mode(
                 )
             )
             recent.append(heard_text)
-            print(f"{decision.direction.target_lang.upper()}> {record.translated_text}  "
+            print(f"{decision.direction.target_lang.upper()}> {show(record.translated_text)}  "
                   f"({record.latency_ms:.0f} ms, yön: {decision.reason})")
             drain()
 
@@ -344,6 +348,7 @@ def run_realtime_audio_mode(
             stream.feed(bytes(indata))
 
     frame_len = int(SAMPLE_RATE * 0.06)  # 60 ms
+    show = pipeline.text_layer.show  # konsol da kalıcı yüzey (nohup logu)
     print("Mikrofon açık (akışlı, ardıl tek ses) — TR veya EN konuş; Ctrl+C ile çık.")
     try:
         with sd.RawInputStream(
@@ -365,12 +370,12 @@ def run_realtime_audio_mode(
                     if not utt.text:
                         turns = assembler.poll(now)
                     elif is_prompt_echo(utt.text, LUMOS_TERMS_PROMPT):
-                        print(f"  (istem yankısı düşürüldü: {utt.text[:40]})")
+                        print(f"  (istem yankısı düşürüldü: {show(utt.text[:40])})")
                         turns = assembler.poll(now)
                     else:
                         heard_text = corrector.correct(utt.text)
                         if heard_text != utt.text:
-                            print(f"  (terim düzeltildi: {utt.text[:40]} → {heard_text[:40]})")
+                            print(f"  (terim düzeltildi: {show(utt.text[:40])} → {show(heard_text[:40])})")
                         turns = assembler.push(heard_text, utt.speech_end_ts, now)
                 else:
                     turns = assembler.poll(now)
@@ -379,11 +384,11 @@ def run_realtime_audio_mode(
                         print(f"  (yarım söz seslendirilmedi: {turn.reason})")
                         continue
                     if suppressor.should_drop(turn.text, now):
-                        print(f"  (tekrar düşürüldü: {turn.text[:40]})")
+                        print(f"  (tekrar düşürüldü: {show(turn.text[:40])})")
                         continue
                     stt_final = time.monotonic()
                     decision = router.route(turn.text)
-                    print(f"{decision.direction.source_lang.upper()}(duyulan)> {turn.text}")
+                    print(f"{decision.direction.source_lang.upper()}(duyulan)> {show(turn.text)}")
                     pipeline.interrupt_playback()
                     record = pipeline.process(
                         Utterance(
@@ -398,7 +403,7 @@ def run_realtime_audio_mode(
                     recent.append(turn.text)
                     marker = "" if record.delivered else " [TESLİM EDİLMEDİ]"
                     print(
-                        f"{decision.direction.target_lang.upper()}> {record.translated_text}{marker}  "
+                        f"{decision.direction.target_lang.upper()}> {show(record.translated_text)}{marker}  "
                         f"({record.latency_ms:.0f} ms, yön: {decision.reason})"
                     )
     finally:
@@ -431,6 +436,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--jsonl-out", default=None, help="prova ölçüm kaydı (jsonl) yolu")
     parser.add_argument(
+        "--retention",
+        default="rehearsal",
+        choices=sorted(POLICIES),
+        help="rehearsal (varsayılan): kaynak/çeviri metni kayda ve konsola "
+        "yazılır; real-meeting: sıfır saklama — metin ne jsonl'e ne konsola yazılır",
+    )
+    parser.add_argument(
         "--vad-silence-ms",
         type=int,
         default=800,
@@ -447,6 +459,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.source_lang == args.target_lang:
         parser.error("source and target languages must differ")
+
+    # bot_rig ile aynı kural (2026-08-25, şart 2): aynı politika hem kaydı hem
+    # konsolu yönetir. Yerel rig de aynı jsonl'i yazar ve aynı şekilde
+    # `nohup ... > prova.log` ile koşturulur; sıfır saklamada iki yüzeyin
+    # ikisine de metin düşmez.
+    session_retention = POLICIES[args.retention]
+    text_layer = text_layer_for(session_retention)
+    if not text_layer.persists:
+        print("saklama: SIFIR — kaynak/çeviri metni ne kayda ne ekrana yazılır")
 
     duplex_gate = HalfDuplexGate()
     transcript = BilingualTranscript()
@@ -466,6 +487,7 @@ def main(argv: list[str] | None = None) -> int:
             if args.jsonl_out
             else None
         ),
+        text_layer=text_layer,
     )
 
     src_lang, dst_lang = args.source_lang, args.target_lang
@@ -538,7 +560,8 @@ def main(argv: list[str] | None = None) -> int:
                     speech_end_ts=time.monotonic(),
                 )
             )
-            print(f"{decision.direction.target_lang.upper()}> {record.translated_text}  "
+            print(f"{decision.direction.target_lang.upper()}> "
+                  f"{pipeline.text_layer.show(record.translated_text)}  "
                   f"({record.latency_ms:.0f} ms, yön: {decision.reason})")
 
     print("\n--- transcript ---")

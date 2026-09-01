@@ -132,6 +132,7 @@ def test_incomplete_assembled_turn_does_not_barge_in_or_speak():
     from types import SimpleNamespace
 
     from representative.bot_rig import speak_assembled_turns
+    from representative.pipeline import PERSISTING_TEXT_LAYER
     from representative.turns import AssembledTurn
 
     class _Pipe:
@@ -139,6 +140,8 @@ def test_incomplete_assembled_turn_does_not_barge_in_or_speak():
             self.interrupts = 0
             self.processed: list[str] = []
             self.unspoken: list[tuple[str, str]] = []
+            # Konsol basımı da saklama politikasından geçer (2026-08-25).
+            self.text_layer = PERSISTING_TEXT_LAYER
 
         def interrupt_playback(self) -> int:
             self.interrupts += 1
@@ -200,6 +203,7 @@ def test_complete_assembled_turn_speaks_once_with_barge_in():
     from types import SimpleNamespace
 
     from representative.bot_rig import speak_assembled_turns
+    from representative.pipeline import PERSISTING_TEXT_LAYER
     from representative.turns import AssembledTurn
 
     class _Pipe:
@@ -207,6 +211,8 @@ def test_complete_assembled_turn_speaks_once_with_barge_in():
             self.interrupts = 0
             self.processed: list[str] = []
             self.unspoken: list[tuple[str, str]] = []
+            # Konsol basımı da saklama politikasından geçer (2026-08-25).
+            self.text_layer = PERSISTING_TEXT_LAYER
 
         def interrupt_playback(self) -> int:
             self.interrupts += 1

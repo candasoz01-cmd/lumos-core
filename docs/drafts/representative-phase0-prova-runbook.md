@@ -611,3 +611,87 @@ Düzeltme (bu dilim, canlı Meet ölçümü yok):
 
 Canlı doğrulama yalnız Mac (`RECALL_API_KEY` Cloud'da yok). jsonl özetinde
 `first_audio_budget_pass` false ise **FAIL — PASS deme**.
+
+## Zamanlama alanları tek ondalık (2026-08-24, kalem 4)
+
+Kurucu kararının ertelenmiş maddelerinden biri (PR #797 kapsamı dışındaydı):
+`latency_ms`, `stt_ms`, `translate_ms`, `tts_to_first_audio_ms`,
+`e2e_first_audio_ms`, `postcheck_ms`, `recorded_at` kayda geçerken tek ondalığa
+yuvarlanır (`pipeline.TIMING_DECIMALS`). Alan listesi elle tutulmaz, kayıttan
+türetilir (`TIMING_FIELDS`) — ileride eklenen bir `*_ms` alanı sessizce tam
+hassasiyette yazılamaz.
+
+Yuvarlama **kayıt üretilirken** yapılır, hesap sırasında değil: aşama süreleri
+tam hassasiyette hesaplanır, ara adımda hata birikmez. Gerçek prova
+dosyalarında ölçülen tasarruf — 08-23 koşusu %13.0, 08-24 Meet koşusu %11.9,
+`prova_bot.jsonl` %11.7.
+
+Çözümleyici tarafı: `percentile_ms` doğrusal ara değer olduğu için her değer
+≤0.05 ms kayınca p50/p90/max/aşama kırılımı da ≤0.05 ms kayar. Dürüst sınır —
+"karar asla değişmez" DOĞRU DEĞİL: GEÇTİ/KALDI yalnız hedefin 0.05 ms
+yakınında (4 sn bütçenin milyonda biri) değişebilir; bu da testle belgelendi.
+
+## Sıfır saklama yerel metni de kapsar (2026-08-25, şart 2)
+
+**Denetim sonucu:** `REAL_MEETING_RETENTION` (zero) yalnız Recall'a giden
+`recording_config.retention` alanına yazılıyordu — yani **sağlayıcı
+tarafındaki medyayı** yönetiyordu. Metni taşıyan yerel yüzeyler politikanın
+dışındaydı.
+
+### Metin taşıyan kalıcı yüzeyler
+
+| Yüzey | Metin taşır mı | `rehearsal` | `real-meeting` (zero) |
+|---|---|---|---|
+| Recall medyası | evet (ses) | timed/24h + erken `delete_media` | tutulmaz |
+| `prova*.jsonl` | evet (`source_text`, `translated_text`) | yazılır (**süreli temizlik ayrı iş**) | **hiç yazılmaz** |
+| `prova*.log` (nohup konsolu) | evet (duyulan + çeviri satırları) | yazılır (**süreli temizlik ayrı iş**) | **hiç yazılmaz** |
+| Canlı konsol | evet | yazılır | yerine `«metin saklanmıyor»` |
+| `recent` / assembler tamponu | evet | yalnız bellek | yalnız bellek |
+| Recall custom metadata / meeting URL | hayır (opak ref) | kalıcı kalıntı | kalıcı kalıntı |
+
+### Nasıl
+
+Tek nesne hem kaydı hem ekranı yönetir (`pipeline.TextLayer`); politika ondan
+türetilir (`retention.text_layer_for`).
+
+**Garanti edilen** (sıfır saklama):
+
+- kaynak/çeviri düz metni **kalıcı hâle getirilmez**: jsonl'de
+  `source_text`/`translated_text` boş, satırda `text_state: "not_persisted"`.
+- düz metin **konsol/log/markdown çıktısına basılmaz**: konsolda `«metin
+  saklanmıyor (sıfır saklama)»`, transcript markdown'ında `«saklanmadı (sıfır
+  saklama)»` (boş hücre "hiçbir şey söylenmedi" gibi okunurdu).
+- sebep, teslim durumu, yön ve zamanlama aynen kalır.
+
+**Garantinin dışında:** işlem sırasında bellekte geçici olarak bulunan düz
+metin. STT çıktısı, çeviri istemi ve çeviri sonucu süreç belleğinde düz
+metindir ve sağlayıcıya düz metin olarak gider. Bu katman kalıcılığı ve çıktıyı
+yönetir, **belleği değil** — "metin hiç var olmadı" denmiyor.
+
+Rig bayrağı (iki rig'de de): `--retention rehearsal|real-meeting`.
+
+> `--retention real-meeting` bayrağı gerçek dış katılımcılı toplantı iznini
+> **VERMEZ**: ADR-025 veri bölgesi/DPA blokajı ayrıca sürüyor.
+
+Konsol tarafının **asıl** güvencesi çalışma zamanı sentinel testidir: gerçek
+rig yolu koşturulup yakalanan stdout/stderr denetlenir. Yanında bir **statik
+tripwire** var: rig'lerin yazma yüzeyleri (`print`, `logging.*`, `write`,
+`writelines`) **AST üzerinden** taranır — toplantı metni taşıyan bir ifade
+`show()` içinden geçmiyorsa test kırılır, yazım biçimi ne olursa olsun
+(f-string, çıplak argüman, `%`, `.format()`). Tripwire bir **kanıt değildir**:
+stdlib yazma yüzeylerini ve tanınan bağlama biçimlerini bilir; kullanıcı-tanımlı
+keyfi bir çıktı yolu kapsam dışıdır. Denetleyicinin
+kendi testi de var: listelenen her biçim bulgu üretmek zorunda, `show()`'dan
+geçenler ve metin olmayan alanlar üretmemek zorunda. Metin taşıyan yerel adlar
+da kaynaktan türetilir: karar, çağrılan fonksiyonun **dönüş anotasyonuna**
+bakılarak verilir (`corrector.correct(...) -> str` metin taşır,
+`router.route(...) -> RoutingDecision` taşımaz). Anotasyonu bilinmeyen çağrı
+metin sayılır (fail-closed). Taint metot çağrıları ve kapsayıcılar boyunca
+korunur (`heard[:40].strip()`, `{'src': turn.text}`); stdin metin kipinde sözün
+kaynağı olan `input()` de metin sayılır. Elle tutulan ad listesi yok — bir
+listenin `bot_rig`'deki `heard` adını atlaması PR #806'da High bulguya, düğüm
+tipi beyaz listesinin metot alıcısını atlaması da Medium bulguya yol açmıştı.
+
+**Kapsam dışı (ayrı iş):** kapalı provanın 24 saatlik metin penceresinin
+işletilmesi — süresi dolanı silme ve bunu koşturan zamanlayıcı. `rehearsal`
+politikasında yerel metin şu an **süresiz** yaşamaya devam ediyor.
