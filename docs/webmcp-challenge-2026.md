@@ -95,12 +95,63 @@ Kural: **kullanıcı açıkça izin vermeden görev içeriği ajana dönmez.**
   **yalnızca okuma izni varsa** taşır — aksi halde izin kapısını atlayan bir
   okuma olurdu.
 
-**Kalan sınır (bilinen):** `lumos-complete-task`, tahtada olmayan bir referans
-için `task_not_found` döndürür. Bu, tam başlığı **zaten bilen** bir ajana o
-başlığın var olup olmadığını söyleyen dar bir varlık sinyalidir. İçerik
-sızdırmaz (başlık, öncelik, zaman dönmez) ve tamamlamayı büsbütün okuma iznine
-bağlamak, kullanıcının "şu görevi kapat" demesini de engellerdi; bu yüzden
-bilinçli olarak açık bırakıldı.
+### Üyelik/durum oracle'ı da kapatıldı
+
+**Kapatılan açık (eski "kalan sınır"):** Okuma izni yokken bile
+`lumos-complete-task`, verilen ref'e göre **ayrışan** cevaplar veriyordu:
+
+| durum | eski davranış (izin YOK) |
+| --- | --- |
+| ref verilmedi | `ref_required` |
+| tahtada olmayan ref | `task_not_found` |
+| var olan, bekleyen görev | **onay penceresi açılırdı** |
+| var olan, tamamlanmış görev | `already_completed` |
+
+İçerik sızmıyordu (başlık, öncelik, zaman dönmüyordu) ama bu dört farklı
+davranış, tam başlığı **tahmin eden** bir ajana görevin var olup olmadığını ve
+tamamlanmış olup olmadığını söylüyordu — içerik sızmadan **üyelik** sızıyordu.
+Onay penceresinin açılması ayrıca sessiz bir sinyal değil, kullanıcıya
+gösterilen ve tahtada o görevin bulunduğunu doğrulayan bir işaretti.
+
+**Artık:** okuma izni kontrolü, ref doğrulamasından ve görev aramasından
+**önce** gelir. İzin yoksa hiçbir arama yapılmaz, hiçbir onay penceresi açılmaz
+ve dört durumun dördü de `lumos-list-tasks`'ın izinsiz reddiyle **birebir aynı**
+gövdeyi alır:
+
+```json
+{
+  "ok": false,
+  "approved": false,
+  "reason": "read_consent_required",
+  "consent": { "granted": false, "scope": "session" },
+  "hint": "The user has not shared their Lumos task board with agents. …",
+  "detail": "complete_requires_read_consent"
+}
+```
+
+Okuma izni verildikten sonra eski ayrıntılı davranış **aynen** korunur:
+`ref_required` / `task_not_found` / `already_completed` / onay penceresi ve
+durum geçişi bugünkü gibi çalışır.
+
+**Bedeli (bilinçli):** ajan, mevcut bir görevi tamamlamak için **önce** tahtayı
+paylaşma iznini almak zorundadır. Kullanıcının "şu görevi kapat" demesi artık
+tek değil iki onay ister: bir kez paylaşım izni (oturum boyunca geçerli, geri
+alınabilir), sonra her tamamlamada yazma onayı. Ayrışan bir cevabın üyelik
+sızdırmasındansa fazladan bir izin adımı tercih edildi.
+
+`lumos-propose-task` **değişmedi**: okuma izni gerektirmez (yeni bir başlık
+öneriyor, tahtayı okumuyor), yazma onayından geçer ve izin yokken başarı yanıtı
+tam olarak `{"ok":true,"approved":true}` — görev verisi taşımaz.
+
+Kanıt: `tests/test_panel_webmcp_tools.py` (kaynak sözleşmesi),
+`ui/e2e/webmcp-panel-tools.mjs` ve `ui/e2e/webmcp-native-verify.mjs` (dört
+durumun payload'ları **string olarak** karşılaştırılır; onay penceresinin
+açılmadığı ve çağrının askıda kalmadığı ayrıca sınanır).
+
+**Kalan sınır (bilinen):** okuma izni **verildikten sonra** `task_not_found` ile
+`already_completed` yine ayrışır. Bu artık bir açık değil, iznin kendisidir:
+kullanıcı tahtayı paylaşmayı onayladıysa ajan zaten `lumos-list-tasks` ile tüm
+listeyi okuyabilir.
 
 ## 1c. Onay ekranı — yazılacak HER alan görünür
 
