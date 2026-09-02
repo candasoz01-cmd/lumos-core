@@ -14,6 +14,10 @@
  *  5. Aynı tool "Onayla" ile gerçekten görev oluşturur ve panelde görünür.
  *  6. `lumos-complete-task` yine onay kapısından geçer ve durum değişikliğini
  *     (neyi neye çevirdiğini) ekranda yazar.
+ *  6b. ÜYELİK ORACLE'I KAPALI: okuma izni yokken `lumos-complete-task`, ref'e
+ *     göre AYRIŞMAZ — var olmayan / bekleyen / zaten tamamlanmış görev ve hiç
+ *     ref verilmemesi BİREBİR aynı `read_consent_required` payload'ını alır ve
+ *     hiçbirinde onay penceresi açılmaz. İzin verilince dördü yine ayrışır.
  *  7. Eşzamanlı iki mutasyon: ikincisi `confirmation_busy`; ilk diyalog açık kalır.
  *  8. Sunucu onay yolu: gecikmeli eşzamanlı çağrı, HTTP 500, bozuk JSON ve
  *     ağ istisnası `user_rejected` değil `confirmation_failed` /
@@ -618,30 +622,207 @@ try {
     fail("Bilinmeyen görev referansı beklenen hatayı vermedi: " + JSON.stringify(notFound));
   }
 
-  // 6b) Yan kanal: "zaten tamamlandı" kısayolu onay ekranı açmaz. İzin
-  //     geri alınmışken görev içeriği bu yoldan da SIZMAMALI.
+  // ── 6b) ÜYELİK/DURUM ORACLE'I KAPALI ──────────────────────────────────────
+  // İzin YOKKEN lumos-complete-task, verilen ref'e göre AYRIŞAN cevap
+  // vermemeli. Dört durumun da BİREBİR aynı payload'ı dönmesi ve hiçbirinde
+  // onay penceresi açılmaması gerekir; aksi halde tam başlığı tahmin eden bir
+  // ajan görevin varlığını ve tamamlanmışlığını çıkarabilirdi.
+  //
+  // Önce izin AÇIKKEN bir bekleyen görev üretilir (üçüncü durumun gerçekten
+  // var olduğunu kanıtlamak için), sonra izin geri alınır.
+  const TITLE_PENDING = "WebMCP bekleyen " + Date.now();
+  const pendingCreatePromise = pending(
+    page.evaluate(CALL_TOOL, {
+      name: "lumos-propose-task",
+      args: { title: TITLE_PENDING, priority: "dusuk", when: "Cuma 09:00" },
+    }),
+  );
+  await page.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
+  await page.click("#lumos-confirm-approve");
+  const pendingCreated = await pendingCreatePromise;
+  assertNoToolError("lumos-propose-task (bekleyen görev)", pendingCreated);
+  if (!pendingCreated.ok || !pendingCreated.task || pendingCreated.task.status === "tamamlandi") {
+    fail("Oracle testi için bekleyen görev üretilemedi: " + JSON.stringify(pendingCreated));
+  }
+
   await page.click("#gorevler-webmcp-consent-revoke");
-  const alreadyNoConsent = await page.evaluate(CALL_TOOL, {
-    name: "lumos-complete-task",
-    args: { ref: TITLE_APPROVE },
-  });
-  if (alreadyNoConsent.reason !== "already_completed") {
-    fail("Beklenen already_completed değil: " + JSON.stringify(alreadyNoConsent));
+  const chipRevoked = await page.evaluate(READ_CONSENT_CHIP);
+  if (chipRevoked.granted !== "false") {
+    fail("Oracle testi öncesi izin geri alınamadı: " + JSON.stringify(chipRevoked));
   }
-  if ("task" in alreadyNoConsent) {
-    fail("İzin yokken already_completed görev içeriği sızdırdı: " + JSON.stringify(alreadyNoConsent));
+
+  const dialogIsOpen = () =>
+    page.evaluate(() => {
+      const d = document.getElementById("lumos-confirm-dialog");
+      return !!(d && d.open === true);
+    });
+
+  const ORACLE_PROBES = [
+    ["yok (izinliyken task_not_found)", { ref: "olmayan-gorev-oracle-" + Date.now() }],
+    ["var + bekliyor (izinliyken onay penceresi)", { ref: TITLE_PENDING }],
+    ["var + tamamlanmış (izinliyken already_completed)", { ref: TITLE_APPROVE }],
+    ["ref verilmedi (izinliyken ref_required)", {}],
+  ];
+  const oracleProbeResults = [];
+  for (const [label, args] of ORACLE_PROBES) {
+    /**
+     * Çağrı ASKIDA kalmamalı: onay penceresi açılan bir regresyonda
+     * `evaluate` kullanıcı kararını sonsuza dek beklerdi. Yarıştırıp
+     * askıda kalmayı da açık bir başarısızlık olarak raporluyoruz.
+     */
+    const probe = pending(page.evaluate(CALL_TOOL, { name: "lumos-complete-task", args }));
+    const settled = await Promise.race([
+      probe.then((r) => ({ done: true, r })),
+      new Promise((r) => setTimeout(() => r({ done: false }), 4000)),
+    ]);
+    if (!settled.done) {
+      const stuckOpen = await dialogIsOpen();
+      await page.click("#lumos-confirm-cancel").catch(() => {});
+      await probe.catch(() => {});
+      fail(
+        "İzin yokken tamamlama çağrısı askıda kaldı — " + label
+        + (stuckOpen ? " (onay penceresi AÇILDI)" : " (pencere yok, çağrı dönmedi)"),
+      );
+    }
+    const res = settled.r;
+    assertNoToolError("lumos-complete-task (izinsiz · " + label + ")", res);
+    if (await dialogIsOpen()) {
+      fail("İzin yokken onay penceresi açıldı — " + label);
+    }
+    if (res.ok !== false || res.approved !== false || res.reason !== "read_consent_required") {
+      fail("İzin yokken tamamlama ayrışan cevap verdi (" + label + "): " + JSON.stringify(res));
+    }
+    for (const leak of ["task", "tasks", "count", "title", "priority", "when", "id", "status"]) {
+      if (leak in res) {
+        fail("İzinsiz tamamlama zarfında '" + leak + "' var (" + label + "): " + JSON.stringify(res));
+      }
+    }
+    const blob = JSON.stringify(res);
+    if (blob.indexOf(TITLE_PENDING) !== -1 || blob.indexOf(TITLE_APPROVE) !== -1) {
+      fail("İzinsiz tamamlama cevabında görev başlığı sızdı (" + label + "): " + blob);
+    }
+    oracleProbeResults.push({ label, blob });
   }
-  // İzin geri verilince aynı yol içeriği döndürebilir.
+  const oracleDistinct = Array.from(new Set(oracleProbeResults.map((p) => p.blob)));
+  if (oracleDistinct.length !== 1) {
+    fail(
+      "İzin yokken tamamlama cevapları ayrışıyor — üyelik oracle'ı açık:\n"
+      + oracleProbeResults.map((p) => p.label + " → " + p.blob).join("\n"),
+    );
+  }
+
+  // İzinsiz cevap, lumos-list-tasks'ın izinsiz reddiyle aynı biçimde olmalı.
+  const listRefusePromise = pending(
+    page.evaluate(CALL_TOOL, { name: "lumos-list-tasks", args: {} }),
+  );
+  await page.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
+  await page.click("#lumos-confirm-cancel");
+  const listRefusedAgain = await listRefusePromise;
+  assertNoToolError("lumos-list-tasks (oracle karşılaştırması)", listRefusedAgain);
+  const oracleShape = Object.keys(JSON.parse(oracleDistinct[0])).sort().join(",");
+  const listShape = Object.keys(listRefusedAgain).sort().join(",");
+  if (oracleShape !== listShape) {
+    fail(
+      "complete izinsiz cevabı list-tasks reddiyle aynı biçimde değil: complete="
+      + oracleShape + " list=" + listShape,
+    );
+  }
+  const oracleDoc = JSON.parse(oracleDistinct[0]);
+  if (
+    !oracleDoc.consent
+    || oracleDoc.consent.granted !== false
+    || oracleDoc.consent.scope !== "session"
+    || typeof oracleDoc.hint !== "string"
+    || !oracleDoc.hint
+  ) {
+    fail("İzinsiz tamamlama cevabında consent/hint eksik: " + oracleDistinct[0]);
+  }
+
+  // 6b-ii) lumos-propose-task DEĞİŞMEDİ: izin yokken de yazar, içerik taşımaz.
+  const TITLE_NO_CONSENT = "WebMCP izinsiz oneri " + Date.now();
+  const noConsentProposePromise = pending(
+    page.evaluate(CALL_TOOL, {
+      name: "lumos-propose-task",
+      args: { title: TITLE_NO_CONSENT, priority: "yuksek", when: "Pazartesi 08:00" },
+    }),
+  );
+  await page.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
+  await page.click("#lumos-confirm-approve");
+  const noConsentPropose = await noConsentProposePromise;
+  assertNoToolError("lumos-propose-task (izinsiz)", noConsentPropose);
+  if (JSON.stringify(noConsentPropose) !== '{"ok":true,"approved":true}') {
+    fail(
+      "İzinsiz propose başarı yanıtı tam olarak {\"ok\":true,\"approved\":true} değil: "
+      + JSON.stringify(noConsentPropose),
+    );
+  }
+  const wroteWithoutConsent = await page.evaluate((t) => {
+    try {
+      const raw = localStorage.getItem("lumos_panel_gorevler_list_v1");
+      return raw ? JSON.parse(raw).some((r) => r && r.title === t) : false;
+    } catch {
+      return false;
+    }
+  }, TITLE_NO_CONSENT);
+  if (!wroteWithoutConsent) {
+    fail("İzinsiz onaylanan öneri panelin kendi listesine yazılmamış — ok:true yanıltıcı");
+  }
+
+  // ── 6b-iii) REGRESYON: izin verilince üç durum yine AYRIŞIR ───────────────
   const regrant2 = pending(page.evaluate(CALL_TOOL, { name: "lumos-list-tasks", args: {} }));
   await page.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
   await page.click("#lumos-confirm-approve");
-  await regrant2;
+  const regranted2 = await regrant2;
+  if (!regranted2.ok) fail("Regresyon bölümü için izin yeniden verilemedi");
+
+  const withConsentNotFound = await page.evaluate(CALL_TOOL, {
+    name: "lumos-complete-task",
+    args: { ref: "olmayan-gorev-regresyon-" + Date.now() },
+  });
+  if (withConsentNotFound.reason !== "task_not_found") {
+    fail("İzinliyken task_not_found dönmedi: " + JSON.stringify(withConsentNotFound));
+  }
+  const withConsentRefRequired = await page.evaluate(CALL_TOOL, {
+    name: "lumos-complete-task",
+    args: {},
+  });
+  if (withConsentRefRequired.reason !== "ref_required") {
+    fail("İzinliyken ref_required dönmedi: " + JSON.stringify(withConsentRefRequired));
+  }
   const alreadyWithConsent = await page.evaluate(CALL_TOOL, {
     name: "lumos-complete-task",
     args: { ref: TITLE_APPROVE },
   });
+  if (alreadyWithConsent.reason !== "already_completed") {
+    fail("İzinliyken already_completed dönmedi: " + JSON.stringify(alreadyWithConsent));
+  }
   if (!alreadyWithConsent.task || alreadyWithConsent.task.title !== TITLE_APPROVE) {
     fail("İzin varken already_completed içerik döndürmedi: " + JSON.stringify(alreadyWithConsent));
+  }
+  // Bekleyen görev: izinliyken onay penceresi yine açılır ve durum geçer.
+  const pendingCompletePromise = pending(
+    page.evaluate(CALL_TOOL, { name: "lumos-complete-task", args: { ref: TITLE_PENDING } }),
+  );
+  await page.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
+  await page.click("#lumos-confirm-approve");
+  const pendingCompleted = await pendingCompletePromise;
+  assertNoToolError("lumos-complete-task (bekleyen, izinli)", pendingCompleted);
+  if (
+    !pendingCompleted.ok
+    || !pendingCompleted.task
+    || pendingCompleted.task.status !== "tamamlandi"
+  ) {
+    fail("İzinliyken bekleyen görev tamamlanmadı: " + JSON.stringify(pendingCompleted));
+  }
+  // Dört durumun izinliyken dördü de farklı: oracle yalnızca izinsiz kapalı.
+  const withConsentReasons = [
+    withConsentNotFound.reason,
+    withConsentRefRequired.reason,
+    alreadyWithConsent.reason,
+    pendingCompleted.reason == null ? "completed" : pendingCompleted.reason,
+  ];
+  if (new Set(withConsentReasons).size !== 4) {
+    fail("İzinliyken durumlar ayrışmıyor (regresyon): " + JSON.stringify(withConsentReasons));
   }
 
   // ── 6c) Eşzamanlı onaylar (yerel yol): ikinci çağrı busy, ilk diyalog açık ──
@@ -950,6 +1131,15 @@ try {
   console.log("surface: ui/dist static + document.modelContext");
   console.log("tools:", EXPECTED_TOOLS.join(", "));
   console.log("read consent: refused without approval, granted on approval, revocable");
+  console.log("--- üyelik oracle'ı (izin YOK, lumos-complete-task) ---");
+  for (const p of oracleProbeResults) console.log("  " + p.label + " → " + p.blob);
+  console.log("  onay penceresi: hiçbirinde açılmadı");
+  console.log("--- izin VERİLDİKTEN sonra (regresyon) ---");
+  console.log("  yok            → " + JSON.stringify(withConsentNotFound));
+  console.log("  ref verilmedi  → " + JSON.stringify(withConsentRefRequired));
+  console.log("  tamamlanmış    → " + JSON.stringify(alreadyWithConsent));
+  console.log("  bekliyor       → " + JSON.stringify(pendingCompleted));
+  console.log("propose (izinsiz): " + JSON.stringify(noConsentPropose) + " · panele yazıldı");
   console.log("confirm dialog: title, priority, when, status, source rendered from real args");
   console.log(
     "confirmation lock: concurrent busy + server HTTP 500 / bozuk JSON / network attribution",

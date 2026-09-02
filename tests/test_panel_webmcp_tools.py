@@ -222,15 +222,80 @@ def test_consent_prompt_is_shown_to_the_user_before_sharing() -> None:
     assert "panelConfirmationInFlight = false;" in body
 
 
+def _complete_body() -> str:
+    src = _runtime_src()
+    return src[
+        src.index("async function panelWebMcpCompleteTask(") : src.index(
+            "window.__lumosPanelWebMcp = Object.freeze("
+        )
+    ]
+
+
 def test_already_completed_shortcut_does_not_leak_task_content() -> None:
     """Onay ekranı açılmayan tek yazma yolu da izinsiz içerik döndürmemeli."""
-    src = _runtime_src()
-    start = src.index("async function panelWebMcpCompleteTask(")
-    body = src[start : start + 1400]
+    body = _complete_body()
     assert 'reason: "already_completed"' in body
     # İçerik doğrudan değil, izin kapısı olan yardımcıdan geçerek eklenir.
     assert "panelWebMcpAttachTask(" in body
     assert "task: panelWebMcpTaskView(" not in body
+
+
+# ── Üyelik/durum oracle'ı: izin yokken hiçbir ayrışma ────────────────────────
+
+
+def test_complete_requires_read_consent_before_any_lookup() -> None:
+    """İzin kontrolü ref doğrulamasından ve görev aramasından ÖNCE gelir.
+
+    Aksi halde `ref_required` / `task_not_found` / `already_completed` /
+    açılan onay penceresi, tam başlığı tahmin eden bir ajana görevin var olup
+    olmadığını ve tamamlanmışlığını sızdıran bir oracle olurdu.
+    """
+    body = _complete_body()
+    assert "if (panelWebMcpReadConsentGranted !== true) {" in body
+    refusal = body.index("panelWebMcpReadRefusal(")
+    for later in (
+        'reason: "ref_required"',
+        "findPanelGorevlerRow(",
+        'reason: "task_not_found"',
+        'row.status === "tamamlandi"',
+        'reason: "already_completed"',
+        "panelWebMcpHumanGate(",
+        "panelWebMcpAttachTask(",
+    ):
+        assert refusal < body.index(later), later
+    # Tek ret noktası: izinsiz ayrışan ikinci bir yol eklenmemiş.
+    assert body.count("panelWebMcpReadRefusal(") == 1
+    # Ret, girdi hiç ayrıştırılmadan verilir: `ref` okunmaz, kırpılmaz.
+    assert refusal < body.index('const src = input && typeof input === "object"')
+
+
+def test_complete_refusal_reuses_the_list_tasks_refusal_payload() -> None:
+    """İzinsiz cevap `lumos-list-tasks` reddiyle aynı üreticiden gelir."""
+    body = _complete_body()
+    assert "panelWebMcpReadRefusal(" in body
+    src = _runtime_src()
+    list_body = src[
+        src.index("async function panelWebMcpListTasks(") : src.index(
+            "function panelWebMcpEnsureTasksModuleVisible("
+        )
+    ]
+    assert "panelWebMcpReadRefusal(" in list_body
+    # Gövde tek yerde kurulur; iki tool ayrışamaz.
+    assert src.count("const out = {\n          ok: false,\n          approved: false,") == 1
+
+
+def test_propose_task_is_unchanged_by_the_complete_gate() -> None:
+    """`lumos-propose-task` okuma iznine bağlanmadı: yazma onayıyla çalışır."""
+    src = _runtime_src()
+    propose = src[
+        src.index("async function panelWebMcpProposeTask(") : src.index(
+            "async function panelWebMcpCompleteTask("
+        )
+    ]
+    assert "panelWebMcpReadRefusal(" not in propose
+    assert "panelWebMcpReadConsentGranted" not in propose
+    # Başarı zarfı yine izin kapısı olan yardımcıdan geçer (içerik taşımaz).
+    assert "return panelWebMcpAttachTask({ ok: true, approved: true }, row);" in propose
 
 
 def test_task_echo_helper_is_gated_on_read_consent() -> None:
@@ -291,9 +356,33 @@ def test_complete_tool_description_states_the_no_echo_rule() -> None:
     """Ajan, `task` yokluğunu 'yazılmadı' sanmamalı."""
     src = _tools_src()
     start = src.index('name: "lumos-complete-task"')
-    body = src[start : start + 1200]
+    body = src[start : src.index("const TOOLS = [")]
     assert "NOT permission to read the board" in body
     assert "already_completed" in body
+
+
+def test_complete_tool_description_states_the_read_consent_requirement() -> None:
+    """Ajan, izinsiz reddi 'görev yok' diye yorumlamamalı; izin istemeli."""
+    src = _tools_src()
+    body = src[src.index('name: "lumos-complete-task"') : src.index("const TOOLS = [")]
+    assert "read_consent_required" in body
+    # Aynı cevabın HER ref için döndüğü açıkça yazılı.
+    assert "unknown ref" in body
+    assert "already completed task" in body
+    assert "exact same" in body
+    assert "confirmation dialog is shown" in body
+    # Ve bunun "görev yok" anlamına GELMEDİĞİ.
+    assert "NOT evidence that the" in body
+    assert "approve sharing the board" in body
+
+
+def test_propose_tool_description_is_untouched_by_the_complete_gate() -> None:
+    """`lumos-propose-task` okuma iznine bağlanmadı — açıklaması da öyle."""
+    src = _tools_src()
+    # Yalnızca propose tool nesnesi — sonraki tool'un yorumu kapsama girmesin.
+    body = src[src.index('name: "lumos-propose-task"') : src.index("await b.proposeTask(")]
+    assert "read_consent_required" not in body
+    assert "NOT created until the user approves it" in body
 
 
 def test_list_tool_tells_the_agent_consent_is_required() -> None:
@@ -421,6 +510,32 @@ def test_e2e_scenario_covers_read_consent_and_dialog_fields() -> None:
     assert "Verilmeyen öncelik 'belirtilmedi' işaretlenmemiş" in e2e
 
 
+def test_e2e_scenario_proves_the_membership_oracle_is_closed() -> None:
+    """İzin yokken üç durum + ref'siz çağrı BİREBİR aynı payload'ı almalı."""
+    e2e = _E2E.read_text(encoding="utf-8")
+    assert "ORACLE_PROBES" in e2e
+    # Dört sonda: yok / bekliyor / tamamlanmış / ref verilmedi.
+    for probe in (
+        "yok (izinliyken task_not_found)",
+        "var + bekliyor (izinliyken onay penceresi)",
+        "var + tamamlanmış (izinliyken already_completed)",
+        "ref verilmedi (izinliyken ref_required)",
+    ):
+        assert probe in e2e, probe
+    # Payload'lar STRING olarak karşılaştırılır; tek bir ayrı değer kalmalı.
+    assert "oracleDistinct.length !== 1" in e2e
+    assert "üyelik oracle'ı açık" in e2e
+    # Hiçbirinde onay penceresi açılmamalı (askıda kalma da başarısızlık).
+    assert "İzin yokken onay penceresi açıldı" in e2e
+    assert "İzin yokken tamamlama çağrısı askıda kaldı" in e2e
+    # İzinsiz cevap list-tasks reddiyle aynı biçimde.
+    assert "aynı biçimde değil" in e2e
+    # propose değişmedi.
+    assert '\'{"ok":true,"approved":true}\'' in e2e
+    # Regresyon: izin verilince dördü yine ayrışır.
+    assert "İzinliyken durumlar ayrışmıyor (regresyon)" in e2e
+
+
 def test_native_e2e_proves_no_leak_without_read_consent() -> None:
     """Bayraklı gerçek Chrome kanıtı: izinsiz hiçbir yol veri döndürmez."""
     assert _E2E_NATIVE.is_file()
@@ -428,22 +543,34 @@ def test_native_e2e_proves_no_leak_without_read_consent() -> None:
     # Sayfaya enjeksiyon yok — kanıtın temeli (yorumda geçebilir, ÇAĞRI olamaz).
     assert "addInitScript(" not in e2e
     assert "document.modelContext.executeTool(" in e2e
-    # İzin panelin kendi düğmesiyle geri alınır, sonra üç durum sınanır.
+    # İzin panelin kendi düğmesiyle geri alınır, sonra durumlar sınanır.
     assert "gorevler-webmcp-consent-revoke" in e2e
     assert "function assertNoTaskData(" in e2e
     for label in (
-        "native already_completed (izinsiz)",
+        "native yok (izinliyken task_not_found)",
+        "native bekliyor (izinliyken onay penceresi)",
+        "native tamamlanmış (izinliyken already_completed)",
+        "native ref verilmedi (izinliyken ref_required)",
         "native propose onaylı (izinsiz)",
-        "native complete onaylı (izinsiz)",
-        "native task_not_found",
-        "native ref_required",
     ):
         assert label in e2e, label
+
+
+def test_native_e2e_proves_the_membership_oracle_is_closed() -> None:
+    """Native ortamda da dört durum ayırt edilemez ve pencere açılmaz."""
+    e2e = _E2E_NATIVE.read_text(encoding="utf-8")
+    assert "NATIVE_ORACLE_PROBES" in e2e
+    assert "nativeOracleDistinct.length !== 1" in e2e
+    assert "izin yokken onay penceresi açıldı" in e2e
+    assert "izin yokken çağrı askıda kaldı" in e2e
+    # propose izinsiz başarı yanıtı tam olarak {ok:true,approved:true}.
+    assert '\'{"ok":true,"approved":true}\'' in e2e
+    # Regresyon: izin geri verilince dört durum yine ayrışır, içerik döner.
+    assert "izinliyken durumlar ayrışmıyor (regresyon)" in e2e
+    assert "izin varken içerik dönmedi (regresyon)" in e2e
     # Zarf anahtar bazında da taranır, değer bazında da.
     assert '"task", "title", "priority", "when", "id", "status"' in e2e
     # Yazmanın gerçekten olduğu ajan yüzeyinden değil panelden doğrulanır.
     assert "lumos_panel_gorevler_list_v1" in e2e
-    # Regresyon: izin geri verilince içerik yeniden döner.
-    assert "izin varken içerik dönmedi (regresyon)" in e2e
     # Chrome 152'de test yüzeyinin yokluğu kayda geçer.
     assert "modelContextTestingType" in e2e

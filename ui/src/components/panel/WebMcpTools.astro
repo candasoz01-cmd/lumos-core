@@ -119,17 +119,34 @@
       },
     };
 
-    /** Görevi tamamlama — panelin insan onay modalinden geçer. */
+    /**
+     * Görevi tamamlama — önce okuma izni, sonra panelin insan onay modali.
+     *
+     * Okuma izni yokken bu tool hiçbir görev araması yapmaz ve onay penceresi
+     * açmaz; her ref aynı `read_consent_required` cevabını alır. Aksi halde
+     * ayrışan cevaplar (var / yok / zaten tamamlanmış) bir üyelik oracle'ı
+     * olurdu. Açıklama bunu ajana açıkça söyler ki ret, "görev yok" diye
+     * yorumlanmasın.
+     */
     const COMPLETE_TASK_TOOL = {
       name: "lumos-complete-task",
       description:
-        "Marks an existing Lumos panel task as completed. The task is NOT completed "
-        + "until the user approves it in the panel's own confirmation dialog. If the "
-        + "user declines, nothing is written and the result reports approved:false. "
-        + "Use lumos-list-tasks first to get a valid ref. Approving a completion is "
-        + "NOT permission to read the board: unless the user has separately approved "
-        + "sharing it, the result carries no 'task' field — no title, priority, "
-        + "schedule or id — on any path, including reason 'already_completed'.",
+        "Marks an existing Lumos panel task as completed. This tool needs the "
+        + "user's board-sharing consent BEFORE it does anything: without that "
+        + "consent every call — valid ref, unknown ref, missing ref, or an "
+        + "already completed task — returns the exact same ok:false refusal with "
+        + "reason 'read_consent_required', no task is looked up and no "
+        + "confirmation dialog is shown. That refusal is NOT evidence that the "
+        + "task is missing or that the board is empty; do not report it as such — "
+        + "ask the user to approve sharing the board (see lumos-list-tasks) and "
+        + "then retry. Once sharing is approved the task is still NOT completed "
+        + "until the user approves it in the panel's own confirmation dialog; if "
+        + "the user declines, nothing is written and the result reports "
+        + "approved:false. A task that was already done comes back with reason "
+        + "'already_completed' and nothing is written. Approving a completion is "
+        + "NOT permission to read the board: the result carries a 'task' field "
+        + "only while the sharing consent is in force. Use lumos-list-tasks first "
+        + "to get a valid ref.",
       inputSchema: {
         type: "object",
         properties: {

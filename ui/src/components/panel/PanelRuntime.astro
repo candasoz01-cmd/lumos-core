@@ -10488,6 +10488,28 @@ const {
       }
 
       async function panelWebMcpCompleteTask(input) {
+        /**
+         * Üyelik/durum oracle'ı kapatıldı — okuma izni EN BAŞTA sorulur.
+         *
+         * Önceden bu tool, okuma izni yokken bile verilen ref'e göre AYRIŞAN
+         * cevaplar veriyordu: `ref_required` / `task_not_found` /
+         * `already_completed` ve mevcut bekleyen bir görevde açılan onay
+         * penceresi. İçerik dönmüyordu ama tam başlığı tahmin eden bir ajan
+         * bu farklardan görevin VAR olup olmadığını ve TAMAMLANMIŞ olup
+         * olmadığını çıkarabiliyordu — içerik sızmadan üyelik sızıyordu.
+         *
+         * Bu yüzden izin kontrolü ref doğrulamasından ve görev aramasından
+         * ÖNCE gelir: izin yokken hiçbir arama yapılmaz, hiçbir onay penceresi
+         * açılmaz ve dönen cevap `lumos-list-tasks`'ın izinsiz reddiyle aynı
+         * biçimdedir. Böylece üç durum (yok / bekliyor / tamamlanmış) ve ref
+         * verilmemesi ayırt edilemez.
+         *
+         * Bedeli bilinçlidir: ajan mevcut bir görevi tamamlamak için önce
+         * tahtayı paylaşma iznini almak zorundadır.
+         */
+        if (panelWebMcpReadConsentGranted !== true) {
+          return panelWebMcpReadRefusal("complete_requires_read_consent");
+        }
         const src = input && typeof input === "object" ? input : {};
         const ref = String(src.ref != null ? src.ref : "").trim();
         if (!ref) return { ok: false, approved: false, reason: "ref_required" };

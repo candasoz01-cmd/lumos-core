@@ -298,11 +298,31 @@ try {
     fail("Native tamamlama başarısız: " + JSON.stringify(completed));
   }
 
-  // ── 6) MUTASYON ONAYI OKUMA İZNİ DEĞİLDİR ─────────────────────────────────
+  // ── 6) MUTASYON ONAYI OKUMA İZNİ DEĞİLDİR + ÜYELİK ORACLE'I KAPALI ────────
   // Ajan bir başlığı TAHMİN edip yalnızca "tamamla"/"oluştur" onayı alarak
-  // okuma kapısını atlayamamalı. İzin, panelin kendi düğmesiyle geri alınır;
-  // ardından hiçbir yol (already_completed, onaylı tamamlama, onaylı oluşturma,
-  // hata yolları) görev içeriği taşımamalı.
+  // okuma kapısını atlayamamalı. Dahası: izin yokken `lumos-complete-task`
+  // ref'e göre AYRIŞAN cevap da vermemeli — yoksa içerik sızmadan üyelik
+  // sızar. İzin, panelin kendi düğmesiyle geri alınır; ardından dört durum
+  // (yok / bekliyor / tamamlanmış / ref yok) birebir aynı payload'ı almalı ve
+  // hiçbirinde onay penceresi açılmamalı.
+  //
+  // Önce izin AÇIKKEN bir BEKLEYEN görev üretilir; "bekliyor" durumunun
+  // gerçekten var olduğu böylece kanıtlanır (aksi halde test boşa geçerdi).
+  const PENDING_TITLE = "Native bekleyen " + Date.now();
+  const makePendingPromise = page
+    .evaluate(NATIVE_CALL_TOOL, {
+      name: "lumos-propose-task",
+      args: { title: PENDING_TITLE, priority: "dusuk", when: "Cuma 09:00" },
+    })
+    .catch((e) => ({ __err: String(e && e.message) }));
+  await page.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
+  await page.click("#lumos-confirm-approve");
+  const madePending = await makePendingPromise;
+  if (madePending.__err) fail("Native bekleyen görev çağrısı hata verdi: " + madePending.__err);
+  if (madePending.ok !== true || !madePending.task || madePending.task.status === "tamamlandi") {
+    fail("Native bekleyen görev üretilemedi: " + JSON.stringify(madePending));
+  }
+
   await page.click("#gorevler-webmcp-consent-revoke");
   if ((await page.getAttribute("#gorevler-webmcp-consent", "data-granted")) !== "false") {
     fail("Native: okuma izni geri alınamadı");
@@ -335,78 +355,86 @@ try {
       }
     }, title);
 
-  // 6a) izin YOK + görev ZATEN TAMAMLANMIŞ → onay ekranı açılmaz, veri dönmez.
-  const alreadyNoConsent = await page.evaluate(NATIVE_CALL_TOOL, {
-    name: "lumos-complete-task",
-    args: { ref: TITLE },
-  });
-  if (alreadyNoConsent.reason !== "already_completed") {
-    fail("Native: already_completed beklenirken " + JSON.stringify(alreadyNoConsent));
-  }
-  assertNoTaskData("native already_completed (izinsiz)", alreadyNoConsent, [
-    TITLE,
-    "yuksek",
-    "Yarın 14:00",
-  ]);
+  const nativeDialogOpen = () =>
+    page.evaluate(() => {
+      const d = document.getElementById("lumos-confirm-dialog");
+      return !!(d && d.open === true);
+    });
 
-  // 6b) izin YOK + görev BEKLİYOR + kullanıcı yazmayı ONAYLADI → yine veri yok.
-  const PENDING_TITLE = "Native bekleyen " + Date.now();
-  const makePendingPromise = page
+  // 6a) ÜYELİK ORACLE'I: izin YOKKEN dört durum da BİREBİR aynı cevabı alır ve
+  //     hiçbirinde onay penceresi açılmaz.
+  const NATIVE_ORACLE_PROBES = [
+    ["native yok (izinliyken task_not_found)", { ref: "native-olmayan-" + Date.now() }],
+    ["native bekliyor (izinliyken onay penceresi)", { ref: PENDING_TITLE }],
+    ["native tamamlanmış (izinliyken already_completed)", { ref: TITLE }],
+    ["native ref verilmedi (izinliyken ref_required)", {}],
+  ];
+  const nativeOracleResults = [];
+  for (const [label, args] of NATIVE_ORACLE_PROBES) {
+    /* Regresyonda onay penceresi açılırsa çağrı askıda kalır: yarıştır. */
+    const probe = page
+      .evaluate(NATIVE_CALL_TOOL, { name: "lumos-complete-task", args })
+      .catch((e) => ({ __err: String(e && e.message) }));
+    const settled = await Promise.race([
+      probe.then((r) => ({ done: true, r })),
+      new Promise((r) => setTimeout(() => r({ done: false }), 4000)),
+    ]);
+    if (!settled.done) {
+      const stuckOpen = await nativeDialogOpen();
+      await page.click("#lumos-confirm-cancel").catch(() => {});
+      await probe.catch(() => {});
+      fail(
+        label + ": izin yokken çağrı askıda kaldı"
+        + (stuckOpen ? " (onay penceresi AÇILDI)" : " (pencere yok, çağrı dönmedi)"),
+      );
+    }
+    const res = settled.r;
+    if (res.__err) fail(label + ": tool çağrısı hata verdi: " + res.__err);
+    if (await nativeDialogOpen()) fail(label + ": izin yokken onay penceresi açıldı");
+    if (res.ok !== false || res.approved !== false || res.reason !== "read_consent_required") {
+      fail(label + ": izin yokken ayrışan cevap verdi → " + JSON.stringify(res));
+    }
+    assertNoTaskData(label, res, [TITLE, PENDING_TITLE, "yuksek", "dusuk", "Yarın 14:00"]);
+    nativeOracleResults.push({ label, blob: JSON.stringify(res) });
+  }
+  const nativeOracleDistinct = Array.from(new Set(nativeOracleResults.map((p) => p.blob)));
+  if (nativeOracleDistinct.length !== 1) {
+    fail(
+      "Native: izin yokken tamamlama cevapları ayrışıyor — üyelik oracle'ı açık:\n"
+      + nativeOracleResults.map((p) => p.label + " → " + p.blob).join("\n"),
+    );
+  }
+
+  // 6b) izin YOK + kullanıcı yazmayı ONAYLADI → propose yine yazar, veri yok.
+  const NO_CONSENT_TITLE = "Native izinsiz oneri " + Date.now();
+  const noConsentProposePromise = page
     .evaluate(NATIVE_CALL_TOOL, {
       name: "lumos-propose-task",
-      args: { title: PENDING_TITLE, priority: "dusuk", when: "Cuma 09:00" },
+      args: { title: NO_CONSENT_TITLE, priority: "yuksek", when: "Pazartesi 08:00" },
     })
     .catch((e) => ({ __err: String(e && e.message) }));
   await page.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
   await page.click("#lumos-confirm-approve");
-  const madePending = await makePendingPromise;
-  if (madePending.ok !== true || madePending.approved !== true) {
-    fail("Native izinsiz oluşturma yazmadı: " + JSON.stringify(madePending));
+  const noConsentPropose = await noConsentProposePromise;
+  if (noConsentPropose.__err) {
+    fail("Native izinsiz propose hata verdi: " + noConsentPropose.__err);
   }
-  assertNoTaskData("native propose onaylı (izinsiz)", madePending, [
-    PENDING_TITLE,
-    "dusuk",
-    "Cuma 09:00",
+  if (JSON.stringify(noConsentPropose) !== '{"ok":true,"approved":true}') {
+    fail(
+      'Native izinsiz propose yanıtı tam olarak {"ok":true,"approved":true} değil: '
+      + JSON.stringify(noConsentPropose),
+    );
+  }
+  assertNoTaskData("native propose onaylı (izinsiz)", noConsentPropose, [
+    NO_CONSENT_TITLE,
+    "yuksek",
+    "Pazartesi 08:00",
   ]);
-  if (!(await panelHasTitle(PENDING_TITLE))) {
+  if (!(await panelHasTitle(NO_CONSENT_TITLE))) {
     fail("Native: onaylanan görev panelin listesine yazılmamış — ok:true yanıltıcı");
   }
 
-  const completeNoConsentPromise = page
-    .evaluate(NATIVE_CALL_TOOL, { name: "lumos-complete-task", args: { ref: PENDING_TITLE } })
-    .catch((e) => ({ __err: String(e && e.message) }));
-  await page.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
-  await page.click("#lumos-confirm-approve");
-  const completedNoConsent = await completeNoConsentPromise;
-  if (completedNoConsent.ok !== true || completedNoConsent.approved !== true) {
-    fail("Native izinsiz tamamlama başarısız: " + JSON.stringify(completedNoConsent));
-  }
-  assertNoTaskData("native complete onaylı (izinsiz)", completedNoConsent, [
-    PENDING_TITLE,
-    "dusuk",
-    "Cuma 09:00",
-    "tamamlandi",
-  ]);
-
-  // 6c) izin YOK + hata yolları da veri taşımaz.
-  const notFound = await page.evaluate(NATIVE_CALL_TOOL, {
-    name: "lumos-complete-task",
-    args: { ref: "native-olmayan-" + Date.now() },
-  });
-  if (notFound.reason !== "task_not_found") {
-    fail("Native task_not_found beklenirken: " + JSON.stringify(notFound));
-  }
-  assertNoTaskData("native task_not_found", notFound, [TITLE, PENDING_TITLE]);
-  const refRequired = await page.evaluate(NATIVE_CALL_TOOL, {
-    name: "lumos-complete-task",
-    args: {},
-  });
-  if (refRequired.reason !== "ref_required") {
-    fail("Native ref_required beklenirken: " + JSON.stringify(refRequired));
-  }
-  assertNoTaskData("native ref_required", refRequired, [TITLE, PENDING_TITLE]);
-
-  // 6d) REGRESYON: izin geri verilince aynı yol içeriği yeniden döndürür.
+  // 6c) REGRESYON: izin geri verilince dört durum yine AYRIŞIR, içerik döner.
   const regrantPromise = page
     .evaluate(NATIVE_CALL_TOOL, { name: "lumos-list-tasks", args: {} })
     .catch((e) => ({ __err: String(e && e.message) }));
@@ -414,15 +442,58 @@ try {
   await page.click("#lumos-confirm-approve");
   const regranted = await regrantPromise;
   if (!regranted.ok) fail("Native: izin yeniden verilemedi: " + JSON.stringify(regranted));
+
+  const notFound = await page.evaluate(NATIVE_CALL_TOOL, {
+    name: "lumos-complete-task",
+    args: { ref: "native-olmayan-regresyon-" + Date.now() },
+  });
+  if (notFound.reason !== "task_not_found") {
+    fail("Native task_not_found beklenirken: " + JSON.stringify(notFound));
+  }
+  const refRequired = await page.evaluate(NATIVE_CALL_TOOL, {
+    name: "lumos-complete-task",
+    args: {},
+  });
+  if (refRequired.reason !== "ref_required") {
+    fail("Native ref_required beklenirken: " + JSON.stringify(refRequired));
+  }
   const withConsent = await page.evaluate(NATIVE_CALL_TOOL, {
     name: "lumos-complete-task",
     args: { ref: TITLE },
   });
+  if (withConsent.reason !== "already_completed") {
+    fail("Native already_completed beklenirken: " + JSON.stringify(withConsent));
+  }
   if (!withConsent.task || withConsent.task.title !== TITLE) {
     fail("Native: izin varken içerik dönmedi (regresyon): " + JSON.stringify(withConsent));
   }
   if (withConsent.task.priority !== "yuksek" || withConsent.task.when !== "Yarın 14:00") {
     fail("Native: izinli zarf eksik alan döndürdü: " + JSON.stringify(withConsent));
+  }
+  const pendingCompletePromise = page
+    .evaluate(NATIVE_CALL_TOOL, { name: "lumos-complete-task", args: { ref: PENDING_TITLE } })
+    .catch((e) => ({ __err: String(e && e.message) }));
+  await page.waitForSelector("#lumos-confirm-dialog[open]", { timeout: PANEL_READY_MS });
+  await page.click("#lumos-confirm-approve");
+  const pendingCompleted = await pendingCompletePromise;
+  if (pendingCompleted.__err) {
+    fail("Native izinli tamamlama hata verdi: " + pendingCompleted.__err);
+  }
+  if (!pendingCompleted.ok || !pendingCompleted.task
+      || pendingCompleted.task.status !== "tamamlandi") {
+    fail("Native: izinliyken bekleyen görev tamamlanmadı: " + JSON.stringify(pendingCompleted));
+  }
+  const nativeWithConsentReasons = [
+    notFound.reason,
+    refRequired.reason,
+    withConsent.reason,
+    pendingCompleted.reason == null ? "completed" : pendingCompleted.reason,
+  ];
+  if (new Set(nativeWithConsentReasons).size !== 4) {
+    fail(
+      "Native: izinliyken durumlar ayrışmıyor (regresyon): "
+      + JSON.stringify(nativeWithConsentReasons),
+    );
   }
 
   console.log("WEBMCP_NATIVE_RESULT: PASS");
@@ -456,14 +527,18 @@ try {
   console.log("propose declined     : nothing written");
   console.log("propose approved     : " + approved.task.title);
   console.log("complete approved    : " + completed.task.status);
-  console.log("--- izin geri alındıktan sonra (mutasyon onayı ≠ okuma izni) ---");
-  console.log("already_completed    : " + JSON.stringify(alreadyNoConsent));
-  console.log("propose approved     : " + JSON.stringify(madePending) + "  (yazıldı, içerik yok)");
-  console.log("complete approved    : " + JSON.stringify(completedNoConsent));
-  console.log("task_not_found       : " + JSON.stringify(notFound));
-  console.log("ref_required         : " + JSON.stringify(refRequired));
-  console.log("izin geri verilince  : task.title=" + withConsent.task.title
+  console.log("--- izin geri alındıktan sonra: üyelik oracle'ı kapalı ---");
+  for (const p of nativeOracleResults) console.log("  " + p.label + " → " + p.blob);
+  console.log("  ayrı payload sayısı : " + nativeOracleDistinct.length + " (1 olmalı)");
+  console.log("  onay penceresi      : hiçbirinde açılmadı");
+  console.log("  propose (izinsiz)   : " + JSON.stringify(noConsentPropose)
+    + "  (panele yazıldı, içerik yok)");
+  console.log("--- izin yeniden verilince (regresyon: durumlar ayrışır) ---");
+  console.log("  task_not_found      : " + JSON.stringify(notFound));
+  console.log("  ref_required        : " + JSON.stringify(refRequired));
+  console.log("  already_completed   : task.title=" + withConsent.task.title
     + " priority=" + withConsent.task.priority + " when=" + withConsent.task.when);
+  console.log("  bekleyen tamamlandı : " + JSON.stringify(pendingCompleted.task));
   console.log("url: " + PANEL_URL);
 
   await browser.close();
