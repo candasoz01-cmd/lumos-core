@@ -97,6 +97,26 @@ def test_w2_in_scope_does_not_open_watch(tmp_path: Path) -> None:
     assert load_ledger_entries(tmp_path) == []
 
 
+@pytest.mark.parametrize(
+    "path",
+    (
+        "notes/../secrets/x",
+        "notes/foo/../../.ssh/id_rsa",
+        r"notes\..\secrets\x",
+    ),
+)
+def test_path_traversal_fails_closed(path: str) -> None:
+    decision = evaluate_observed(_manifest(), ObservedAction(path=path))
+    assert decision.allow is False
+    assert decision.reason == REASON_SCOPE_VIOLATION
+
+
+def test_path_with_empty_allowlist_fails_closed() -> None:
+    decision = evaluate_observed(ScopeManifest(), ObservedAction(path="notes/a.md"))
+    assert decision.allow is False
+    assert decision.reason == REASON_SCOPE_VIOLATION
+
+
 def test_w3_scope_violation_opens_incident_and_recall(tmp_path: Path) -> None:
     decision = on_scope_violation(
         _identity(),
@@ -346,6 +366,14 @@ def test_ledger_tamper_fails_verify(tmp_path: Path) -> None:
     )
     path = tmp_path / "ledgers" / "shadow_watch.jsonl"
     path.write_text(path.read_text(encoding="utf-8") + "{not json\n", encoding="utf-8")
+    assert verify_ledger_chain(tmp_path) is False
+
+
+@pytest.mark.parametrize("row", ("[]", '"not-an-object"', "null"))
+def test_non_object_ledger_row_fails_verify(tmp_path: Path, row: str) -> None:
+    path = tmp_path / "ledgers" / "shadow_watch.jsonl"
+    path.parent.mkdir(parents=True)
+    path.write_text(row + "\n", encoding="utf-8")
     assert verify_ledger_chain(tmp_path) is False
 
 

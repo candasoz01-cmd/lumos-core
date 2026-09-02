@@ -259,8 +259,15 @@ def evaluate_observed(manifest: ScopeManifest | None, observed: ObservedAction) 
         return GateDecision(allow=False, reason=REASON_SCOPE_VIOLATION)
     if observed.path:
         relative = observed.path.replace("\\", "/").lstrip("/")
-        prefixes = tuple(item.rstrip("/") for item in manifest.path_prefixes)
-        if prefixes and not any(
+        if ".." in relative.split("/"):
+            return GateDecision(allow=False, reason=REASON_SCOPE_VIOLATION)
+        prefixes = tuple(
+            prefix
+            for item in manifest.path_prefixes
+            if (prefix := item.replace("\\", "/").strip("/"))
+            and ".." not in prefix.split("/")
+        )
+        if not prefixes or not any(
             relative == prefix or relative.startswith(prefix + "/") for prefix in prefixes
         ):
             return GateDecision(allow=False, reason=REASON_SCOPE_VIOLATION)
@@ -406,21 +413,27 @@ def load_ledger_entries(base_dir: Path | str | None = None) -> list[dict[str, An
 
 def verify_ledger_chain(base_dir: Path | str | None = None) -> bool:
     prev = GENESIS_HASH
-    rows = load_ledger_entries(base_dir)
     path = (
         Path(base_dir).resolve() / LEDGER_REL
         if base_dir is not None
         else lumos_base_dir() / LEDGER_REL
     )
+    rows: list[dict[str, Any]] = []
     if path.is_file():
-        raw = path.read_text(encoding="utf-8")
+        try:
+            raw = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            return False
         for line in raw.splitlines():
             if not line.strip():
                 continue
             try:
-                json.loads(line)
+                row = json.loads(line)
             except json.JSONDecodeError:
                 return False
+            if not isinstance(row, dict):
+                return False
+            rows.append(row)
     for row in rows:
         stored = str(row.get("entry_hash") or "")
         body = {k: v for k, v in row.items() if k != "entry_hash"}
