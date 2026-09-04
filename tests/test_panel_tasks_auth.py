@@ -7,6 +7,14 @@ import pytest
 from panel_tasks_auth import AuthError, PanelTasksAuth, pkce_challenge_s256, pkce_verifier
 
 
+def test_shared_secret_is_a_valid_presented_token() -> None:
+    auth = PanelTasksAuth(secret="bridge-style-secret")
+    assert auth.authenticate({"X-Kando-Token": "bridge-style-secret"}) == "ok"
+    with pytest.raises(AuthError) as exc:
+        auth.authenticate({"X-Kando-Token": "wrong-secret-value"})
+    assert exc.value.code == "invalid_token"
+
+
 def test_missing_secret_is_fail_closed() -> None:
     auth = PanelTasksAuth(secret="")
     with pytest.raises(AuthError) as exc:

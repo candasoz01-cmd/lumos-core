@@ -1,6 +1,6 @@
 """Loopback panel-tasks kimliği: mint, exchange, Bearer doğrulama, revoke/rotate.
 
-HTTP yok — `panel_tasks_server` bağlanınca aynı fonksiyonlar çağrılır.
+HTTP bağlama `panel_tasks_server._require_auth` üzerinden `authenticate` çağırır.
 Köprü ile aynı başlıklar: X-Kando-Token veya Authorization: Bearer.
 """
 
@@ -161,6 +161,11 @@ class PanelTasksAuth:
         presented = extract_presented_token(headers)
         if not presented:
             raise AuthError("invalid_token")
+        secret = self._secret
+        presented_b = presented.encode("utf-8")
+        secret_b = secret.encode("utf-8")
+        if len(presented_b) == len(secret_b) and hmac.compare_digest(presented_b, secret_b):
+            return "ok"
         digest = _digest(presented)
         rec = self._sessions.get(digest) or self._service.get(digest)
         if rec is None or rec.revoked or self._now() >= rec.expires_at:
