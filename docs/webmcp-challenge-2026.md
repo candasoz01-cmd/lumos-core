@@ -12,6 +12,70 @@ ajanlara açılması yeni.**
 
 ---
 
+## For WebMCP Challenge judges (English)
+
+**Live URL:** https://welockai.com/panel/  
+**Repo:** https://github.com/candasoz01-cmd/lumos-core  
+**License:** Apache-2.0 (root `LICENSE`)  
+**Open in:** ChatGPT’s in-app browser, or Google Chrome 149+ with WebMCP
+enabled (`chrome://flags/#enable-webmcp-testing`, or
+`--enable-features=WebMCP --enable-blink-features=DocumentModelcontext`).
+
+### Why this is a WebMCP fit
+
+Lumos already had a human-approved task board. The missing piece was a
+browser-native way for an agent to *propose* work without a back door.
+WebMCP is the right surface because the tools live on the page the user is
+looking at. Consent and confirmation stay in Lumos’s own dialogs — not in
+the agent transcript.
+
+### What people and agents can do together
+
+The user says “add Friday 10:00 investor summary.” The agent calls
+`lumos-propose-task`. The **panel** (not the agent) shows every field that
+would be written. Decline writes nothing. Approve uses the same path a
+human uses. Listing the board requires an explicit share; completing a
+task cannot be used as a membership oracle without that share.
+
+### How WebMCP is implemented
+
+Three tools on `document.modelContext` (`ui/src/components/panel/WebMcpTools.astro`):
+
+| Tool | Gate |
+| --- | --- |
+| `lumos-list-tasks` | Session share consent. Refusal is `read_consent_required` with **no** task data — not an empty board. |
+| `lumos-propose-task` | Write confirmation. Every field (title, priority, when, status) is visible. |
+| `lumos-complete-task` | Read consent **first** (same refusal body as list), then write confirmation. |
+
+Bridge: `window.__lumosPanelWebMcp` in `PanelRuntime.astro`. No shim if
+`document.modelContext` is missing. PRs: #818 (surface), #820 (single-flight
+confirm), #821 (membership oracle).
+
+### Prior work vs this slice
+
+Lumos panel, Tasks module, and confirmation modal existed **before**
+2026-08-25. Only the WebMCP agent surface (registerTool + read-consent +
+field preview + oracle close) is in-period. Evidence: commit dates on
+`ui/src/components/panel/WebMcpTools.astro` and the PRs above.
+
+### Testing instructions
+
+1. Open https://welockai.com/panel/ (Limited mode is enough).
+2. Click **Görevler** (Tasks).
+3. Ask an agent to list tasks → panel asks to share the board → Decline
+   must not reveal titles; Approve allows list for this tab only.
+4. Ask it to create “Friday 10:00 investor summary”, priority high →
+   confirm dialog must show title, priority, time, status → Approve or
+   Decline.
+5. Completing a task without share consent must not open a dialog and must
+   not distinguish missing / pending / done.
+
+ChatGPT in-app browser was not used as the recorded native proof; Chrome
+152 native `document.modelContext` was (`npm run e2e:webmcp:native`). The
+live site is the judge surface.
+
+---
+
 ## 1. Ne eklendi
 
 Üç WebMCP tool'u, panelin `/panel` sayfasında
