@@ -57,6 +57,79 @@ def test_every_tool_declares_description_and_input_schema() -> None:
     assert src.count("execute(") >= len(TOOL_NAMES)
 
 
+TOOL_CLASSES = ("read-only", "mutating", "destructive")
+# TD-28 kapanış: her kayıtlı tool'un zorunlu sınıfı (davranış değişmez).
+EXPECTED_TOOL_CLASSIFICATION = {
+    "lumos-list-tasks": "read-only",
+    "lumos-propose-task": "mutating",
+    "lumos-complete-task": "mutating",
+}
+
+
+def _declared_tool_classifications(src: str) -> dict[str, str]:
+    import re
+
+    found = re.findall(
+        r'name:\s*"(lumos-[^"]+)"\s*,\s*classification:\s*"(read-only|mutating|destructive)"',
+        src,
+    )
+    return dict(found)
+
+
+def test_every_tool_declares_classification_and_annotations() -> None:
+    """TD-28: sınıfsız tool şeması yok; annotations sınıf ile uyumlu."""
+    src = _tools_src()
+    declared = _declared_tool_classifications(src)
+    names_in_src = [n for n in TOOL_NAMES]
+    assert set(declared) == set(names_in_src)
+    assert declared == EXPECTED_TOOL_CLASSIFICATION
+    assert src.count("classification:") == len(TOOL_NAMES)
+    assert 'error: "tool_classification_required"' in src
+    assert "function toolClassOk(" in src
+    assert "if (!toolClassOk(tool))" in src
+    # Sınıf kontrolü registerTool'dan önce.
+    gate = src.index("if (!toolClassOk(tool))")
+    register = src.index("await mc.registerTool(tool)")
+    assert gate < register
+    for name, cls in declared.items():
+        block_start = src.index(f'name: "{name}"')
+        nxt = src.find('name: "lumos-', block_start + 1)
+        block = src[block_start : nxt if nxt != -1 else src.index("const TOOLS = [")]
+        assert f'classification: "{cls}"' in block
+        if cls == "read-only":
+            assert "readOnlyHint: true" in block
+            assert "destructiveHint: false" in block
+        else:
+            assert "readOnlyHint: false" in block
+            assert "destructiveHint: false" in block
+
+
+def test_destructive_classification_is_bound_to_security_never_auto() -> None:
+    """Destructive WebMCP sınıfı yalnız SECURITY_NEVER_AUTO üyesine bağlanır.
+
+    Bugün yüzeyde destructive tool yok (kalıcı silme tool'u yok). Yeni
+    destructive tool `neverAutoMember` taşımak ve kümede olmak zorunda.
+    """
+    from task_engine.profiles import SECURITY_NEVER_AUTO
+
+    src = _tools_src()
+    declared = _declared_tool_classifications(src)
+    for name, cls in declared.items():
+        if cls != "destructive":
+            continue
+        block_start = src.index(f'name: "{name}"')
+        nxt = src.find('name: "lumos-', block_start + 1)
+        block = src[block_start : nxt if nxt != -1 else src.index("const TOOLS = [")]
+        assert "neverAutoMember:" in block
+        member = None
+        for token in SECURITY_NEVER_AUTO:
+            if f'neverAutoMember: "{token}"' in block:
+                member = token
+                break
+        assert member in SECURITY_NEVER_AUTO, name
+    assert "destructive" not in declared.values()
+
+
 def test_write_tools_delegate_to_panel_bridge_only() -> None:
     """Tool'lar kendi başına yazmaz; panel köprüsünü çağırır."""
     src = _tools_src()
