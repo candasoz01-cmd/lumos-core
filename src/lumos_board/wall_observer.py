@@ -120,29 +120,70 @@ def touched_paths(worktree: Path, *, base_ref: str = "origin/main") -> tuple[str
     if not Path(worktree).is_dir():
         return ()
     collected: set[str] = set()
-    for args in (
-        ["git", "diff", "--name-only", f"{base_ref}...HEAD"],
-        ["git", "status", "--porcelain"],
-    ):
-        try:
-            proc = subprocess.run(
-                args, cwd=str(worktree), capture_output=True, text=True, timeout=30, check=False
-            )
-        except (OSError, subprocess.SubprocessError):
-            continue
-        if proc.returncode != 0:
-            continue
-        for line in proc.stdout.splitlines():
-            text = line.strip()
-            if not text:
-                continue
-            if args[1] == "status":
-                # "XY path" veya "XY old -> new"
-                text = text[3:].strip() if len(text) > 3 else ""
-                if " -> " in text:
-                    text = text.split(" -> ", 1)[1]
-            collected.add(text.strip().strip('"'))
+    collected.update(_git_diff_paths(worktree, base_ref))
+    collected.update(_git_status_paths(worktree))
     return _repo_relative(collected)
+
+
+def _run_git(worktree: Path | str, args: Sequence[str]) -> str | None:
+    try:
+        proc = subprocess.run(
+            ["git", *args], cwd=str(worktree), capture_output=True, text=True, timeout=30, check=False
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if proc.returncode != 0:
+        return None
+    return proc.stdout
+
+
+def _git_diff_paths(worktree: Path | str, base_ref: str) -> set[str]:
+    """Commit'lenmiş fark. `-z` ile NUL ayraç: boşluklu yol bozulmaz."""
+    out = _run_git(worktree, ["diff", "--name-only", "-z", f"{base_ref}...HEAD"])
+    if out is None:
+        return set()
+    return {chunk for chunk in out.split("\0") if chunk}
+
+
+def _git_status_paths(worktree: Path | str) -> set[str]:
+    """
+    Commit'lenmemiş çalışma ağacı durumu.
+
+    `--porcelain -z` kullanılır ve kolonlar SABİT konumdan okunur:
+    ilk iki karakter durum (`XY`), üçüncü boşluk, yol dördüncü karakterden
+    başlar. Satırı `strip()`leyip sonra `[3:]` almak unstaged satırlarda
+    (` M path` — baştaki boşluk anlamlıdır) kolonları kaydırır ve yolun ilk
+    iki karakterini yer; hayalet yol üretir, kapsam içi dosyayı kapsam dışı
+    gösterir. Tam da bu katmanın görmek için var olduğu durumdur.
+
+    `-z` ayrıca rename'i (`R`) iki ayrı NUL kaydı olarak verir — yeni yol,
+    sonra eski yol — yani kırılgan `" -> "` ayrıştırmasına gerek kalmaz;
+    ve `-z` kipinde git yolları tırnaklamaz/kaçışlamaz.
+    """
+    out = _run_git(worktree, ["status", "--porcelain", "-z"])
+    if out is None:
+        return set()
+
+    paths: set[str] = set()
+    parts = out.split("\0")
+    index = 0
+    while index < len(parts):
+        entry = parts[index]
+        index += 1
+        if not entry:
+            continue
+        if len(entry) < 4:
+            continue
+        status = entry[:2]
+        path = entry[3:]
+        if path:
+            paths.add(path)
+        # Rename/copy: hemen ardından ESKİ yol ayrı bir kayıt olarak gelir.
+        if "R" in status or "C" in status:
+            if index < len(parts) and parts[index]:
+                paths.add(parts[index])
+            index += 1
+    return paths
 
 
 def _path_in_scopes(path: str, scopes: Sequence[str]) -> bool:
@@ -176,11 +217,17 @@ def observe_scope(
     foreign: dict[str, list[str]] = {}
     orphan: list[str] = []
 
+    # Kapsamlar repo-relative'dir ve claim store çakışmayı zaten repo bazında
+    # ayırır. Paylaşılan bir board'da (tek store, birden çok repo) repo
+    # karşılaştırılmazsa, bir repodaki `docs/` dokunuşu `docs/` claim etmiş
+    # BAŞKA bir reponun ihlali gibi görünür — üstelik en ağır sinyalde.
+    same_repo = [o for o in other_active if o.repo == claim.repo]
+
     for path in paths:
         if _path_in_scopes(path, claim.scopes):
             continue
         owner_claim = next(
-            (o for o in other_active if o.claim_id != claim.claim_id and _path_in_scopes(path, o.scopes)),
+            (o for o in same_repo if o.claim_id != claim.claim_id and _path_in_scopes(path, o.scopes)),
             None,
         )
         if owner_claim is not None:
@@ -189,7 +236,7 @@ def observe_scope(
             orphan.append(path)
 
     for other_claim_id, hit_paths in sorted(foreign.items()):
-        owner_of = next(o for o in other_active if o.claim_id == other_claim_id)
+        owner_of = next(o for o in same_repo if o.claim_id == other_claim_id)
         out.append(
             Observation(
                 signal=SIGNAL_FOREIGN_SCOPE,
@@ -243,10 +290,14 @@ def observe_drift(
     if len(outside) < min_paths:
         return []
 
+    # Bucket DİZİN seviyesidir, dosya değil. `parts[:2]` almak `docs/a.md`
+    # için ("docs","a.md") verir — yani dosyanın kendisi bucket olur ve bir
+    # klasörün doğrudan altındaki üç dosya asla kümelenemez. Kümelenmenin
+    # tanımı gereği ölçüt, yolun bulunduğu dizindir.
     buckets: dict[str, list[str]] = {}
     for path in outside:
-        parts = PurePosixPath(path).parts
-        root = "/".join(parts[:2]) if len(parts) > 1 else parts[0]
+        parent = PurePosixPath(path).parent
+        root = "." if str(parent) in ("", ".") else str(parent)
         buckets.setdefault(root, []).append(path)
 
     root, hits = max(buckets.items(), key=lambda item: (len(item[1]), item[0]))

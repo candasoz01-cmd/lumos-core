@@ -14,6 +14,7 @@ Testlerin taşıdığı iddialar:
 from __future__ import annotations
 
 import json
+import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -277,6 +278,131 @@ def test_absolute_and_escaping_paths_are_dropped(tmp_path: Path) -> None:
 
 def test_touched_paths_on_missing_worktree_is_empty(tmp_path: Path) -> None:
     assert touched_paths(tmp_path / "yok") == ()
+
+
+# --- Gerçek git deposu: porcelain biçim regresyonları -------------------------
+#
+# Bu bloğun sebebi: ilk sürümde `touched_paths` satırı önce strip'leyip sonra
+# `[3:]` alıyordu. Unstaged satırlar boşlukla başladığı için (` M path`) yolun
+# ilk iki karakteri yeniyordu — hayalet yol üretiyor, kapsam içi dosyayı
+# kapsam dışı gösteriyordu. Testler o yolu hiç koşmadığı için fark edilmedi;
+# Bugbot yakaladı (#832). Artık gerçek bir depo kurulup dört durum biçimi de
+# koşuluyor.
+
+def _git(repo: Path, *args: str) -> None:
+    subprocess.run(
+        ["git", *args], cwd=str(repo), check=True, capture_output=True, text=True
+    )
+
+
+@pytest.fixture()
+def git_repo(tmp_path: Path) -> Path:
+    repo = tmp_path / "repo"
+    (repo / "src").mkdir(parents=True)
+    _git(repo.parent, "init", "-q", "-b", "main", str(repo))
+    _git(repo, "config", "user.email", "test@example.invalid")
+    _git(repo, "config", "user.name", "test")
+    (repo / "src" / "base.py").write_text("x = 1\n", encoding="utf-8")
+    (repo / "src" / "renamed.py").write_text("y = 2\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+    return repo
+
+
+def test_unstaged_change_path_is_read_whole(git_repo: Path) -> None:
+    """` M path` — baştaki boşluk anlamlı; yolun ilk karakterleri yenmemeli."""
+    (git_repo / "src" / "base.py").write_text("x = 2\n", encoding="utf-8")
+    found = touched_paths(git_repo, base_ref="HEAD")
+    assert "src/base.py" in found
+    assert not any(p.endswith("rc/base.py") and p != "src/base.py" for p in found)
+
+
+def test_staged_change_path_is_read_whole(git_repo: Path) -> None:
+    (git_repo / "src" / "base.py").write_text("x = 3\n", encoding="utf-8")
+    _git(git_repo, "add", "src/base.py")
+    assert "src/base.py" in touched_paths(git_repo, base_ref="HEAD")
+
+
+def test_untracked_path_is_read_whole(git_repo: Path) -> None:
+    (git_repo / "src" / "brand_new.py").write_text("z = 1\n", encoding="utf-8")
+    assert "src/brand_new.py" in touched_paths(git_repo, base_ref="HEAD")
+
+
+def test_rename_reports_both_sides(git_repo: Path) -> None:
+    """`-z` kipinde rename iki ayrı kayıt: yeni yol, sonra eski yol."""
+    _git(git_repo, "mv", "src/renamed.py", "src/moved.py")
+    found = touched_paths(git_repo, base_ref="HEAD")
+    assert "src/moved.py" in found
+    assert "src/renamed.py" in found
+
+
+def test_path_with_space_survives(git_repo: Path) -> None:
+    """`-z` kullanıldığı için git yolu tırnaklamaz; boşluk bozulmamalı."""
+    (git_repo / "src" / "iki kelime.py").write_text("q = 1\n", encoding="utf-8")
+    assert "src/iki kelime.py" in touched_paths(git_repo, base_ref="HEAD")
+
+
+def test_clean_worktree_reports_nothing(git_repo: Path) -> None:
+    assert touched_paths(git_repo, base_ref="HEAD") == ()
+
+
+# --- Bugbot #3: sığ yollar da kümelenmeli ------------------------------------
+
+def test_shallow_paths_under_one_directory_form_a_cluster(tmp_path: Path) -> None:
+    """
+    `docs/a.md` gibi doğrudan bir klasörün altındaki dosyalar da kümelenir.
+    Önceki bucket ölçütü (`parts[:2]`) dosyanın kendisini bucket yapıyordu,
+    bu yüzden bu şekil asla eşiğe ulaşmıyordu.
+    """
+    store = _store(tmp_path)
+    claim = _claim(store)
+    found = observe_drift(claim, ["docs/a.md", "docs/b.md", "docs/c.md"], now=NOW)
+    assert [o.signal for o in found] == [SIGNAL_SILENT_DRIFT]
+    assert found[0].evidence["cluster_root"] == "docs"
+
+
+def test_paths_in_different_directories_still_do_not_cluster(tmp_path: Path) -> None:
+    store = _store(tmp_path)
+    claim = _claim(store)
+    assert observe_drift(claim, ["docs/a.md", "ui/b.ts", "api/c.js"], now=NOW) == []
+
+
+# --- Bugbot #2: FOREIGN_SCOPE repo sınırına saygı duymalı --------------------
+
+def test_other_repo_claim_does_not_make_a_touch_foreign(tmp_path: Path) -> None:
+    """
+    Paylaşılan board: başka bir REPO aynı repo-relative kapsamı claim etmiş
+    olabilir. Bu, bizim repomuzda ihlal değildir.
+    """
+    store = _store(tmp_path)
+    mine = _claim(store, repo="lumos-core", scopes=["src/lumos_board"])
+    other_repo = _claim(
+        store,
+        task_id="TD-97",
+        repo="baska-repo",
+        owner="agent-c",
+        branch="codex/z",
+        scopes=["docs"],
+    )
+    found = observe_scope(mine, ["docs/ROADMAP.md"], other_active=[mine, other_repo], now=NOW)
+    assert [o.signal for o in found] == [SIGNAL_OUT_OF_SCOPE], "farklı repo FOREIGN_SCOPE olmamalı"
+
+
+def test_same_repo_claim_still_makes_a_touch_foreign(tmp_path: Path) -> None:
+    """Repo eşleşmesi eklenirken asıl sinyalin kaybolmadığının kanıtı."""
+    store = _store(tmp_path)
+    mine = _claim(store, repo="lumos-core", scopes=["src/lumos_board"])
+    same_repo = _claim(
+        store,
+        task_id="TD-96",
+        repo="lumos-core",
+        owner="agent-d",
+        branch="codex/w",
+        scopes=["docs"],
+    )
+    found = observe_scope(mine, ["docs/ROADMAP.md"], other_active=[mine, same_repo], now=NOW)
+    assert [o.signal for o in found] == [SIGNAL_FOREIGN_SCOPE]
+    assert found[0].evidence["owned_by"] == "agent-d"
 
 
 def test_observer_never_reaches_the_claim_store_api() -> None:
