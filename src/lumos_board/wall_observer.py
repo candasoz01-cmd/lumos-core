@@ -109,26 +109,127 @@ def _repo_relative(paths: Iterable[str]) -> tuple[str, ...]:
     return tuple(sorted(out))
 
 
-def touched_paths(worktree: Path, *, base_ref: str = "origin/main") -> tuple[str, ...]:
+def touched_paths(
+    worktree: Path,
+    *,
+    allowed_roots: Sequence[Path | str],
+    base_ref: str = "origin/main",
+) -> tuple[str, ...]:
     """
     Bir çalışma ağacının fiilen dokunduğu repo-relative yollar.
 
     Türetilmiş kaynak: git. Ajanın beyanı değil, etkisi okunur. Hem
     commit'lenmiş fark (base..HEAD) hem de commit'lenmemiş çalışma ağacı
     durumu toplanır — sessiz sapma çoğu zaman henüz commit edilmemiştir.
+
+    `allowed_roots` ZORUNLUDUR ve güvenilir taraftan gelir: git yalnız bu
+    köklerin içinde çalıştırılır. Güvenilmeyen claim verisi hangi **veriye**
+    bakılacağını seçebilir, hangi **yürütme bağlamında** çalışılacağını asla.
     """
-    if not Path(worktree).is_dir():
+    safe = resolve_inspectable_worktree(worktree, allowed_roots)
+    if safe is None:
         return ()
     collected: set[str] = set()
-    collected.update(_git_diff_paths(worktree, base_ref))
-    collected.update(_git_status_paths(worktree))
+    collected.update(_git_diff_paths(safe, base_ref))
+    collected.update(_git_status_paths(safe))
     return _repo_relative(collected)
 
 
-def _run_git(worktree: Path | str, args: Sequence[str]) -> str | None:
+def resolve_inspectable_worktree(raw: str | Path, allowed_roots: Sequence[Path | str]) -> Path | None:
+    """
+    Beyan edilen `worktree`'yi **operatörün onayladığı** köklerin içine hapseder.
+
+    `TaskClaim.worktree` self-asserted'dır (sözleşme §1) ve claim deposunda
+    yalnız metin temizliğinden geçer — jail yoktur. Gözlemci bu yolda süreç
+    çalıştırdığı için burası tespit değil **yürütme bağlamı** seçimidir; ve
+    yürütme bağlamı asla güvenilmeyen veriden seçilemez.
+
+    `allowed_roots` gözlemciyi başlatan güvenilir taraftan gelir; claim'den
+    türetilmez. Kök dışı, var olmayan veya symlink ile dışarı kaçan yol →
+    `None` (git hiç çağrılmaz, claim atlanır). Fail-closed: kök verilmezse
+    hiçbir yol kabul edilmez.
+    """
+    roots: list[Path] = []
+    for root in allowed_roots or ():
+        try:
+            roots.append(Path(root).resolve(strict=True))
+        except (OSError, RuntimeError):
+            continue
+    if not roots:
+        return None
+    try:
+        # strict=True: var olmayan yol reddedilir. resolve() symlink'leri de
+        # çözer, böylece kök içinden dışarı gösteren bir link kaçamaz.
+        candidate = Path(raw).resolve(strict=True)
+    except (OSError, RuntimeError, ValueError):
+        return None
+    if not candidate.is_dir():
+        return None
+    for root in roots:
+        if candidate == root or root in candidate.parents:
+            return candidate
+    return None
+
+
+# Çalıştırma kabiliyeti olan git config anahtarları. Bu liste **derinlik
+# savunmasıdır, sınır değildir** — git'in repo-local config'i tamamen yok
+# sayan desteklenen bir kipi yok ve textconv/filter sürücüleri joker ile
+# kapatılamaz. Asıl sınır `resolve_inspectable_worktree` jail'idir; buradaki
+# override'lar jail içindeki bir deponun bile gözlemciyi çalıştırmasını
+# zorlaştırır.
+_GIT_EXEC_CONFIG_OVERRIDES = (
+    "core.fsmonitor=",
+    "core.hooksPath=/dev/null",
+    "core.pager=cat",
+    "core.editor=false",
+    "core.sshCommand=false",
+    "core.askPass=false",
+    "core.alternateRefsCommand=",
+    "diff.external=",
+    "uploadpack.packObjectsHook=",
+    "protocol.ext.allow=never",
+)
+
+
+def _git_env() -> dict[str, str]:
+    """Sistem/global config ve her türlü etkileşim kapatılır."""
+    env = dict(os.environ)
+    env.update(
+        {
+            "GIT_CONFIG_NOSYSTEM": "1",
+            "GIT_CONFIG_GLOBAL": os.devnull,
+            "GIT_CONFIG_SYSTEM": os.devnull,
+            "GIT_TERMINAL_PROMPT": "0",
+            "GIT_ASKPASS": "",
+            "GIT_OPTIONAL_LOCKS": "0",
+            "GIT_ATTR_NOSYSTEM": "1",
+            "GIT_ALLOW_PROTOCOL": "",
+        }
+    )
+    for key in ("GIT_EXTERNAL_DIFF", "GIT_PAGER", "GIT_EDITOR", "GIT_SSH", "GIT_SSH_COMMAND"):
+        env.pop(key, None)
+    return env
+
+
+def _run_git(worktree: Path, args: Sequence[str]) -> str | None:
+    """
+    Jail'lenmiş bir worktree'de git çalıştırır.
+
+    Çağıran, `worktree`'yi `resolve_inspectable_worktree` ile doğrulamış
+    olmalıdır; bu fonksiyon ham/beyan edilen yol ile çağrılmamalıdır.
+    """
+    overrides: list[str] = []
+    for item in _GIT_EXEC_CONFIG_OVERRIDES:
+        overrides += ["-c", item]
     try:
         proc = subprocess.run(
-            ["git", *args], cwd=str(worktree), capture_output=True, text=True, timeout=30, check=False
+            ["git", *overrides, *args],
+            cwd=str(worktree),
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+            env=_git_env(),
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -445,6 +546,7 @@ def last_event_times(audit_path: Path) -> dict[str, datetime]:
 def observe(
     store_dir: Path,
     *,
+    allowed_roots: Sequence[Path | str] = (),
     worktree_paths: dict[str, Sequence[str]] | None = None,
     base_ref: str = "origin/main",
     now: datetime | None = None,
@@ -468,10 +570,16 @@ def observe(
     for claim in active:
         if worktree_paths is not None and claim.claim_id in worktree_paths:
             paths = _repo_relative(worktree_paths[claim.claim_id])
+        elif resolve_inspectable_worktree(claim.worktree, allowed_roots) is None:
+            # Beyan edilen worktree operatörün onayladığı köklerin dışında:
+            # git ÇAĞRILMAZ. Atlama sebebi kaydedilir ama yol yazılmaz —
+            # kök dışı yolu günceye yazmak da bir sızıntı olurdu.
+            paths = ()
+            run.skipped.append(f"{claim.claim_id}: worktree izinli kök dışında")
         else:
-            paths = touched_paths(Path(claim.worktree), base_ref=base_ref)
-            if not paths and not Path(claim.worktree).is_dir():
-                run.skipped.append(f"{claim.claim_id}: worktree okunamadı")
+            paths = touched_paths(
+                Path(claim.worktree), allowed_roots=allowed_roots, base_ref=base_ref
+            )
 
         run.observations.extend(
             observe_scope(claim, paths, other_active=active, now=moment)

@@ -32,6 +32,7 @@ from lumos_board.wall_observer import (
     observe_drift,
     observe_rhythm,
     observe_scope,
+    resolve_inspectable_worktree,
     touched_paths,
     write_observations,
 )
@@ -277,7 +278,7 @@ def test_absolute_and_escaping_paths_are_dropped(tmp_path: Path) -> None:
 
 
 def test_touched_paths_on_missing_worktree_is_empty(tmp_path: Path) -> None:
-    assert touched_paths(tmp_path / "yok") == ()
+    assert touched_paths(tmp_path / "yok", allowed_roots=[tmp_path]) == ()
 
 
 # --- Gerçek git deposu: porcelain biçim regresyonları -------------------------
@@ -312,7 +313,7 @@ def git_repo(tmp_path: Path) -> Path:
 def test_unstaged_change_path_is_read_whole(git_repo: Path) -> None:
     """` M path` — baştaki boşluk anlamlı; yolun ilk karakterleri yenmemeli."""
     (git_repo / "src" / "base.py").write_text("x = 2\n", encoding="utf-8")
-    found = touched_paths(git_repo, base_ref="HEAD")
+    found = touched_paths(git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD")
     assert "src/base.py" in found
     assert not any(p.endswith("rc/base.py") and p != "src/base.py" for p in found)
 
@@ -320,18 +321,18 @@ def test_unstaged_change_path_is_read_whole(git_repo: Path) -> None:
 def test_staged_change_path_is_read_whole(git_repo: Path) -> None:
     (git_repo / "src" / "base.py").write_text("x = 3\n", encoding="utf-8")
     _git(git_repo, "add", "src/base.py")
-    assert "src/base.py" in touched_paths(git_repo, base_ref="HEAD")
+    assert "src/base.py" in touched_paths(git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD")
 
 
 def test_untracked_path_is_read_whole(git_repo: Path) -> None:
     (git_repo / "src" / "brand_new.py").write_text("z = 1\n", encoding="utf-8")
-    assert "src/brand_new.py" in touched_paths(git_repo, base_ref="HEAD")
+    assert "src/brand_new.py" in touched_paths(git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD")
 
 
 def test_rename_reports_both_sides(git_repo: Path) -> None:
     """`-z` kipinde rename iki ayrı kayıt: yeni yol, sonra eski yol."""
     _git(git_repo, "mv", "src/renamed.py", "src/moved.py")
-    found = touched_paths(git_repo, base_ref="HEAD")
+    found = touched_paths(git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD")
     assert "src/moved.py" in found
     assert "src/renamed.py" in found
 
@@ -339,11 +340,11 @@ def test_rename_reports_both_sides(git_repo: Path) -> None:
 def test_path_with_space_survives(git_repo: Path) -> None:
     """`-z` kullanıldığı için git yolu tırnaklamaz; boşluk bozulmamalı."""
     (git_repo / "src" / "iki kelime.py").write_text("q = 1\n", encoding="utf-8")
-    assert "src/iki kelime.py" in touched_paths(git_repo, base_ref="HEAD")
+    assert "src/iki kelime.py" in touched_paths(git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD")
 
 
 def test_clean_worktree_reports_nothing(git_repo: Path) -> None:
-    assert touched_paths(git_repo, base_ref="HEAD") == ()
+    assert touched_paths(git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD") == ()
 
 
 # --- Bugbot #3: sığ yollar da kümelenmeli ------------------------------------
@@ -386,6 +387,107 @@ def test_other_repo_claim_does_not_make_a_touch_foreign(tmp_path: Path) -> None:
     )
     found = observe_scope(mine, ["docs/ROADMAP.md"], other_active=[mine, other_repo], now=NOW)
     assert [o.signal for o in found] == [SIGNAL_OUT_OF_SCOPE], "farklı repo FOREIGN_SCOPE olmamalı"
+
+
+# --- Bugbot #4: güvenilmeyen claim verisi yürütme bağlamı SEÇEMEZ ------------
+#
+# Güvenlik özelliği, tek cümleyle:
+#   Untrusted claim metadata can select data to inspect only inside an
+#   operator-approved root; it can never select executable context.
+#
+# `TaskClaim.worktree` self-asserted'dır. Gözlemci o dizinde git çalıştırdığı
+# için orası tespit değil YÜRÜTME BAĞLAMI seçimidir. Git, çalıştığı deponun
+# `.git/config`'ini okur ve `core.fsmonitor` / `diff.external` gibi anahtarlar
+# komut çalıştırır — yani jail olmadan claim sahibi gözlemcinin sürecinde kod
+# koşturabilirdi (confused deputy).
+
+def _plant_hostile_repo(root: Path, marker: Path) -> Path:
+    """`.git/config`'ine komut çalıştıran anahtarlar ekilmiş depo."""
+    repo = root / "hostile"
+    repo.mkdir(parents=True)
+    _git(root, "init", "-q", "-b", "main", str(repo))
+    _git(repo, "config", "user.email", "t@e.invalid")
+    _git(repo, "config", "user.name", "t")
+    (repo / "file.txt").write_text("v1\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+
+    payload = root / "payload.sh"
+    payload.write_text(f"#!/bin/sh\ntouch {marker}\nexit 0\n", encoding="utf-8")
+    payload.chmod(0o755)
+
+    # Repo-local config: gözlemci burada git koşarsa bunlar tetiklenir.
+    _git(repo, "config", "core.fsmonitor", str(payload))
+    _git(repo, "config", "diff.external", str(payload))
+
+    (repo / "file.txt").write_text("v2\n", encoding="utf-8")  # kirli ağaç
+    return repo
+
+
+def test_hostile_repo_config_never_executes(tmp_path: Path) -> None:
+    """Ekilmiş `core.fsmonitor`/`diff.external` marker dosyası YARATAMAMALI."""
+    marker = tmp_path / "PWNED"
+    repo = _plant_hostile_repo(tmp_path, marker)
+
+    touched_paths(repo, allowed_roots=[tmp_path], base_ref="HEAD")
+
+    assert not marker.exists(), "ekilmiş git config komutu çalıştı — jail/sertleştirme delik"
+
+
+def test_worktree_outside_allowed_root_is_never_inspected(tmp_path: Path) -> None:
+    """Kök dışı yol: git hiç çağrılmaz, sonuç boş."""
+    marker = tmp_path / "PWNED_OUTSIDE"
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    repo = _plant_hostile_repo(outside, marker)
+    approved = tmp_path / "approved"
+    approved.mkdir()
+
+    assert touched_paths(repo, allowed_roots=[approved], base_ref="HEAD") == ()
+    assert not marker.exists()
+
+
+def test_symlink_escape_from_allowed_root_is_refused(tmp_path: Path) -> None:
+    """Onaylı kökün içinden dışarı gösteren symlink kabul edilmez."""
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    repo = _plant_hostile_repo(outside, tmp_path / "PWNED_SYMLINK")
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    (approved / "link").symlink_to(repo, target_is_directory=True)
+
+    assert resolve_inspectable_worktree(approved / "link", [approved]) is None
+
+
+@pytest.mark.parametrize(
+    "roots",
+    [(), (None,)],
+    ids=["no-roots", "unresolvable-root"],
+)
+def test_no_approved_root_means_nothing_is_inspectable(git_repo: Path, roots) -> None:
+    """Fail-closed: onaylı kök yoksa hiçbir yol kabul edilmez."""
+    cleaned = tuple(r for r in roots if r is not None)
+    assert resolve_inspectable_worktree(git_repo, cleaned) is None
+
+
+def test_observe_skips_claims_pointing_outside_the_root(tmp_path: Path) -> None:
+    """
+    Uçtan uca: kök dışını gösteren claim atlanır, sebebi kaydedilir ve
+    kök dışı yol günceye YAZILMAZ.
+    """
+    store = _store(tmp_path)
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    outside = tmp_path / "elsewhere"
+    outside.mkdir()
+    claim = _claim(store, worktree=str(outside))
+
+    run = observe(store.store_dir, allowed_roots=[approved], now=NOW)
+
+    assert any("izinli kök dışında" in s for s in run.skipped)
+    assert all(claim.claim_id not in s or "izinli kök dışında" in s for s in run.skipped)
+    recorded = {p for o in run.observations for p in o.evidence.get("paths", [])}
+    assert str(outside) not in recorded
 
 
 def test_same_repo_claim_still_makes_a_touch_foreign(tmp_path: Path) -> None:
