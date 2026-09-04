@@ -27,6 +27,7 @@ from lumos_board.wall_observer import (
     REASON_NOT_A_DIR,
     REASON_NO_ROOT,
     REASON_OUTSIDE,
+    REASON_REPO_OUTSIDE,
     SIGNAL_FOREIGN_SCOPE,
     SIGNAL_OUT_OF_SCOPE,
     SIGNAL_SILENT_DRIFT,
@@ -561,6 +562,92 @@ def test_directory_without_a_repo_does_not_discover_a_parent(tmp_path: Path) -> 
 
     assert resolve_pinned_gitdir(child, [approved]) is None
     assert touched_paths(child, allowed_roots=[approved], base_ref="HEAD") == ()
+
+
+def test_chained_gitfile_cannot_bounce_out_of_the_root(tmp_path: Path) -> None:
+    """
+    Gitfile'ı tek hop takip edip kök kontrolü yapmak yetmez: git kalan
+    zinciri kendi takip eder. Kök İÇİNDE duran bir 'bounce' gitfile, okumayı
+    kök dışındaki bir depoya yönlendirebiliyordu.
+    """
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    secret = _repo_with_dirty_file(tmp_path, "secret_repo", "SECRET_ONLY_HERE.txt")
+
+    bounce = approved / "bounce"  # dosya, dizin değil — zincirin ikinci halkası
+    bounce.write_text(f"gitdir: {secret / '.git'}\n", encoding="utf-8")
+    stub = approved / "innocent"
+    stub.mkdir()
+    (stub / ".git").write_text(f"gitdir: {bounce}\n", encoding="utf-8")
+
+    assert resolve_pinned_gitdir(stub, [approved]) is None
+    found = touched_paths(stub, allowed_roots=[approved], base_ref="HEAD")
+    assert found == ()
+    assert not any("SECRET_ONLY_HERE" in p for p in found)
+
+
+def test_refused_repository_is_recorded_as_a_skip(tmp_path: Path) -> None:
+    """
+    Worktree kök içinde ama DEPO reddedilmişse, bu sessizce 'temiz worktree'
+    gibi görünmemeli — atlama kaydı düşmeli.
+    """
+    store = _store(tmp_path)
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    secret = _repo_with_dirty_file(tmp_path, "secret_repo", "SECRET.txt")
+    stub = approved / "innocent"
+    stub.mkdir()
+    (stub / ".git").write_text(f"gitdir: {secret / '.git'}\n", encoding="utf-8")
+    claim = _claim(store, worktree=str(stub))
+
+    run = observe(store.store_dir, allowed_roots=[approved], now=NOW)
+
+    assert any(REASON_REPO_OUTSIDE in s and claim.claim_id in s for s in run.skipped)
+
+
+def test_in_root_clean_filter_still_executes_documented_residual_risk(tmp_path: Path) -> None:
+    """
+    ┌─ BİLİNÇLİ KALICI RİSK KAYDI — düzeltme DEĞİL ────────────────────────┐
+    │ Jail gözlemciyi kök DIŞINA çıkmaktan alıkoyar; kök İÇİNDEKİ düşman   │
+    │ bir depoya karşı koruma sağlamaz.                                     │
+    │                                                                       │
+    │ Değişmiş takipli dosyayı tespit etmenin her yolu içerik hash'lemeyi   │
+    │ gerektirir, bu da deponun `filter.<ad>.clean` sürücüsünü çalıştırır.  │
+    │ Sürücü adını saldırgan seçtiği için `-c` ile joker kapatılamaz.        │
+    │                                                                       │
+    │ Bu test bugünkü GERÇEĞİ sabitler ki kimse "sertleştirme bunu da       │
+    │ kapatıyor" varsaymasın. Karşılığı işletimseldir: gözlemci izlediği    │
+    │ ajanlardan fazla yetkiyle koşturulmaz.                                │
+    │                                                                       │
+    │ Bir gün gerçekten kapatılırsa bu test kırılır ve GÜNCELLENMELİDİR.    │
+    └───────────────────────────────────────────────────────────────────────┘
+    """
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    repo = approved / "agent_wt"
+    repo.mkdir()
+    _git(approved, "init", "-q", "-b", "main", str(repo))
+    _git(repo, "config", "user.email", "t@e.invalid")
+    _git(repo, "config", "user.name", "t")
+    (repo / "data.bin").write_text("v1\n", encoding="utf-8")
+    (repo / ".gitattributes").write_text("data.bin filter=evil\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+
+    marker = tmp_path / "FILTER_RAN"
+    payload = tmp_path / "filter.sh"
+    payload.write_text(f"#!/bin/sh\ntouch {marker}\ncat\n", encoding="utf-8")
+    payload.chmod(0o755)
+    _git(repo, "config", "filter.evil.clean", str(payload))
+    (repo / "data.bin").write_text("v2\n", encoding="utf-8")
+
+    touched_paths(repo, allowed_roots=[approved], base_ref="HEAD")
+
+    assert marker.exists(), (
+        "Kök içindeki clean filter bugün ÇALIŞIYOR. Bu test o gerçeği kaydeder; "
+        "artık çalışmıyorsa risk kapanmış demektir — testi ve modül başlığındaki "
+        "'KALICI RİSK' bölümünü güncelleyin."
+    )
 
 
 def test_commondir_pointing_outside_the_root_is_refused(tmp_path: Path) -> None:

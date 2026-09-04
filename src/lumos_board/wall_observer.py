@@ -20,6 +20,27 @@ kontrol/engelleme, ajan kimliğinin doğrulanması.
 Güven modeli (sözleşme §1): tespit yalnız türetilmiş kaynaklara dayanır.
 `agent_status_*.json` ve claim'in kendi `status` alanı **beyandır**; bu
 modül onları tespit dayanağı olarak kullanmaz.
+
+KALICI RİSK — gözlemci bir yetki sınırı DEĞİLDİR
+------------------------------------------------
+Jail, gözlemcinin **kök dışına** çıkmasını engeller. Kök **içindeki** düşman
+bir depoya karşı koruma sağlamaz ve sağlayamaz.
+
+Değişmiş takipli dosyaları tespit etmenin her yolu (`status --porcelain`,
+`ls-files -m`, `diff HEAD`) git'in dosya içeriğini hash'lemesini gerektirir;
+bu da deponun `.gitattributes` ile atadığı `filter.<ad>.clean` sürücüsünü
+çalıştırır. Bu sürücüler `-c` ile joker olarak kapatılamaz — sürücü adı
+saldırgan tarafından seçilir. Ölçüldü: tam sertleştirmeyle bile çalışıyor.
+(Yalnız `ls-files -o` ve commit↔commit diff içerik hash'lemez.)
+
+Gözlemcinin çalışması için `allowed_roots`'un ajanların **yazabildiği**
+worktree'leri içermesi zorunlu olduğundan, kök içindeki bir claim sahibi
+gözlemcinin sürecinde kod çalıştırabilir (confused deputy).
+
+Bunun karşılığı koddan değil işletimden gelir: **gözlemci, izlediği
+ajanlardan daha fazla yetkiyle koşturulmamalıdır.** Ayrı ve düşük yetkili
+bir kimlik altında çalıştırılmalı; operatör kimlik bilgilerine, yazma
+haklarına veya ağ erişimine sahip bir bağlamda koşturulmamalıdır.
 """
 
 from __future__ import annotations
@@ -54,6 +75,10 @@ DRIFT_MIN_PATHS = 3
 
 # S3: son olaydan bu kadar süre geçmiş ve hâlâ ACTIVE ise ritim bulgusu.
 STALE_AFTER = timedelta(hours=6)
+
+# Gitfile zincirinde izin verilen adım sayısı. Meşru `git worktree` tek hop
+# kullanır; sınır döngüsel/derin zincirleri fail-closed keser.
+_MAX_GITFILE_HOPS = 4
 
 
 @dataclass(frozen=True)
@@ -159,6 +184,7 @@ REASON_NO_ROOT = "no_approved_root"
 REASON_MISSING = "worktree_missing"
 REASON_NOT_A_DIR = "worktree_not_a_directory"
 REASON_OUTSIDE = "worktree_outside_approved_root"
+REASON_REPO_OUTSIDE = "repository_outside_approved_root"
 REASON_OK = "inside_approved_root"
 
 
@@ -289,33 +315,48 @@ def resolve_pinned_gitdir(worktree: Path, allowed_roots: Sequence[Path | str]) -
     Bu yüzden gitdir açıkça çözülür, o da köklerin içinde olmak zorundadır ve
     komutlara `--git-dir`/`--work-tree` ile sabitlenir — keşif devre dışı.
     """
-    dot_git = Path(worktree) / ".git"
-    try:
-        if dot_git.is_dir():
-            gitdir = dot_git.resolve(strict=True)
-        elif dot_git.is_file():
-            # `git worktree add` gitfile üretir; meşru ama hedefi doğrulanmalı.
-            raw = dot_git.read_text(encoding="utf-8", errors="replace").strip()
+    roots = _normalize_roots(allowed_roots)
+    if not roots:
+        return None
+
+    def inside(path: Path) -> bool:
+        return any(path == root or root in path.parents for root in roots)
+
+    # Gitfile ZİNCİRİ. Tek hop takip edip kök kontrolü yapmak yetmez: git
+    # kalan zinciri kendi takip eder, dolayısıyla kök İÇİNDE duran bir
+    # "bounce" gitfile okumayı kök dışındaki bir depoya yönlendirebilirdi.
+    # Zincirin her adımı ayrı ayrı kök içinde olmalı ve son durak bir DİZİN
+    # olmalı; aksi halde `--git-dir` yine bir gitfile'a işaret eder.
+    current = Path(worktree) / ".git"
+    gitdir: Path | None = None
+    for _ in range(_MAX_GITFILE_HOPS):
+        try:
+            if current.is_dir():
+                resolved = current.resolve(strict=True)
+                if not inside(resolved):
+                    return None
+                gitdir = resolved
+                break
+            if not current.is_file():
+                # Depo yok. Üst dizinlere doğru keşfe İZİN VERİLMEZ.
+                return None
+            resolved = current.resolve(strict=True)
+            if not inside(resolved):
+                return None
+            raw = current.read_text(encoding="utf-8", errors="replace").strip()
             if not raw.startswith("gitdir:"):
                 return None
             target = raw.split("gitdir:", 1)[1].strip()
             if not target:
                 return None
-            candidate = Path(target)
-            if not candidate.is_absolute():
-                candidate = Path(worktree) / candidate
-            gitdir = candidate.resolve(strict=True)
-        else:
-            # Depo yok. Üst dizinlere doğru keşfe İZİN VERİLMEZ.
+            nxt = Path(target)
+            if not nxt.is_absolute():
+                nxt = current.parent / nxt
+            current = nxt
+        except (OSError, RuntimeError, ValueError):
             return None
-    except (OSError, RuntimeError, ValueError):
-        return None
-
-    roots = _normalize_roots(allowed_roots)
-    if not roots:
-        return None
-    if not any(gitdir == root or root in gitdir.parents for root in roots):
-        return None
+    if gitdir is None:
+        return None  # zincir çok uzun veya döngüsel
 
     # Bağlı worktree'lerde gerçek nesne deposu `commondir` ile gösterilir;
     # o da kökün dışını gösterebilir.
@@ -328,7 +369,7 @@ def resolve_pinned_gitdir(worktree: Path, allowed_roots: Sequence[Path | str]) -
             ).resolve(strict=True)
         except (OSError, RuntimeError, ValueError):
             return None
-        if not any(resolved_common == root or root in resolved_common.parents for root in roots):
+        if not inside(resolved_common):
             return None
 
     return gitdir
@@ -698,6 +739,10 @@ def observe(
             paths = _repo_relative(worktree_paths[claim.claim_id])
         else:
             safe, reason = inspect_decision(claim.worktree, allowed_roots)
+            if safe is not None and resolve_pinned_gitdir(safe, allowed_roots) is None:
+                # Dizin kök içindeydi ama git'in açacağı DEPO değil. Bu da
+                # bir rettir; sessizce "temiz worktree" gibi görünmemeli.
+                safe, reason = None, REASON_REPO_OUTSIDE
             if safe is None:
                 # Jail reddetti: git ÇAĞRILMAZ. Gerçek sebep kaydedilir; yol
                 # yazılmaz — kök dışı yolu günceye yazmak da bir sızıntı olurdu.
