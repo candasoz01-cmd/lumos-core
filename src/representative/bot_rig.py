@@ -54,7 +54,12 @@ from representative.pipeline import (
     Utterance,
     summarize_latencies_ms,
 )
-from representative.retention import POLICIES, text_layer_for
+from representative.retention import (
+    POLICIES,
+    enforce as enforce_text_retention,
+    require_sweeper,
+    text_layer_for,
+)
 from representative.routing import Direction, DirectionRouter
 from representative.stt import LUMOS_TERMS_PROMPT
 from representative.tts_playback import ChunkedTtsPlayer, estimate_speech_seconds
@@ -424,8 +429,9 @@ def main(argv: list[str] | None = None) -> int:
         default="rehearsal",
         choices=sorted(POLICIES),
         help="rehearsal (varsayılan): kapalı prova — Recall medyası timed/24h, "
-        "kaynak/çeviri metni jsonl'e ve konsola yazılır. real-meeting: sıfır "
-        "saklama — Recall'da medya tutulmaz VE metin ne jsonl'e ne konsola yazılır. "
+        "kaynak/çeviri metni jsonl'e/konsola yazılır ve 24 saati dolanı periyodik "
+        "temizlik siler (makine açıkken). real-meeting: sıfır saklama — Recall'da "
+        "medya tutulmaz VE metin ne jsonl'e ne konsola yazılır. "
         "DİKKAT: bu bayrak gerçek dış katılımcılı toplantı iznini VERMEZ "
         "(ADR-025 veri bölgesi/DPA blokajı ayrıca sürüyor)",
     )
@@ -462,13 +468,34 @@ def main(argv: list[str] | None = None) -> int:
 
     # Saklama politikası TEK yerde seçilir ve her yüzeyi birden yönetir:
     # Recall medyası, yerel jsonl ve konsol/nohup logu (kurucu kararı
-    # 2026-08-25, şart 2). Ayrı bir yol açılamaması için aşağıdaki her kullanım
-    # aynı `session_retention` nesnesinden beslenir. Kapalı provanın 24 saatlik
-    # metin penceresinin İŞLETİLMESİ (silme + zamanlayıcı) bu dilimde yok.
+    # 2026-08-25). Ayrı bir yol açılamaması için aşağıdaki her kullanım aynı
+    # `session_retention` nesnesinden beslenir.
     session_retention = POLICIES[args.retention]
     text_layer = text_layer_for(session_retention)
-    if not text_layer.persists:
+    # `--preflight` hiçbir metin üretmez (bot yok, söz yok) — süpürücü şartı
+    # yalnız metin yazacak koşular için geçerlidir.
+    if text_layer.persists and not args.preflight:
+        # Fail-closed: metin katmanının periyodik temizliği koşmuyorsa metin
+        # yazılmaz. "Bir sonraki koşuda temizleriz" bir politika değil — rig bir
+        # daha hiç koşmayabilir. (Bu kapı temizliğin çalıştığını doğrular;
+        # duvar-saati garantisi vermez, bkz. retention modül başlığı.)
+        try:
+            print(require_sweeper(os.path.dirname(os.path.abspath(args.jsonl_out))).describe())
+        except RuntimeError as exc:
+            print(exc, file=sys.stderr)
+            return 1
+    elif not text_layer.persists:
         print("saklama: SIFIR — kaynak/çeviri metni ne kayda ne ekrana yazılır")
+
+    # İkinci ağ: önceki provanın süresi dolmuş metinleri, bu koşu dosyaya yeni
+    # satır EKLEMEDEN ÖNCE silinir; metinsiz kalmış süresi dolmuş inode da
+    # yenilenir (Mac birthtime aksi hâlde yeni satırları bir sonraki
+    # süpürmede silerdi). Fail-closed susturma satırları
+    # (fallback_unknown, held_partial_*, suppressed_duplicate) için ayrı bir yol
+    # YOKTUR — aynı pencereye tabidirler.
+    pruned = enforce_text_retention(args.jsonl_out, session_retention)
+    if pruned is not None:
+        print(pruned.describe())
 
     gate = HalfDuplexGate()
     inbound: queue.Queue[bytes] = queue.Queue()

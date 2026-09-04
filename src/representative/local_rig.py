@@ -14,6 +14,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 import time
@@ -34,7 +35,12 @@ from representative.pipeline import (
     Utterance,
     summarize_latencies_ms,
 )
-from representative.retention import POLICIES, text_layer_for
+from representative.retention import (
+    POLICIES,
+    enforce as enforce_text_retention,
+    require_sweeper,
+    text_layer_for,
+)
 from representative.routing import Direction, DirectionRouter
 from representative.tts_playback import ChunkedTtsPlayer
 from representative.turns import TurnAssembler
@@ -439,8 +445,9 @@ def main(argv: list[str] | None = None) -> int:
         "--retention",
         default="rehearsal",
         choices=sorted(POLICIES),
-        help="rehearsal (varsayılan): kaynak/çeviri metni kayda ve konsola "
-        "yazılır; real-meeting: sıfır saklama — metin ne jsonl'e ne konsola yazılır",
+        help="rehearsal (varsayılan): kaynak/çeviri metni yazılır, 24 saati "
+        "dolanı periyodik temizlik siler (makine açıkken); real-meeting: sıfır "
+        "saklama — metin ne jsonl'e ne konsola yazılır",
     )
     parser.add_argument(
         "--vad-silence-ms",
@@ -460,14 +467,27 @@ def main(argv: list[str] | None = None) -> int:
     if args.source_lang == args.target_lang:
         parser.error("source and target languages must differ")
 
-    # bot_rig ile aynı kural (2026-08-25, şart 2): aynı politika hem kaydı hem
-    # konsolu yönetir. Yerel rig de aynı jsonl'i yazar ve aynı şekilde
-    # `nohup ... > prova.log` ile koşturulur; sıfır saklamada iki yüzeyin
-    # ikisine de metin düşmez.
+    # bot_rig ile aynı kural (2026-08-24/25): aynı politika hem kaydı hem
+    # konsolu yönetir ve süresi dolan metni periyodik temizlik siler — ikinci,
+    # temizliksiz bir saklama yolu oluşmasın. Yerel rig de aynı jsonl'i yazar
+    # ve aynı şekilde `nohup ... > prova.log` ile koşturulur.
     session_retention = POLICIES[args.retention]
     text_layer = text_layer_for(session_retention)
-    if not text_layer.persists:
+    if text_layer.persists:
+        # Fail-closed: periyodik temizlik koşmuyorsa metin yazılmaz (kapı
+        # temizliğin çalıştığını doğrular, duvar-saati garantisi vermez).
+        target_dir = os.path.dirname(os.path.abspath(args.jsonl_out or "prova.jsonl"))
+        try:
+            print(require_sweeper(target_dir).describe())
+        except RuntimeError as exc:
+            print(exc, file=sys.stderr)
+            return 1
+    else:
         print("saklama: SIFIR — kaynak/çeviri metni ne kayda ne ekrana yazılır")
+    if args.jsonl_out:
+        pruned = enforce_text_retention(args.jsonl_out, session_retention)
+        if pruned is not None:
+            print(pruned.describe())
 
     duplex_gate = HalfDuplexGate()
     transcript = BilingualTranscript()

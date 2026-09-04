@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Lumos Representative — prova kaydı metin katmanı saklama süpürücüsü.
+  Kurucu kararı (2026-08-25): 24 saat GERÇEK bir üst sınır olmalı; "bir sonraki
+  koşuda temizlenir" yeterli değil. Süpürme işletim sisteminin zamanlayıcısına
+  verilir (yeni daemon YOK). Şablon: install-retention-sweeper.sh doldurur.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>__LABEL__</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>__PYTHON__</string>
+        <string>-m</string>
+        <string>representative.retention</string>
+        <string>--sweep</string>
+        <string>--dir</string>
+        <string>__SWEEP_DIR__</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PYTHONPATH</key>
+        <string>__SRC__</string>
+    </dict>
+    <key>StartInterval</key>
+    <integer>__INTERVAL__</integer>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>__LOG__</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG__</string>
+</dict>
+</plist>
