@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import fcntl
 import json
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -625,7 +627,15 @@ def test_failed_operation_leaves_no_audit_trace(tmp_path: Path) -> None:
     events_after_failure = [event["event"] for event in _events(store.audit_path)]
     assert "CLAIM_EXPIRED" not in events_after_failure
 
+    before = (store.state_path.read_bytes(), store.state_path.stat().st_mtime_ns)
     store.list_claims()
+    after = (store.state_path.read_bytes(), store.state_path.stat().st_mtime_ns)
+    assert after == before
+    assert "CLAIM_EXPIRED" not in [event["event"] for event in _events(store.audit_path)]
+
+    # Expire yazma yolunda kalır (list değil).
+    replacement = _claim(store, task="KA-B", owner="agent-b", scope="src")
+    assert replacement.accepted is True
     expired_events = [
         event for event in _events(store.audit_path) if event["event"] == "CLAIM_EXPIRED"
     ]
@@ -762,3 +772,89 @@ def test_override_promotes_waiters_blocked_only_by_old_lease(tmp_path: Path) -> 
     assert replacement.accepted is True
     by_id = {claim.claim_id: claim.status for claim in store.list_claims(include_closed=True)}
     assert by_id[waiter.claim_id] is ClaimStatus.ACTIVE
+
+
+def test_list_claims_is_byte_stable_and_skips_exclusive_lock(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path)
+    claimed = _claim(store, task="KA-L", owner="agent-a", scope="src").claim
+    assert claimed is not None
+    state = store.state_path
+    audit = store.audit_path
+    before_state = state.read_bytes()
+    before_mtime = state.stat().st_mtime_ns
+    before_audit = audit.read_bytes()
+    before_audit_mtime = audit.stat().st_mtime_ns
+
+    listed = store.list_claims()
+    assert [item.claim_id for item in listed] == [claimed.claim_id]
+    assert state.read_bytes() == before_state
+    assert state.stat().st_mtime_ns == before_mtime
+    assert audit.read_bytes() == before_audit
+    assert audit.stat().st_mtime_ns == before_audit_mtime
+
+    lock_held = threading.Event()
+    release_lock = threading.Event()
+
+    def hold_exclusive() -> None:
+        with store.lock_path.open("a+", encoding="utf-8") as lock_file:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            lock_held.set()
+            release_lock.wait(timeout=5)
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+    holder = threading.Thread(target=hold_exclusive)
+    holder.start()
+    assert lock_held.wait(timeout=2)
+    started = time.monotonic()
+    again = store.list_claims()
+    elapsed = time.monotonic() - started
+    release_lock.set()
+    holder.join(timeout=2)
+    assert [item.claim_id for item in again] == [claimed.claim_id]
+    assert elapsed < 0.5
+
+
+def test_cli_list_does_not_block_writer_or_rewrite_store(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    store = TaskClaimStore(tmp_path)
+    claimed = _claim(store, task="KA-CLI", owner="agent-a", scope="src").claim
+    assert claimed is not None
+    before = store.state_path.read_bytes()
+    before_mtime = store.state_path.stat().st_mtime_ns
+
+    lock_held = threading.Event()
+    release_lock = threading.Event()
+
+    def hold_exclusive() -> None:
+        with store.lock_path.open("a+", encoding="utf-8") as lock_file:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            lock_held.set()
+            release_lock.wait(timeout=5)
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+    holder = threading.Thread(target=hold_exclusive)
+    holder.start()
+    assert lock_held.wait(timeout=2)
+    started = time.monotonic()
+    code = claim_cli_main(["--store", str(tmp_path), "list"])
+    elapsed = time.monotonic() - started
+    release_lock.set()
+    holder.join(timeout=2)
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+    assert code == 0
+    assert elapsed < 0.5
+    assert payload["claims"][0]["claim_id"] == claimed.claim_id
+    assert store.state_path.read_bytes() == before
+    assert store.state_path.stat().st_mtime_ns == before_mtime
+
+
+def test_list_claims_preserves_corrupt_fail_closed(tmp_path: Path) -> None:
+    state = tmp_path / "claims.json"
+    tmp_path.mkdir(exist_ok=True)
+    state.write_text("{broken", encoding="utf-8")
+    store = TaskClaimStore(tmp_path)
+    with pytest.raises(ClaimStoreCorrupt):
+        store.list_claims()
+    assert state.read_text(encoding="utf-8") == "{broken"
+    assert claim_cli_main(["--store", str(tmp_path), "list"]) == 2
+
