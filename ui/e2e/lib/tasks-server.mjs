@@ -8,7 +8,6 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn } from "node:child_process";
 import http from "node:http";
-import { waitForServer } from "./static-server.mjs";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -41,11 +40,19 @@ export function createTempLumosBase(prefix = "lumos-ui-e2e-") {
   return mkdtempSync(join(tmpdir(), prefix));
 }
 
+export const PANEL_TASKS_E2E_SECRET = "lumos-e2e-panel-tasks-secret";
+
+export function panelTasksAuthHeaders(extra = {}) {
+  return Object.assign({}, extra, { "X-Kando-Token": PANEL_TASKS_E2E_SECRET });
+}
+
 export function buildTasksServerEnv(tmpBaseDir, portStr, options = {}) {
   const env = Object.assign({}, process.env, {
     LUMOS_BASE_DIR: tmpBaseDir,
     LUMOS_PANEL_TASKS_PORT: String(portStr),
     LUMOS_PANEL_TASKS_HOST: "127.0.0.1",
+    LUMOS_PANEL_TASKS_SECRET:
+      process.env.LUMOS_PANEL_TASKS_SECRET || PANEL_TASKS_E2E_SECRET,
     // ADR-012: panel mutations require online policy; delete needs session unlock signal in E2E.
     LUMOS_MODE: process.env.LUMOS_MODE || "online",
     LUMOS_PROFILE: process.env.LUMOS_PROFILE || "guvenli_yurut",
@@ -78,14 +85,32 @@ export function stopTasksServer(proc) {
 
 export async function waitForTasksApi(baseUrl, ms = 20000) {
   const base = String(baseUrl || "").replace(/\/$/, "");
-  return waitForServer(`${base}/tasks`, ms);
+  const deadline = Date.now() + ms;
+  return new Promise(function (resolveReady, rejectReady) {
+    function tryOnce() {
+      http
+        .get(`${base}/tasks`, { headers: panelTasksAuthHeaders() }, function (res) {
+          res.resume();
+          if (res.statusCode === 200) return resolveReady();
+          if (Date.now() >= deadline) {
+            return rejectReady(new Error("HTTP " + res.statusCode));
+          }
+          setTimeout(tryOnce, 200);
+        })
+        .on("error", function () {
+          if (Date.now() >= deadline) return rejectReady(new Error("unreachable"));
+          setTimeout(tryOnce, 200);
+        });
+    }
+    tryOnce();
+  });
 }
 
 export function fetchTasksDoc(baseUrl) {
   const base = String(baseUrl || "").replace(/\/$/, "");
   return new Promise(function (resolveFetch, rejectFetch) {
     http
-      .get(`${base}/tasks`, function (res) {
+      .get(`${base}/tasks`, { headers: panelTasksAuthHeaders() }, function (res) {
         let body = "";
         res.on("data", function (chunk) {
           body += chunk;
@@ -123,11 +148,11 @@ export function postJson(baseUrl, path, body) {
       `${base}${route}`,
       {
         method: "POST",
-        headers: {
+        headers: panelTasksAuthHeaders({
           "Content-Type": "application/json",
           Accept: "application/json",
           "Content-Length": Buffer.byteLength(payload),
-        },
+        }),
       },
       function (res) {
         let data = "";

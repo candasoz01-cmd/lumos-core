@@ -1,16 +1,13 @@
 """
-TD-24 Faz-1 — panel görev API'sinde tarayıcı kaynaklı cross-origin sınırı.
+TD-24 — panel görev API'sinde Origin allowlist + Faz-2 kimlik.
 
-Kapsam (bilinçli olarak dar):
-  * Tarayıcıdan gelen cross-origin istekler reddedilir.
-  * `Access-Control-Allow-Origin: *` kalkar; yalnız izin verilen loopback
-    origin yankılanır.
-  * `Origin` başlığı OLMAYAN istek geçer — node/CLI/E2E akışı korunur.
+Kapsam:
+  * Tarayıcıdan gelen cross-origin istekler 403 (Origin kapısı auth'tan önce).
+  * `Access-Control-Allow-Origin: *` yok; izinli loopback origin yankılanır.
+  * API (statik panel hariç) `X-Kando-Token` / Bearer ister.
+  * Token yoksa 401; yabancı Origin + geçerli token yine 403.
 
-Kapsam DIŞI (bu testler bunu iddia etmez): makinede kod çalıştırabilen kötü
-niyetli bir süreç, ya da `Origin` başlığını uyduran bir istemci. Origin'i
-tarayıcı koyar; uydurulabilir. Gerçek kimlik doğrulaması (loopback + zorunlu
-secret + `X-Kando-Token`/Bearer + `hmac.compare_digest`) ayrı bir dilimdir.
+Kapsam DIŞI: PKCE HTTP exchange ucu; tarayıcı cookie oturumu.
 """
 
 from __future__ import annotations
@@ -30,6 +27,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SERVER = REPO_ROOT / "panel" / "scripts" / "panel_tasks_server.py"
+TEST_SECRET = "lumos-td24-faz2-test-secret"
 
 sys.path.insert(0, str(REPO_ROOT / "panel" / "scripts"))
 
@@ -102,6 +100,7 @@ def server():
             "LUMOS_BASE_DIR": tmp,
             "LUMOS_PANEL_TASKS_PORT": str(port),
             "LUMOS_PANEL_TASKS_HOST": "127.0.0.1",
+            "LUMOS_PANEL_TASKS_SECRET": TEST_SECRET,
             "LUMOS_MODE": "online",
             "LUMOS_PROFILE": "guvenli_yurut",
             "LUMOS_SESSION_UNLOCKED": "true",
@@ -114,7 +113,9 @@ def server():
     deadline = time.time() + 20
     while time.time() < deadline:
         try:
-            urllib.request.urlopen(f"{base}/tasks", timeout=1).read()
+            req = urllib.request.Request(f"{base}/tasks")
+            req.add_header("X-Kando-Token", TEST_SECRET)
+            urllib.request.urlopen(req, timeout=1).read()
             break
         except Exception:
             time.sleep(0.15)
@@ -129,14 +130,23 @@ def server():
         proc.kill()
 
 
-def _request(base: str, path: str, *, method: str = "GET", origin: str | None = None,
-             body: dict | None = None):
+def _request(
+    base: str,
+    path: str,
+    *,
+    method: str = "GET",
+    origin: str | None = None,
+    body: dict | None = None,
+    token: str | None = TEST_SECRET,
+):
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(f"{base}{path}", method=method, data=data)
     if data is not None:
         req.add_header("Content-Type", "application/json")
     if origin is not None:
         req.add_header("Origin", origin)
+    if token is not None:
+        req.add_header("X-Kando-Token", token)
     try:
         with urllib.request.urlopen(req, timeout=5) as res:
             return res.status, dict(res.headers), res.read()
@@ -144,12 +154,23 @@ def _request(base: str, path: str, *, method: str = "GET", origin: str | None = 
         return e.code, dict(e.headers), e.read()
 
 
-def test_request_without_origin_is_allowed(server: str) -> None:
-    """Node/CLI/E2E akışı korunur — bu dilim onları hedeflemiyor."""
+def test_request_without_origin_is_allowed_with_token(server: str) -> None:
     status, headers, _ = _request(server, "/tasks")
     assert status == 200
-    # Origin yoksa CORS başlığına da gerek yok.
     assert "Access-Control-Allow-Origin" not in headers
+    assert headers.get("Cache-Control") == "no-store"
+
+
+def test_api_without_token_is_401(server: str) -> None:
+    status, _, raw = _request(server, "/tasks", token=None)
+    assert status == 401
+    assert json.loads(raw)["error"] == "invalid_token"
+
+
+def test_wrong_token_is_401(server: str) -> None:
+    status, _, raw = _request(server, "/tasks", token="not-the-configured-secret")
+    assert status == 401
+    assert json.loads(raw)["error"] == "invalid_token"
 
 
 def test_loopback_origin_is_echoed_not_wildcarded(server: str) -> None:
@@ -175,6 +196,14 @@ def test_foreign_origin_get_is_refused(server: str) -> None:
     assert "Access-Control-Allow-Origin" not in headers
 
 
+def test_foreign_origin_with_valid_token_is_still_403(server: str) -> None:
+    status, _, raw = _request(
+        server, "/tasks", origin="https://evil.com", token=TEST_SECRET
+    )
+    assert status == 403
+    assert json.loads(raw)["error"] == "origin_not_allowed"
+
+
 def test_foreign_origin_mutation_is_refused_before_any_write(server: str) -> None:
     """Asıl tehdit: yabancı bir sayfanın doğrudan POST atması."""
     before = json.loads(_request(server, "/tasks")[2])
@@ -188,6 +217,21 @@ def test_foreign_origin_mutation_is_refused_before_any_write(server: str) -> Non
     assert after["tasks"] == before["tasks"], "reddedilen istek yazma yapmamalı"
 
 
+def test_mutation_without_token_does_not_write(server: str) -> None:
+    before = json.loads(_request(server, "/tasks")[2])
+    status, _, raw = _request(
+        server,
+        "/tasks",
+        method="POST",
+        token=None,
+        body={"title": "td24-no-token-should-not-land"},
+    )
+    assert status == 401
+    assert json.loads(raw)["error"] == "invalid_token"
+    after = json.loads(_request(server, "/tasks")[2])
+    assert after["tasks"] == before["tasks"]
+
+
 def test_foreign_origin_preflight_is_refused(server: str) -> None:
     """Preflight onay verirse tarayıcı asıl isteği yollar; kapı burada da olmalı."""
     status, _, _ = _request(server, "/tasks", method="OPTIONS", origin="https://evil.com")
@@ -196,6 +240,9 @@ def test_foreign_origin_preflight_is_refused(server: str) -> None:
 
 def test_loopback_preflight_still_works(server: str) -> None:
     origin = "http://localhost:21300"
-    status, headers, _ = _request(server, "/tasks", method="OPTIONS", origin=origin)
+    status, headers, _ = _request(server, "/tasks", method="OPTIONS", origin=origin, token=None)
     assert status == 204
     assert headers.get("Access-Control-Allow-Origin") == origin
+    allow = headers.get("Access-Control-Allow-Headers") or ""
+    assert "X-Kando-Token" in allow
+    assert "Authorization" in allow

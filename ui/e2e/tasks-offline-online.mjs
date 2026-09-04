@@ -24,6 +24,7 @@ import {
   buildTasksApiBase,
   createTempLumosBase,
   fetchTasksDoc,
+  PANEL_TASKS_E2E_SECRET,
   resolveTasksApiPort,
   startTasksServer,
   stopTasksServer,
@@ -59,7 +60,10 @@ let pyProc;
 async function pageFetchTasksOk(page) {
   return page.evaluate(async function (base) {
     try {
-      const r = await fetch(base + "/tasks", { headers: { Accept: "application/json" } });
+      const token = String(window.LUMOS_PANEL_TASKS_TOKEN || "").trim();
+      const headers = { Accept: "application/json" };
+      if (token) headers["X-Kando-Token"] = token;
+      const r = await fetch(base + "/tasks", { headers });
       if (!r.ok) return { ok: false, status: r.status };
       const doc = await r.json();
       return { ok: !!(doc && Array.isArray(doc.tasks)), status: r.status };
@@ -72,7 +76,10 @@ async function pageFetchTasksOk(page) {
 async function waitForPageTasksApi(page, expectOk, step) {
   await page.waitForFunction(
     function (payload) {
-      return fetch(payload.base + "/tasks", { headers: { Accept: "application/json" } })
+      const token = String(window.LUMOS_PANEL_TASKS_TOKEN || "").trim();
+      const headers = { Accept: "application/json" };
+      if (token) headers["X-Kando-Token"] = token;
+      return fetch(payload.base + "/tasks", { headers })
         .then(function (r) {
           return r.ok === payload.expectOk;
         })
@@ -158,7 +165,8 @@ async function run() {
 
   await page.addInitScript(function (args) {
     window.LUMOS_PANEL_TASKS_API_BASE = args.base;
-  }, { base: TASK_API_BASE });
+    window.LUMOS_PANEL_TASKS_TOKEN = args.token;
+  }, { base: TASK_API_BASE, token: PANEL_TASKS_E2E_SECRET });
 
   try {
     await page.goto(PANEL_URL, { waitUntil: "domcontentloaded", timeout: PACKAGE_FLOW_MS });
