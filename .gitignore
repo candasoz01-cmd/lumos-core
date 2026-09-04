@@ -61,4 +61,7 @@ scripts/anchorusb/bin/
 
 # Representative canlı prova çıktıları — runtime artifact, repoya girmez.
 prova*.jsonl
+prova*.log
 prova.pid
+# Saklama süpürücüsünün kalp atışı (yalnız zaman damgası, metin taşımaz)
+.retention-sweep-stamp
