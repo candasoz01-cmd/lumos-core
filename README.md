@@ -41,6 +41,15 @@ The current version includes:
 
 The current panel defines visible modules and product direction without claiming unfinished active functionality.
 
+## WebMCP (challenge slice, after 2026-08-25)
+
+The existing `/panel` Tasks board is exposed to agents through
+`document.modelContext.registerTool()` — three tools, no silent reads, no
+write without Lumos’s own confirmation dialog.
+
+- Live: [welockai.com/panel](https://welockai.com/panel/)
+- Contract and prior-vs-new split: [`docs/webmcp-challenge-2026.md`](docs/webmcp-challenge-2026.md)
+
 ## Open Source Status
 
 - Lumos Core is in early active development.
