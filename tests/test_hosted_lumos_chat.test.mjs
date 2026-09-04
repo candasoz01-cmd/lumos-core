@@ -488,7 +488,9 @@ test("hosted chat calls OpenAI first without exposing its key", async () => {
     assert.equal(res.statusCode, 200);
     assert.equal(res.payload.reply, "Merhaba!");
     assert.equal(requestHeaders.Authorization, "Bearer private-openai-test-key");
-    assert.equal(res.payload.provider, "openai");
+    // PR-005: sağlayıcı kanıtı Authorization başlığıdır; yanıt gövdesinde olmaz.
+    assert.equal("provider" in res.payload, false);
+    assert.equal("model" in res.payload, false);
     assert.equal(JSON.stringify(res.payload).includes("private-openai-test-key"), false);
   } finally {
     globalThis.fetch = originalFetch;
@@ -525,7 +527,8 @@ test("hosted chat falls back to Google when OpenAI is unavailable", async () => 
       res,
     );
     assert.equal(res.statusCode, 200);
-    assert.equal(res.payload.provider, "google");
+    // PR-005: yedeğe düşüldüğü iki ayrı çağrıdan anlaşılır, yanıt gövdesinden değil.
+    assert.equal("provider" in res.payload, false);
     assert.equal(res.payload.reply, "Yedek yanıt");
     assert.equal(urls.length, 2);
   } finally {
