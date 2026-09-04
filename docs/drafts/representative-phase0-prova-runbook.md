@@ -715,8 +715,11 @@ metinler (`fallback_unknown`, `held_partial_*`, `suppressed_duplicate`) dahil.
   zamanlama alanları. Silme kararı `flag_reason`a **bakmaz** (muafiyet kapısı yok).
 - `prova*.log` seçici redakte edilemez (yapısız düz metin) → süresi dolunca
   dosya **silinir**. İşletimsel kayıt zaten jsonl'de sürekli durur.
-- Süre dolmadan veya silinecek metin yokken dosyaya **hiç dokunulmaz** (yazma
-  damgayı tazeleyip süreyi uzatırdı).
+- Süre dolmadan veya silinecek metin yokken **süpürme** dosyaya hiç dokunmaz
+  (her tur yazmak damgayı sıfırlar ve 15 dk'lık döngü olurdu).
+- Rig başlamadan `enforce` süresi dolmuş inode'u yeniler: aksi hâlde Mac
+  `st_birthtime` yerinde kalır ve varsayılan `prova_bot.jsonl` üzerine yazılan
+  **yeni** prova metni bir sonraki süpürmede silinirdi.
 - Çözümlenemeyen (çökmede yarım kalmış) satır redakte edilemez → düşürülür.
 
 ```bash
@@ -757,10 +760,11 @@ kanıtlanabilir:
 
 1. **Uykudaki/kapalı makine.** Mac kapalıyken hiçbir yerel zamanlayıcı koşmaz;
    temizlik ancak açılıştan sonraki ilk turda yapılır.
-2. **Damga tazelenmesi.** Süre DOSYA damgasından ölçülür. Mevcut bir prova
-   dosyasına yeni satır eklenince (varsayılan `--jsonl-out prova_bot.jsonl`
-   koşular arasında paylaşılıyor) damga tazelenir ve o dosyadaki ESKİ satırlar
-   24 saati aşabilir.
+2. **Dosya damgası, satır damgası değil.** Süre en eski damgadan ölçülür
+   (`mtime` ve varsa `st_birthtime`). Append mtime'ı tazeler; Mac'te birthtime
+   tazelenmez. Eski satırlar aynı inode'da 24 saati aşabilir; yeni satırlar
+   `enforce` inode'u yenilemezse (eski doğum damgası) erken silinirdi — o yol
+   rig başlangıcında kapatıldı, satır-başına süre hâlâ yok.
 
 Bunları kapatmanın yolu satır-başına süre semantiğidir (kayda duvar-saati
 damgası + satır bazlı silme); **uygulanmadı**, ayrı bir karar olarak duruyor.

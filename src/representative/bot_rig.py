@@ -488,7 +488,9 @@ def main(argv: list[str] | None = None) -> int:
         print("saklama: SIFIR — kaynak/çeviri metni ne kayda ne ekrana yazılır")
 
     # İkinci ağ: önceki provanın süresi dolmuş metinleri, bu koşu dosyaya yeni
-    # satır EKLEMEDEN ÖNCE silinir. Fail-closed susturma satırları
+    # satır EKLEMEDEN ÖNCE silinir; metinsiz kalmış süresi dolmuş inode da
+    # yenilenir (Mac birthtime aksi hâlde yeni satırları bir sonraki
+    # süpürmede silerdi). Fail-closed susturma satırları
     # (fallback_unknown, held_partial_*, suppressed_duplicate) için ayrı bir yol
     # YOKTUR — aynı pencereye tabidirler.
     pruned = enforce_text_retention(args.jsonl_out, session_retention)

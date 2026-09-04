@@ -8,8 +8,10 @@ duruyor, hiçbir süreye tabi değildi.
 08-25 şartı: temizlik "bir sonraki rig koşusunda" olamaz — rig bir daha hiç
 koşmayabilir. Bu dosya, makine açıkken periyodik koşan temizliği ve onun
 doğrulanmasını kilitler. DUVAR-SAATİ GARANTİSİ İDDİA EDİLMEZ: uykudaki/kapalı
-makinede tur koşmaz ve dosyaya yeni satır eklenince damga tazelendiği için eski
-satırlar 24 saati aşabilir (satır-başına süre semantiği uygulanmadı).
+makinede tur koşmaz. Dosya damgası satır damgası değildir; `enforce` süresi
+dolmuş inode'u yeni yazımdan önce yeniler (Mac birthtime + yeniden kullanılan
+`prova_bot.jsonl` yeni metni silmesin diye). Satır-başına süre semantiği
+uygulanmadı.
 """
 
 from __future__ import annotations
@@ -216,6 +218,67 @@ def test_file_without_text_is_not_rewritten(tmp_path):
 
     assert result.expired is True and result.cleared == 0 and result.written is False
     assert os.stat(path).st_mtime == mtime_before
+
+
+class _StatWithBirth:
+    def __init__(self, inner, birthtime: float) -> None:
+        self._inner = inner
+        self.st_mtime = inner.st_mtime
+        self.st_birthtime = birthtime
+        self.st_ino = inner.st_ino
+
+    def __getattr__(self, name: str):
+        return getattr(self._inner, name)
+
+
+def test_enforce_reincarnates_expired_textless_inode_so_new_text_is_kept(tmp_path, monkeypatch):
+    """Mac birthtime + paylaşılan prova_bot.jsonl: yeni prova satırları silinmez.
+
+    Süpürme metinsiz süresi dolmuş dosyayı atlar (15 dk döngü olmasın). Rig
+    `enforce` ile inode'u yenilemezse append mtime'ı tazeleyip birthtime'ı
+    bırakır; sonraki süpürme yeni metni de redakte ederdi.
+    """
+    textless = {**spoken_record(), "source_text": "", "translated_text": ""}
+    path = write_jsonl(tmp_path / "prova_bot.jsonl", [textless], 48.0)
+    orig_stat = os.stat
+    birth_by_ino = {orig_stat(path).st_ino: orig_stat(path).st_mtime}
+
+    def stat_pinned(p, *args, **kwargs):
+        st = orig_stat(p, *args, **kwargs)
+        birth = birth_by_ino.get(st.st_ino, st.st_mtime)
+        return _StatWithBirth(st, birth)
+
+    monkeypatch.setattr(os, "stat", stat_pinned)
+
+    skipped = prune_jsonl(path)
+    assert skipped.written is False
+
+    # Enforce olmadan append: eski inode, yeni metin, prune siler.
+    pathlib.Path(path).write_text(
+        pathlib.Path(path).read_text(encoding="utf-8")
+        + json.dumps(spoken_record(), ensure_ascii=False)
+        + "\n",
+        encoding="utf-8",
+    )
+    lost = prune_jsonl(path)
+    assert lost.expired is True and lost.cleared >= 1
+    assert all(not r.get("source_text") for r in read_jsonl(path))
+
+    # Aynı başlangıç: enforce inode'u yeniler, yeni satır kalır.
+    path2 = write_jsonl(tmp_path / "prova_bot2.jsonl", [textless], 48.0)
+    birth_by_ino[orig_stat(path2).st_ino] = orig_stat(path2).st_mtime
+    reincarnated = enforce(path2)
+    assert reincarnated is not None and reincarnated.written is True
+    pathlib.Path(path2).write_text(
+        pathlib.Path(path2).read_text(encoding="utf-8")
+        + json.dumps(spoken_record(), ensure_ascii=False)
+        + "\n",
+        encoding="utf-8",
+    )
+    kept = prune_jsonl(path2)
+    assert kept.expired is False
+    spoken = [r for r in read_jsonl(path2) if r.get("source_text")]
+    assert spoken and spoken[-1]["source_text"] == spoken_record()["source_text"]
 
 
 def test_dry_run_changes_nothing(tmp_path):

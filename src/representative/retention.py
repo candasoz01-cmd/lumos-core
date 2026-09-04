@@ -14,8 +14,12 @@ Bu, **makine açıkken periyodik koşan bir temizliktir**. Duvar-saati uyum
 garantisi DEĞİLDİR ve öyle sunulmamalıdır. İki kanıtlanabilir boşluk vardır:
   1. Mac uykuda/kapalıyken hiçbir yerel zamanlayıcı koşmaz; temizlik ancak
      açılıştan sonraki ilk turda yapılır.
-  2. Süre DOSYA damgasından ölçülür. Mevcut bir prova dosyasına yeni satır
-     eklenince damga tazelenir; o dosyadaki ESKİ satırlar 24 saati aşabilir.
+  2. Süre DOSYA damgasından ölçülür (en ESKİ damga: mtime ve varsa
+     birthtime). Append mtime'ı tazeler ama Mac'te birthtime yerinde kalır;
+     satır-başına süre yok. Eski inode'a yeni prova yazılırsa süpürücü yeni
+     metni de süresi dolmuş sayardı — `enforce` bu yüzden süresi dolmuş
+     inode'u yeni yazımdan önce yeniler (süpürme boş dosyayı her turda
+     yeniden yazmaz; 15 dk'lık döngü olmasın diye).
 Satır-başına süre semantiği (kayda duvar-saati damgası) uygulanmadıkça
 "24 saati aşan metin yoktur" denemez.
 
@@ -48,7 +52,7 @@ import plistlib
 import subprocess
 import sys
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from representative.meeting_ingress import (
@@ -234,18 +238,39 @@ def prune_jsonl(
 
     if not cleared and not dropped:
         # Silinecek metin yok (ör. sıfır saklamayla üretilmiş dosya):
-        # yeniden yazmak yalnız damgayı tazelerdi.
+        # süpürme yeniden yazmaz — her tur damgayı sıfırlamak 15 dk'lık
+        # bir yazma döngüsü olurdu. Yeni prova yazımı `enforce` ile ayrı.
         return PruneResult(path, policy, age, True, records, 0, 0, False)
     if dry_run:
         return PruneResult(path, policy, age, True, records, cleared, dropped, False, True)
 
+    _atomic_rewrite_text(path, kept)
+    return PruneResult(path, policy, age, True, records, cleared, dropped, True)
+
+
+def _atomic_rewrite_text(path: str, lines: list[str]) -> None:
     tmp = f"{path}.tmp"
     with open(tmp, "w", encoding="utf-8") as f:
-        f.write("".join(line + "\n" for line in kept))
+        f.write("".join(line + "\n" for line in lines))
         f.flush()
         os.fsync(f.fileno())
     os.replace(tmp, path)
-    return PruneResult(path, policy, age, True, records, cleared, dropped, True)
+
+
+def _reincarnate_inode(path: str) -> None:
+    """Aynı baytlar, yeni inode/damga.
+
+    macOS'ta `prune` metinsiz süresi dolmuş dosyayı atlayınca `st_birthtime`
+    yerinde kalır. Varsayılan `prova_bot.jsonl` yeniden kullanılınca sonraki
+    süpürme, yeni prova satırlarını da süresi dolmuş sayıp silerdi.
+    """
+    data = Path(path).read_bytes()
+    tmp = f"{path}.tmp"
+    with open(tmp, "wb") as f:
+        f.write(data)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
 
 
 def expire_log(
@@ -319,10 +344,18 @@ def sweep(
 
 
 def enforce(path: str, policy: RetentionPolicy = REHEARSAL_RETENTION) -> PruneResult | None:
-    """Rig başlangıcı için sarmalayıcı (ikinci ağ; asıl sınır süpürücüdedir)."""
+    """Rig başlangıcı: süresi dolmuş metni siler; dolmuş inode'u yeniler.
+
+    Asıl süre sınırı süpürücüdür. Buradaki ikinci ağ, yeni prova satırlarını
+    eski bir Mac birthtime'ının üzerine yazmamaktır.
+    """
     if not os.path.exists(path):
         return None
-    return prune_jsonl(path, policy=policy)
+    result = prune_jsonl(path, policy=policy)
+    if result.expired and not result.written:
+        _reincarnate_inode(path)
+        return replace(result, written=True)
+    return result
 
 
 # --------------------------------------------------------------------------
