@@ -735,6 +735,34 @@ def build_resource_mode_apply_response(body: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def is_loopback_origin(origin: str) -> bool:
+    """
+    TD-24 Faz-1 — bir `Origin` başlığı loopback panelin kendisine mi ait?
+
+    Yalnız `http://127.0.0.1[:port]`, `http://localhost[:port]` ve
+    `http://[::1][:port]` kabul edilir. Port serbesttir: panel dev/e2e'de
+    pid'den türeyen portlardan servis ediliyor, sabit liste tutulamaz.
+
+    Şema kilidi bilinçli: `https://localhost` de reddedilir, çünkü panel
+    loopback'te düz http servis edilir ve kabul yüzeyini gereksiz genişletmek
+    istemiyoruz. Ayrıca `http://127.0.0.1.evil.com` gibi son ek hileleri
+    hostname'in TAM eşleşmesiyle elenir.
+    """
+    raw = (origin or "").strip()
+    if not raw:
+        return False
+    try:
+        parsed = urlparse(raw)
+    except ValueError:
+        return False
+    if parsed.scheme != "http":
+        return False
+    if parsed.username or parsed.password:
+        return False
+    # urlparse hostname'i küçük harfe çevirir ve IPv6 köşeli parantezini soyar.
+    return parsed.hostname in ("127.0.0.1", "localhost", "::1")
+
+
 def _send_json(handler: BaseHTTPRequestHandler, code: int, obj: dict) -> None:
     raw = json.dumps(obj, ensure_ascii=False).encode("utf-8")
     handler.send_response(code)
@@ -766,8 +794,48 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args) -> None:
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
 
+    def _request_origin(self) -> str:
+        return (self.headers.get("Origin") or "").strip()
+
+    def _origin_allowed(self) -> bool:
+        """
+        TD-24 Faz-1 kapsamı: **tarayıcı kaynaklı** cross-origin istekler.
+
+        Origin başlığı YOKSA istek geçer. Bu bilinçli: başlığı tarayıcı koyar,
+        `curl` / node / CLI çağrıları hiç göndermez ve bu dilim onları
+        hedeflemiyor. Makinede kod çalıştırabilen kötü niyetli bir süreç —
+        ya da Origin'i uyduran bir istemci — bu kontrolle durmaz; o ayrı bir
+        tehdit modeli ve ayrı bir dilim (token/auth).
+        """
+        origin = self._request_origin()
+        if not origin:
+            return True
+        return is_loopback_origin(origin)
+
+    def _reject_origin(self) -> None:
+        origin = self._request_origin()
+        self.log_message("origin reddedildi: %s", origin or "<yok>")
+        _send_json(
+            self,
+            403,
+            {
+                "ok": False,
+                "error": "origin_not_allowed",
+                "detail": (
+                    "Panel görev API'si yalnız loopback origin'lerden çağrılabilir "
+                    "(http://127.0.0.1:*, http://localhost:*)."
+                ),
+                "origin": origin,
+            },
+        )
+
     def _cors(self) -> None:
-        self.send_header("Access-Control-Allow-Origin", "*")
+        # Wildcard YOK (TD-24): yalnız izin verilen loopback origin yankılanır.
+        # Origin gelmediyse CORS başlığına gerek yok — istek tarayıcıdan değil.
+        origin = self._request_origin()
+        if origin and is_loopback_origin(origin):
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, PUT, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
 
@@ -799,6 +867,10 @@ class Handler(BaseHTTPRequestHandler):
         return False
 
     def do_OPTIONS(self) -> None:
+        # Preflight de kapıdan geçer: izinsiz origin buradan onay alamaz.
+        if not self._origin_allowed():
+            self._reject_origin()
+            return
         p = self._parse_path()
         if not self._options_path_allowed(p):
             self.send_error(404)
@@ -959,6 +1031,9 @@ class Handler(BaseHTTPRequestHandler):
         return True
 
     def do_GET(self) -> None:
+        if not self._origin_allowed():
+            self._reject_origin()
+            return
         p = self._parse_path()
         if p == "/lumos-read-state":
             self._get_lumos_read_state()
@@ -1014,6 +1089,9 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(raw)
 
     def do_PUT(self) -> None:
+        if not self._origin_allowed():
+            self._reject_origin()
+            return
         if self._parse_path() != "/tasks.json":
             self.send_error(404)
             return
@@ -1072,6 +1150,9 @@ class Handler(BaseHTTPRequestHandler):
         # Tek yönlendirme: sorgu / sondaki slash normalize (_parse_path); self.path ham eşleşmesine güvenme.
         # Sandbox guard reddi (CoreWriteForbidden) tek noktada yapılandırılmış 403'e çevrilir;
         # aksi halde her _post_* yolunda ayrı ele almak gerekirdi (işlenmeyen istisna → 500).
+        if not self._origin_allowed():
+            self._reject_origin()
+            return
         try:
             p = self._parse_path()
             if p == "/open-folder":
