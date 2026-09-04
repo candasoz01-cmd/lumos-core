@@ -135,6 +135,25 @@ yetkisi vermez.
 
 Normatif karar ve kabul kapıları: [ADR-021](decisions/ADR-021-robotics-sovereignty-layer-v0-1.md).
 
+### Dar istisna — Account Activity Correlation (güvenlik kanıtı)
+
+2026-09-04 kullanıcı kararıyla **Account Activity Correlation / Security
+Evidence Correlation** için yalnız yerel, gizliliği koruyan çekirdek STOP
+LIST'ten dar kapsamlı olarak istisna tutulmuştur. Bu kayıt activity
+tracking, yeni sayfa, mail ürünü veya otomatik hesap eylemi yetkisi vermez.
+
+İstisna sınırları:
+
+- üçüncü taraf güvenlik uyarısını kayıtlı cihaz/oturum kanıtıyla eşleştirme;
+- minimal metadata (servis, zaman, cihaz kimliği, oturum türü, ağ sınıfı);
+- raw browser history, parola, içerik ve düz metin IP **yok**;
+- cihaz etiketi kimlik değildir; kayıt `device_id` + anahtar parmak izine bağlıdır;
+- kesin hüküm yok (`owner_match` / `likely_owner` / `unknown` / `suspicious`);
+- mail uyarısı şifre değiştirme veya oturum kapatmaya **çevrilmez**;
+- yeni sayfa, yeni entegrasyon, tarayıcı sniffing veya çoklu cihaz senkronu **yok**.
+
+Normatif karar ve kabul kapıları: [ADR-032](decisions/ADR-032-account-activity-correlation.md).
+
 ## FAZ-1 sonrası provider stratejisi
 
 Bu kayıt yalnız FAZ-1 tamamlandıktan sonra değerlendirilecek yönü tanımlar;
