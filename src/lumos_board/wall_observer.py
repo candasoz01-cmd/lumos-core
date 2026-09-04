@@ -179,6 +179,15 @@ def _normalize_roots(allowed_roots: Sequence[Path | str] | Path | str | None) ->
     for root in candidates:
         if isinstance(root, bytes):
             continue
+        # Boş/boşluk yol ASLA kök sayılmaz. `Path("").resolve()` süreç
+        # çalışma dizinini verir; `allowed_roots=""` verildiğinde jail
+        # sessizce cwd'ye açılır ve altındaki her worktree incelenebilir
+        # olurdu — fail-open. Boş girdi "kök yok" demektir (fail-closed).
+        try:
+            if not str(os.fspath(root)).strip():
+                continue
+        except TypeError:
+            continue
         try:
             roots.append(Path(root).resolve(strict=True))
         except (OSError, RuntimeError, TypeError, ValueError):

@@ -494,6 +494,23 @@ def test_a_bare_string_root_is_one_root_not_its_characters(tmp_path: Path) -> No
     assert resolve_inspectable_worktree(outside, approved) is None
 
 
+@pytest.mark.parametrize("empty", ["", "   ", "\t"], ids=["empty", "spaces", "tab"])
+def test_empty_root_is_no_root_not_the_working_directory(tmp_path: Path, monkeypatch, empty) -> None:
+    """
+    `Path("").resolve()` süreç çalışma dizinini verir. Boş kök kabul edilseydi
+    `allowed_roots=""` jail'i sessizce cwd'ye açardı — fail-open. Boş girdi
+    "kök yok" demeli.
+    """
+    victim = tmp_path / "victim"
+    victim.mkdir()
+    monkeypatch.chdir(tmp_path)
+
+    assert resolve_inspectable_worktree(victim, empty) is None
+    assert inspect_decision(victim, empty) == (None, REASON_NO_ROOT)
+    # Sequence içindeki boş eleman da kök üretmemeli.
+    assert resolve_inspectable_worktree(victim, [empty]) is None
+
+
 def test_git_env_inherits_no_git_variables(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     `GIT_DIR` / `GIT_WORK_TREE` git'in jail'lenmiş `cwd`'yi yok saymasına yol
