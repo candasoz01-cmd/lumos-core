@@ -39,6 +39,7 @@ from lumos_board.wall_observer import (
     observe_rhythm,
     observe_scope,
     resolve_inspectable_worktree,
+    resolve_pinned_gitdir,
     touched_paths,
     write_observations,
 )
@@ -492,6 +493,90 @@ def test_a_bare_string_root_is_one_root_not_its_characters(tmp_path: Path) -> No
     # …ama karakterlerine bölünüp "/" kökü üretmez.
     assert resolve_inspectable_worktree(outside, str(approved)) is None
     assert resolve_inspectable_worktree(outside, approved) is None
+
+
+# --- Bugbot #5: jail dizini doğruluyordu, DEPOYU değil ----------------------
+#
+# Dizinin onaylı kökün içinde olması yetmiyor: git depoyu ayrıca keşfeder.
+# `.git` bir gitfile olabilir ve kök dışını gösterebilir; `.git` hiç yoksa git
+# üst dizinlerde ebeveyn depo arar. Jail içindeki boş bir dizin, kök dışındaki
+# bir depoyu inceletebiliyordu ve o ağacın yolları günceye yazılabiliyordu.
+
+def _repo_with_dirty_file(root: Path, name: str, filename: str) -> Path:
+    repo = root / name
+    repo.mkdir(parents=True)
+    _git(root, "init", "-q", "-b", "main", str(repo))
+    _git(repo, "config", "user.email", "t@e.invalid")
+    _git(repo, "config", "user.name", "t")
+    (repo / filename).write_text("v1\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+    (repo / filename).write_text("v2\n", encoding="utf-8")
+    return repo
+
+
+def test_gitfile_pointing_outside_the_root_is_refused(tmp_path: Path) -> None:
+    """Jail içindeki stub dizin, kök dışındaki depoyu inceletememeli."""
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    secret = _repo_with_dirty_file(tmp_path, "secret_repo", "SECRET_ONLY_HERE.txt")
+
+    stub = approved / "innocent"
+    stub.mkdir()
+    (stub / ".git").write_text(f"gitdir: {secret / '.git'}\n", encoding="utf-8")
+
+    assert resolve_pinned_gitdir(stub, [approved]) is None
+    found = touched_paths(stub, allowed_roots=[approved], base_ref="HEAD")
+    assert found == ()
+    assert not any("SECRET_ONLY_HERE" in p for p in found)
+
+
+def test_legitimate_git_worktree_gitfile_still_works(tmp_path: Path) -> None:
+    """
+    `git worktree add` gitfile üretir; meşrudur. Sertleştirme gerçek
+    kullanımı kırmamalı — hedef kökün içinde olduğu sürece çalışmalı.
+    """
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    main_repo = _repo_with_dirty_file(approved, "main_repo", "a.txt")
+    _git(main_repo, "add", "-A")
+    _git(main_repo, "commit", "-qm", "second")
+    linked = approved / "linked_wt"
+    _git(main_repo, "worktree", "add", "-q", str(linked))
+
+    assert (linked / ".git").is_file(), "git worktree gitfile üretmeliydi"
+    assert resolve_pinned_gitdir(linked, [approved]) is not None
+
+    (linked / "in_worktree.txt").write_text("x\n", encoding="utf-8")
+    assert "in_worktree.txt" in touched_paths(linked, allowed_roots=[approved], base_ref="HEAD")
+
+
+def test_directory_without_a_repo_does_not_discover_a_parent(tmp_path: Path) -> None:
+    """`.git` yoksa git üst dizine tırmanabilir; keşif kapalı olmalı."""
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    parent_repo = _repo_with_dirty_file(approved, "parent_repo", "PARENT_FILE.txt")
+    child = parent_repo / "plain_subdir"
+    child.mkdir()
+
+    assert resolve_pinned_gitdir(child, [approved]) is None
+    assert touched_paths(child, allowed_roots=[approved], base_ref="HEAD") == ()
+
+
+def test_commondir_pointing_outside_the_root_is_refused(tmp_path: Path) -> None:
+    """Bağlı worktree'nin gerçek nesne deposu da kökün içinde olmalı."""
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    outside = _repo_with_dirty_file(tmp_path, "outside_repo", "b.txt")
+
+    fake_gitdir = approved / "planted.git"
+    fake_gitdir.mkdir()
+    (fake_gitdir / "commondir").write_text(f"{outside / '.git'}\n", encoding="utf-8")
+    stub = approved / "stub"
+    stub.mkdir()
+    (stub / ".git").write_text(f"gitdir: {fake_gitdir}\n", encoding="utf-8")
+
+    assert resolve_pinned_gitdir(stub, [approved]) is None
 
 
 @pytest.mark.parametrize("empty", ["", "   ", "\t"], ids=["empty", "spaces", "tab"])

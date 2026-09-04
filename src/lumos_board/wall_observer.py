@@ -129,9 +129,12 @@ def touched_paths(
     safe = resolve_inspectable_worktree(worktree, allowed_roots)
     if safe is None:
         return ()
+    gitdir = resolve_pinned_gitdir(safe, allowed_roots)
+    if gitdir is None:
+        return ()
     collected: set[str] = set()
-    collected.update(_git_diff_paths(safe, base_ref))
-    collected.update(_git_status_paths(safe))
+    collected.update(_git_diff_paths(safe, base_ref, gitdir=gitdir))
+    collected.update(_git_status_paths(safe, gitdir=gitdir))
     return _repo_relative(collected)
 
 
@@ -272,19 +275,81 @@ def _git_env() -> dict[str, str]:
     return env
 
 
-def _run_git(worktree: Path, args: Sequence[str]) -> str | None:
+def resolve_pinned_gitdir(worktree: Path, allowed_roots: Sequence[Path | str]) -> Path | None:
     """
-    Jail'lenmiş bir worktree'de git çalıştırır.
+    Git'in gerçekten kullanacağı **depoyu** çözer ve onu da jail'e sokar.
 
-    Çağıran, `worktree`'yi `resolve_inspectable_worktree` ile doğrulamış
-    olmalıdır; bu fonksiyon ham/beyan edilen yol ile çağrılmamalıdır.
+    Dizini onaylı kökün içinde olduğunu doğrulamak yetmez: git deposunu
+    ayrıca keşfeder. `.git` bir **gitfile** olabilir (`gitdir: …`) ve kökün
+    dışını gösterebilir; `core.worktree` ağacı başka yere taşıyabilir; `.git`
+    hiç yoksa git üst dizinlere doğru arayıp bir ebeveyn depo bulabilir.
+    Yani jail içindeki boş bir dizin, kök dışındaki bir depoyu inceletebilir
+    ve o ağacın yolları paylaşılan günceye yazılabilirdi.
+
+    Bu yüzden gitdir açıkça çözülür, o da köklerin içinde olmak zorundadır ve
+    komutlara `--git-dir`/`--work-tree` ile sabitlenir — keşif devre dışı.
+    """
+    dot_git = Path(worktree) / ".git"
+    try:
+        if dot_git.is_dir():
+            gitdir = dot_git.resolve(strict=True)
+        elif dot_git.is_file():
+            # `git worktree add` gitfile üretir; meşru ama hedefi doğrulanmalı.
+            raw = dot_git.read_text(encoding="utf-8", errors="replace").strip()
+            if not raw.startswith("gitdir:"):
+                return None
+            target = raw.split("gitdir:", 1)[1].strip()
+            if not target:
+                return None
+            candidate = Path(target)
+            if not candidate.is_absolute():
+                candidate = Path(worktree) / candidate
+            gitdir = candidate.resolve(strict=True)
+        else:
+            # Depo yok. Üst dizinlere doğru keşfe İZİN VERİLMEZ.
+            return None
+    except (OSError, RuntimeError, ValueError):
+        return None
+
+    roots = _normalize_roots(allowed_roots)
+    if not roots:
+        return None
+    if not any(gitdir == root or root in gitdir.parents for root in roots):
+        return None
+
+    # Bağlı worktree'lerde gerçek nesne deposu `commondir` ile gösterilir;
+    # o da kökün dışını gösterebilir.
+    common = gitdir / "commondir"
+    if common.is_file():
+        try:
+            raw_common = common.read_text(encoding="utf-8", errors="replace").strip()
+            resolved_common = (
+                Path(raw_common) if Path(raw_common).is_absolute() else gitdir / raw_common
+            ).resolve(strict=True)
+        except (OSError, RuntimeError, ValueError):
+            return None
+        if not any(resolved_common == root or root in resolved_common.parents for root in roots):
+            return None
+
+    return gitdir
+
+
+def _run_git(worktree: Path, args: Sequence[str], *, gitdir: Path) -> str | None:
+    """
+    Jail'lenmiş bir worktree'de, **sabitlenmiş** bir depoya karşı git çalıştırır.
+
+    Çağıran, `worktree`'yi `resolve_inspectable_worktree` ve `gitdir`'i
+    `resolve_pinned_gitdir` ile doğrulamış olmalıdır.
     """
     overrides: list[str] = []
     for item in _GIT_EXEC_CONFIG_OVERRIDES:
         overrides += ["-c", item]
+    # Depo ve ağaç açıkça sabitlenir: gitfile yönlendirmesi, `core.worktree`
+    # ve ebeveyn-depo keşfi devre dışı kalır.
+    pinned = ["--git-dir", str(gitdir), "--work-tree", str(worktree)]
     try:
         proc = subprocess.run(
-            ["git", *overrides, *args],
+            ["git", *overrides, *pinned, *args],
             cwd=str(worktree),
             capture_output=True,
             text=True,
@@ -299,15 +364,15 @@ def _run_git(worktree: Path, args: Sequence[str]) -> str | None:
     return proc.stdout
 
 
-def _git_diff_paths(worktree: Path | str, base_ref: str) -> set[str]:
+def _git_diff_paths(worktree: Path, base_ref: str, *, gitdir: Path) -> set[str]:
     """Commit'lenmiş fark. `-z` ile NUL ayraç: boşluklu yol bozulmaz."""
-    out = _run_git(worktree, ["diff", "--name-only", "-z", f"{base_ref}...HEAD"])
+    out = _run_git(worktree, ["diff", "--name-only", "-z", f"{base_ref}...HEAD"], gitdir=gitdir)
     if out is None:
         return set()
     return {chunk for chunk in out.split("\0") if chunk}
 
 
-def _git_status_paths(worktree: Path | str) -> set[str]:
+def _git_status_paths(worktree: Path, *, gitdir: Path) -> set[str]:
     """
     Commit'lenmemiş çalışma ağacı durumu.
 
@@ -322,7 +387,7 @@ def _git_status_paths(worktree: Path | str) -> set[str]:
     sonra eski yol — yani kırılgan `" -> "` ayrıştırmasına gerek kalmaz;
     ve `-z` kipinde git yolları tırnaklamaz/kaçışlamaz.
     """
-    out = _run_git(worktree, ["status", "--porcelain", "-z"])
+    out = _run_git(worktree, ["status", "--porcelain", "-z"], gitdir=gitdir)
     if out is None:
         return set()
 
