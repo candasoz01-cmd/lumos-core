@@ -184,7 +184,10 @@ REASON_NO_ROOT = "no_approved_root"
 REASON_MISSING = "worktree_missing"
 REASON_NOT_A_DIR = "worktree_not_a_directory"
 REASON_OUTSIDE = "worktree_outside_approved_root"
+REASON_NO_REPO = "no_repository_at_worktree"
+REASON_REPO_MALFORMED = "repository_pointer_malformed"
 REASON_REPO_OUTSIDE = "repository_outside_approved_root"
+REASON_OBJECTS_OUTSIDE = "object_store_outside_approved_root"
 REASON_OK = "inside_approved_root"
 
 
@@ -301,7 +304,7 @@ def _git_env() -> dict[str, str]:
     return env
 
 
-def resolve_pinned_gitdir(worktree: Path, allowed_roots: Sequence[Path | str]) -> Path | None:
+def pin_repository(worktree: Path, allowed_roots: Sequence[Path | str]) -> tuple[Path | None, str]:
     """
     Git'in gerçekten kullanacağı **depoyu** çözer ve onu da jail'e sokar.
 
@@ -317,7 +320,7 @@ def resolve_pinned_gitdir(worktree: Path, allowed_roots: Sequence[Path | str]) -
     """
     roots = _normalize_roots(allowed_roots)
     if not roots:
-        return None
+        return None, REASON_NO_ROOT
 
     def inside(path: Path) -> bool:
         return any(path == root or root in path.parents for root in roots)
@@ -334,29 +337,29 @@ def resolve_pinned_gitdir(worktree: Path, allowed_roots: Sequence[Path | str]) -
             if current.is_dir():
                 resolved = current.resolve(strict=True)
                 if not inside(resolved):
-                    return None
+                    return None, REASON_REPO_OUTSIDE
                 gitdir = resolved
                 break
             if not current.is_file():
                 # Depo yok. Üst dizinlere doğru keşfe İZİN VERİLMEZ.
-                return None
+                return None, REASON_NO_REPO
             resolved = current.resolve(strict=True)
             if not inside(resolved):
-                return None
+                return None, REASON_REPO_OUTSIDE
             raw = current.read_text(encoding="utf-8", errors="replace").strip()
             if not raw.startswith("gitdir:"):
-                return None
+                return None, REASON_REPO_MALFORMED
             target = raw.split("gitdir:", 1)[1].strip()
             if not target:
-                return None
+                return None, REASON_REPO_MALFORMED
             nxt = Path(target)
             if not nxt.is_absolute():
                 nxt = current.parent / nxt
             current = nxt
         except (OSError, RuntimeError, ValueError):
-            return None
+            return None, REASON_REPO_MALFORMED
     if gitdir is None:
-        return None  # zincir çok uzun veya döngüsel
+        return None, REASON_REPO_MALFORMED  # zincir çok uzun veya döngüsel
 
     # Bağlı worktree'lerde gerçek nesne deposu `commondir` ile gösterilir;
     # o da kökün dışını gösterebilir.
@@ -368,11 +371,56 @@ def resolve_pinned_gitdir(worktree: Path, allowed_roots: Sequence[Path | str]) -
                 Path(raw_common) if Path(raw_common).is_absolute() else gitdir / raw_common
             ).resolve(strict=True)
         except (OSError, RuntimeError, ValueError):
-            return None
+            return None, REASON_REPO_MALFORMED
         if not inside(resolved_common):
-            return None
+            return None, REASON_REPO_OUTSIDE
+        if not _object_store_inside(resolved_common, inside):
+            return None, REASON_OBJECTS_OUTSIDE
 
-    return gitdir
+    # Nesne deposu da yönlendirilebilir: `objects` bir symlink olabilir ve
+    # `objects/info/alternates` başka bir store'u listeleyebilir. HEAD/ref'ler
+    # oradaki commit'lere işaret ettiğinde kök dışı ağacın yolları okunurdu.
+    if not _object_store_inside(gitdir, inside):
+        return None, REASON_OBJECTS_OUTSIDE
+
+    return gitdir, REASON_OK
+
+
+def _object_store_inside(gitdir: Path, inside) -> bool:
+    """`objects` dizini ve `objects/info/alternates` hedefleri kök içinde mi."""
+    objects = gitdir / "objects"
+    if objects.exists():
+        try:
+            resolved_objects = objects.resolve(strict=True)
+        except (OSError, RuntimeError, ValueError):
+            return False
+        if not inside(resolved_objects):
+            return False
+        alternates = resolved_objects / "info" / "alternates"
+        if alternates.is_file():
+            try:
+                lines = alternates.read_text(encoding="utf-8", errors="replace").splitlines()
+            except (OSError, RuntimeError, ValueError):
+                return False
+            for line in lines:
+                entry = line.strip()
+                if not entry or entry.startswith("#"):
+                    continue
+                try:
+                    candidate = Path(entry)
+                    if not candidate.is_absolute():
+                        candidate = resolved_objects / candidate
+                    resolved_alt = candidate.resolve(strict=True)
+                except (OSError, RuntimeError, ValueError):
+                    return False
+                if not inside(resolved_alt):
+                    return False
+    return True
+
+
+def resolve_pinned_gitdir(worktree: Path, allowed_roots: Sequence[Path | str]) -> Path | None:
+    """`pin_repository` üzerinde ince sarmalayıcı; yalnız yolu döndürür."""
+    return pin_repository(worktree, allowed_roots)[0]
 
 
 def _run_git(worktree: Path, args: Sequence[str], *, gitdir: Path) -> str | None:
@@ -739,10 +787,13 @@ def observe(
             paths = _repo_relative(worktree_paths[claim.claim_id])
         else:
             safe, reason = inspect_decision(claim.worktree, allowed_roots)
-            if safe is not None and resolve_pinned_gitdir(safe, allowed_roots) is None:
-                # Dizin kök içindeydi ama git'in açacağı DEPO değil. Bu da
-                # bir rettir; sessizce "temiz worktree" gibi görünmemeli.
-                safe, reason = None, REASON_REPO_OUTSIDE
+            if safe is not None:
+                pinned, repo_reason = pin_repository(safe, allowed_roots)
+                if pinned is None:
+                    # Dizin kök içindeydi ama git'in açacağı DEPO değil. Bu da
+                    # bir rettir; sessizce "temiz worktree" gibi görünmemeli —
+                    # ve gerekçe gerçek sebebi söylemeli.
+                    safe, reason = None, repo_reason
             if safe is None:
                 # Jail reddetti: git ÇAĞRILMAZ. Gerçek sebep kaydedilir; yol
                 # yazılmaz — kök dışı yolu günceye yazmak da bir sızıntı olurdu.

@@ -14,6 +14,7 @@ Testlerin taşıdığı iddialar:
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -25,8 +26,11 @@ from lumos_board.wall_observer import (
     OBSERVATION_SCHEMA,
     REASON_MISSING,
     REASON_NOT_A_DIR,
+    REASON_NO_REPO,
     REASON_NO_ROOT,
+    REASON_OBJECTS_OUTSIDE,
     REASON_OUTSIDE,
+    REASON_REPO_MALFORMED,
     REASON_REPO_OUTSIDE,
     SIGNAL_FOREIGN_SCOPE,
     SIGNAL_OUT_OF_SCOPE,
@@ -35,6 +39,7 @@ from lumos_board.wall_observer import (
     Observation,
     _git_env,
     inspect_decision,
+    pin_repository,
     observe,
     observe_drift,
     observe_rhythm,
@@ -603,6 +608,108 @@ def test_refused_repository_is_recorded_as_a_skip(tmp_path: Path) -> None:
     run = observe(store.store_dir, allowed_roots=[approved], now=NOW)
 
     assert any(REASON_REPO_OUTSIDE in s and claim.claim_id in s for s in run.skipped)
+
+
+def _repo_with_two_commits(root: Path, name: str, filename: str) -> tuple[Path, str, str]:
+    repo = root / name
+    repo.mkdir(parents=True)
+    _git(root, "init", "-q", "-b", "main", str(repo))
+    _git(repo, "config", "user.email", "t@e.invalid")
+    _git(repo, "config", "user.name", "t")
+    (repo / filename).write_text("v1\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "one")
+    (repo / filename).write_text("v2\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "two")
+    head = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True, check=True
+    ).stdout.strip()
+    prev = subprocess.run(
+        ["git", "rev-parse", "HEAD~1"], cwd=str(repo), capture_output=True, text=True, check=True
+    ).stdout.strip()
+    return repo, head, prev
+
+
+def test_alternates_pointing_outside_the_root_is_refused(tmp_path: Path) -> None:
+    """
+    Depo yolunu hapsetmek yetmez: `objects/info/alternates` başka bir nesne
+    deposunu ekleyebilir ve HEAD oradaki commit'e çevrilirse kök dışı ağacın
+    yolları okunurdu.
+    """
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    outside, head, prev = _repo_with_two_commits(tmp_path, "outside_repo", "OUTSIDE_SECRET.txt")
+
+    victim = approved / "agent_wt"
+    victim.mkdir()
+    _git(approved, "init", "-q", "-b", "main", str(victim))
+    _git(victim, "config", "user.email", "t@e.invalid")
+    _git(victim, "config", "user.name", "t")
+    (victim / "ok.txt").write_text("x\n", encoding="utf-8")
+    _git(victim, "add", "-A")
+    _git(victim, "commit", "-qm", "base")
+
+    info = victim / ".git" / "objects" / "info"
+    info.mkdir(parents=True, exist_ok=True)
+    (info / "alternates").write_text(
+        str((outside / ".git" / "objects").resolve()) + "\n", encoding="utf-8"
+    )
+    (victim / ".git" / "HEAD").write_text(head + "\n", encoding="utf-8")
+
+    assert pin_repository(victim, [approved]) == (None, REASON_OBJECTS_OUTSIDE)
+    found = touched_paths(victim, allowed_roots=[approved], base_ref=prev)
+    assert found == ()
+    assert not any("OUTSIDE_SECRET" in p for p in found)
+
+
+def test_objects_symlinked_outside_the_root_is_refused(tmp_path: Path) -> None:
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    outside, _, _ = _repo_with_two_commits(tmp_path, "outside_repo", "OUTSIDE.txt")
+
+    victim = approved / "agent_wt"
+    victim.mkdir()
+    _git(approved, "init", "-q", "-b", "main", str(victim))
+    _git(victim, "config", "user.email", "t@e.invalid")
+    _git(victim, "config", "user.name", "t")
+    (victim / "ok.txt").write_text("x\n", encoding="utf-8")
+    _git(victim, "add", "-A")
+    _git(victim, "commit", "-qm", "base")
+
+    objects = victim / ".git" / "objects"
+    shutil.rmtree(objects)
+    objects.symlink_to((outside / ".git" / "objects").resolve(), target_is_directory=True)
+
+    assert pin_repository(victim, [approved]) == (None, REASON_OBJECTS_OUTSIDE)
+
+
+@pytest.mark.parametrize(
+    ("prepare", "expected"),
+    [
+        (lambda approved: (approved / "no_repo_here").mkdir() or (approved / "no_repo_here"),
+         REASON_NO_REPO),
+        (lambda approved: _write_bad_gitfile(approved), REASON_REPO_MALFORMED),
+    ],
+    ids=["no-repository", "malformed-gitfile"],
+)
+def test_repository_refusals_name_their_own_reason(tmp_path: Path, prepare, expected) -> None:
+    """
+    Her depo reddi `repository_outside_approved_root` diye kaydediliyordu;
+    eksik `.git`, bozuk gitfile ve fazla uzun zincir de aynı etikete
+    düşüyordu. Kayıt gerçek sebebi söylemeli.
+    """
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    target = prepare(approved)
+    assert pin_repository(target, [approved]) == (None, expected)
+
+
+def _write_bad_gitfile(approved: Path) -> Path:
+    stub = approved / "bad_gitfile"
+    stub.mkdir()
+    (stub / ".git").write_text("this is not a gitdir pointer\n", encoding="utf-8")
+    return stub
 
 
 def test_in_root_clean_filter_still_executes_documented_residual_risk(tmp_path: Path) -> None:
