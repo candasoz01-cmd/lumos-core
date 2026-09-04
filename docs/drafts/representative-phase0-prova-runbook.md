@@ -695,3 +695,78 @@ tipi beyaz listesinin metot alıcısını atlaması da Medium bulguya yol açmı
 **Kapsam dışı (ayrı iş):** kapalı provanın 24 saatlik metin penceresinin
 işletilmesi — süresi dolanı silme ve bunu koşturan zamanlayıcı. `rehearsal`
 politikasında yerel metin şu an **süresiz** yaşamaya devam ediyor.
+
+## Süreli yerel temizlik — makine açıkken periyodik koşar (2026-08-25)
+
+Bir önceki bölüm sıfır saklamayı kapattı; bu bölüm `rehearsal` politikasının
+24 saatlik metin penceresini **işletir**: süresi dolanı siler ve silmeyi
+koşturacak zamanlayıcıyı kurar.
+
+**Denetim sonucu:** `REHEARSAL_RETENTION` (timed/24h) yalnız Recall'a giden
+`recording_config.retention` alanına yazılıyordu. Yerel `prova*.jsonl` ve
+`prova*.log` hiçbir süreye tabi değildi — fail-closed susturmanın sakladığı
+metinler (`fallback_unknown`, `held_partial_*`, `suppressed_duplicate`) dahil.
+
+### Süresi dolanla ne olur
+
+- Silinen: yalnız `*_text` alanları (kayıttan **türetilir**), satıra
+  `text_state: "expired"` düşer — "metin yoktu" ile "metin silindi" karışmaz.
+- Korunan: `flag_reason`, `delivered`, `direction*`, `detected_language` ve tüm
+  zamanlama alanları. Silme kararı `flag_reason`a **bakmaz** (muafiyet kapısı yok).
+- `prova*.log` seçici redakte edilemez (yapısız düz metin) → süresi dolunca
+  dosya **silinir**. İşletimsel kayıt zaten jsonl'de sürekli durur.
+- Süre dolmadan veya silinecek metin yokken dosyaya **hiç dokunulmaz** (yazma
+  damgayı tazeleyip süreyi uzatırdı).
+- Çözümlenemeyen (çökmede yarım kalmış) satır redakte edilemez → düşürülür.
+
+```bash
+python -m representative.retention prova_bot.jsonl        # tek dosya
+python -m representative.retention --sweep --dir . --dry-run
+python -m representative.retention --sweeper-status --dir .
+```
+
+### Zamanlayıcı
+
+Depoda yeniden kullanılabilir zamanlayıcı **yok** (denetim 2026-08-25):
+`core/log_rotation` boyut tetikli ve yalnız yazma anında çalışıyor; GitHub
+Actions cron'u bulutta koşuyor, Mac'teki dosyalara erişemiyor;
+`security/presence_lock` yalnız Lumos oturumu açıkken yaşayan bir iş
+parçacığı. Yeni bir daemon yazmak yerine işletim sisteminin kendi zamanlayıcısı
+kullanılır — launchd LaunchAgent, `StartInterval` 900 sn:
+
+```bash
+bash ops/retention/install-retention-sweeper.sh
+```
+
+Betik önce **kuru çalışma** ile ne silineceğini gösterir, sonra onay ister.
+Kuru çalışma "SİLİNECEK … [dosya değişmedi]" der; "SİLİNDİ" yalnız gerçek
+koşuda yazar — onay yanlış bilgiyle alınmasın.
+
+Rig, temizliğin çalıştığını doğrulayamazsa **başlamaz**. Doğrulama "plist var
+mı" değil, beş soru birden: aralık yeterince kısa mı, iş bu provanın yazdığı
+dizini mi süpürüyor, yorumlayıcı yolu duruyor mu, ajan yüklü mü ve **son
+süpürme taze mi**. Sonuncusu kritik — yüklü ama her turda patlayan bir iş
+(yanlış python yolu, silinmiş worktree) aksi hâlde "sağlıklı" görünürdü.
+Süpürme her koşuda `.retention-sweep-stamp` damgasını EN SON tazeler; damga
+yoksa `never_ran`, 30 dakikadan bayatsa `stale_heartbeat`.
+
+### Ne VERMİYOR — duvar-saati uyum garantisi
+
+Bu mekanizma **"24 saati aşan metin yoktur" demeye yetmez**; iki boşluk
+kanıtlanabilir:
+
+1. **Uykudaki/kapalı makine.** Mac kapalıyken hiçbir yerel zamanlayıcı koşmaz;
+   temizlik ancak açılıştan sonraki ilk turda yapılır.
+2. **Damga tazelenmesi.** Süre DOSYA damgasından ölçülür. Mevcut bir prova
+   dosyasına yeni satır eklenince (varsayılan `--jsonl-out prova_bot.jsonl`
+   koşular arasında paylaşılıyor) damga tazelenir ve o dosyadaki ESKİ satırlar
+   24 saati aşabilir.
+
+Bunları kapatmanın yolu satır-başına süre semantiğidir (kayda duvar-saati
+damgası + satır bazlı silme); **uygulanmadı**, ayrı bir karar olarak duruyor.
+Uygulanana kadar mekanizma "periyodik temizlik" olarak anılır, "üst sınır"
+olarak değil. Güvenlik payı (`SWEEP_MARGIN_HOURS`) yalnız silmenin bir tur
+gecikmesini önler; bu iki boşluğu kapatmaz.
+
+Diğer kalan sınır: `python -m representative.latency … > rapor.txt` gibi elle
+alınan çıktılar yeni bir düz metin kopyası yaratır, mekanizmanın dışındadır.
