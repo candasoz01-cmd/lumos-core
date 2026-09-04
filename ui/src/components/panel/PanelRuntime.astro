@@ -10325,6 +10325,9 @@ const {
       /**
        * Okuma tool'u. İzin yoksa önce kullanıcıya sorar; kullanıcı vermezse
        * görev içeriği DÖNMEZ ve ajan reddin sebebini açıkça öğrenir.
+       *
+       * Başarılı sonuç `source: "local_projection"` taşır: Tasks API değil,
+       * panel belleğindeki tahta. Sunucu reddettiği bir satır burada durabilir.
        */
       async function panelWebMcpListTasks() {
         if (!panelWebMcpReadConsentGranted) {
@@ -10337,9 +10340,12 @@ const {
           const v = panelWebMcpTaskView(panelGorevlerTasks[i]);
           if (v) tasks.push(v);
         }
+        /* TD-27: bu liste Tasks API değildir; ajan yerel projeksiyon okur. */
         return {
           ok: true,
           approved: true,
+          source: "local_projection",
+          authoritative: false,
           consent: {
             granted: true,
             scope: PANEL_WEBMCP_READ_CONSENT_SCOPE,
