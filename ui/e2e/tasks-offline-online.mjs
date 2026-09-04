@@ -24,6 +24,7 @@ import {
   buildTasksApiBase,
   createTempLumosBase,
   fetchTasksDoc,
+  PANEL_TASKS_E2E_SECRET,
   resolveTasksApiPort,
   startTasksServer,
   stopTasksServer,
@@ -158,7 +159,8 @@ async function run() {
 
   await page.addInitScript(function (args) {
     window.LUMOS_PANEL_TASKS_API_BASE = args.base;
-  }, { base: TASK_API_BASE });
+    window.LUMOS_PANEL_TASKS_TOKEN = args.token;
+  }, { base: TASK_API_BASE, token: PANEL_TASKS_E2E_SECRET });
 
   try {
     await page.goto(PANEL_URL, { waitUntil: "domcontentloaded", timeout: PACKAGE_FLOW_MS });

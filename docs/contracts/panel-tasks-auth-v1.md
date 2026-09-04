@@ -2,17 +2,17 @@
 
 | Alan | Değer |
 | --- | --- |
-| Durum | KOD — kütüphane + test; `panel_tasks_server.py` bağlama **yok** (TD-24 Faz-1 / `#829` o dosyayı tutuyor) |
+| Durum | KOD — kütüphane + `panel_tasks_server` HTTP kapısı (`#830`). PKCE exchange HTTP ucu yok |
 | Borç | [TECHNICAL_DEBT.md](../TECHNICAL_DEBT.md) TD-24 Faz-2 |
 | Üst ilişki | Köprü `hmac.compare_digest` + `X-Kando-Token` / `Authorization: Bearer` deseni (`packages/kando_bridge/.../server.py`); [api-surface-v1.md](api-surface-v1.md) kimlik/no-store kuralları |
-| Bekleme | HTTP kapısı Faz-1 Origin allowlist merge edilmeden `panel_tasks_server.py`'ye yazılmaz |
+| Bekleme | Cookie oturumu (aynı-port) ve PKCE `/lumos-panel-auth/exchange` ayrı dilim |
 
 Bu sözleşme **tarayıcı Origin kapısı değildir**. Faz-1 yabancı origin'i keser; Faz-2 Origin'süz yerel süreç ve sahte Origin istemcisini keser.
 
 ## İki sunum kipi (token taşıma bundan çıkar)
 
 1. **Aynı port.** `panel_tasks_server` statik paneli ve REST'i birlikte verir (`http://127.0.0.1:8766/index.html`). Origin = API origin. Oturum **HttpOnly cookie** adayıdır (`SameSite=Lax`, `Cache-Control: no-store`). Cookie gövdeye/URL'e yazılmaz.
-2. **Ayrı origin.** UI `ui/dist` (pid portu) + API başka loopback portu. Cookie paylaşılmaz. Bootstrap **kısa ömürlü opaque exchange code + PKCE (S256)** ile yapılır; başarıda **Bearer oturum** döner. E2E bugün `window.LUMOS_PANEL_TASKS_API_BASE` ile bu kipi kullanır.
+2. **Ayrı origin.** UI `ui/dist` (pid portu) + API başka loopback portu. Cookie paylaşılmaz. Hedef bootstrap **kısa ömürlü opaque exchange code + PKCE (S256)**; bu dilimde E2E `window.LUMOS_PANEL_TASKS_API_BASE` + `window.LUMOS_PANEL_TASKS_TOKEN` (paylaşılan sır) kullanır.
 
 Her iki kipte sunucuya giden istekte kimlik başlığı köprü ile aynıdır: `X-Kando-Token` veya `Authorization: Bearer`. Gövde ve sorgu dizesinde token yok.
 
@@ -36,7 +36,13 @@ Ham sır diskte düz metin tutulmaz: yalnız SHA-256. Karşılaştırma `hmac.co
 - Başlık/jeton boyutu tavanı aşılırsa `too_large` (varsayılan 512 bayt).
 - Mint/exchange hız tavanı aşılırsa `rate_limited`.
 
-HTTP bağlandığında kimlik uçları `Cache-Control: no-store` taşır ([api-surface-v1](api-surface-v1.md) ile aynı kural).
+JSON API yanıtları `Cache-Control: no-store` taşır ([api-surface-v1](api-surface-v1.md) ile aynı kural).
+
+## HTTP kapısı (bu dilim)
+
+Origin allowlist (`#829`) **önce** çalışır: yabancı Origin + geçerli jeton yine `403 origin_not_allowed`.
+
+Sonra kimlik: `LUMOS_PANEL_TASKS_SECRET` boşsa `401 missing_secret`. Sunulan değer ya sırın kendisi (köprü/E2E) ya da kütüphanenin mint ettiği oturum/servis jetonudur. Statik panel (`/`, `/index.html`, `/js/`, `/css/`) kimliksiz kalır; `OPTIONS` preflight yalnız Origin kapısından geçer.
 
 ## Mobil / MB-01 hizası
 
@@ -51,6 +57,7 @@ Panel loopback oturumu Google OAuth değildir. Çelişmeme kuralları:
 
 ## Bilinçli sınır (bu dilim)
 
-- `panel_tasks_server.py` ve `PanelRuntime.astro` bağlanmadı — Faz-1 dosya sahipliği ve TD-02 (dev panel dosyası) çakışmasın.
+- İlk HTTP dilimi paylaşılan sır başlığıdır; HttpOnly cookie ve PKCE bootstrap HTTP uçları yok.
+- Panel ayrı origin'de `window.LUMOS_PANEL_TASKS_TOKEN` taşır (E2E init). Köprü `kandoToken` tasks API'ye kopyalanmaz.
 - Köprü `KANDO_BRIDGE_SECRET` ile **aynı sırı paylaşmak zorunlu değil**; paylaşılırsa rotasyon iki yüzeyi birden keser. Tercih: `LUMOS_PANEL_TASKS_SECRET`.
 - Yerel kötü süreç hâlâ OS kullanıcısıdır; bu sözleşme tarayıcı CSRF + rastgele localhost POST içindir, tam cihaz TEE değildir.

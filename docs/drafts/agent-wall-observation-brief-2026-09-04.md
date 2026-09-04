@@ -4,7 +4,7 @@
 | --- | --- |
 | Durum | AÇIK — üçüncü paralel iş; bu dosya yalnızca kapsam |
 | Kod yazma | Bu dilimde **yok** |
-| Bekleme | `#807` Wall `claim_cli list` / `waiting_on` maskesi hâlâ draft; gözlem katmanı o PR'ı parçalamaz |
+| Bekleme | `#807` hâlâ ayrı draft. TD-24 Faz-1 `#829` main'de (`b6a1eaa`); `TECHNICAL_DEBT.md` o PR ile çakışmaz. Bu dosya tasarım-only kalır |
 | Üst ilişki | [task-claim-v1.md](../contracts/task-claim-v1.md); CONSTITUTION §3 dosya sahipliği |
 
 ## Neden
