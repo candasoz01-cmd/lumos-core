@@ -23,11 +23,17 @@ import pytest
 from lumos_board.task_claim import TaskClaimStore
 from lumos_board.wall_observer import (
     OBSERVATION_SCHEMA,
+    REASON_MISSING,
+    REASON_NOT_A_DIR,
+    REASON_NO_ROOT,
+    REASON_OUTSIDE,
     SIGNAL_FOREIGN_SCOPE,
     SIGNAL_OUT_OF_SCOPE,
     SIGNAL_SILENT_DRIFT,
     SIGNAL_STALE_CLAIM,
     Observation,
+    _git_env,
+    inspect_decision,
     observe,
     observe_drift,
     observe_rhythm,
@@ -470,6 +476,89 @@ def test_no_approved_root_means_nothing_is_inspectable(git_repo: Path, roots) ->
     assert resolve_inspectable_worktree(git_repo, cleaned) is None
 
 
+def test_a_bare_string_root_is_one_root_not_its_characters(tmp_path: Path) -> None:
+    """
+    Tek bir `str` de geçerli bir Sequence'tır. Üzerinde dönmek karakterleri
+    verir ve baştaki `"/"` kök sanılırsa HER mutlak yol jail'den geçer.
+    """
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+
+    # Tekil yol tek kök olarak kabul edilir…
+    assert resolve_inspectable_worktree(approved, str(approved)) == approved.resolve()
+    assert resolve_inspectable_worktree(approved, approved) == approved.resolve()
+    # …ama karakterlerine bölünüp "/" kökü üretmez.
+    assert resolve_inspectable_worktree(outside, str(approved)) is None
+    assert resolve_inspectable_worktree(outside, approved) is None
+
+
+def test_git_env_inherits_no_git_variables(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    `GIT_DIR` / `GIT_WORK_TREE` git'in jail'lenmiş `cwd`'yi yok saymasına yol
+    açar — yani jail env üzerinden atlanabilirdi. Ortam allowlist'li kurulur.
+    """
+    for name in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
+                 "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+                 "GIT_EXTERNAL_DIFF", "GIT_SSH_COMMAND"):
+        monkeypatch.setenv(name, "/tmp/attacker")
+
+    env = _git_env()
+    leaked = {k for k in env if k.startswith("GIT_")} - {
+        "GIT_CONFIG_NOSYSTEM", "GIT_CONFIG_GLOBAL", "GIT_CONFIG_SYSTEM",
+        "GIT_TERMINAL_PROMPT", "GIT_ASKPASS", "GIT_OPTIONAL_LOCKS",
+        "GIT_ATTR_NOSYSTEM", "GIT_ALLOW_PROTOCOL",
+    }
+    assert leaked == set(), f"miras alınan GIT_* değişkeni: {leaked}"
+
+
+def test_git_dir_in_environment_cannot_redirect_the_read(tmp_path: Path, git_repo: Path,
+                                                         monkeypatch: pytest.MonkeyPatch) -> None:
+    """Uçtan uca: ortamdaki GIT_DIR okumayı başka depoya yönlendirememeli."""
+    other = tmp_path / "other"
+    other.mkdir()
+    _git(tmp_path, "init", "-q", "-b", "main", str(other))
+    _git(other, "config", "user.email", "t@e.invalid")
+    _git(other, "config", "user.name", "t")
+    (other / "ONLY_IN_OTHER.txt").write_text("x\n", encoding="utf-8")
+
+    monkeypatch.setenv("GIT_DIR", str(other / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(other))
+
+    (git_repo / "src" / "base.py").write_text("changed\n", encoding="utf-8")
+    found = touched_paths(git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD")
+
+    assert "src/base.py" in found
+    assert "ONLY_IN_OTHER.txt" not in found
+
+
+@pytest.mark.parametrize(
+    ("make", "expected"),
+    [
+        (lambda tp: (tp / "nope", [tp]), REASON_MISSING),
+        (lambda tp: ((tp / "afile.txt"), [tp]), REASON_NOT_A_DIR),
+        (lambda tp: (tp, []), REASON_NO_ROOT),
+    ],
+    ids=["missing", "not-a-directory", "no-root"],
+)
+def test_skip_reason_names_the_actual_failure(tmp_path: Path, make, expected) -> None:
+    """Her ret aynı etikete indirgenmemeli; kayıt gerçeği söylemeli."""
+    (tmp_path / "afile.txt").write_text("x", encoding="utf-8")
+    raw, roots = make(tmp_path)
+    path, reason = inspect_decision(raw, roots)
+    assert path is None
+    assert reason == expected
+
+
+def test_outside_root_reason_is_distinct(tmp_path: Path) -> None:
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    assert inspect_decision(outside, [approved]) == (None, REASON_OUTSIDE)
+
+
 def test_observe_skips_claims_pointing_outside_the_root(tmp_path: Path) -> None:
     """
     Uçtan uca: kök dışını gösteren claim atlanır, sebebi kaydedilir ve
@@ -484,8 +573,8 @@ def test_observe_skips_claims_pointing_outside_the_root(tmp_path: Path) -> None:
 
     run = observe(store.store_dir, allowed_roots=[approved], now=NOW)
 
-    assert any("izinli kök dışında" in s for s in run.skipped)
-    assert all(claim.claim_id not in s or "izinli kök dışında" in s for s in run.skipped)
+    assert any(REASON_OUTSIDE in s for s in run.skipped)
+    assert all(claim.claim_id not in s or REASON_OUTSIDE in s for s in run.skipped)
     recorded = {p for o in run.observations for p in o.evidence.get("paths", [])}
     assert str(outside) not in recorded
 

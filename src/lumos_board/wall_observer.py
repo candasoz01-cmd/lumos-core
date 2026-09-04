@@ -149,26 +149,68 @@ def resolve_inspectable_worktree(raw: str | Path, allowed_roots: Sequence[Path |
     `None` (git hiç çağrılmaz, claim atlanır). Fail-closed: kök verilmezse
     hiçbir yol kabul edilmez.
     """
+    return inspect_decision(raw, allowed_roots)[0]
+
+
+REASON_NO_ROOT = "no_approved_root"
+REASON_MISSING = "worktree_missing"
+REASON_NOT_A_DIR = "worktree_not_a_directory"
+REASON_OUTSIDE = "worktree_outside_approved_root"
+REASON_OK = "inside_approved_root"
+
+
+def _normalize_roots(allowed_roots: Sequence[Path | str] | Path | str | None) -> tuple[Path, ...]:
+    """
+    Kökleri **tek tek yollar** olarak yorumlar.
+
+    Tek bir `str` de geçerli bir `Sequence`'tır: üzerinde dönmek karakterleri
+    verir ve baştaki `"/"` bir kök sanılır — o anda her mutlak yol jail'den
+    geçerdi. Tek bir `Path` de parçalarına ayrılıp aynı sonucu doğurur.
+    Bu yüzden tekil yol, karakterlerine bölünmek yerine tek elemanlı kök
+    listesi kabul edilir.
+    """
+    if allowed_roots is None:
+        return ()
+    if isinstance(allowed_roots, (str, bytes, os.PathLike)):
+        candidates: Sequence[Path | str] = (allowed_roots,)  # type: ignore[assignment]
+    else:
+        candidates = allowed_roots
     roots: list[Path] = []
-    for root in allowed_roots or ():
+    for root in candidates:
+        if isinstance(root, bytes):
+            continue
         try:
             roots.append(Path(root).resolve(strict=True))
-        except (OSError, RuntimeError):
+        except (OSError, RuntimeError, TypeError, ValueError):
             continue
+    return tuple(roots)
+
+
+def inspect_decision(
+    raw: str | Path, allowed_roots: Sequence[Path | str] | Path | str | None
+) -> tuple[Path | None, str]:
+    """
+    Jail kararı + **gerekçesi**.
+
+    Tek bir `None` dönmek bütün ret sebeplerini tek etikete indiriyordu; atlama
+    kaydı "kök dışında" derken aslında yol hiç yok olabiliyordu. Gerekçe ayrı
+    döndürülür ki `skipped` kaydı gerçeği söylesin.
+    """
+    roots = _normalize_roots(allowed_roots)
     if not roots:
-        return None
+        return None, REASON_NO_ROOT
     try:
         # strict=True: var olmayan yol reddedilir. resolve() symlink'leri de
         # çözer, böylece kök içinden dışarı gösteren bir link kaçamaz.
         candidate = Path(raw).resolve(strict=True)
-    except (OSError, RuntimeError, ValueError):
-        return None
+    except (OSError, RuntimeError, TypeError, ValueError):
+        return None, REASON_MISSING
     if not candidate.is_dir():
-        return None
+        return None, REASON_NOT_A_DIR
     for root in roots:
         if candidate == root or root in candidate.parents:
-            return candidate
-    return None
+            return candidate, REASON_OK
+    return None, REASON_OUTSIDE
 
 
 # Çalıştırma kabiliyeti olan git config anahtarları. Bu liste **derinlik
@@ -191,9 +233,18 @@ _GIT_EXEC_CONFIG_OVERRIDES = (
 )
 
 
+# Ortam **allowlist** ile kurulur, blocklist ile değil. Süreç ortamını kopyalayıp
+# birkaç değişkeni silmek, unutulan her `GIT_*` için açık bırakır: `GIT_DIR`,
+# `GIT_WORK_TREE`, `GIT_INDEX_FILE`, `GIT_COMMON_DIR` gibi değişkenler git'in
+# jail'lenmiş `cwd`'yi TAMAMEN yok sayıp başka bir depoda çalışmasına yol açar
+# — yani jail env üzerinden atlanırdı. Bu yüzden yalnız bilinen-gerekli
+# değişkenler taşınır.
+_GIT_ENV_PASSTHROUGH = ("PATH", "LANG", "LC_ALL", "LC_CTYPE", "TZ", "SystemRoot", "COMSPEC")
+
+
 def _git_env() -> dict[str, str]:
-    """Sistem/global config ve her türlü etkileşim kapatılır."""
-    env = dict(os.environ)
+    """Git için asgari, allowlist'li ortam: hiçbir `GIT_*` miras alınmaz."""
+    env = {key: os.environ[key] for key in _GIT_ENV_PASSTHROUGH if key in os.environ}
     env.update(
         {
             "GIT_CONFIG_NOSYSTEM": "1",
@@ -204,10 +255,11 @@ def _git_env() -> dict[str, str]:
             "GIT_OPTIONAL_LOCKS": "0",
             "GIT_ATTR_NOSYSTEM": "1",
             "GIT_ALLOW_PROTOCOL": "",
+            # HOME atanmaz; global config zaten devnull. Yine de git'in ev
+            # dizini araması gerekirse boş bir yere baksın diye açıkça boşaltılır.
+            "HOME": os.devnull,
         }
     )
-    for key in ("GIT_EXTERNAL_DIFF", "GIT_PAGER", "GIT_EDITOR", "GIT_SSH", "GIT_SSH_COMMAND"):
-        env.pop(key, None)
     return env
 
 
@@ -570,16 +622,17 @@ def observe(
     for claim in active:
         if worktree_paths is not None and claim.claim_id in worktree_paths:
             paths = _repo_relative(worktree_paths[claim.claim_id])
-        elif resolve_inspectable_worktree(claim.worktree, allowed_roots) is None:
-            # Beyan edilen worktree operatörün onayladığı köklerin dışında:
-            # git ÇAĞRILMAZ. Atlama sebebi kaydedilir ama yol yazılmaz —
-            # kök dışı yolu günceye yazmak da bir sızıntı olurdu.
-            paths = ()
-            run.skipped.append(f"{claim.claim_id}: worktree izinli kök dışında")
         else:
-            paths = touched_paths(
-                Path(claim.worktree), allowed_roots=allowed_roots, base_ref=base_ref
-            )
+            safe, reason = inspect_decision(claim.worktree, allowed_roots)
+            if safe is None:
+                # Jail reddetti: git ÇAĞRILMAZ. Gerçek sebep kaydedilir; yol
+                # yazılmaz — kök dışı yolu günceye yazmak da bir sızıntı olurdu.
+                paths = ()
+                run.skipped.append(f"{claim.claim_id}: {reason}")
+            else:
+                paths = touched_paths(
+                    Path(claim.worktree), allowed_roots=allowed_roots, base_ref=base_ref
+                )
 
         run.observations.extend(
             observe_scope(claim, paths, other_active=active, now=moment)
