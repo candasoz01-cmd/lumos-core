@@ -8,6 +8,8 @@ Agent Wall bugün çakışma önleyicidir: [`task-claim-v1`](task-claim-v1.md) y
 
 Gözlem katmanı **salt-okunurdur**. Hiçbir claim'i değiştirmez, hiçbir ajanı durdurmaz, hiçbir yazmayı engellemez.
 
+**Yürütme bağlamı (2026-09-05):** Git tabanlı gözlem için birincil sınır sandbox’tır — [agent-wall-observer-sandbox-v0](agent-wall-observer-sandbox-v0.md), [ADR-033](../decisions/ADR-033-agent-wall-observer-sandbox.md). #832 head `d5248e26` sandbox MVP uygulanana kadar merge adayı değildir; yeni Git yönlendirme yaması yok.
+
 ## 1. Güven modeli — neden türetilmiş sinyal
 
 Bu sözleşmenin tek belirleyici kararı budur.
