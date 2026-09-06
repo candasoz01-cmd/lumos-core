@@ -75,6 +75,7 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **güvenl
 | SEC-040 | Bu belgeye production secret, PII veya operasyonel credential yazılmaz. | **güvenlik kuralı** |
 | SEC-041 | Public repo içeriği demo-safe olmalıdır. | **güvenlik kuralı** |
 | SEC-042 | Yürütme üç parçalıdır: Task Registry (görev resmi kaydı) + Capability Token (göreve özel kısa ömürlü anahtar; ajan/kullanıcı üretmez) + Immutable Ledger (kanıt; kapı değil). Kayıtlı görev zincirine bağlanmayan işlem yürümez. Deny default + `unclassified` şüphe; "saldırgan" etiketi yok. Grant `SECURITY_NEVER_AUTO` açmaz. Kullanıcı onayı her adımda değil, yalnız riskli kapılarda. | **güvenlik kuralı** — [ADR-031](decisions/ADR-031-task-execution-grant.md), opt-in `LUMOS_TASK_EXECUTION_GRANT_ENABLED` |
+| SEC-043 | Account Activity Correlation activity tracking değildir. Üçüncü taraf güvenlik uyarısı, onaylı ve kayda bağlı cihaz/oturum özetiyle eşleşir. Raw history, parola, içerik, düz IP yok. Verdict `owner_match` / `likely_owner` / `unknown` / `suspicious`; “kesin sendin” yok. Mail uyarısı otomatik hesap eylemine çevrilmez. | **güvenlik kuralı** — [ADR-032](decisions/ADR-032-account-activity-correlation.md); uygulama izni yalnız yerel çekirdek |
 
 ---
 
@@ -96,8 +97,9 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **güvenl
 - `docs/decision-log.md` — karar ve erteleme günlüğü
 - `docs/contracts/stt-data-boundary-v1.md` — Meet STT veri sınırı (ADR-025)
 - `docs/contracts/task-execution-grant-v1.md` — görev yürütme anahtarı (ADR-031)
+- `docs/contracts/account-activity-correlation-v1.md` — güvenlik kanıtı korelasyonu (ADR-032)
 - `docs/analysis/lumos-self-governance-surface.md` — denetim merceği; izinli yol gerekçesi (SEC-006)
 
 ---
 
-Son güncelleme: 2026-08-28 (SEC-006 izinli yol denetimi — yeni yön değil)
+Son güncelleme: 2026-09-04 (SEC-043 Account Activity Correlation — yerel çekirdek)
