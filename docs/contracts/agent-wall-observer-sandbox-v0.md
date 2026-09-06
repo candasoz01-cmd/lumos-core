@@ -174,7 +174,7 @@ Ortam: macOS 26.6.2 / git 2.52.0 · Ubuntu 22.04 / git 2.34.1.
 - Ölçüm `nested alternates` senaryosunu **kapsamamaktadır**; §4.1'in o yarısı
   uygulama diliminde ayrıca ölçülecektir.
 
-### 8.2 Yol boyunca düzeltilen iki ölçüm hatası
+### 8.2 Yol boyunca düzeltilen ölçüm hataları
 
 İkisi de motoru olduğundan **güvenli** gösteriyordu; kayda geçirilmesinin sebebi bu:
 
@@ -182,6 +182,10 @@ Ortam: macOS 26.6.2 / git 2.52.0 · Ubuntu 22.04 / git 2.34.1.
    hash'lemedi, filter hiç koşmadı ve bu "güvenli" diye okunuyordu.
 2. Düşman betik depo **dışına** konmuştu; `bwrap` betiği hiç göremediği için S1'i
    sahte olarak geçti. Betik depo içine alınınca ölçüm tersine döndü.
+3. S3 gerçek `~/.ssh` dizinine bakıyordu; dizin bulunmayan temiz bir hostta `direct`
+   dahil bütün motorlar erişimi engellemiş gibi görünüyordu. Artık her koşum kök dışında
+   varlığı doğrulanmış sahte bir `.ssh` fixture'ı kuruyor; komut durum üretmezse sonuç
+   **ölçülmedi** (`saglandi: null`) olarak kaydediliyor.
 
 Ayrıca çalışma sinyali `stderr`'e taşındı: yalnız dosya marker'ına bakmak, yazma
 yasağını "kod çalışmadı" sanmaya yol açıyordu.

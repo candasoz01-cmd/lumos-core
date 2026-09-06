@@ -49,6 +49,7 @@ class Fixture:
     marker: Path
     journal: Path
     hostile_script: Path = field(init=False)
+    operator_ssh: Path = field(init=False)
 
     @classmethod
     def build(cls, base: Path) -> "Fixture":
@@ -59,6 +60,9 @@ class Fixture:
         outside.mkdir(parents=True)
 
         (outside / "OUTSIDE_SECRET.txt").write_text("kok disi sir\n", encoding="utf-8")
+        operator_ssh = outside / "operator-home" / ".ssh"
+        operator_ssh.mkdir(parents=True)
+        (operator_ssh / "id_probe").write_text("sahte ssh fixture\n", encoding="utf-8")
 
         _git(repo, "init", "-q")
         (repo / "tracked.txt").write_text("AAAAAAAA\n", encoding="utf-8")
@@ -97,6 +101,7 @@ class Fixture:
         fx = cls(base=base, allowed_root=allowed, repo=repo, outside=outside,
                  marker=marker, journal=journal)
         fx.hostile_script = script
+        fx.operator_ssh = operator_ssh
         return fx
 
 
@@ -256,14 +261,18 @@ def s3_credentials(run, fx) -> dict:
     r = run(["/bin/sh", "-c", 'printf "%s" "${LUMOS_FAKE_OPERATOR_TOKEN:-YOK}"'],
             fx.repo, _env_with_fake_creds(), fx)
     leaked_env = "SECRET-OPERATOR-TOKEN" in r.stdout
-    home_ssh = Path.home() / ".ssh"
-    r2 = run(["/bin/sh", "-c", f'ls "{home_ssh}" >/dev/null 2>&1 && echo READABLE || echo BLOCKED'],
+    r2 = run(["/bin/sh", "-c",
+              f'ls "{fx.operator_ssh}" >/dev/null 2>&1 && echo READABLE || echo BLOCKED'],
              fx.repo, _env_with_fake_creds(), fx)
-    ssh_readable = "READABLE" in r2.stdout
+    ssh_measured = "READABLE" in r2.stdout or "BLOCKED" in r2.stdout
+    ssh_readable = "READABLE" in r2.stdout if ssh_measured else None
+    ssh_result = "ölçülmedi" if ssh_readable is None else ("okunabilir" if ssh_readable else "kapalı")
     return {
         "beklenen": "env sırrı ve ~/.ssh ERİŞİLEMEMELİ",
-        "olan": f"env_sir={'sizdi' if leaked_env else 'yok'}, ssh={'okunabilir' if ssh_readable else 'kapalı'}",
-        "saglandi": (not leaked_env) and (not ssh_readable),
+        "olan": f"env_sir={'sizdi' if leaked_env else 'yok'}, ssh={ssh_result}",
+        "ssh_olculdu": ssh_measured,
+        "ssh_okunabilir": ssh_readable,
+        "saglandi": ((not leaked_env) and (not ssh_readable)) if ssh_measured else None,
     }
 
 
@@ -313,6 +322,17 @@ SCENARIOS = [
 ]
 
 
+def apply_s0_gate(results: dict[str, dict]) -> None:
+    """S0 düşen motorların sonraki satırlarını kalıcı kayıtta geçersizleştir."""
+    for engine_results in results.values():
+        gate_ok = engine_results["S0 git gerçekten koşuyor mu"]["saglandi"]
+        for label, result in engine_results.items():
+            result["olculen_saglandi"] = result["saglandi"]
+            result["s0_gecerli"] = label.startswith("S0") or gate_ok
+            if not result["s0_gecerli"]:
+                result["saglandi"] = None
+
+
 # --------------------------------------------------------------------------
 # Koşum
 # --------------------------------------------------------------------------
@@ -337,6 +357,8 @@ def main() -> int:
                     res = {"beklenen": "-", "olan": f"ÖLÇÜM HATASI: {type(exc).__name__}: {exc}",
                            "saglandi": False}
             results[engine_name][label] = res
+
+    apply_s0_gate(results)
 
     width = max(len(name) for name, _ in SCENARIOS) + 2
     for engine_name in results:
