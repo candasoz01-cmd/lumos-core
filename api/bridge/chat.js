@@ -17,29 +17,92 @@ import { captureError, captureSecurityEvent } from "../_lib/observability.js";
 
 const ROUTE = "bridge_chat";
 
+const OPENAI_MAX_ATTEMPTS = 2;
+const OPENAI_TOTAL_TIMEOUT_MS = 25_000;
+const OPENAI_FALLBACK_BACKOFF_MS = 250;
+
+function retryAfterMs(response) {
+  const raw = response?.headers?.get?.("retry-after");
+  if (raw == null || String(raw).trim() === "") return null;
+  const value = String(raw).trim();
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds * 1000);
+  const at = Date.parse(value);
+  return Number.isFinite(at) ? Math.max(0, at - Date.now()) : null;
+}
+
+async function openAIErrorCode(response) {
+  try {
+    const payload = await response.json();
+    return String(payload?.error?.code || "");
+  } catch {
+    return "";
+  }
+}
+
+function isRetryableOpenAIError(status, code) {
+  return (status === 429 && code === "slow_down")
+    || (status === 503 && code === "server_is_overloaded");
+}
+
+function fallbackBackoffMs(attempt) {
+  const base = OPENAI_FALLBACK_BACKOFF_MS * (2 ** Math.max(0, attempt - 1));
+  return base + Math.floor(Math.random() * Math.max(1, Math.floor(base / 2)));
+}
+
+function wait(ms) {
+  return ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve();
+}
+
 async function callOpenAI(body, context) {
   const apiKey = hostedOpenAIKey();
   if (!apiKey) return null;
-  const upstream = await fetch("https://api.openai.com/v1/responses", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(buildOpenAIRequest(body, context)),
-    signal: AbortSignal.timeout(25000),
-  });
-  if (!upstream.ok) {
-    await captureError(new Error("integration_openai_error"), {
-      route: ROUTE,
-      provider: "openai",
-      errorCode: "integration_error",
-      upstreamStatus: upstream.status,
+
+  const deadline = Date.now() + OPENAI_TOTAL_TIMEOUT_MS;
+  const requestBody = JSON.stringify(buildOpenAIRequest(body, context));
+  let lastStatus = 0;
+  let lastCode = "";
+
+  for (let attempt = 1; attempt <= OPENAI_MAX_ATTEMPTS; attempt += 1) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) break;
+
+    const upstream = await fetch("https://api.openai.com/v1/responses", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: requestBody,
+      signal: AbortSignal.timeout(remainingMs),
     });
-    return null;
+
+    if (upstream.ok) {
+      const reply = openAIReply(await upstream.json());
+      return reply ? { reply, provider: "openai", model: OPENAI_HOSTED_MODEL } : null;
+    }
+
+    lastStatus = Number(upstream.status || 0);
+    lastCode = await openAIErrorCode(upstream);
+    const retryable = isRetryableOpenAIError(lastStatus, lastCode);
+    if (!retryable || attempt === OPENAI_MAX_ATTEMPTS) break;
+
+    const serverDelay = retryAfterMs(upstream);
+    const delayMs = serverDelay ?? fallbackBackoffMs(attempt);
+    // Retry-After bir alt sınırdır. Kalan toplam bütçeye sığmıyorsa erken
+    // denemek yerine diğer sağlayıcıya geç.
+    if (delayMs >= deadline - Date.now()) break;
+    await wait(delayMs);
   }
-  const reply = openAIReply(await upstream.json());
-  return reply ? { reply, provider: "openai", model: OPENAI_HOSTED_MODEL } : null;
+
+  await captureError(new Error("integration_openai_error"), {
+    route: ROUTE,
+    provider: "openai",
+    errorCode: "integration_error",
+    upstreamStatus: lastStatus,
+    upstreamCode: lastCode || undefined,
+  });
+  return null;
 }
 
 async function callGemini(body, context) {
