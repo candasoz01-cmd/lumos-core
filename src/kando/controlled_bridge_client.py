@@ -10,6 +10,14 @@ import os
 import urllib.error
 import urllib.request
 from typing import Any
+from urllib.parse import urlparse
+
+_LOOPBACK_HOSTS = {"127.0.0.1", "localhost", "::1"}
+
+
+def _is_loopback_url(url: str) -> bool:
+    host = (urlparse(url).hostname or "").lower()
+    return host in _LOOPBACK_HOSTS
 
 
 def _base_url() -> str:
@@ -26,7 +34,10 @@ def _token() -> str:
 
 
 def call_controlled(body: dict[str, Any], *, timeout: float = 60.0) -> dict[str, Any]:
-    url = f"{_base_url()}/controlled"
+    base = _base_url()
+    if not _is_loopback_url(base):
+        return {"ok": False, "error": "bridge_host_not_loopback"}
+    url = f"{base}/controlled"
     data = json.dumps(body, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
         url,

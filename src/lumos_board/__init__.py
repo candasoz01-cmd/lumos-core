@@ -12,6 +12,8 @@ from lumos_board.task_claim import (
     TaskClaimStore,
 )
 
+from lumos_board.wall import WallProjection, WallRow, WallState, read_wall_projection
+
 __all__ = [
     "CLAIM_EVENT_SCHEMA",
     "CLAIM_STORE_SCHEMA",
@@ -22,4 +24,8 @@ __all__ = [
     "ClaimStoreCorrupt",
     "TaskClaim",
     "TaskClaimStore",
+    "WallProjection",
+    "WallRow",
+    "WallState",
+    "read_wall_projection",
 ]

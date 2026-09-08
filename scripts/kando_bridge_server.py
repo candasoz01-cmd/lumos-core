@@ -13,7 +13,7 @@ from __future__ import annotations
 import os
 import sys
 
-_HOST = (os.environ.get("HOST") or "0.0.0.0").strip()
+_HOST = (os.environ.get("HOST") or "127.0.0.1").strip()
 _PORT = int(os.environ.get("PORT") or os.environ.get("KANDO_BRIDGE_PORT") or "8765")
 
 _BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,11 +25,6 @@ for _p in (
 ):
     if os.path.isdir(_p) and _p not in sys.path:
         sys.path.insert(0, _p)
-
-import kando_bridge.server as _bridge_mod  # noqa: E402
-
-if _HOST == "0.0.0.0":
-    _bridge_mod._ALLOWED_BIND_HOSTS = frozenset({*_bridge_mod._ALLOWED_BIND_HOSTS, "0.0.0.0"})
 
 from kando_bridge.server import main  # noqa: E402
 

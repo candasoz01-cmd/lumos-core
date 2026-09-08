@@ -21,7 +21,7 @@ Durum sözlüğü: **Çalışıyor** (canlıda/testli kullanılabilir) · **Geli
 | Security | Çalışıyor | 75 | v1 | `src/security` (19 py) crypto/guard/policy + testler; bazı katman prototip |
 | iOS ★ | Geliştiriliyor | ~35 | v0.6 | Ayrı repo `candasoz01-cmd/Lumos`; Apple Sign-In + device context merge'lü; gövde sürüyor |
 | Entegrasyonlar | Geliştiriliyor | 50 | v1 kısmi | `src/integrations` (48 py); katalog geniş, canlı `verify_connection` sınırlı |
-| Board / Orchestration | Geliştiriliyor | 60 | v1 kısmi | #630/#629/#631/#632 main'de (sözleşme+projeksiyon+claim+gateway); gerçek kullanım 0 (borç kaydı var) |
+| Board / Orchestration | Geliştiriliyor | 60 | v1 kısmi | #630/#629/#631/#632 main'de (sözleşme+projeksiyon+claim+gateway); TD-04 gerçek çok-ajanlı claim kanıtı kapandı. ADR-025 duvar CLI özeti (göz, komut yok); KA-001 hâlâ KOD, CANLI değil |
 | Deploy / Ops | Çalışıyor | 65 | v1 | Vercel canlı, CI 5 iş; Sentry/Axiom kodu hazır, env bağlı değil (borç kaydı var) |
 | API (public yüzey) | Geliştiriliyor | 55 | v1 kısmi | `api/*` 12 uç; sözleşme dokümanı yok |
 | Media | Fikir | 10 | **v2** | video executor parçası; STOP LIST kapsamında |

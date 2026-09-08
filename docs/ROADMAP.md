@@ -135,6 +135,27 @@ yetkisi vermez.
 
 Normatif karar ve kabul kapıları: [ADR-021](decisions/ADR-021-robotics-sovereignty-layer-v0-1.md).
 
+### Dar istisna — Lumos Agent Wall görünürlük dilimi
+
+2026-08-17 kullanıcı kararıyla mevcut Board kayıtlarının **salt-okunur
+operatör özeti** STOP LIST'teki "yeni agent / orchestration katmanı"
+yasağından dar kapsamlı olarak istisna tutulmuştur. Duvar = göz, Board =
+kayıt, komut kapısı = el. Bu dilim yalnız gözdür.
+
+İstisna sınırları:
+
+- mevcut claim ve agent-status kayıtlarını `WORKING` / `WAITING` /
+  `BLOCKED` / `NEEDS_DECISION` özetine indirgemek;
+- yüzey mevcut Board CLI: `python -m lumos_board.claim_cli list`
+  (varsayılan = duvar özeti; yeni sayfa yok);
+- durdur / devam / yön / onay / başka ajana ver **yok**;
+- yeni public sayfa, panel widget, kullanıcı API'si veya yatay ajan komutu
+  **yok**;
+- kumanda (el) ayrı kullanıcı kararı gerektirir; görünürlük CANLI ve dürüst
+  olmadan açılmaz.
+
+Normatif karar: [ADR-025](decisions/ADR-025-agent-wall-visibility-slice.md).
+
 ## FAZ-1 sonrası provider stratejisi
 
 Bu kayıt yalnız FAZ-1 tamamlandıktan sonra değerlendirilecek yönü tanımlar;
@@ -176,9 +197,10 @@ Lumos Agent Wall (eski ad: Command Wall — 2026-08-08 kurucu ad kararı), **int
 kullanıcı ürünü **değildir**. Lumos ile aynı motoru (AI Runtime / Router)
 kullanır, ayrı bir motor kurmaz.
 
-- **Karar durumu:** sınır tanımı kabul edildi (2026-08-08, ADR-019).
-- **Uygulama durumu:** yeni operatör arayüzü veya orchestration kodu
-  **yazılmadı**. Bugünkü kapsam `src/lumos_board/` CLI ile sınırlıdır.
+- **Karar durumu:** sınır tanımı kabul edildi (2026-08-08, ADR-019);
+  görünürlük dilimi kabul edildi (2026-08-17, ADR-025).
+- **Uygulama durumu:** mevcut `claim_cli list` varsayılanı salt-okunur duvar
+  özeti. Yeni public sayfa ve komut kapısı **yok**.
 - **Decision Queue / Human Action Queue (2026-08-24):** mevcut Agent Wall
   başlığının alt kavramı — paralel ajan işlerinde insan onayı bekleyen
   karar noktalarını görünür kılmak. Ayrı ROADMAP maddesi veya
@@ -189,8 +211,8 @@ kullanır, ayrı bir motor kurmaz.
   sınırı ayrı onay. Kapsam `src/lumos_board/` dilimlerinin genişletmesidir;
   yeni ürün / yeni Agent Network / ajanlar arası doğrudan komut /
   auto-merge / auto-deploy / dış gönderim yok.
-- STOP LIST'teki "yeni agent / orchestration katmanı" yasağı **sürer**; bu tanım
-  onu delmez, yalnız gelecekteki işin adını ve sınırını sabitler.
+- STOP LIST'teki "yeni agent / orchestration katmanı" yasağı **sürer**; ADR-025
+  yalnız mevcut Board kaydını okumaya izin verir, el/kumanda açmaz.
 
 Kullanıcı yüzüne sağlayıcı/model adı, `session_id`, `instance_id`, worktree,
 heartbeat, PR/merge kapısı ve iç ajan koordinasyonu **sızmaz**.

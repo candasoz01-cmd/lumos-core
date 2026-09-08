@@ -15,6 +15,7 @@ from lumos_board.task_claim import (
     OverrideApprovalVerifier,
     TaskClaimStore,
 )
+from lumos_board.wall import format_wall_table, read_wall_projection
 
 
 def _store_dir(explicit: str | None) -> Path:
@@ -73,7 +74,28 @@ def _parser() -> argparse.ArgumentParser:
 
     listing = subparsers.add_parser("list")
     listing.add_argument("--all", action="store_true")
+    listing.add_argument(
+        "--raw",
+        action="store_true",
+        help="Eski claim JSON dökümü; varsayılan duvar özetidir",
+    )
+    _add_wall_view_args(listing)
+
+    wall = subparsers.add_parser("wall", help="list ile aynı duvar özeti; ikinci yüzey değil")
+    _add_wall_view_args(wall)
     return parser
+
+
+def _add_wall_view_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--format", choices=("table", "json"), default="table")
+    parser.add_argument(
+        "--status-dir",
+        action="append",
+        default=[],
+        metavar="NAME=PATH",
+        help="İsteğe bağlı agent_status kaynağı (tekrarlanabilir)",
+    )
+    parser.add_argument("--stale-after", type=float, default=120.0)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -121,6 +143,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             value = store.release(args.claim_id, owner=args.owner)
         elif args.command == "attach-pr":
             value = store.attach_pr(args.claim_id, owner=args.owner, pr_ref=args.pr)
+        elif args.command == "wall" or (
+            args.command == "list" and not getattr(args, "raw", False)
+        ):
+            return _print_wall(store, args)
         else:
             values = [claim.to_dict() for claim in store.list_claims(include_closed=args.all)]
             print(json.dumps({"claims": values}, ensure_ascii=False, sort_keys=True))
@@ -130,6 +156,27 @@ def main(argv: Sequence[str] | None = None) -> int:
     except ClaimError as exc:
         print(json.dumps({"error": str(exc)}, ensure_ascii=False, sort_keys=True))
         return 2
+
+
+def _print_wall(store: TaskClaimStore, args: argparse.Namespace) -> int:
+    status_sources: dict[str, str] = {}
+    for item in args.status_dir:
+        if "=" not in item:
+            raise ClaimError("--status-dir NAME=PATH olmalı")
+        name, path = item.split("=", 1)
+        if not name.strip() or not path.strip():
+            raise ClaimError("--status-dir NAME=PATH olmalı")
+        status_sources[name.strip()] = path.strip()
+    projection = read_wall_projection(
+        store,
+        status_sources=status_sources or None,
+        stale_after_seconds=args.stale_after,
+    )
+    if args.format == "json":
+        print(json.dumps(projection.to_dict(), ensure_ascii=False, sort_keys=True))
+    else:
+        print(format_wall_table(projection), end="")
+    return 0
 
 
 if __name__ == "__main__":
