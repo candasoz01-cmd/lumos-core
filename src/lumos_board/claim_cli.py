@@ -119,12 +119,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             value = store.heartbeat(args.claim_id, owner=args.owner, ttl_seconds=args.ttl)
         elif args.command == "release":
             value = store.release(args.claim_id, owner=args.owner)
-        elif args.command == "attach-pr":
+        if args.command == "attach-pr":
             value = store.attach_pr(args.claim_id, owner=args.owner, pr_ref=args.pr)
-        else:
+        elif args.command == "list":
+            # Salt-okunur: list_claims kilit/yazma yapmaz; flock yazarı bekletmez.
             values = [claim.to_dict() for claim in store.list_claims(include_closed=args.all)]
             print(json.dumps({"claims": values}, ensure_ascii=False, sort_keys=True))
             return 0
+        else:
+            raise ClaimError(f"bilinmeyen komut: {args.command}")
         print(json.dumps(value.to_dict(), ensure_ascii=False, sort_keys=True))
         return 0
     except ClaimError as exc:
