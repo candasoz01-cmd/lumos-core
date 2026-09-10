@@ -1,4 +1,10 @@
-"""PR-RB-05 — mobile approval poll client MVP end-to-end."""
+"""PR-RB-05 — mobile approval poll client MVP in-process/integration.
+
+Not a live-server or network E2E. Requests never leave the pytest process:
+``BridgeHandler`` is built with ``__new__`` (no ``HTTPServer``) and
+``mobile_approval_client.http_json`` is monkeypatched. CI job ``test``
+collects this file via bare ``pytest``; a green run is not live mobile E2E.
+"""
 from __future__ import annotations
 
 import json
@@ -60,7 +66,7 @@ def _dispatch_http(
     query: dict[str, str] | None = None,
     tmp_path: Path,
 ) -> tuple[int, Any]:
-    """Route mobile client HTTP to BridgeHandler stubs (no live server)."""
+    """Route mobile client HTTP to in-process BridgeHandler stubs (no live server)."""
     from kando_bridge.server import BridgeHandler
 
     if method == "GET" and path == "/pending_approvals":
@@ -123,8 +129,8 @@ def bridge_client_env(
     return tmp_path
 
 
-def test_mobile_approval_mvp_e2e_pc_open_url(bridge_client_env: Path) -> None:
-    """Pending → poll → approve → execute stub → used=true."""
+def test_mobile_approval_mvp_inprocess_pc_open_url(bridge_client_env: Path) -> None:
+    """In-process pending → poll → approve → execute stub → used=true."""
     repo = bridge_client_env
 
     status, pending = _dispatch_http(
