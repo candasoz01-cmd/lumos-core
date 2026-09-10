@@ -99,22 +99,18 @@ def test_probe_env_does_not_leak_host_secrets(repo: Path) -> None:
 
 def test_non_utf8_git_output_does_not_crash(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Bugbot Medium: binary/non-UTF-8 stdout must not UnicodeDecodeError out."""
-    real_run = subprocess.run
-
     def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
-        kwargs = dict(kwargs)
-        # Force the production path (text=False) and inject non-UTF-8 bytes.
-        result = real_run(*args, **kwargs)
+        # Force the production path (text=False) and inject non-UTF-8 bytes into
+        # the bounded regular files used instead of unbounded capture pipes.
         if kwargs.get("text") is True:
             raise AssertionError("run_git_sandboxed must not use text=True")
         if kwargs.get("stdin") is not subprocess.DEVNULL:
             raise AssertionError("run_git_sandboxed must pass stdin=DEVNULL")
-        # Rebuild a CompletedProcess-like result with latin-1 bytes
+        kwargs["stdout"].write(b"ok-\xff-binary\n")
+        kwargs["stderr"].write(b"warn-\xfe\n")
         return subprocess.CompletedProcess(
-            args=result.args,
+            args=args[0],
             returncode=0,
-            stdout=b"ok-\xff-binary\n",
-            stderr=b"warn-\xfe\n",
         )
 
     monkeypatch.setattr(subprocess, "run", _fake_run)
@@ -127,6 +123,23 @@ def test_non_utf8_git_output_does_not_crash(repo: Path, monkeypatch: pytest.Monk
     assert "ok-" in result.stdout
     assert "\ufffd" in result.stdout or "binary" in result.stdout
     assert "warn-" in result.stderr
+
+
+def test_git_output_is_bounded_and_fails_closed(repo: Path) -> None:
+    """§3.2 — a repository cannot make observer capture grow without bound."""
+    payload = b"x" * (1024 * 1024 + 4096)
+    (repo / "large.bin").write_bytes(payload)
+    _git(repo, "add", "large.bin")
+    _git(repo, "commit", "-m", "large-output")
+
+    result = run_git_sandboxed(
+        ["show", "HEAD:large.bin"],
+        cwd=repo,
+        allowed_roots=[repo],
+    )
+    assert result.returncode != 0
+    assert len(result.stdout.encode("utf-8", "replace")) <= 1024 * 1024
+    assert "output limit reached" in result.stderr
 
 
 def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int:
@@ -359,9 +372,28 @@ def test_sandbox_uses_new_session_and_devnull_stdin(
     probe_sandbox_env(allowed_roots=[repo], host_env=os.environ.copy())
     assert len(seen) >= 2
     for cmd, stdin in seen:
-        assert cmd and cmd[0] == "bwrap"
+        assert cmd and Path(cmd[0]).name == "prlimit"
+        assert "--nproc=64:64" in cmd
+        assert "--fsize=1048576:1048576" in cmd
+        assert "--as=1073741824:1073741824" in cmd
+        assert "bwrap" in [Path(part).name for part in cmd]
         assert "--new-session" in cmd
         assert stdin is subprocess.DEVNULL
+
+
+def test_missing_prlimit_fails_closed(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real_which = __import__("shutil").which
+
+    def _which(name: str):
+        if name == "prlimit":
+            return None
+        return real_which(name)
+
+    monkeypatch.setattr("lumos_board.observer_sandbox.shutil.which", _which)
+    with pytest.raises(SandboxUnavailableError, match="prlimit"):
+        run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
 def test_nested_alternates_outside_root_not_readable(

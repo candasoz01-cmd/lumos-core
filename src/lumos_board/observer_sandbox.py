@@ -11,6 +11,7 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import tempfile
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -45,6 +46,12 @@ _BLOCKED_ENV_KEYS = frozenset(
         "LUMOS_PANEL_TOKEN",
     }
 )
+
+_MAX_PROCESSES = 64
+_MAX_OUTPUT_BYTES = 1024 * 1024
+_MAX_ADDRESS_SPACE_BYTES = 1024 * 1024 * 1024
+_OUTPUT_LIMIT_EXIT_CODE = 125
+_OUTPUT_LIMIT_MARKER = b"\n[observer sandbox output limit reached]\n"
 
 
 class SandboxUnavailableError(RuntimeError):
@@ -130,6 +137,72 @@ def _bwrap_isolation_prefix() -> list[str]:
     ]
 
 
+def _resource_limited_command(command: Sequence[str], *, timeout: float) -> list[str]:
+    """Wrap the sandbox launcher in host-enforced process resource limits."""
+    prlimit = shutil.which("prlimit")
+    if not prlimit:
+        raise SandboxUnavailableError("prlimit not found on host PATH")
+    cpu_soft = max(1, int(timeout) + 1)
+    return [
+        prlimit,
+        f"--nproc={_MAX_PROCESSES}:{_MAX_PROCESSES}",
+        f"--fsize={_MAX_OUTPUT_BYTES}:{_MAX_OUTPUT_BYTES}",
+        f"--as={_MAX_ADDRESS_SPACE_BYTES}:{_MAX_ADDRESS_SPACE_BYTES}",
+        f"--cpu={cpu_soft}:{cpu_soft + 1}",
+        "--",
+        *command,
+    ]
+
+
+def _bounded_file_bytes(handle) -> tuple[bytes, bool]:  # type: ignore[no-untyped-def]
+    size = handle.tell()
+    handle.seek(0)
+    return handle.read(_MAX_OUTPUT_BYTES), size >= _MAX_OUTPUT_BYTES
+
+
+def _run_bwrap_limited(
+    command: Sequence[str], *, timeout: float
+) -> subprocess.CompletedProcess[bytes]:
+    """Run bwrap without pipe-backed, unbounded capture buffers."""
+    limited_command = _resource_limited_command(command, timeout=timeout)
+    try:
+        with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
+            proc = subprocess.run(
+                limited_command,
+                stdin=subprocess.DEVNULL,
+                stdout=stdout_file,
+                stderr=stderr_file,
+                text=False,
+                timeout=timeout,
+                check=False,
+                close_fds=True,
+            )
+            stdout, stdout_limited = _bounded_file_bytes(stdout_file)
+            stderr, stderr_limited = _bounded_file_bytes(stderr_file)
+    except OSError as exc:
+        raise SandboxUnavailableError(f"sandbox failed to exec: {exc}") from exc
+    except subprocess.TimeoutExpired as exc:
+        raise SandboxUnavailableError(f"sandbox process timed out: {exc}") from exc
+
+    if stdout_limited or stderr_limited:
+        stderr = (
+            stderr[: _MAX_OUTPUT_BYTES - len(_OUTPUT_LIMIT_MARKER)]
+            + _OUTPUT_LIMIT_MARKER
+        )
+        return subprocess.CompletedProcess(
+            args=proc.args,
+            returncode=proc.returncode or _OUTPUT_LIMIT_EXIT_CODE,
+            stdout=stdout,
+            stderr=stderr,
+        )
+    return subprocess.CompletedProcess(
+        args=proc.args,
+        returncode=proc.returncode,
+        stdout=stdout,
+        stderr=stderr,
+    )
+
+
 def _host_bind_roots(allowed_roots: Sequence[Path]) -> list[str]:
     args: list[str] = []
     # Minimal host toolchain for git
@@ -196,21 +269,9 @@ def run_git_sandboxed(
 
     bwrap_cmd += [str(git_path), *args]
 
-    try:
-        # Bytes + replace: non-UTF-8 git output must not UnicodeDecodeError out
-        # of the observation turn (Bugbot Medium on cde9103).
-        proc = subprocess.run(
-            bwrap_cmd,
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=False,
-            timeout=timeout,
-            check=False,
-        )
-    except OSError as exc:
-        raise SandboxUnavailableError(f"bwrap failed to exec: {exc}") from exc
-    except subprocess.TimeoutExpired as exc:
-        raise SandboxUnavailableError(f"sandboxed git timed out: {exc}") from exc
+    # Bytes + replace: non-UTF-8 git output must not UnicodeDecodeError out
+    # of the observation turn (Bugbot Medium on cde9103).
+    proc = _run_bwrap_limited(bwrap_cmd, timeout=timeout)
 
     return SandboxGitResult(
         returncode=proc.returncode,
@@ -238,13 +299,7 @@ def probe_sandbox_env(
     for k, v in env.items():
         bwrap_cmd += ["--setenv", k, v]
     bwrap_cmd += ["/usr/bin/env", "-0"]
-    proc = subprocess.run(
-        bwrap_cmd,
-        stdin=subprocess.DEVNULL,
-        capture_output=True,
-        check=False,
-        timeout=15,
-    )
+    proc = _run_bwrap_limited(bwrap_cmd, timeout=15)
     if proc.returncode != 0:
         raise SandboxUnavailableError(
             f"env probe failed: {proc.stderr!r}"
