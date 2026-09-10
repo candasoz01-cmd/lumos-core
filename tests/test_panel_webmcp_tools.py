@@ -7,7 +7,9 @@ Bu testler kaynak sözleşmesini korur:
   * OKUMA da izne bağlıdır: izin yokken görev içeriği ajana dönmez,
   * onay ekranı, yazılacak HER alanı gerçek değerinden türeterek gösterir.
 
-Çalışan uçtan uca doğrulama ayrıca: `npm run e2e:webmcp --prefix ui`.
+Çalışan uçtan uca doğrulama ayrıca: `npm run e2e:webmcp:mock --prefix ui`
+(injected `document.modelContext` + mock `/lumos-confirm/request`; native Chrome
+WebMCP değildir). Native kanıt: `npm run e2e:webmcp:native` (macOS Chrome; CI'da yok).
 """
 
 from __future__ import annotations
@@ -480,7 +482,9 @@ def test_e2e_scenario_exists_and_covers_rejection() -> None:
     assert "lumos-confirm-cancel" in e2e
     assert "lumos-confirm-approve" in e2e
     assert "onay kapısı atlanmış" in e2e
-    assert "WEBMCP_PANEL_E2E_RESULT" in e2e
+    assert "WEBMCP_PANEL_MOCK_E2E_RESULT" in e2e
+    assert "WEBMCP_PANEL_E2E_RESULT" not in e2e
+    assert "not native Chrome WebMCP" in e2e
 
 
 def test_e2e_scenario_covers_concurrent_busy_and_server_errors() -> None:
