@@ -109,6 +109,12 @@ def write_pending_approval(record: dict[str, Any], repo_root: Path) -> Path:
         )
     except ImportError:
         pass
+    except OSError:
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
     return path
 
 
@@ -275,18 +281,28 @@ def _audit_from_pending_path(path: Path, record: dict[str, Any], *, event: str) 
             target_device=str(record.get("target_device") or ""),
             risk_level=str(record.get("risk_level") or ""),
         )
-    except (ImportError, OSError):
+    except ImportError:
         return
 
 
 def approve_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]:
+    prior_status = str(record.get("status") or STATUS_PENDING)
     record["status"] = STATUS_APPROVED
     record["approved_at"] = _iso(_utc_now())
     record["used"] = False
     _atomic_write_json(path, record)
     from kando_bridge.pc_remote_audit import EVENT_PENDING_APPROVED
 
-    _audit_from_pending_path(path, record, event=EVENT_PENDING_APPROVED)
+    try:
+        _audit_from_pending_path(path, record, event=EVENT_PENDING_APPROVED)
+    except OSError:
+        record["status"] = prior_status
+        record.pop("approved_at", None)
+        try:
+            _atomic_write_json(path, record)
+        except OSError:
+            pass
+        raise
     return record
 
 
@@ -296,7 +312,10 @@ def reject_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]:
     _atomic_write_json(path, record)
     from kando_bridge.pc_remote_audit import EVENT_PENDING_REJECTED
 
-    _audit_from_pending_path(path, record, event=EVENT_PENDING_REJECTED)
+    try:
+        _audit_from_pending_path(path, record, event=EVENT_PENDING_REJECTED)
+    except OSError:
+        pass
     return record
 
 

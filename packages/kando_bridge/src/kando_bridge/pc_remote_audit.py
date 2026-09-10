@@ -38,7 +38,11 @@ def append_pc_remote_audit(
     target_device: str = "",
     risk_level: str = "",
 ) -> None:
-    """Write one redacted audit line; never raises on I/O failure."""
+    """Write one redacted audit line.
+
+    Raises OSError on I/O failure so approval-gated callers can fail closed
+    instead of succeeding without a trail.
+    """
     entry: dict[str, Any] = {
         "schema_version": AUDIT_SCHEMA,
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -56,14 +60,11 @@ def append_pc_remote_audit(
         entry["target_device"] = str(target_device)[:64]
     if risk_level:
         entry["risk_level"] = str(risk_level)[:32]
-    try:
-        path = audit_events_path(repo_root)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        line = json.dumps(entry, ensure_ascii=False, default=str) + "\n"
-        with path.open("a", encoding="utf-8") as fh:
-            fh.write(line)
-    except OSError:
-        return
+    path = audit_events_path(repo_root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(entry, ensure_ascii=False, default=str) + "\n"
+    with path.open("a", encoding="utf-8") as fh:
+        fh.write(line)
 
 
 def read_audit_events(repo_root: Path) -> list[dict[str, Any]]:
