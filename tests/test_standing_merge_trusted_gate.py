@@ -43,7 +43,7 @@ def _copy_current_classifier(dest_src: Path) -> None:
     src = REPO / "src" / "standing_merge"
     package = dest_src / "standing_merge"
     package.mkdir(parents=True)
-    for name in ("__init__.py", "classify.py", "excluded_paths.json"):
+    for name in ("__init__.py", "classify.py", "attestation_log.py", "excluded_paths.json"):
         package.joinpath(name).write_bytes(src.joinpath(name).read_bytes())
 
 
@@ -209,6 +209,7 @@ def test_cli_materializes_classifier_from_this_repo(tmp_path) -> None:
     dest = tmp_path / "trusted"
     assert main(["--repo", str(root), "--base-sha", sha, "--dest", str(dest)]) == 0
     assert (dest / "src/standing_merge/classify.py").is_file()
+    assert (dest / "src/standing_merge/attestation_log.py").is_file()
     assert (dest / "src/standing_merge/excluded_paths.json").is_file()
 
 

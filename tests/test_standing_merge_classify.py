@@ -274,10 +274,11 @@ def test_attestation_cannot_promote_unlisted_path() -> None:
     assert verdict["class"] == CLASS_EXCLUDED
 
 
-def test_cli_attestation_promotes_and_exits_zero() -> None:
+def test_cli_attestation_without_actor_does_not_open_standing() -> None:
+    """F9: argv --attest factual with no --attest-by must not exit 0."""
     assert (
         main([ADR023, "--head-sha", HEAD, "--attest", "factual", "--attest-sha", HEAD])
-        == 0
+        == 3
     )
 
 
