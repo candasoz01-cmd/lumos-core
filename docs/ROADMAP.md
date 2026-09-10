@@ -189,6 +189,13 @@ kullanır, ayrı bir motor kurmaz.
   sınırı ayrı onay. Kapsam `src/lumos_board/` dilimlerinin genişletmesidir;
   yeni ürün / yeni Agent Network / ajanlar arası doğrudan komut /
   auto-merge / auto-deploy / dış gönderim yok.
+- **Görev rolü ilkesi (2026-09-10, kurucu):** sabit «Claude denetçi / Cursor
+  uygulayıcı» yoktur; roller görev bazlıdır. Bugün bu ayrım koordinatörün
+  manuel çalışma kuralıdır. `task-claim-v1` self-asserted kimliklerle çalışan
+  kooperatif bir çakışma/lease kaydıdır; doğrulanmış Wall atama yetkisi değildir.
+  Wall atama yönü, dayanıklı checkpoint, kurtarma durumu ve denetçi bağımsızlığı
+  OD-064'te **tasarım bekliyor**. Koddan önce ayrı ADR + `task-claim-v2` ve insan
+  onayı gerekir.
 - STOP LIST'teki "yeni agent / orchestration katmanı" yasağı **sürer**; bu tanım
   onu delmez, yalnız gelecekteki işin adını ve sınırını sabitler.
 
