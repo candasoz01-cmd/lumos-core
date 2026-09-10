@@ -95,6 +95,7 @@ def _request(
 
 def _block_audit_log_dir(base: Path) -> None:
     logs = base / "logs"
+    logs.parent.mkdir(parents=True, exist_ok=True)
     if logs.is_dir():
         for child in logs.iterdir():
             if child.is_file():
