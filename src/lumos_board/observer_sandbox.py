@@ -67,11 +67,18 @@ class SandboxGitResult:
 
 def sandbox_backend() -> str:
     """Return the concrete motor name, or raise if none usable."""
-    if shutil.which("bwrap"):
-        return "bubblewrap"
-    raise SandboxUnavailableError(
-        "no sandbox motor available (need bubblewrap/bwrap on PATH)"
-    )
+    _bwrap_path()
+    return "bubblewrap"
+
+
+def _bwrap_path() -> str:
+    """Resolve bwrap before the launcher environment drops the host PATH."""
+    bwrap = shutil.which("bwrap")
+    if not bwrap:
+        raise SandboxUnavailableError(
+            "no sandbox motor available (need bubblewrap/bwrap on PATH)"
+        )
+    return bwrap
 
 
 def _is_blocked_env(key: str) -> bool:
@@ -119,7 +126,7 @@ def _bwrap_isolation_prefix() -> list[str]:
     steal the operator controlling TTY (Security Review Medium on 2d56ed6).
     """
     return [
-        "bwrap",
+        _bwrap_path(),
         "--die-with-parent",
         "--new-session",
         "--unshare-all",

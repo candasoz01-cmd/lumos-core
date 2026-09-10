@@ -17,6 +17,7 @@ from pathlib import Path
 import pytest
 from lumos_board.observer_sandbox import (
     SandboxUnavailableError,
+    _bwrap_isolation_prefix,
     probe_sandbox_env,
     run_git_sandboxed,
     sandbox_backend,
@@ -428,6 +429,20 @@ def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(
 
     command = _resource_limited_command(["bwrap", "--help"], timeout=30)
     assert "--nproc=164:164" in command
+
+
+def test_bwrap_launcher_uses_resolved_absolute_host_path(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    real_which = __import__("shutil").which
+
+    def _which(name: str):
+        if name == "bwrap":
+            return "/opt/bubblewrap/bin/bwrap"
+        return real_which(name)
+
+    monkeypatch.setattr("lumos_board.observer_sandbox.shutil.which", _which)
+    assert _bwrap_isolation_prefix()[0] == "/opt/bubblewrap/bin/bwrap"
 
 
 def test_missing_prlimit_fails_closed(
