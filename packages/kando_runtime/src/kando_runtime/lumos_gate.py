@@ -994,8 +994,16 @@ def classify_risk(task_text: str, file_path: str | None) -> str:
     return "unknown"
 
 
+_PENDING_APPROVAL_RISKS = frozenset({"high", "unknown"})
+
+
+def _risk_requires_pending_approval(risk: str, *, approval_granted: bool) -> bool:
+    """Unclassified risk is fail-closed: treat like high until a human approves."""
+    return (not approval_granted) and risk in _PENDING_APPROVAL_RISKS
+
+
 def _risk_gate_execution_mode(risk: str) -> str:
-    if risk == "high":
+    if risk in _PENDING_APPROVAL_RISKS:
         return "pending_approval"
     if risk == "medium":
         return "restricted"
@@ -1008,7 +1016,7 @@ def _inject_risk_fields(
     body: dict[str, Any], risk: str, *, approved_high: bool = False
 ) -> None:
     lg = body.get("lumos_gate")
-    if risk == "high" and approved_high:
+    if risk in _PENDING_APPROVAL_RISKS and approved_high:
         body["risk_level"] = risk
         ex_mode = str((isinstance(lg, dict) and lg.get("execution_mode")) or "direct_patch")
         body["execution_mode"] = ex_mode
@@ -1100,8 +1108,10 @@ def _pending_approval_record(
     ctx: GateContext,
     plan: dict[str, Any],
     reasoning: dict[str, Any],
+    risk: str = "high",
 ) -> dict[str, Any]:
     title = _pending_user_facing_title(payload=payload, norm=norm).strip()
+    pending_risk = risk if risk in _PENDING_APPROVAL_RISKS else "high"
     return {
         "schema_version": "lumos.pending_approval.v1",
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -1113,7 +1123,7 @@ def _pending_approval_record(
         "normalized_task": _jsonable_normalized(norm),
         "execution_plan": dict(plan),
         "reasoning_snapshot": dict(reasoning),
-        "risk_level": "high",
+        "risk_level": pending_risk,
         "reasoning_summary": ctx.reasoning_summary,
         "policy_ok": True,
         "execution_mode": "pending_approval",
@@ -1124,17 +1134,25 @@ def _pending_approval_record(
 def _build_high_risk_pending_http_body(
     ctx: GateContext,
     reasoning: dict[str, Any],
+    *,
+    risk: str = "high",
 ) -> dict[str, Any]:
-    """High risk: executor çağrılmaz; onay beklenir (approval_granted ile aşılır)."""
+    """High or unknown risk: executor çağrılmaz; onay beklenir (approval_granted ile aşılır)."""
+    pending_risk = risk if risk in _PENDING_APPROVAL_RISKS else "high"
     summ = ctx.reasoning_summary
-    suffix = "HIGH RISK → kullanıcı onayı gerekli"
+    if pending_risk == "unknown":
+        suffix = "UNKNOWN RISK → kullanıcı onayı gerekli"
+        message = "Lumos: sınıflandırılamayan risk, kullanıcı onayı bekleniyor"
+    else:
+        suffix = "HIGH RISK → kullanıcı onayı gerekli"
+        message = "Lumos: yüksek riskli işlem, kullanıcı onayı bekleniyor"
     if suffix not in summ:
         ctx.reasoning_summary = f"{summ} | {suffix}".strip(" |")
     lg: dict[str, Any] = {
         "policy_ok": ctx.policy_ok,
         "reasoning_summary": ctx.reasoning_summary,
         "reasoning_source": reasoning.get("source"),
-        "risk_level": "high",
+        "risk_level": pending_risk,
         "risk_execution_mode": "pending_approval",
         "final_decision": "await_user_approval",
         "enforced": True,
@@ -1144,8 +1162,8 @@ def _build_high_risk_pending_http_body(
         "accepted": True,
         "requires_approval": True,
         "error": "",
-        "message": "Lumos: yüksek riskli işlem, kullanıcı onayı bekleniyor",
-        "risk_level": "high",
+        "message": message,
+        "risk_level": pending_risk,
         "execution_mode": "pending_approval",
         "final_decision": "await_user_approval",
         "enforced": True,
@@ -1165,13 +1183,15 @@ def _return_high_risk_pending(
     repo_root: Path | None = None,
     confirmation_risk: str = "high",
     grant_source: Mapping[str, Any] | None = None,
+    risk: str = "high",
 ) -> dict[str, Any]:
-    body = _build_high_risk_pending_http_body(ctx, reasoning)
+    pending_risk = risk if risk in _PENDING_APPROVAL_RISKS else "high"
+    body = _build_high_risk_pending_http_body(ctx, reasoning, risk=pending_risk)
     out = _handle_task_return(
         http_body=body,
         last_ex=None,
         last_res=None,
-        risk="high",
+        risk=pending_risk,
         approval_granted=False,
     )
     par = _pending_approval_record(
@@ -1181,6 +1201,7 @@ def _return_high_risk_pending(
         ctx=ctx,
         plan=plan,
         reasoning=reasoning,
+        risk=pending_risk,
     )
     _attach_task_execution_grant_fields(par, grant_source)
     if repo_root is not None:
@@ -1208,13 +1229,13 @@ def _handle_task_return(
     approval_granted: bool = False,
 ) -> dict[str, Any]:
     """Üst seviye meta: bridge guard'ları out üzerinden okuyabilsin."""
-    if risk == "high" and not approval_granted:
+    if _risk_requires_pending_approval(risk, approval_granted=approval_granted):
         return {
             "http_status": 200,
             "http_body": http_body,
             "last_execution": None,
             "last_result": None,
-            "risk_level": "high",
+            "risk_level": risk,
             "execution_mode": "pending_approval",
             "final_decision": "await_user_approval",
             "enforced": True,
@@ -2170,8 +2191,6 @@ def run_lumos_gate(
 
     task_text_risk = merge_text_for_risk_assessment(norm, payload)
     risk = classify_risk(task_text_risk, norm.get("target_rel"))
-    if risk == "unknown":
-        return {"status": "approved"}
 
     plan = build_execution_plan(norm, reasoning, mode=mode)
 
@@ -2260,18 +2279,33 @@ def run_lumos_gate(
             out["lumos_audit_log"] = audit.to_log_entry()
         return out
 
-    if (risk == "high" or plan_has_high_risk_step(plan)) and not approval_granted:
+    if (
+        risk in _PENDING_APPROVAL_RISKS or plan_has_high_risk_step(plan)
+    ) and not approval_granted:
+        pending_risk = "unknown" if risk == "unknown" else "high"
         out = _return_high_risk_pending(
-            ctx, reasoning, mode, payload, norm, plan=plan, repo_root=repo_root,
+            ctx,
+            reasoning,
+            mode,
+            payload,
+            norm,
+            plan=plan,
+            repo_root=repo_root,
+            confirmation_risk=pending_risk,
+            risk=pending_risk,
         )
         out["policy_ok"] = True
         out["gate_complete"] = True
+        if pending_risk == "unknown" and audit is None:
+            audit = LumosAuditCollector()
+            audit.set_input(str(mode), str(payload or ""))
+            audit.set_replay_mode(replay_mode)
         if audit is not None:
             audit.set_plan(plan)
             audit.set_step_results([])
             audit.set_summary(
                 blocked=True,
-                reason="pending_approval",
+                reason="unknown_risk" if pending_risk == "unknown" else "pending_approval",
                 execution_result="pending_approval",
                 execution_kind="pending_approval",
             )
@@ -2319,7 +2353,7 @@ def _build_result_after_execute(
     _inject_risk_fields(
         http_body,
         risk,
-        approved_high=bool(approval_granted and risk == "high"),
+        approved_high=bool(approval_granted and risk in _PENDING_APPROVAL_RISKS),
     )
     # Köprü task_dispatch / UI: kullanıcı görev metni (extract_text_for_dispatch için)
     http_body["normalized_task"] = _jsonable_normalized(norm)
@@ -2519,7 +2553,7 @@ def _build_result_after_execute(
             }
 
     gate_m = _risk_gate_execution_mode(risk)
-    if approval_granted and risk == "high":
+    if approval_granted and risk in _PENDING_APPROVAL_RISKS:
         gate_m = f"approved:{ctx.execution_mode or 'execution'}"
     if isinstance(last_ex, dict) and isinstance(last_ex.get("lumos_gate"), dict):
         last_ex["lumos_gate"]["risk_level"] = risk
@@ -2531,10 +2565,19 @@ def _build_result_after_execute(
     if (
         not approval_granted
         and isinstance(http_body, dict)
-        and http_body.get("risk_level") == "high"
+        and str(http_body.get("risk_level") or "") in _PENDING_APPROVAL_RISKS
     ):
+        pending_risk = str(http_body.get("risk_level") or "high")
         return _return_high_risk_pending(
-            ctx, reasoning, mode, payload, norm, plan=plan, repo_root=repo_root,
+            ctx,
+            reasoning,
+            mode,
+            payload,
+            norm,
+            plan=plan,
+            repo_root=repo_root,
+            confirmation_risk=pending_risk,
+            risk=pending_risk,
         )
 
     return _handle_task_return(
@@ -2554,8 +2597,8 @@ def validate_pending_for_approval(loaded: dict[str, Any]) -> None:
         raise ValueError("onay bekleyen kayıt değil")
     if loaded.get("policy_ok") is not True:
         raise ValueError("policy_ok gerekli")
-    if loaded.get("risk_level") != "high":
-        raise ValueError("yalnızca high-risk pending onayı")
+    if loaded.get("risk_level") not in _PENDING_APPROVAL_RISKS:
+        raise ValueError("yalnızca high veya unknown-risk pending onayı")
     if loaded.get("execution_mode") != "pending_approval":
         raise ValueError("beklenen pending_approval kaydı değil")
     plan = loaded.get("execution_plan")
@@ -2639,12 +2682,15 @@ def execute_approved_pending_record(
         parent_task=parent_task,
         audit=audit,
     )
+    resume_risk = str(loaded.get("risk_level") or "high")
+    if resume_risk not in _PENDING_APPROVAL_RISKS:
+        resume_risk = "high"
     result = _build_result_after_execute(
         plan=plan,
         ctx=ctx,
         norm=norm,
         reasoning=reasoning,
-        risk="high",
+        risk=resume_risk,
         mode=mode,
         payload=payload,
         approval_granted=True,
