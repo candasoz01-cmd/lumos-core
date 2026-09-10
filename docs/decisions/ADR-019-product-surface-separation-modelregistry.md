@@ -127,6 +127,9 @@ Kimi/Moonshot, **FAZ-1 sonrası provider evaluation backlog**'una eklenir. Mevcu
 - Router'ın model seçim sinyalleri (maliyet / gecikme / risk)
 - Lumos Agent Wall operatör yüzeyinin teknik paketi ve yetkilendirme sınırı
 - **Decision Queue / Human Action Queue** (2026-08-24): paralel oturumlarda “hangi süreç, hangi karar noktasında, kimin aksiyonunu bekliyor?” — iç operatör görünürlüğü; **2026-08-25: minimal dilim yetkilendirildi** (agent-status v2 + salt-okunur kuyruk görünümü; güvenilir-yazıcı sınırı ayrı onay); OD-063
+- **Görev rolleri / değişken uygulayıcı (OD-064):** kalıcı ajan-rol eşlemesi
+  reddedildi. Wall atama yetkisi, checkpoint/kurtarma ve denetçi bağımsızlığı
+  bu ADR'nin dışında tasarım bekler; ayrı ADR + `task-claim-v2` gerekir.
 - **Kullanıcı yüzü sızıntısı guard testi** (ADR-018'in `tests/test_legacy_layer_names_retired.py` deseniyle benzer). Kapsam tanımı — 2026-08-08 kararı: yalnız model adı değil, tüm internal-only alanlar doğrulanır: `provider`, `agent_id`, `instance_id`, `session_id`, `workspace_path` / worktree, heartbeat, PR/merge gate, iç ajan koordinasyonu. Doğrulama yüzeyi yalnız UI metni değil, **public Lumos API yanıtları dahil** tüm kullanıcıya açık yüzeylerdir. Kod bu turda yazılmaz; bu madde testin kabul kriteridir.
 - FAZ-1 sonrası provider evaluation paketi
 
