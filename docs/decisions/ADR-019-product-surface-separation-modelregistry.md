@@ -3,7 +3,7 @@
 | Alan | Değer |
 |------|-------|
 | Karar durumu | **Accepted (2026-08-08)** — sınır ve adlandırma kararı kabul edildi. **Ad güncellemesi (2026-08-08, kurucu):** operatör yüzeyinin ürün adı **Lumos Agent Wall** (eski ad: Command Wall — Lumos repo `docs/ops/00-command-wall.md` ad kararı; ADR-018 disiplini: yalnız görünen ad değişti, teknik tanımlayıcılar ve dosya adları değişmedi) |
-| Uygulama durumu | **Uygulanmadı** — bu turda kod, provider entegrasyonu, router veya UI değişikliği yok. **Alt kavram (2026-08-24):** Agent Wall → Decision Queue / Human Action Queue — fikir kaydı. **Güncelleme (2026-08-25):** minimal human-on-exception dilimi yetkilendirildi (OD-063); kod ayrı PR'larda, bu belge yalnız kaydı taşır |
+| Uygulama durumu | **Uygulanmadı** — bu turda kod, provider entegrasyonu, router veya UI değişikliği yok. **Alt kavram (2026-08-24):** Agent Wall → Decision Queue / Human Action Queue — fikir kaydı. **Güncelleme (2026-08-25):** minimal human-on-exception dilimi yetkilendirildi (OD-063); kod ayrı PR'larda, bu belge yalnız kaydı taşır. **Güncelleme (2026-09-10):** görev rolleri değişken (OD-064); kod yazılmadı |
 | OD | OD-062 |
 | Üst sınır | `docs/lumos-karar-sozlesmesi.md`, [`CONSTITUTION.md`](../CONSTITUTION.md), [`ROADMAP.md`](../ROADMAP.md) STOP LIST |
 | İlgili | ADR-004 (Router), ADR-006 (Firewall), ADR-007 (Trust), ADR-008 (Agent Network / Board), ADR-018 (iç katman adları), [`product-rules.md`](../product-rules.md) PR-001/002/005/010/011 |
@@ -63,6 +63,20 @@ Lumos Agent Wall'un görme yetkisi (hedef kapsam, uygulanmadı): görev → sağ
 **Decision Queue / Human Action Queue (2026-08-24, kurucu):** Agent Wall içinde Decision Queue ihtiyacı olarak kaydedilsin. Amaç, paralel ajan çalışmalarında insan onayı bekleyen karar noktalarını görünür hale getirmektir. Bu ayrı ürün veya ayrı ROADMAP maddesi değildir (`Lumos Workboard` / `Control Wall` ürünleştirilmez). Yeni ADR yok; OD-063.
 
 **Güncelleme (2026-08-25, kurucu):** "Uygulama kritik akışlardan sonra değerlendirilir" ertelemesi kaldırıldı; **minimal human-on-exception dilimi yetkilendirildi**. Yetkilendirilen kapsam: (1) agent-status şema v2 — `blocked` (insan-dışı bağımlılık) ve `awaiting_decision` (açık insan yetkisi) durumları + `wait_reason` ayrımı; (2) yalnız insan kararı bekleyen kayıtları süzen **salt-okunur** Decision Queue görünümü; (3) güvenilir-yazıcı sınırı — ayrı onay kapısı. Saha kanıtı: ADR-008 § Gözlem (2026-08-24). **Korunan sınırlar:** yeni ürün yok, yeni Agent Network yok, ajanlar arası doğrudan komut yok, auto-merge / auto-deploy / dış gönderim / geri döndürülemez eylem yok. ADR-008 gating'i ve STOP LIST değişmez; kapsam mevcut `src/lumos_board/` dilimlerinin şema + okuma genişletmesidir.
+
+**Görev rolleri (2026-09-10, kurucu):** Agent Wall rolleri ajan kimliğine kilitlenmez. «Claude hep denetçi, Cursor hep uygulayıcı» sabit rol değildir; bugünkü dosya çakışmasını önleyen geçici dağılım olabilir. Hedef akış:
+
+```text
+Görev açılır
+→ Duvar uygun ve boş uygulayıcıyı seçer
+→ Tek yazma yetkisi verir
+→ Uygulayıcı dolarsa/durursa güvenli teslim noktası oluşturur
+→ Başka uygulayıcı görevi devralır
+→ Bağımsız denetçi sonucu inceler
+→ İnsan onayı gereken kapıda durur
+```
+
+Normatif kurallar: aynı görev ve çalışma alanına aynı anda yalnız bir uygulayıcı yazar; uygulayıcı değişmeden önce mevcut çalışma dondurulur ve teslim kaydı dosyalar + dal + SHA + diff + testlere bağlanır; denetçi uygulayıcıyı boş ajana aktarabilir; denetçi uygulayıcıya dönüşürse kendi işini onaylayamaz (başka denetçi); kilit TTL / heartbeat / otomatik düşme ile sınırlıdır; yeni uygulayıcı kaldığı yerden devam eder. Yazma kilidi bugün [`task-claim-v1`](../contracts/task-claim-v1.md) ile vardır. Rol ataması, teslim paketi ve bağımsız denetçi zinciri **kodlanmadı**. Yeni orchestration katmanı açılmaz. OD-064.
 
 ### 3. Kullanıcı yüzüne sızmayacaklar — normatif
 
@@ -127,6 +141,7 @@ Kimi/Moonshot, **FAZ-1 sonrası provider evaluation backlog**'una eklenir. Mevcu
 - Router'ın model seçim sinyalleri (maliyet / gecikme / risk)
 - Lumos Agent Wall operatör yüzeyinin teknik paketi ve yetkilendirme sınırı
 - **Decision Queue / Human Action Queue** (2026-08-24): paralel oturumlarda “hangi süreç, hangi karar noktasında, kimin aksiyonunu bekliyor?” — iç operatör görünürlüğü; **2026-08-25: minimal dilim yetkilendirildi** (agent-status v2 + salt-okunur kuyruk görünümü; güvenilir-yazıcı sınırı ayrı onay); OD-063
+- **Görev rolleri / değişken uygulayıcı** (2026-09-10): Wall’un boş uygulayıcı seçmesi, teslim kaydı (dosya/dal/SHA/diff/test), bağımsız denetçi ve self-approve yasağı — karar kabul; kod yok; OD-064
 - **Kullanıcı yüzü sızıntısı guard testi** (ADR-018'in `tests/test_legacy_layer_names_retired.py` deseniyle benzer). Kapsam tanımı — 2026-08-08 kararı: yalnız model adı değil, tüm internal-only alanlar doğrulanır: `provider`, `agent_id`, `instance_id`, `session_id`, `workspace_path` / worktree, heartbeat, PR/merge gate, iç ajan koordinasyonu. Doğrulama yüzeyi yalnız UI metni değil, **public Lumos API yanıtları dahil** tüm kullanıcıya açık yüzeylerdir. Kod bu turda yazılmaz; bu madde testin kabul kriteridir.
 - FAZ-1 sonrası provider evaluation paketi
 

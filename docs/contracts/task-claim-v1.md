@@ -52,3 +52,7 @@ CLI ortak çalışma ağacını Git common directory üzerinden bulur. `LUMOS_BO
 Override doğrulamasında CLI `LUMOS_OVERRIDE_APPROVER_REGISTRY` ve `LUMOS_OVERRIDE_APPROVAL_SECRET` ortam değişkenlerini ister. CLI approval token üretmez; token yalnız güvenilen approval servisi tarafından oluşturulur.
 
 Bu sözleşme görev sonucunun başka ajana, insana veya güvenlik akışına yönlendirilmesini tanımlamaz. Bilgi yönlendirme ayrı bir sonraki dilimdir.
+
+## Rol vs yazma kilidi (2026-09-10)
+
+Claim `owner` alanı **yazma kilididir**, kalıcı ajan rolü değildir. Uygulayıcı ve denetçi görev bazında değişir (OD-064 / ADR-019). Aynı görev ve kapsama aynı anda bir ACTIVE yazar. Override zaten self-approve'u reddeder (kural 9). Güvenli teslim noktası — dondurulmuş dosyalar, dal, SHA, diff ve testlerin tek kayda bağlanması — v1'de **yoktur**; yeni uygulayıcı kaldığı yerden devam edebilsin diye ayrı dilimdir. Bu madde yeni orchestration katmanı açmaz.
