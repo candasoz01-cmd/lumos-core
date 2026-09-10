@@ -114,9 +114,9 @@ jobs:
         working-directory: ui
         run: npm run e2e:cyber
 
-      - name: Run WebMCP panel E2E (simulated harness)
+      - name: Run WebMCP panel mock E2E (injected modelContext; not native Chrome)
         working-directory: ui
-        run: npm run e2e:webmcp
+        run: npm run e2e:webmcp:mock
 
   ui-e2e:
     runs-on: ubuntu-latest
