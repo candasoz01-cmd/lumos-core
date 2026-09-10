@@ -10,6 +10,7 @@ import pytest
 from policy.confirmation_policy import (
     BRIDGE_HIGH_RISK_ACTION,
     BRIDGE_MEDIUM_DISPATCH_ACTION,
+    GRANTED_BY_BRIDGE,
     REASON_CONFIRMATION_DISABLED,
     REASON_CONFIRMATION_EXPIRED,
     REASON_CONFIRMATION_REQUIRED,
@@ -182,8 +183,10 @@ def test_shadow_grant_second_consume_fails(tmp_path: Path) -> None:
     attach_bridge_pending_confirmation(pending, base_dir=lumos, risk="medium", source="task_dispatch")
     cid = str(pending["confirmation_id"])
     sh = str(pending["confirmation_scope_hash"])
-    assert consume_confirmation(cid, sh, base_dir=lumos)
-    assert not consume_confirmation(cid, sh, base_dir=lumos)
+    assert consume_confirmation(cid, sh, base_dir=lumos, granted_by=GRANTED_BY_BRIDGE)
+    assert not consume_confirmation(
+        cid, sh, base_dir=lumos, granted_by=GRANTED_BY_BRIDGE
+    )
 
 
 def test_shadow_grant_check_noop_when_env_off(
@@ -220,7 +223,7 @@ def test_shadow_grant_consumed_blocks_check_when_enabled(
     cid = str(pending["confirmation_id"])
     sh = str(pending["confirmation_scope_hash"])
     grant = json.loads((lumos / "pending_confirmations" / f"{cid}.json").read_text(encoding="utf-8"))
-    assert consume_confirmation(cid, sh, base_dir=lumos)
+    assert consume_confirmation(cid, sh, base_dir=lumos, granted_by=GRANTED_BY_BRIDGE)
     result = check_confirmation(
         BRIDGE_HIGH_RISK_ACTION,
         grant["scope"],

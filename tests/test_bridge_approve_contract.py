@@ -18,6 +18,7 @@ from kando_runtime.task_dispatch import (
 from policy.confirmation_policy import (
     BRIDGE_HIGH_RISK_ACTION,
     BRIDGE_MEDIUM_DISPATCH_ACTION,
+    GRANTED_BY_BRIDGE,
     attach_bridge_pending_confirmation,
     bridge_approve_validate_legacy_pending,
     consume_bridge_confirmation,
@@ -212,7 +213,12 @@ def test_dispatch_approve_valid_token_executes_without_cu4_consume_when_env_off(
 
     grant = json.loads(grant_path.read_text(encoding="utf-8"))
     assert grant.get("consumed") is False
-    assert consume_confirmation(cid, scope_hash, base_dir=tmp_path / ".lumos")
+    assert consume_confirmation(
+        cid,
+        scope_hash,
+        base_dir=tmp_path / ".lumos",
+        granted_by=GRANTED_BY_BRIDGE,
+    )
     grant_after = json.loads(grant_path.read_text(encoding="utf-8"))
     assert grant_after.get("consumed") is True
 
