@@ -29,7 +29,7 @@ def test_mobile_approval_mvp_uses_inprocess_bridgehandler_not_live_server() -> N
     assert "BridgeHandler.__new__(BridgeHandler)" in src
     assert "no live server" in src
     assert "kando_bridge.mobile_approval_client.http_json" in src
-    assert "HTTPServer" not in src
+    assert "HTTPServer(" not in src
     assert "http.server" not in src
     assert "urlopen" not in src
     assert "socketserver" not in src

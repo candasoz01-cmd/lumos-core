@@ -1,7 +1,7 @@
 """PR-RB-05 — mobile approval poll client MVP in-process/integration.
 
 Not a live-server or network E2E. Requests never leave the pytest process:
-``BridgeHandler`` is built with ``__new__`` (no ``HTTPServer``) and
+``BridgeHandler`` is built with ``__new__`` (no listening HTTP server) and
 ``mobile_approval_client.http_json`` is monkeypatched. CI job ``test``
 collects this file via bare ``pytest``; a green run is not live mobile E2E.
 """
