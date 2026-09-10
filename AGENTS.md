@@ -31,16 +31,9 @@ elle kontrol edilir.
 
 ## Ajan koordinasyonu ve maliyet sınırı
 
-- Roller **görev bazlıdır**; ajan kimliğine kilitlenmez. Bugün denetçi olan
-  yarın başka görevin uygulayıcısı olabilir. «Claude hep denetçi, Cursor hep
-  uygulayıcı» sabit rol değildir (OD-064 / ADR-019).
 - Her işin tek bir koordinatörü vardır. Yardımcı ajanlar birbirleriyle uzun diyalog
   kurmaz; bulgularını koordinatöre teslim eder. Son karar, kapsam birleştirme ve kullanıcı
   raporu koordinatörün sorumluluğudur.
-- Aynı görev ve çalışma alanına aynı anda yalnız bir uygulayıcı yazar. Uygulayıcı
-  değişmeden önce iş dondurulur; teslim kaydı dosya, dal, SHA, diff ve testlere
-  bağlanır. Yeni uygulayıcı kaldığı yerden devam eder. Denetçi kendi uyguladığı
-  işi onaylayamaz.
 - Aynı anda en fazla iki yardımcı ajan kullanılır. Paralel çalışma yalnız birbirinden
   bağımsız dosya kapsamları veya salt-okunur incelemeler için açılır. Tek hedefli ya da
   sıralı işlerde yardımcı ajan kullanılmaz.

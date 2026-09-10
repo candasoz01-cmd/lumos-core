@@ -189,19 +189,6 @@ kullanır, ayrı bir motor kurmaz.
   sınırı ayrı onay. Kapsam `src/lumos_board/` dilimlerinin genişletmesidir;
   yeni ürün / yeni Agent Network / ajanlar arası doğrudan komut /
   auto-merge / auto-deploy / dış gönderim yok.
-- **Görev rolleri (2026-09-10, kurucu):** sabit «Claude denetçi / Cursor
-  uygulayıcı» yoktur; o yalnızca anlık dosya çakışmasını önleyen geçici
-  dağılım olabilir. Roller **görev bazlı ve değişkendir**. Model: merkezî
-  koordinasyon + değişken uygulayıcı + bağımsız son denetim. Aynı görev ve
-  çalışma alanına aynı anda yalnız bir uygulayıcı yazar. Uygulayıcı değişmeden
-  önce iş dondurulur; dosyalar, dal, SHA, diff ve testler teslim kaydına
-  bağlanır. Denetçi uygulayıcıyı boş ajana aktarabilir. Denetçi uygulayıcıya
-  dönüşürse kendi işini onaylayamaz; başka denetçi atanır. Kilit TTL,
-  heartbeat ve otomatik düşme ile sınırlıdır (mevcut `task-claim`). Yeni
-  uygulayıcı kaldığı yerden devam eder, aynı işi baştan tekrarlamaz. İnsan
-  onayı gereken kapıda durur. **Kod bu turda yazılmaz**; yeni orchestration
-  katmanı yok — mevcut `src/lumos_board/` claim/TTL üzerine oturur. OD-064 /
-  ADR-019.
 - STOP LIST'teki "yeni agent / orchestration katmanı" yasağı **sürer**; bu tanım
   onu delmez, yalnız gelecekteki işin adını ve sınırını sabitler.
 
