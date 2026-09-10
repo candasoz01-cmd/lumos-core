@@ -122,8 +122,7 @@ def _bwrap_isolation_prefix() -> list[str]:
         "bwrap",
         "--die-with-parent",
         "--new-session",
-        "--unshare-net",
-        "--unshare-pid",
+        "--unshare-all",
         "--proc",
         "/proc",
         "--dev",
@@ -137,15 +136,46 @@ def _bwrap_isolation_prefix() -> list[str]:
     ]
 
 
+def _current_uid_task_count() -> int:
+    """Count host threads for this real UID before setting RLIMIT_NPROC."""
+    uid = os.getuid()
+    total = 0
+    try:
+        statuses = Path("/proc").glob("[0-9]*/status")
+        for status in statuses:
+            try:
+                fields = {
+                    key.rstrip(":"): value.strip()
+                    for key, value in (
+                        line.split(maxsplit=1)
+                        for line in status.read_text(
+                            encoding="utf-8", errors="replace"
+                        ).splitlines()
+                        if "\t" in line or " " in line
+                    )
+                }
+                real_uid = int(fields["Uid"].split()[0])
+                if real_uid == uid:
+                    total += int(fields.get("Threads", "1"))
+            except (FileNotFoundError, KeyError, PermissionError, ValueError):
+                continue
+    except OSError as exc:
+        raise SandboxUnavailableError(f"cannot count host tasks: {exc}") from exc
+    if total < 1:
+        raise SandboxUnavailableError("cannot count host tasks for RLIMIT_NPROC")
+    return total
+
+
 def _resource_limited_command(command: Sequence[str], *, timeout: float) -> list[str]:
     """Wrap the sandbox launcher in host-enforced process resource limits."""
     prlimit = shutil.which("prlimit")
     if not prlimit:
         raise SandboxUnavailableError("prlimit not found on host PATH")
     cpu_soft = max(1, int(timeout) + 1)
+    nproc_limit = _current_uid_task_count() + _MAX_PROCESSES
     return [
         prlimit,
-        f"--nproc={_MAX_PROCESSES}:{_MAX_PROCESSES}",
+        f"--nproc={nproc_limit}:{nproc_limit}",
         f"--fsize={_MAX_OUTPUT_BYTES}:{_MAX_OUTPUT_BYTES}",
         f"--as={_MAX_ADDRESS_SPACE_BYTES}:{_MAX_ADDRESS_SPACE_BYTES}",
         f"--cpu={cpu_soft}:{cpu_soft + 1}",
@@ -176,6 +206,7 @@ def _run_bwrap_limited(
                 timeout=timeout,
                 check=False,
                 close_fds=True,
+                env=scrub_env_for_sandbox(),
             )
             stdout, stdout_limited = _bounded_file_bytes(stdout_file)
             stderr, stderr_limited = _bounded_file_bytes(stderr_file)

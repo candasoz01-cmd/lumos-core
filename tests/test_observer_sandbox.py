@@ -321,6 +321,39 @@ def test_clean_filter_capability_denial(repo: Path, tmp_path: Path) -> None:
     )
 
 
+def test_filter_cannot_read_operator_env_from_sandbox_pid1(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """§4.2 — launcher env is scrubbed before bwrap becomes sandbox PID 1."""
+    helper = repo / "pid1-env-clean.sh"
+    helper.write_text(
+        "#!/bin/sh\n"
+        "if tr '\\0' '\\n' </proc/1/environ | "
+        "grep -q '^LUMOS_OPERATOR_TOKEN='; then\n"
+        "  echo PID1_ENV_LEAKED >&2\n"
+        "else\n"
+        "  echo PID1_ENV_CLEAN >&2\n"
+        "fi\n"
+        "cat\n",
+        encoding="utf-8",
+    )
+    helper.chmod(helper.stat().st_mode | stat.S_IEXEC)
+    (repo / ".gitattributes").write_text("a.txt filter=pid1env\n", encoding="utf-8")
+    _git(repo, "config", "filter.pid1env.clean", str(helper))
+    (repo / "a.txt").write_text("pid1-env-probe\n", encoding="utf-8")
+    _git(repo, "add", ".gitattributes")
+    _git(repo, "commit", "-m", "pid1-env-probe")
+    monkeypatch.setenv("LUMOS_OPERATOR_TOKEN", "must-not-reach-pid1")
+
+    result = run_git_sandboxed(
+        ["diff", "--", "a.txt"],
+        cwd=repo,
+        allowed_roots=[repo],
+    )
+    assert "PID1_ENV_CLEAN" in result.stderr
+    assert "PID1_ENV_LEAKED" not in result.stderr
+
+
 def test_filter_cannot_open_controlling_tty(repo: Path) -> None:
     """Security Review Medium: --dev /dev + inherited stdin must not leak TTY.
 
@@ -373,12 +406,28 @@ def test_sandbox_uses_new_session_and_devnull_stdin(
     assert len(seen) >= 2
     for cmd, stdin in seen:
         assert cmd and Path(cmd[0]).name == "prlimit"
-        assert "--nproc=64:64" in cmd
+        nproc = next(part for part in cmd if part.startswith("--nproc="))
+        soft, hard = nproc.removeprefix("--nproc=").split(":")
+        assert int(soft) == int(hard)
+        assert int(soft) >= 65
         assert "--fsize=1048576:1048576" in cmd
         assert "--as=1073741824:1073741824" in cmd
         assert "bwrap" in [Path(part).name for part in cmd]
         assert "--new-session" in cmd
+        assert "--unshare-all" in cmd
         assert stdin is subprocess.DEVNULL
+
+
+def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "lumos_board.observer_sandbox._current_uid_task_count", lambda: 100
+    )
+    from lumos_board.observer_sandbox import _resource_limited_command
+
+    command = _resource_limited_command(["bwrap", "--help"], timeout=30)
+    assert "--nproc=164:164" in command
 
 
 def test_missing_prlimit_fails_closed(
