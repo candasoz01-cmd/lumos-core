@@ -58,6 +58,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from standing_merge.attestation_log import append_standing_attestation
+
 _TOKEN_SPLIT = re.compile(r"[^a-z0-9]+")
 
 SCHEMA = "lumos.standing_merge.verdict.v1"
@@ -208,6 +210,7 @@ def classify_paths(
         "human_merge_required": standing_class != CLASS_ELIGIBLE,
         "semantic_review_required": standing_class == CLASS_SEMANTIC,
         "attestation": attestation_state,
+        "attest_by": (attestation.evaluated_by.strip() if attestation is not None else ""),
         "head_sha": (head_sha or "").strip(),
         "paths": normalized,
         "hits": excluded_hits + semantic_hits,
@@ -234,6 +237,8 @@ def _resolve_semantic(
         # Stale or unbound attestation must not carry over to another head.
         return CLASS_SEMANTIC, [*base, "attestation_sha_mismatch"], "stale"
     if attestation.verdict == VERDICT_FACTUAL:
+        if not attestation.evaluated_by.strip():
+            return CLASS_SEMANTIC, [*base, "attestation_actor_missing"], "actor_missing"
         return CLASS_ELIGIBLE, [f"promoted:factual:{attestation.head_sha[:7]}"], "factual"
     if attestation.verdict == VERDICT_NORMATIVE:
         return (
@@ -320,6 +325,45 @@ def _flag_value(tokens: list[str], index: int) -> tuple[str, int]:
     return tokens[index + 1], index + 2
 
 
+def _persist_attestation_or_fail_closed(
+    attestation: SemanticAttestation | None,
+    verdict: dict[str, Any],
+) -> dict[str, Any]:
+    """Standing success via attestation requires an append-only record.
+
+    CI never calls this with an attestation. A missing or unwritable record
+    cannot open the standing lane.
+    """
+    if attestation is None or not attestation.evaluated_by.strip():
+        return verdict
+    try:
+        append_standing_attestation(
+            attest_by=attestation.evaluated_by,
+            head_sha=str(verdict.get("head_sha") or attestation.head_sha),
+            attest_sha=attestation.head_sha,
+            verdict=attestation.verdict,
+            standing_class=str(verdict["class"]),
+            paths=list(verdict.get("paths") or []),
+            reasons=list(verdict.get("reasons") or []),
+            standing_merge=bool(verdict.get("standing_merge")),
+        )
+    except OSError:
+        if not verdict.get("standing_merge"):
+            return verdict
+        downgraded = dict(verdict)
+        downgraded["class"] = CLASS_SEMANTIC
+        downgraded["standing_merge"] = False
+        downgraded["human_merge_required"] = True
+        downgraded["semantic_review_required"] = True
+        downgraded["attestation"] = "record_missing"
+        downgraded["reasons"] = [
+            *list(verdict.get("reasons") or []),
+            "attestation_record_write_failed",
+        ]
+        return downgraded
+    return verdict
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     parsed = parse_classify_argv(argv)
@@ -342,11 +386,12 @@ def main(argv: list[str] | None = None) -> int:
     verdict = classify_paths(
         paths, attestation=attestation, head_sha=str(parsed["head_sha"] or "")
     )
+    verdict = _persist_attestation_or_fail_closed(attestation, verdict)
     sys.stdout.write(json.dumps(verdict, ensure_ascii=False, indent=2) + "\n")
     standing_class = str(verdict["class"])
     sys.stderr.write(
         f"standing_class={standing_class} standing_merge={verdict['standing_merge']} "
-        f"attestation={verdict['attestation']}\n"
+        f"attestation={verdict['attestation']} attest_by={verdict.get('attest_by') or '-'}\n"
     )
     if standing_class == CLASS_ELIGIBLE:
         return 0

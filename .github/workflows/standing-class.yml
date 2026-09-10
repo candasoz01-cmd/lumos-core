@@ -6,8 +6,12 @@
 #   semantic_review (3) → job red. Path alone cannot decide. NOT a permanent ban:
 #                         re-run with a head-SHA-bound attestation
 #                           --head-sha <head> --attest factual|normative --attest-sha <head>
+#                           --attest-by <actor>
 #                         factual promotes to eligible, normative demotes to excluded.
-#                         CI never makes that judgement; it belongs to the merge decision.
+#                         CI never makes that judgement and must not pass --attest here.
+#                         The judgement belongs to the merge decision and is stored
+#                         append-only (actor, head SHA, path class). No record → no
+#                         standing success.
 #   excluded (2)        → job red. Hard exclusion, unlisted path, dash-prefixed path,
 #                         empty diff, or a missing trusted classifier. Fail-closed.
 #
@@ -107,3 +111,4 @@ jobs:
           set -euo pipefail
           python3 -m standing_merge.classify \
             --paths-nul "${RUNNER_TEMP}/changed-paths.nul" --
+          # CI reports path class only. Human olgu/norm judgement is not produced here.
