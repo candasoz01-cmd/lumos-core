@@ -16,6 +16,7 @@ import pytest
 
 from policy.confirmation_policy import (
     BRIDGE_HIGH_RISK_ACTION,
+    GRANTED_BY_BRIDGE,
     attach_bridge_pending_confirmation,
     check_confirmation,
     consume_confirmation,
@@ -168,7 +169,9 @@ def test_high_risk_approve_token_path_leaves_shadow_grant_unconsumed_when_env_of
     assert payload.get("accepted") is True
     assert not path.is_file()
     _grant_unconsumed(grant_path)
-    assert consume_confirmation(cid, scope_hash, base_dir=tmp_path / ".lumos")
+    assert consume_confirmation(
+        cid, scope_hash, base_dir=tmp_path / ".lumos", granted_by=GRANTED_BY_BRIDGE
+    )
 
 
 def test_high_risk_approve_consumes_shadow_grant_when_confirmation_enabled(
@@ -322,7 +325,9 @@ def test_dispatch_execute_exception_preserves_shadow_grant(
     assert "simulated executor failure" in str(payload.get("error") or "")
     assert not path.is_file()
     _grant_unconsumed(grant_path)
-    assert consume_confirmation(cid, scope_hash, base_dir=tmp_path / ".lumos")
+    assert consume_confirmation(
+        cid, scope_hash, base_dir=tmp_path / ".lumos", granted_by=GRANTED_BY_BRIDGE
+    )
 
 
 def test_shadow_grant_check_validate_before_consume_when_enabled(
@@ -352,4 +357,6 @@ def test_shadow_grant_check_validate_before_consume_when_enabled(
     )
     assert result.allowed
     _grant_unconsumed(grant_path)
-    assert consume_confirmation(cid, scope_hash, base_dir=lumos)
+    assert consume_confirmation(
+        cid, scope_hash, base_dir=lumos, granted_by=GRANTED_BY_BRIDGE
+    )

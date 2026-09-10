@@ -9,6 +9,8 @@ import pytest
 
 from policy.confirmation_policy import (
     BRIDGE_HIGH_RISK_ACTION,
+    GRANTED_BY_BRIDGE,
+    GRANTED_BY_CLI,
     REASON_CONFIRMATION_DISABLED,
     REASON_CONFIRMATION_EXPIRED,
     REASON_CONFIRMATION_REQUIRED,
@@ -125,13 +127,28 @@ def test_enabled_expired_grant_blocks(tmp_path: Path, monkeypatch: pytest.Monkey
 def test_consume_confirmation_single_use(tmp_path: Path) -> None:
     scope = {"id": "c1"}
     pending = request_confirmation("delete_permanent", scope, base_dir=tmp_path)
-    assert consume_confirmation(pending.confirmation_id, pending.scope_hash, base_dir=tmp_path)
-    assert not consume_confirmation(pending.confirmation_id, pending.scope_hash, base_dir=tmp_path)
+    assert consume_confirmation(
+        pending.confirmation_id,
+        pending.scope_hash,
+        base_dir=tmp_path,
+        granted_by=GRANTED_BY_CLI,
+    )
+    assert not consume_confirmation(
+        pending.confirmation_id,
+        pending.scope_hash,
+        base_dir=tmp_path,
+        granted_by=GRANTED_BY_CLI,
+    )
 
 
 def test_consume_wrong_scope_hash_fails(tmp_path: Path) -> None:
     pending = request_confirmation("external_write", {"target": "mail"}, base_dir=tmp_path)
-    assert not consume_confirmation(pending.confirmation_id, "wrong-hash", base_dir=tmp_path)
+    assert not consume_confirmation(
+        pending.confirmation_id,
+        "wrong-hash",
+        base_dir=tmp_path,
+        granted_by=GRANTED_BY_CLI,
+    )
 
 
 def test_unknown_action_passes_when_enabled(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -144,7 +161,12 @@ def test_consumed_grant_blocks_check(tmp_path: Path, monkeypatch: pytest.MonkeyP
     monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "true")
     scope = {"id": "used"}
     pending = request_confirmation("restore_task", scope, base_dir=tmp_path)
-    assert consume_confirmation(pending.confirmation_id, pending.scope_hash, base_dir=tmp_path)
+    assert consume_confirmation(
+        pending.confirmation_id,
+        pending.scope_hash,
+        base_dir=tmp_path,
+        granted_by=GRANTED_BY_CLI,
+    )
     result = check_confirmation(
         "restore_task",
         scope,
@@ -247,6 +269,7 @@ def test_bridge_shadow_grant_wrong_scope_hash_blocks_consume(tmp_path: Path) -> 
         str(pending["confirmation_id"]),
         "deadbeefdeadbeef",
         base_dir=lumos,
+        granted_by=GRANTED_BY_BRIDGE,
     )
 
 
@@ -266,7 +289,12 @@ def test_check_confirmation_validate_only_does_not_consume(
     grant_path = tmp_path / "pending_confirmations" / f"{pending.confirmation_id}.json"
     grant = json.loads(grant_path.read_text(encoding="utf-8"))
     assert grant.get("consumed") is not True
-    assert consume_confirmation(pending.confirmation_id, pending.scope_hash, base_dir=tmp_path)
+    assert consume_confirmation(
+        pending.confirmation_id,
+        pending.scope_hash,
+        base_dir=tmp_path,
+        granted_by=GRANTED_BY_CLI,
+    )
 
 
 def test_consume_confirmation_expired_grant_fails(tmp_path: Path) -> None:
@@ -278,7 +306,12 @@ def test_consume_confirmation_expired_grant_fails(tmp_path: Path) -> None:
     past = datetime.now(timezone.utc) - timedelta(minutes=5)
     data["expires_at"] = past.replace(microsecond=0).isoformat().replace("+00:00", "Z")
     grant_path.write_text(json.dumps(data), encoding="utf-8")
-    assert not consume_confirmation(pending.confirmation_id, pending.scope_hash, base_dir=tmp_path)
+    assert not consume_confirmation(
+        pending.confirmation_id,
+        pending.scope_hash,
+        base_dir=tmp_path,
+        granted_by=GRANTED_BY_CLI,
+    )
 
 
 def test_consume_confirmation_unaffected_by_env_gate(
@@ -288,11 +321,21 @@ def test_consume_confirmation_unaffected_by_env_gate(
     monkeypatch.delenv("LUMOS_CONFIRMATION_ENABLED", raising=False)
     assert not is_confirmation_enabled()
     pending = request_confirmation("external_write", {"target": "mail"}, base_dir=tmp_path)
-    assert consume_confirmation(pending.confirmation_id, pending.scope_hash, base_dir=tmp_path)
+    assert consume_confirmation(
+        pending.confirmation_id,
+        pending.scope_hash,
+        base_dir=tmp_path,
+        granted_by=GRANTED_BY_CLI,
+    )
 
 
 def test_consume_confirmation_unknown_id_fails(tmp_path: Path) -> None:
-    assert not consume_confirmation("missing-id", "deadbeef", base_dir=tmp_path)
+    assert not consume_confirmation(
+        "missing-id",
+        "deadbeef",
+        base_dir=tmp_path,
+        granted_by=GRANTED_BY_CLI,
+    )
 
 
 def test_bridge_shadow_grant_expired_blocks_check_when_enabled(
