@@ -325,14 +325,16 @@ def apply_mode_change(
     layer: ResourceLayer | str,
     mode: ResourceMode,
     *,
-    user_approved: bool = True,
+    user_approved: bool = False,
     base_dir: Path | None = None,
     raise_on_denied: bool = False,
 ) -> ApplyModeResult:
     """
     Persist a mode change only when user_approved is True.
 
-    By default returns ApplyModeResult(ok=False, error='approval_required').
+    Default is fail-closed: omitted or False → ApplyModeResult(
+    ok=False, error='approval_required') and no persist. Callers must pass
+    user_approved=True after an explicit human decision.
     Set raise_on_denied=True to raise ResourceModeApprovalRequired instead.
     """
     normalized = _normalize_layer(layer)

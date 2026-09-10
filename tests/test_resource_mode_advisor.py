@@ -1,11 +1,13 @@
 """Tests for shared resource mode advisor."""
 from __future__ import annotations
 
+import inspect
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 
+from integrations.quantum_usage_tracker import apply_quantum_mode_change
 from integrations.resource_mode_advisor import (
     CONNECTS_PER_DAY_ACTIVE,
     EVENTS_PER_WEEK_ACTIVE,
@@ -81,6 +83,37 @@ def test_propose_mode_change_never_auto(tmp_lumos_base: Path) -> None:
     assert payload["requires_approval"] is True
     assert payload["layer"] == "cyber"
     assert "proposed_mode" in payload
+
+
+def test_apply_omitted_user_approved_defaults_to_denied(tmp_lumos_base: Path) -> None:
+    """F11: omitting user_approved must not persist (default is False)."""
+    result = apply_mode_change(
+        ResourceLayer.LOCAL_MODELS,
+        "active",
+        base_dir=tmp_lumos_base,
+    )
+    assert result.ok is False
+    assert result.error == "approval_required"
+    assert not resource_modes_path(tmp_lumos_base).is_file()
+    assert not resource_usage_path(tmp_lumos_base).is_file()
+
+
+def test_apply_and_quantum_defaults_are_fail_closed() -> None:
+    apply_param = inspect.signature(apply_mode_change).parameters["user_approved"]
+    quantum_param = inspect.signature(apply_quantum_mode_change).parameters[
+        "user_approved"
+    ]
+    assert apply_param.default is False
+    assert quantum_param.default is False
+
+
+def test_apply_quantum_omitted_user_approved_does_not_persist(
+    tmp_lumos_base: Path,
+) -> None:
+    result = apply_quantum_mode_change("active", base_dir=tmp_lumos_base)
+    assert result.ok is False
+    assert result.error == "approval_required"
+    assert not resource_modes_path(tmp_lumos_base).is_file()
 
 
 def test_apply_without_approval_blocked(tmp_lumos_base: Path) -> None:
