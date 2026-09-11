@@ -38,9 +38,9 @@ Kullanıcı yüzü Lumos sohbetidir. Platform ajanı (iOS/GitHub/Drive) Local ar
 
 | Anahtar | Repo | Kapsam | Risk | Kanıt dönüşü |
 |---------|------|--------|------|----------------|
-| `ios-logo` | `candasoz01-cmd/Lumos` | Kaynak (yazılmaz): lumos-core `ui/public/chat-lumos-mark.svg`. Üretilen AppIcon: `ios/Assets.xcassets/AppIcon.appiconset` (Lumos checkout varsa `ios/README.md` + `scripts/build_ios_logo_assets.py` + `scripts/sync_ios_assets.py` çıktısı). apple-touch web’dir (`ui` `rel=apple-touch-icon`); launch bu zarfta yok — ayrı platform anahtarı. | `write_local` (mevcut CU4) | `INFORMATION` + `user_relevant=true` — `RESULT` kullanıcı rotası açılmaz |
+| `ios-logo` | `candasoz01-cmd/Lumos` | Donmuş AppIcon kapsamları (yazma): `brand/ios-export/Assets.xcassets/AppIcon.appiconset`, `ios/LumosApp/Assets.xcassets/AppIcon.appiconset`. Mevcut üretim girdisi: `brand/source/logo001.png`. Yedek: `web/static/brand/logo001.png`. Hedef işaret lumos-core `ui/public/chat-lumos-mark.svg` — mevcut üretici henüz tüketmiyor; çalışan bağlantı değildir. apple-touch web’dir (`ui` `rel=apple-touch-icon`); launch bu zarfta yok — ayrı platform anahtarı. | `write_local` (mevcut CU4) | `INFORMATION` + `user_relevant=true` — `RESULT` kullanıcı rotası açılmaz |
 
-Kod karşılığı: `src/core/platform_task_envelope.py` — donmuş katalog; eşleşmeyen cümle **STOP**. ADR-004 router ve ADR-008 Agent Network değildir. Chat bağlama (`api/bridge/chat.js`) bu dilimde yoktur. `Resources/Assets.xcassets/...` uydurma yoldur; katalogda yoktur.
+Kod karşılığı: `src/core/platform_task_envelope.py` — donmuş, deterministik katalog (checkout/parser yok); eşleşmeyen cümle **STOP**. ADR-004 router ve ADR-008 Agent Network değildir. Chat bağlama (`api/bridge/chat.js`) bu dilimde yoktur. `Resources/Assets.xcassets/...` ve `ios/Assets.xcassets/AppIcon.appiconset` uydurma/yanlış yoldur; katalogda yoktur.
 
 ---
 

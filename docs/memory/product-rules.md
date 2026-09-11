@@ -29,7 +29,7 @@ Taşıma süreci ve durum tanımları: [`chatgpt-saved-memories-migration.md`](.
 | 2 | Core, Local ve Sentinel **iç katmanlardır**; kullanıcıya gösterilmez. | Taşındı |
 | 3 | Lumos, kullanıcı ile dış dünya arasında **güvenli geçit ve orkestratör** olarak konumlanır. | Taşındı |
 | 4 | İç katmanlar dışarıdan komut veya veri **doğrudan kabul etmez**; akış Lumos geçidinden geçer. | Taşındı |
-| 5 | Kullanıcı platform ajanıyla (GitHub / iOS / Drive) **doğrudan konuşmaz**; Lumos mevcut claim + iş paketi ile iletir, kanıtı kendi sohbetinden sunar. `ios-logo` repo `candasoz01-cmd/Lumos`; AppIcon `ios/` altında üretilir (`Resources/Assets.xcassets` uydurma). apple-touch web’dir; ayrı anahtar. | PR-006 — [`docs/product-rules.md`](../product-rules.md) |
+| 5 | Kullanıcı platform ajanıyla (GitHub / iOS / Drive) **doğrudan konuşmaz**; Lumos mevcut claim + iş paketi ile iletir, kanıtı kendi sohbetinden sunar. `ios-logo` repo `candasoz01-cmd/Lumos`; donmuş AppIcon kapsamları `brand/ios-export/Assets.xcassets/AppIcon.appiconset` ve `ios/LumosApp/Assets.xcassets/AppIcon.appiconset`. Üretim girdisi `brand/source/logo001.png`, yedek `web/static/brand/logo001.png`. Hedef işaret `ui/public/chat-lumos-mark.svg` henüz üreticiye bağlı değil. apple-touch web’dir; launch ayrı anahtar. | PR-006 — [`docs/product-rules.md`](../product-rules.md) |
 
 ---
 
