@@ -28,6 +28,19 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **ürün 
 | PR-003 | Lumos, kullanıcı ile dış dünya arasında **güvenli geçit ve orkestratör** olarak çalışır. | **aktif kural** |
 | PR-004 | İç katmanlar dışarıdan komut veya veri **doğrudan kabul etmez**; akış Lumos geçidinden geçer. | **aktif kural** |
 | PR-005 | Son kullanıcı yüzeyinde **sağlayıcı/model adı** (OpenAI, Claude, Gemini, DeepSeek, Kimi/Moonshot vb.), `session_id`, `instance_id`, worktree yolu, heartbeat, PR/merge kapısı ve iç ajan koordinasyonu **görünmez**. Kullanıcıya model seçtiren arayüz yapılmaz. Bu ayrıntılar yalnız iç operatör yüzeyine (Lumos Agent Wall) açıktır. ([ADR-019](decisions/ADR-019-product-surface-separation-modelregistry.md)) | **aktif kural** |
+| PR-006 | Kullanıcı GitHub, iOS, Drive veya başka bir **platform ajanıyla doğrudan konuşmaz**. İsteği Lumos sohbetine anlatır; Lumos niyeti ve hedef repo/kapsamı belirler, mevcut Board claim + AGENTS.md iş paketi ile ilgili ajana iletir; ajanın diff/test kanıtını kendi sohbetinden sunar. Riskli yazma, silme, paylaşma, gönderme, merge, deploy ve yayınlama mevcut insan-onayı kapılarından geçer (CU4, `profiles.py`, ADR-027). Yeni yönlendirme, kimlik veya onay sistemi kurulmaz. | **aktif kural** |
+
+---
+
+## Platform ajan yönlendirmesi (PR-006)
+
+Kullanıcı yüzü Lumos sohbetidir. Platform ajanı (iOS/GitHub/Drive) Local arkasındaki icracıdır; kullanıcıya ayrı bir sohbet açmaz.
+
+| Anahtar | Repo | Kapsam | Risk | Kanıt dönüşü |
+|---------|------|--------|------|----------------|
+| `ios-logo` | `Lumos` (`candasoz01-cmd/Lumos`) | `Resources/Assets.xcassets/AppIcon*` | `write_local` (mevcut CU4) | `INFORMATION` + `user_relevant=true` — `RESULT` kullanıcı rotası açılmaz |
+
+Kod karşılığı: `src/core/platform_task_envelope.py` — donmuş katalog; eşleşmeyen cümle **STOP**. ADR-004 router ve ADR-008 Agent Network değildir. Chat bağlama (`api/bridge/chat.js`) bu dilimde yoktur.
 
 ---
 
@@ -100,7 +113,10 @@ Aşağıdaki maddeler CI veya public sınır nedeniyle ertelendi veya taşındı
 - `docs/security-architecture.md` — gizli bilgi ve kasa ilkeleri
 - `docs/project-map.md` — dizin ve runtime haritası
 - `docs/decision-log.md` — karar ve erteleme günlüğü
+- `docs/contracts/task-claim-v1.md` — Board claim (repo, kapsam, sahip)
+- `docs/contracts/single-reader-gateway-v1.md` — ajanlar kullanıcıya doğrudan rapor vermez
+- `docs/decisions/ADR-008-agent-network-boundary.md` — yatay AI→AI komut yok
 
 ---
 
-Son güncelleme: 2026-06-17
+Son güncelleme: 2026-09-11
