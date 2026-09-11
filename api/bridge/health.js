@@ -2,6 +2,7 @@ import {
   hasLumosSession,
   hostedGeminiKey,
   hostedOpenAIKey,
+  OPENAI_HOSTED_MODEL,
 } from "../_lib/hosted_lumos.js";
 import { captureError } from "../_lib/observability.js";
 
@@ -23,6 +24,6 @@ export default async function handler(req, res) {
     gate: true,
     llm: ready,
     mode: "hosted_secure",
-    // PR-005 / ADR-019: model adı kullanıcı yüzeyine yazılmaz.
+    model: hostedOpenAIKey() ? OPENAI_HOSTED_MODEL : "fallback",
   });
 }

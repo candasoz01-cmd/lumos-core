@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import argparse
 import difflib
-import hmac
 import importlib
 import json
 import os
@@ -1572,7 +1571,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
         auth = (self.headers.get("Authorization") or "").strip()
         if auth.lower().startswith("bearer "):
             token = auth[7:].strip() or token
-        if not hmac.compare_digest(token, secret):
+        if token != secret:
             self._reject(401, "geçersiz veya eksik token (X-Kando-Token veya Authorization: Bearer)")
             return False
         return True
