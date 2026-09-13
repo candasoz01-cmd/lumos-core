@@ -22,6 +22,29 @@
 
 **lumos-book-v0.1** (`0799c34`): `docs/lumos-book-outline.md` bu sürüme yeni fikir eklenmez. Yeni bölüm / vizyon / manifesto fikirleri yalnızca backlog'a veya yeni taslak dosyasına gider.
 
+## Kitap vizyon notları (v0.1 dondurma)
+
+v0.2 / Belge §11 öncesi omurgaya yazılmaz. Karar Duvarı kaydı değildir; uygulama veya lansman taahhüdü taşımaz.
+
+```
+ID: KITAP-VIZYON-2026-09-13
+[2026-09-13] vizyon notu — kitap v0.2 adayı
+Kaynak: bugünkü konuşma (kurucu kitap durumu kontrolü).
+
+Kitap şirket tanıtım broşürü değildir. We Lock AI / Lumos vizyonu hikâyenin içinde görünür: neden böyle bir sistem kurulduğu, kullanıcı kontrolü, insan denetimi, tek dış kapı, hizmetlerin birbirleriyle çalışması, erişilebilirlik, şeffaflık.
+
+Kurucu cümle:
+«Lumos’un görevi bütün hizmetleri kendisi üretmek değil; kullanıcının isteği doğrultusunda doğru hizmetlerle konuşup doğru hizmeti alabilmesini sağlamaktır.»
+
+Ayak: servisleri canlı gösterme — bağlıyoruz ama perde arkasında saklamıyoruz.
+
+Kitap yalnız «Lumos nasıl doğdu?» değil; bir noktada «We Lock AI neden var ve nasıl bir teknoloji dünyası görmek istiyor?» sorusunun da cevabı olmalıdır.
+
+Yakın ama aynı not değil: LUMOS-0017 (model orkestrasyonu), lumos-2040-vision-draft Robotics (üretici değil, connector katmanı).
+Kapsam dışı: lumos-book-v0.1 outline’a doğrudan yazma; PDF/web yayını; ürün vaadi.
+Etkilenen dosyalar: docs/drafts/BACKLOG.md
+```
+
 ## Merged taslaklar
 
 | Durum | Bölüm | Dosya | Not |
