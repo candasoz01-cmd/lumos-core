@@ -68,8 +68,9 @@ The current panel defines visible modules and product direction without claiming
 
 - Lumos Core is in early active development.
 - The repository is open source under the Apache-2.0 license.
-- The project is not yet a stable, fully contribution-ready open source product. External contributions are reviewed on a controlled basis; CONTRIBUTING.md will be added later.
+- The project is not yet a stable, fully contribution-ready open source product. External contributions are reviewed on a controlled basis — see [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and PR expectations.
 - Visual brand assets, the Lumos / We Lock AI names, official services, production API access, and user data are **not** covered by the Apache-2.0 license. See [NOTICE](NOTICE).
+- Suspected vulnerabilities: please follow [SECURITY.md](SECURITY.md) rather than opening a public issue.
 
 ## Prerequisites
 
