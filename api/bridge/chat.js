@@ -132,7 +132,10 @@ export default async function handler(req, res) {
       await captureError(new Error("model_unavailable"), { route: ROUTE, errorCode: "model_unavailable" });
       return res.status(502).json({ error: "model_unavailable", errorKind: "model_error" });
     }
-    return res.status(200).json({ ...answer, mode: "hosted_chat", identity });
+    // PR-005 / ADR-019: `provider` ve `model` iç operatör alanlarıdır; kullanıcıya
+    // açık API yanıtında yer almaz. Yalnız Lumos Agent Wall bu ayrıntıyı görür.
+    const { provider: _p, model: _m, ...userVisible } = answer;
+    return res.status(200).json({ ...userVisible, mode: "hosted_chat", identity });
   } catch (e) {
     await captureError(e, { route: ROUTE, errorCode: "model_unavailable_exception" });
     return res.status(502).json({ error: "model_unavailable", errorKind: "model_error" });

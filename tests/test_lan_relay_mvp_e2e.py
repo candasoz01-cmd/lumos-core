@@ -188,9 +188,13 @@ def test_discover_no_secret(relay_server: tuple[int, RelayState, RelayConfig]) -
     port, state, _ = relay_server
     status, payload = _relay_get(port, "/relay/discover")
     assert status == 200
-    assert payload["pairing_id"] == state.pairing_id
+    # Eşleştirme kodu kimlik doğrulamasız keşif yanıtında ASLA yer almaz:
+    # LAN'daki herkes kodu okuyup relay_token çıkarabilirdi.
+    assert "pairing_id" not in payload
+    assert state.pairing_id not in json.dumps(payload)
     assert "KANDO_BRIDGE_SECRET" not in json.dumps(payload)
     assert payload["device_name"] == "Test-PC"
+    assert payload["requires_pairing"] is True
 
 
 def test_lan_relay_mvp_e2e(
@@ -278,7 +282,9 @@ def test_mobile_client_discover_and_pending_cli(
 
     assert mobile_cli_main(["--relay-url", relay_url, "discover"]) == 0
     discover_out = capsys.readouterr().out
-    assert state.pairing_id in discover_out
+    # Keşif cihazı tanıtır, eşleştirme kodunu vermez; kod bant dışı taşınır.
+    assert state.pairing_id not in discover_out
+    assert "Test-PC" in discover_out
 
     capsys.readouterr()
     assert mobile_cli_main(["--relay-url", relay_url, "pair", state.pairing_id]) == 0

@@ -2,7 +2,6 @@ import {
   hasLumosSession,
   hostedGeminiKey,
   hostedOpenAIKey,
-  OPENAI_HOSTED_MODEL,
 } from "../_lib/hosted_lumos.js";
 import { captureError } from "../_lib/observability.js";
 
@@ -22,8 +21,8 @@ export default async function handler(req, res) {
     chat: ready ? "ready" : "unconfigured",
     visionConfigured: ready,
     visionLastStatus: "—",
-    model: hostedOpenAIKey() ? OPENAI_HOSTED_MODEL : "fallback",
-    provider: hostedOpenAIKey() ? "openai" : "google",
+    // PR-005 / ADR-019: sağlayıcı ve model adı kullanıcı yüzeyine yazılmaz.
+    // Bu ayrıntı yalnız Lumos Agent Wall (iç operatör yüzeyi) kapsamındadır.
     runtime: "hosted",
   });
 }

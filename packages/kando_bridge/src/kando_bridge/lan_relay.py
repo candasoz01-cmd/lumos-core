@@ -8,6 +8,7 @@ mobile receives a relay-scoped token after POST /relay/pair.
 from __future__ import annotations
 
 import argparse
+import hmac
 import json
 import os
 import secrets
@@ -88,7 +89,9 @@ class RelayState:
     def discover_payload(self) -> dict[str, Any]:
         return {
             "schema_version": SCHEMA_VERSION,
-            "pairing_id": self.pairing_id,
+            # Eşleştirme kodu kimlik doğrulamasız keşif yanıtında verilmez:
+            # LAN'daki herhangi biri kodu alıp relay_token çıkarabilirdi.
+            # Kod yalnız PC yüzeyinde gösterilir ve bant dışı taşınır.
             "device_id": self.device_id,
             "device_name": self.device_name,
             "relay_url": self.relay_base_url,
@@ -102,7 +105,7 @@ class RelayState:
             return None, "pairing_code_required"
         if not self.pairing_valid():
             return None, "pairing_expired"
-        if code != self.pairing_id:
+        if not hmac.compare_digest(code, self.pairing_id or ""):
             return None, "invalid_pairing_code"
         token = _relay_token()
         mobile_id = (mobile_device_id or "").strip() or f"mobile_{secrets.token_hex(4)}"
@@ -676,9 +679,16 @@ def make_handler(config: RelayConfig) -> type[BaseHTTPRequestHandler]:
                 self._send_html(200, build_mobile_ui_html())
                 return
             if path == "/relay/discover":
-                if not state.pairing_valid():
-                    state.refresh_pairing(config.pairing_ttl_seconds)
-                self._send_json(200, {"ok": True, **state.discover_payload()})
+                # Kimlik doğrulamasız istek eşleştirme penceresini yenileyemez;
+                # aksi halde pencere dışarıdan süresiz açık tutulabilirdi.
+                self._send_json(
+                    200,
+                    {
+                        "ok": True,
+                        "pairing_open": state.pairing_valid(),
+                        **state.discover_payload(),
+                    },
+                )
                 return
             if path == "/health":
                 self._send_json(
