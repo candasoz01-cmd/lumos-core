@@ -22,6 +22,9 @@ approval. PR [#850](https://github.com/candasoz01-cmd/lumos-core/pull/850)
 tracks the remediation. This branch description does not certify a production
 deployment. The production URL, Devpost entry and demo video remain frozen;
 no additional features or presentation changes are included.
+PR [#852](https://github.com/candasoz01-cmd/lumos-core/pull/852) merged on
+2026-09-13 as a documentation-only governance change and did not change
+runtime code.
 
 Turkish: [README.tr.md](README.tr.md) · [docs/tr/](docs/tr/)
 
