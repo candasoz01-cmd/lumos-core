@@ -1,0 +1,98 @@
+name: Bug report
+description: Something in lumos-core behaves incorrectly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not use this form for a suspected security vulnerability.
+        Follow [SECURITY.md](../blob/main/SECURITY.md) instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you observed, and what you expected instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Smallest sequence that shows the problem.
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+
+  - type: input
+    id: commit
+    attributes:
+      label: Commit or branch
+      description: Output of `git rev-parse --short HEAD`.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Setup layer
+      description: See docs/getting-started.md
+      options:
+        - "Katman A — UI only (npm run dev in ui/)"
+        - "Katman B — full local bridge"
+        - "Not applicable / other"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Python core (src/)
+        - API (api/)
+        - UI / panel (ui/, panel/)
+        - Rust crates (crates/)
+        - macOS app (macos/)
+        - Build, CI, or tooling
+        - Docs
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: local-checks
+    attributes:
+      label: Local check output
+      description: |
+        If relevant, paste the failing part of `ruff check .` or `make test`.
+        `make test` is the CI-parity entry point — a bare `pytest` may silently
+        skip tests. See CONTRIBUTING.md.
+      render: shell
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: |
+        OS:
+        Python:
+        Node:
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: hygiene
+    attributes:
+      label: Before submitting
+      options:
+        - label: This is not a security vulnerability report.
+          required: true
+        - label: I searched existing issues.
+          required: true
+        - label: My report contains no secrets, credentials, or real user data.
+          required: true
