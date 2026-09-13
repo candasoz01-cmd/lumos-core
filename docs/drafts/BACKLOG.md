@@ -45,6 +45,14 @@ Kapsam dışı: lumos-book-v0.1 outline’a doğrudan yazma; PDF/web yayını; �
 Etkilenen dosyalar: docs/drafts/BACKLOG.md
 ```
 
+```
+ID: KITAP-KAYNAK-2026-09-13-MS-SOVEREIGNTY
+[2026-09-13] kitap kaynağı / mimari referans — kitap v0.2 adayı
+Canonical: docs/analysis/microsoft-europe-sovereignty-2025-book-ref.md
+Kısa: Microsoft 2025 Avrupa dijital egemenliği (Data Guardian, dış anahtar, confidential computing) Lumos ürünü değildir; kontrol → sınırlı yetki → insan gözetimi → kanıtlanabilir erişim → çoklu sağlayıcı ilkelerinin kurumsal karşılığıdır. Canlı servis gösterme notuna (KITAP-VIZYON-2026-09-13) dış referans.
+Kapsam dışı: lumos-book-v0.1 outline’a doğrudan yazma.
+```
+
 ## Merged taslaklar
 
 | Durum | Bölüm | Dosya | Not |
