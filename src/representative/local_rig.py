@@ -421,7 +421,7 @@ def main(argv: list[str] | None = None) -> int:
         default="realtime",
         choices=("cloud", "local", "realtime"),
         help="realtime=akışlı (VARSAYILAN — test 7/8 canlı kanıtı: medyan "
-        "1.92/2.28s); cloud=toplu gpt-4o-mini-transcribe; local=faster-whisper",
+        "1.92/2.28s); cloud=toplu gpt-transcribe; local=faster-whisper",
     )
     parser.add_argument("--stt-model", default="small", help="faster-whisper model size (local)")
     parser.add_argument("--source-lang", default="tr", choices=("tr", "en"))

@@ -4,6 +4,7 @@ import test from "node:test";
 
 import handler, {
   REALTIME_MODEL,
+  REALTIME_TRANSCRIPTION_MODEL,
   sanitizeRealtimeDeviceContext,
 } from "../api/mobile/realtime-token.js";
 import { sealSession } from "../api/_lib/lumos_session.js";
@@ -122,8 +123,9 @@ test("realtime token returns only the short-lived client secret", async () => {
       assert.equal(body.session.audio.input.turn_detection.create_response, true);
       assert.equal(body.session.audio.input.turn_detection.interrupt_response, true);
       assert.deepEqual(body.session.audio.input.transcription, {
-        model: "gpt-4o-mini-transcribe",
-        language: "tr",
+        model: REALTIME_TRANSCRIPTION_MODEL,
+        languages: ["tr"],
+        delay: "low",
       });
       return {
         ok: true,
