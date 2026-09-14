@@ -18,7 +18,7 @@ Durum sözlüğü: **Çalışıyor** (canlıda/testli kullanılabilir) · **Geli
 | Görev sistemi | Geliştiriliyor | 60 | v1 | `src/task_engine` (27 py); panel/TaskEngine store ayrıklığı (borç kaydı var) |
 | Dosya akışı | Çalışıyor | 70 | **v0.5 kabul** | Panel Dosya seç / Yükle + `UPLOAD_URL`→`/api/bridge/panel/upload` canlı; #659/#661; `prod-verify` **RESULT PASS** (2026-07-22 ve yeniden 2026-08-12 UTC, exit 0). Auth’suz POST→401 `bridge_proxy_unauthorized` (uç ayakta). Sandbox/trash derinliği Faz 1 dışı. |
 | Memory | Geliştiriliyor | 50 | v1 kısmi | `src/memory` secure store, chat memory prompt; Memory Graph (ADR-005) fikir |
-| Security | Çalışıyor | 75 | v1 | `src/security` (19 py) crypto/guard/policy + testler; bazı katman prototip |
+| Security | Çalışıyor | 75 | v1 | `src/security` (19 py) crypto/guard/policy + testler; bazı katman prototip. AAC çekirdeği **KARAR+KOD** ([ADR-032](decisions/ADR-032-account-activity-correlation.md), `src/account_activity`) — canlı yayın/panel yok |
 | iOS ★ | Geliştiriliyor | ~35 | v0.6 | Ayrı repo `candasoz01-cmd/Lumos`; Apple Sign-In + device context merge'lü; gövde sürüyor |
 | Entegrasyonlar | Geliştiriliyor | 50 | v1 kısmi | `src/integrations` (48 py); katalog geniş, canlı `verify_connection` sınırlı |
 | Board / Orchestration | Geliştiriliyor | 60 | v1 kısmi | #630/#629/#631/#632 main'de (sözleşme+projeksiyon+claim+gateway); gerçek kullanım 0 (borç kaydı var) |
