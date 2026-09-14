@@ -31,6 +31,10 @@ elle kontrol edilir.
 
 ## Ajan koordinasyonu ve maliyet sınırı
 
+- Roller **görev bazlıdır**; ajan kimliğine kilitlenmez. Bugün denetçi olan
+  yarın başka görevin uygulayıcısı olabilir. «Claude hep denetçi, Cursor hep
+  uygulayıcı» sabit rol değildir. Bu, manuel koordinasyon kuralıdır; Agent
+  Wall'a atama veya devir yetkisi vermez (OD-064).
 - Her işin tek bir koordinatörü vardır. Yardımcı ajanlar birbirleriyle uzun diyalog
   kurmaz; bulgularını koordinatöre teslim eder. Son karar, kapsam birleştirme ve kullanıcı
   raporu koordinatörün sorumluluğudur.
