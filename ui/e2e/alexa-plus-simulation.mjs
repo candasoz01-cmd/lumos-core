@@ -30,15 +30,15 @@ try {
   await page.getByText("Hazır. İstek gönderildiğinde").waitFor({ timeout: PANEL_READY_MS });
 
   await page.locator("#sim-run").click();
-  const dialog = frame.locator("#panel-confirmation-dialog");
+  const dialog = frame.locator("#lumos-confirm-dialog");
   await dialog.waitFor({ state: "visible", timeout: PANEL_READY_MS });
   const dialogText = await dialog.textContent();
   if (!dialogText.includes("Servis ziyareti") || !dialogText.includes("Yarın 14:00")) {
     throw new Error("Onay ekranında çıkarılan başlık/zaman yok: " + dialogText);
   }
-  await frame.locator("#panel-confirmation-approve").click();
+  await frame.locator("#lumos-confirm-approve").click();
   await page.getByText("Onaylandı; görev Lumos panelinde oluşturuldu.").waitFor({ timeout: PANEL_READY_MS });
-  await frame.getByText("Servis ziyareti", { exact: true }).waitFor({ timeout: PANEL_READY_MS });
+  await frame.locator(".gorevler-task-title").filter({ hasText: "Servis ziyareti" }).waitFor({ timeout: PANEL_READY_MS });
 
   const events = await page.evaluate(() => JSON.parse(localStorage.getItem("lumos_alexa_plus_simulation_events_v1") || "[]"));
   if (events.length !== 2 || events[1].type !== "proposal_approved") {
