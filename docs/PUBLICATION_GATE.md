@@ -42,8 +42,9 @@ kurucunun yeni onayı + manifest güncellemesiyle geçer. Hash üretimi:
 Katman 1'den bağımsız; manifest onayı olsa bile koşar. Aradıkları:
 
 - **private-source-reference:** private repo yolları/URL'leri
-  (`candasoz01-cmd/Lumos`, private raw URL'ler, `publish/welockai`,
-  `docs/canonical/`).
+  (`candasoz01-cmd/Lumos` her harf biçiminde; public `lumos-core` hariç,
+  private raw URL'ler, `publish/welockai`, `docs/canonical/`). GitHub
+  owner/repo eşlemesi büyük/küçük harfe duyarsızdır.
 - **classification-marker:** "İÇ KULLANIM", "YAYINLANMAZ", "public değil",
   "TEK KAYNAK" gibi sınıflandırma işaretleri.
 - **secret-material:** token/anahtar desenleri (`ghp_…`, `github_pat_…`,

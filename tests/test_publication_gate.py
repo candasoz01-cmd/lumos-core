@@ -285,6 +285,34 @@ def test_layer2_hash_match_without_second_approval_is_blocked(tmp_path):
     assert "2-sensitive-content-boundary" in out
 
 
+def test_layer2_private_source_match_is_case_insensitive(tmp_path):
+    """GitHub treats owner/repo as case-insensitive; Layer 2 must too."""
+    page = "ui/src/pages/kucuk-harf.astro"
+    content = (
+        '---\n---\n<html><body>'
+        '<a href="https://github.com/CANDASOZ01-CMD/lumos/blob/main/docs/x.md">k</a>'
+        '</body></html>\n'
+    )
+    root, cfg = make_tree(tmp_path, {page: content})
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "private-source-reference" in out
+    assert "2-sensitive-content-boundary" in out
+
+
+def test_layer2_does_not_flag_public_lumos_core(tmp_path):
+    """Public lumos-core links must not be treated as the private Lumos repo."""
+    page = "ui/src/pages/public-core.astro"
+    content = (
+        '---\n---\n<html><body>'
+        '<a href="https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/CONSTITUTION.md">k</a>'
+        '</body></html>\n'
+    )
+    root, cfg = make_tree(tmp_path, {page: content})
+    code, out = run(root, cfg)
+    assert code == 0, out
+
+
 def test_layer2_second_approval_with_matching_hash_passes(tmp_path):
     page = "ui/src/pages/onayli-sinir.astro"
     content = (
