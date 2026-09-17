@@ -47,6 +47,14 @@ SIGN_NAMESPACE = "lumos-publication"
 LAYER1_ID = "layer1-public-release"
 LAYER2_ID = "layer2-sensitive-boundary"
 
+# Yayın onayı için GEÇERSİZ kılınan imza anahtarları. 2026-09-18: kurucunun
+# genel amaçlı GitHub anahtarı geliştirme ortamında ajan erişimine açık
+# bulundu; ajan erişebilen anahtar insan onayı kanıtlayamaz. Bu listeden
+# çıkarma = güven kökü kararı, yalnız kurucuyla.
+REVOKED_SIGNER_FINGERPRINTS = {
+    "SHA256:fCmMHAEP2k865znMPpzZdBZEdEVSLQVST9WT/hHhNHc",
+}
+
 # Tarama VARSAYILAN OLARAK her dosyayı kapsar (uzantı allowlist'i yok — .log,
 # .csv, .pem, uzantısız dosyalar dahil). Yalnız görüntü/font/ses-video medyası
 # atlanır; belge taşıyabilen hiçbir tür (pdf, zip, ...) bu listeye eklenmez.
@@ -274,6 +282,48 @@ def check_layer2(rel_path: str, file_path: Path, text: str, cfg: dict, baseline:
     return findings
 
 
+def enrolled_signer_keys(allowed_signers: Path) -> list[str]:
+    """allowed_signers'taki anahtar satırlarını 'tip blob' olarak döndür."""
+    if not allowed_signers.is_file():
+        return []
+    keys: list[str] = []
+    for line in allowed_signers.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split()
+        if len(parts) >= 3:
+            keys.append(f"{parts[1]} {parts[2]}")
+    return keys
+
+
+def validate_signer_roots(allowed_signers: Path) -> list[str]:
+    """Kayıtlı imza köklerini iptal listesine karşı denetle (fail-closed).
+
+    Parmak izi hesaplanamıyorsa iptal denetimi yapılamaz; bu da bulgudur.
+    """
+    keys = enrolled_signer_keys(allowed_signers)
+    if not keys:
+        return []
+    try:
+        result = subprocess.run(
+            ["ssh-keygen", "-lf", "-"],
+            input="\n".join(keys).encode() + b"\n",
+            capture_output=True, timeout=30, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        result = None
+    if result is None or result.returncode != 0:
+        return ["imza kökü parmak izi hesaplanamadı; iptal denetimi yapılamıyor (fail-closed)"]
+    problems: list[str] = []
+    for line in result.stdout.decode(errors="replace").splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and parts[1] in REVOKED_SIGNER_FINGERPRINTS:
+            problems.append(
+                f"iptal edilmiş imza anahtarı allowed_signers'a kayıtlı: {parts[1]}")
+    return problems
+
+
 def validate_registries(manifest: dict, baseline: dict, root: Path) -> list[str]:
     """Kayıt → repo yönünde türetme kontrolü: ölü veya bayat kayıt bırakma."""
     problems: list[str] = []
@@ -323,7 +373,8 @@ def run_gate(root: Path, config_path: Path) -> tuple[int, list[str]]:
             findings.extend(check_layer1(rel_path, file_path, d1_hits, manifest, allowed_signers))
         findings.extend(check_layer2(rel_path, file_path, text, cfg, baseline, allowed_signers))
 
-    registry_problems = validate_registries(manifest, baseline, root)
+    registry_problems = validate_signer_roots(allowed_signers)
+    registry_problems += validate_registries(manifest, baseline, root)
 
     for finding in findings:
         lines.append(finding.report_line(surface_label))

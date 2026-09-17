@@ -436,6 +436,50 @@ def test_binary_media_is_exempt(tmp_path):
     assert code == 0, out
 
 
+# --- kapalı varsayılan: güvenilir onay altyapısı kurulana kadar ret ----------
+
+REVOKED_PUBKEY_LINE = (
+    "kurucu ssh-ed25519 "
+    "AAAAC3NzaC1lZDI1NTE5AAAAIH9upa6ZCJRPBJuxG4XrJAoj5bxaHGS68gOTFrIOC1Fq\n"
+)
+
+
+def test_revoked_key_cannot_be_reenrolled(tmp_path):
+    # Ajan-erişilebilir bulunan anahtarın allowed_signers'a geri yazılması,
+    # hiçbir kayıt olmasa bile kapıyı kırmızıya çevirir.
+    root, cfg = make_tree(tmp_path, {"ui/src/pages/temiz.astro": "---\n---\n<html></html>\n"})
+    (root / "config/publication/allowed_signers").write_text(
+        REVOKED_PUBKEY_LINE, encoding="utf-8")
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "iptal edilmiş imza anahtarı" in out
+
+
+def test_no_enrolled_signer_rejects_every_approval(tmp_path, signer):
+    # Kayıtlı kök yokken tam doldurulmuş, imzalı bir kayıt bile geçmez.
+    page = "ui/src/pages/onaysiz.astro"
+    root, cfg = make_tree(tmp_path, {page: synthetic_embedded_body()}, signer_info=signer)
+    write_manifest(root, [signed_entry(root, page, signer, gate.LAYER1_ID)])
+    (root / "config/publication/allowed_signers").write_text(
+        "# kayitli kok yok\n", encoding="utf-8")
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "approval-signature-invalid" in out
+
+
+def test_real_repo_closed_default_no_enrolled_signer():
+    # 2026-09-18 kapalı varsayılan: gerçek allowed_signers'ta kayıtlı kök yok.
+    # Kurucu insan-kapılı yeni kökü kaydederken bu assertion'ı bilinçli olarak
+    # güncelller; ajan güncellerse bu bir kapsam ihlalidir.
+    signers = REPO_ROOT / "config" / "publication" / "allowed_signers"
+    assert gate.enrolled_signer_keys(signers) == []
+
+
+def test_revoked_fingerprint_pinned_in_gate():
+    assert "SHA256:fCmMHAEP2k865znMPpzZdBZEdEVSLQVST9WT/hHhNHc" in (
+        gate.REVOKED_SIGNER_FINGERPRINTS)
+
+
 # --- gerçek repo: kapı yeşil, sızıntı geri gelmedi ---------------------------
 
 def test_real_repo_passes_gate():

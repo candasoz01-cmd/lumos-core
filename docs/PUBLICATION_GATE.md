@@ -58,16 +58,17 @@ yazabilir. Onayın kanıtı, kurucunun private SSH anahtarıyla üretilmiş imza
 kapı bunu `config/publication/allowed_signers` içindeki public anahtarlarla
 (`ssh-keygen -Y verify`, namespace `lumos-publication`) doğrular.
 
-> **Doğrulanmış sınır (2026-09-18):** İmza, onayı yalnız *anahtara* bağlar.
-> "Ajan onay üretemez" garantisi ancak private anahtar, ajanların erişemediği
-> bir ortamda (donanım anahtarı, Secure Enclave, biyometrik onaylı agent)
-> tutulursa geçerlidir; bu repodan doğrulanamayan operasyonel bir şarttır.
-> Mevcut pinli anahtar kurucunun genel amaçlı GitHub anahtarıdır ve geliştirme
-> ortamında ajan erişimine kapalı olduğu DOĞRULANAMAMIŞTIR — bu şart
-> sağlanana kadar imza, "insan onayı"nın değil, "anahtara erişimi olanın
-> onayı"nın kanıtıdır. Gerekli kurucu aksiyonu: yalnız yayın onayı için ayrı
-> bir imza anahtarı üret (insan etkileşimi zorunlu bir kasada tut),
-> `allowed_signers`'ı onunla değiştir.
+> **KAPALI VARSAYILAN (2026-09-18):** İmza, onayı yalnız *anahtara* bağlar;
+> ajan erişebilen bir anahtar insan onayı kanıtlayamaz. Kurucunun genel amaçlı
+> GitHub anahtarı geliştirme ortamında ajan erişimine açık bulunduğundan
+> güven kökünden ÇIKARILDI ve parmak izi `gate.py`
+> `REVOKED_SIGNER_FINGERPRINTS` listesine alındı — yeniden kaydı kapı
+> bulgusudur. Şu an **hiçbir imza kökü kayıtlı değildir**: geçerli onay
+> altyapısı kurulana kadar tüm yayın onayı ve istisna (baseline) talepleri
+> reddedilir. Kök kaydı, yalnız insan etkileşimiyle kullanılabilen bir
+> anahtarla (donanım anahtarı, Secure Enclave — ör. Secretive, biyometrik
+> onaylı 1Password SSH agent) ve kurucu eliyle yapılır; genel amaçlı veya
+> ajan-erişilebilir anahtar kabul edilmez.
 
 - İmza yükü `katman-id \n dosya-yolu \n content_sha256 \n approved_date \n`
   biçimindedir: içerik değişirse imza geçersizleşir; layer1 imzası layer2'de
@@ -104,6 +105,20 @@ ssh-keygen -Y sign -f ~/.ssh/id_ed25519 -n lumos-publication /tmp/onay.payload
    testi bağımsız ikinci ağdır.)
 4. **Vercel build:** `vercel.json` → `buildCommand` önce kapıyı çalıştırır;
    preview dahi kapı geçilmeden derlenmez.
+
+## Çözülmemiş sınırlar (dokümante edilmiş ≠ çözülmüş)
+
+1. **Onay altyapısı yok:** İnsan-kapılı imza anahtarı henüz kurulmadı; kapalı
+   varsayılan yürürlükte (hiçbir onay/istisna geçemez). Çözüm yalnız
+   kurucunun anahtar kurulumuyla gelir.
+2. **İnsan incelemesi zorlanmıyor:** `require_code_owner_reviews=false`,
+   `required_approving_review_count=0`. Tek insan hesabı kendi PR'ını
+   onaylayamayacağı için bu ayar ikinci inceleyici hesap olmadan AÇILMAMALIDIR
+   (kilitlenme); ikinci hesap kurulana kadar bu sınır açık kalır.
+3. **Kapı kodu repo içinde:** `gate.py`, iptal listesi, manifestler ve testler
+   push erişimli bir aktörce aynı commit'te değiştirilebilir; CODEOWNERS
+   yalnız bilgilendiricidir. Sunucu tarafı zorlamayı yalnız GitHub ayarları
+   (aşağıda) sağlar.
 
 ## Dürüst sınırlar
 
