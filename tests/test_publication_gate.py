@@ -235,6 +235,21 @@ def test_legacy_embed_refresh_shape_fails(tmp_path):
     assert "embedded-document-body" in out
 
 
+def test_legacy_status_does_not_pass_unapproved_content(tmp_path):
+    """Regression: matching hash + legacy_baseline_review_required is not approval."""
+    page = "ui/src/pages/eski.astro"
+    root, cfg = make_tree(tmp_path, {page: synthetic_embedded_body()})
+    entry = {"path": page, "status": "legacy_baseline_review_required",
+             "public_release_approved": False,
+             "content_sha256": gate.sha256_of(root / page)}
+    manifest = root / "config/publication/public_release_manifest.json"
+    manifest.write_text(json.dumps({"version": 1, "entries": [entry]}), encoding="utf-8")
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "legacy-unapproved" in out
+    assert gate.BLOCK_PREFIX in out
+
+
 def test_legacy_baseline_blocks_on_any_content_change(tmp_path):
     page = "ui/src/pages/eski.astro"
     root, cfg = make_tree(tmp_path, {page: synthetic_embedded_body()})
@@ -243,14 +258,53 @@ def test_legacy_baseline_blocks_on_any_content_change(tmp_path):
              "content_sha256": gate.sha256_of(root / page)}
     manifest = root / "config/publication/public_release_manifest.json"
     manifest.write_text(json.dumps({"version": 1, "entries": [entry]}), encoding="utf-8")
-    code, _ = run(root, cfg)
-    assert code == 0
-    # Tek baytlık değişiklik bile yeniden onay ister (iki yönlü türetme kanıtı).
+    # Tek baytlık değişiklik hash sürüklenmesi olarak da durur.
     target = root / page
     target.write_text(target.read_text() + " ", encoding="utf-8")
     code2, out2 = run(root, cfg)
     assert code2 == 1
     assert "content-hash-drift" in out2 or "bayat" in out2
+
+
+def test_layer2_hash_match_without_second_approval_is_blocked(tmp_path):
+    """Regression: Katman 2 salt content_sha256 eşleşmesini yeterli saymaz."""
+    page = "ui/src/pages/ozel-kaynak.astro"
+    content = (
+        '---\n---\n<html><body>'
+        '<a href="https://github.com/candasoz01-cmd/Lumos/blob/main/docs/x.md">k</a>'
+        '</body></html>\n'
+    )
+    root, cfg = make_tree(tmp_path, {page: content})
+    baseline = [{"path": page, "content_sha256": gate.sha256_of(root / page),
+                 "reasons": ["private-source-reference"]}]
+    (root / "config/publication/sensitive_boundary_baseline.json").write_text(
+        json.dumps({"version": 1, "entries": baseline}), encoding="utf-8")
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "baseline-approval-incomplete" in out
+    assert "2-sensitive-content-boundary" in out
+
+
+def test_layer2_second_approval_with_matching_hash_passes(tmp_path):
+    page = "ui/src/pages/onayli-sinir.astro"
+    content = (
+        '---\n---\n<html><body>'
+        '<a href="https://github.com/candasoz01-cmd/Lumos/blob/main/docs/x.md">k</a>'
+        '</body></html>\n'
+    )
+    root, cfg = make_tree(tmp_path, {page: content})
+    baseline = [{
+        "path": page,
+        "content_sha256": gate.sha256_of(root / page),
+        "reasons": ["private-source-reference"],
+        "boundary_review_approved": True,
+        "approved_by": "kurucu",
+        "approved_date": "2026-09-17",
+    }]
+    (root / "config/publication/sensitive_boundary_baseline.json").write_text(
+        json.dumps({"version": 1, "entries": baseline}), encoding="utf-8")
+    code, out = run(root, cfg)
+    assert code == 0, out
 
 
 def test_registry_entry_for_missing_file_blocks(tmp_path):

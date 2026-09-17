@@ -1,37 +1,6 @@
 {
-  "$comment": "Public Release Gate kayıt defteri. Varsayılan durum PRIVATE_NOT_APPROVED: kayıtsız veya hash'i eşleşmeyen gömülü belge içeriği yayın hattına giremez. status=approved yalnız kurucunun ayrı yayın onayıyla, tam metadata ile yazılır. legacy_baseline_review_required = bu kayıt yazılmadan önce zaten yayında olan içerik; hash sabitlendi, kurucu incelemesi bekliyor, onay DEĞİLDİR.",
+  "$comment": "Public Release Gate kayıt defteri. Varsayılan durum PRIVATE_NOT_APPROVED: kayıtsız veya hash'i eşleşmeyen gömülü belge içeriği yayın hattına giremez. status=approved yalnız kurucunun ayrı yayın onayıyla, tam metadata ile yazılır. legacy_baseline_review_required onay DEĞİLDİR; hash pin izlemedir ve kapı bu statüde durur.",
   "version": 1,
   "default": "PRIVATE_NOT_APPROVED",
-  "entries": [
-    {
-      "path": "ui/src/pages/pay-kontrol.astro",
-      "status": "legacy_baseline_review_required",
-      "public_release_approved": false,
-      "content_sha256": "da5f2988c35f0c0937e4ad84f3f0a024ba3a5623b7c76548fc1628209a2f3633",
-      "approved_by": null,
-      "approved_date": null,
-      "baseline_recorded": "2026-09-17",
-      "note": "2026-07-28 publish hattıyla gömülmüş dış iletişim metni; kurucu kararı bekliyor (yayında kalsın / kaldırılsın)."
-    },
-    {
-      "path": "ui/src/pages/banka-orkestrasyon.astro",
-      "status": "legacy_baseline_review_required",
-      "public_release_approved": false,
-      "content_sha256": "acad791f27752b8c0b9f787ee8e01bb980c88eea6b5f2f7dadb47d69d5f5060f",
-      "approved_by": null,
-      "approved_date": null,
-      "baseline_recorded": "2026-09-17",
-      "note": "2026-07-28 publish hattıyla gömülmüş vizyon/ortaklık metni; kurucu kararı bekliyor."
-    },
-    {
-      "path": "ui/src/pages/baglanti-aktivasyonlari.astro",
-      "status": "legacy_baseline_review_required",
-      "public_release_approved": false,
-      "content_sha256": "1d1a1b2654f8057c838cff43b2821748c42efae219fec0c80ec76e0f086e9e71",
-      "approved_by": null,
-      "approved_date": null,
-      "baseline_recorded": "2026-09-17",
-      "note": "2026-07-28 publish hattıyla gömülmüş aktivasyon metni; kurucu kararı bekliyor."
-    }
-  ]
+  "entries": []
 }

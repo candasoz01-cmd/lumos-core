@@ -8,7 +8,8 @@ PRIVATE_NOT_APPROVED'dır.
 
 Katman 2 — Sensitive Content Boundary: Katman 1'den bağımsız tarama. Private
 kaynak izleri, sınıflandırma işaretleri ve secret desenleri public yüzeyde
-bulunursa işlem durur. Secret bulgusu hiçbir kayıtla aklanamaz.
+bulunursa işlem durur. Hash eşleşmesi tek başına yetmez; ikinci insan onayı
+metadata'sı gerekir. Secret bulgusu hiçbir kayıtla aklanamaz.
 
 Bilinçli tasarım sınırları (gevşetme değişikliği kurucu onayı ister):
 - Ortam değişkeni OKUNMAZ; skip/force benzeri bypass bayrağı YOKTUR.
@@ -150,13 +151,18 @@ def check_layer1(rel_path: str, file_path: Path, hits: list[int], manifest: dict
         ))
         return findings
     if status == "legacy_baseline_review_required":
-        # Halihazırda yayında olan eski içerik: hash sabitlenmiştir, kurucu
-        # incelemesi bekler; içerik değişirse yukarıdaki hash kontrolü durdurur.
+        # Hash pin izleme kaydıdır, yayın onayı değildir. Eşleşen hash
+        # onaysız gövdeyi geçirmez.
+        findings.append(Finding(
+            "1-public-release-gate", "legacy-unapproved", rel_path, line,
+            "legacy_baseline_review_required onay değildir (hash eşleşmesi yayın izni üretmez)",
+            "status=approved + public_release_approved/approved_by/approved_date",
+        ))
         return findings
     findings.append(Finding(
         "1-public-release-gate", "unknown-status", rel_path, line,
         f"tanınmayan manifest status değeri: {status!r}",
-        "status=approved (tam metadata) veya legacy_baseline_review_required",
+        "status=approved (tam metadata); legacy_baseline_review_required geçiş izni değildir",
     ))
     return findings
 
@@ -188,14 +194,31 @@ def check_layer2(rel_path: str, file_path: Path, text: str, cfg: dict, baseline:
         return findings
 
     entry = baseline_entry_for(baseline, rel_path)
-    if entry is None or entry.get("content_sha256") != sha256_of(file_path):
+    actual_sha = sha256_of(file_path)
+    if entry is None or entry.get("content_sha256") != actual_sha:
         for line, rule, _pattern in sensitive_hits:
             findings.append(Finding(
                 "2-sensitive-content-boundary", rule, rel_path, line,
                 "sensitive baseline kaydı yok veya content_sha256 eşleşmiyor",
-                "kurucu incelemesi + hash sabitlenmiş baseline kaydı (ayrı ikinci onay)",
+                "kurucu ikinci onayı: boundary_review_approved + approved_by + approved_date + eşleşen hash",
+            ))
+        return findings
+    if not _second_human_approval(entry):
+        for line, rule, _pattern in sensitive_hits:
+            findings.append(Finding(
+                "2-sensitive-content-boundary", "baseline-approval-incomplete", rel_path, line,
+                "baseline hash eşleşmesi ikinci insan onayı değildir",
+                "boundary_review_approved=true ve approved_by/approved_date (ayrı ikinci onay)",
             ))
     return findings
+
+
+def _second_human_approval(entry: dict) -> bool:
+    return (
+        entry.get("boundary_review_approved") is True
+        and bool(entry.get("approved_by"))
+        and bool(entry.get("approved_date"))
+    )
 
 
 def validate_registries(manifest: dict, baseline: dict, root: Path) -> list[str]:

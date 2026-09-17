@@ -30,7 +30,7 @@ zorunludur:
 |--------|--------|-----------|
 | (kayıt yok) | `PRIVATE_NOT_APPROVED` — varsayılan | ❌ Bloklanır |
 | `approved` | Kurucunun ayrı yayın onayı; `public_release_approved: true`, `approved_by`, `approved_date` ve eşleşen `content_sha256` zorunlu | ✅ |
-| `legacy_baseline_review_required` | Kapı kurulmadan önce zaten yayında olan içerik; hash sabitlendi, kurucu incelemesi bekliyor. **Onay değildir.** | ✅ (yalnız birebir aynı içerik) |
+| `legacy_baseline_review_required` | Hash pin izleme kaydı; kurucu incelemesi bekliyor. **Onay değildir.** Eşleşen hash yayın izni üretmez. | ❌ Bloklanır |
 | başka her değer | Tanınmaz | ❌ Bloklanır |
 
 İçerik bir bayt bile değişirse hash eşleşmez ve kapı durdurur; değişiklik ancak
@@ -50,9 +50,11 @@ Katman 1'den bağımsız; manifest onayı olsa bile koşar. Aradıkları:
   `sk-…`, `xox…`, `AKIA…`, private key blokları, `x-access-token:`).
 
 private-source-reference ve classification-marker bulguları yalnız
-`config/publication/sensitive_boundary_baseline.json` içinde hash'i eşleşen bir
-kayıtla geçer (ayrı ikinci insan onayı). **Secret bulgusu hiçbir kayıtla
-geçirilemez**; tek çözüm kaldırma + rotasyondur.
+`config/publication/sensitive_boundary_baseline.json` içinde **hash'i eşleşen
+ve ikinci insan onayı metadata'sı tamamlanmış** bir kayıtla geçer
+(`boundary_review_approved: true`, `approved_by`, `approved_date`). Salt hash
+eşleşmesi yetmez. **Secret bulgusu hiçbir kayıtla geçirilemez**; tek çözüm
+kaldırma + rotasyondur.
 
 ## Nerede koşar (üç bağımsız zorlama noktası)
 
@@ -84,5 +86,7 @@ için CODEOWNERS zorunlu incelemesi GitHub ayarıdır; kurucu eliyle açılır.
 2. `python3 ops/publication_gate/gate.py --hash <dosya>` ile hash al.
 3. Manifest'e `status: "approved"`, `public_release_approved: true`,
    `approved_by`, `approved_date`, `content_sha256` yaz.
-4. Katman 2 bulgusu da varsa baseline'a ayrı kayıt ekle (ikinci onay).
+4. Katman 2 bulgusu da varsa baseline'a ayrı kayıt ekle: eşleşen
+   `content_sha256` **ve** `boundary_review_approved: true`, `approved_by`,
+   `approved_date` (ikinci onay). Hash tek başına yetmez.
 5. Değişikliği normal PR akışıyla merge et.

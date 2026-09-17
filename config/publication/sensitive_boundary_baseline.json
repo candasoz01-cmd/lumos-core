@@ -1,20 +1,5 @@
 {
-  "$comment": "Sensitive Content Boundary baseline'ı — Katman 1'den bağımsız ikinci kayıt defteri. Buradaki kayıtlar 2026-09-17 öncesinde zaten public olan private-kaynak referanslarını hash sabitleyerek izler; aklama değildir, kurucu incelemesi bekler. Secret bulgusu bu dosyayla HİÇBİR ZAMAN geçirilemez.",
+  "$comment": "Sensitive Content Boundary baseline'ı — Katman 1'den bağımsız ikinci kayıt defteri. Yalnız boundary_review_approved=true + approved_by + approved_date + eşleşen content_sha256 kaydı geçer. Salt hash eşleşmesi aklama değildir. Secret bulgusu bu dosyayla HİÇBİR ZAMAN geçirilemez.",
   "version": 1,
-  "entries": [
-    {
-      "path": "ui/src/pages/pay-kontrol.astro",
-      "content_sha256": "da5f2988c35f0c0937e4ad84f3f0a024ba3a5623b7c76548fc1628209a2f3633",
-      "reasons": ["private-source-reference"],
-      "baseline_recorded": "2026-09-17",
-      "note": "Gömülü metin private repo bağlantısı içeriyor; kurucu incelemesi bekliyor."
-    },
-    {
-      "path": "ui/src/pages/mimari.astro",
-      "content_sha256": "542335d3ceb1ae80bec8c74476a7f9edc72aca85aefc70599fb5028fa66e70b1",
-      "reasons": ["private-source-reference"],
-      "baseline_recorded": "2026-09-17",
-      "note": "Private repo doküman yollarına giden 3 bağlantı; public ziyaretçi için 404 — kurucu incelemesi bekliyor."
-    }
-  ]
+  "entries": []
 }
