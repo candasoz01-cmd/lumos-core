@@ -1,0 +1,35 @@
+{
+  "$comment": "Lumos yayın kapısı yapılandırması. public_surfaces altındaki her şey PUBLIC kabul edilir: production, Vercel preview, public repo branch/PR (draft dahil). Gevşetme değişikliği kurucu onayı ister.",
+  "surface_label": "public web (welockai.com production + Vercel preview + public repo/PR)",
+  "public_surfaces": [
+    "ui/src",
+    "ui/public",
+    "api"
+  ],
+  "public_release_manifest": "config/publication/public_release_manifest.json",
+  "sensitive_boundary_baseline": "config/publication/sensitive_boundary_baseline.json",
+  "min_embedded_chars": 1500,
+  "private_source_patterns": [
+    "candasoz01-cmd/Lumos\\b",
+    "raw\\.githubusercontent\\.com/candasoz01-cmd/",
+    "publish/welockai",
+    "docs/canonical/"
+  ],
+  "classification_patterns": [
+    "TEK KAYNAK",
+    "İÇ KULLANIM",
+    "YAYINLANMAZ",
+    "(?i)public değil",
+    "(?i)NOT_FOR_PUBLIC",
+    "(?i)INTERNAL[ _-]ONLY"
+  ],
+  "secret_patterns": [
+    "ghp_[A-Za-z0-9]{30,}",
+    "github_pat_[A-Za-z0-9_]{20,}",
+    "\\bsk-[A-Za-z0-9_-]{24,}",
+    "xox[bpars]-[A-Za-z0-9-]{10,}",
+    "AKIA[0-9A-Z]{16}",
+    "BEGIN (RSA |EC |OPENSSH |PGP )?PRIVATE KEY",
+    "x-access-token:"
+  ]
+}

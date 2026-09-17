@@ -140,6 +140,42 @@ dosya da hariçtir. Canlı ihlal: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).
 Settings'te required check eklenene kadar yoktur. Ajan yine de bu sözleşmeyi
 uygular. Durum bildirimi bir sonraki bölümün formatını kullanır.
 
+## Yayın ayrı bir kullanıcı eylemidir (tüm ajanlar)
+
+**PUBLICATION IS A SEPARATE USER ACTION.** Aşağıdaki aşamalar birbirinden
+bağımsız yetkilerdir; bir aşamanın izni bir sonrakinin izni DEĞİLDİR:
+
+```text
+READ → EDIT → SUMMARIZE → GENERATE → COMMIT → PUSH → OPEN PR → PREVIEW → PUBLISH → DEPLOY
+```
+
+- edit izni ≠ commit izni · commit izni ≠ push izni · push izni ≠ public PR izni
+- PR izni ≠ merge izni · preview izni ≠ production izni
+- private dokümanı okuma izni ≠ içeriğini public alana taşıma izni
+- "Düzenle", "özetle", "404'ü düzelt", "preview'da kontrol et", "private fetch
+  kaldır" gibi görevler yayın izni üretmez. Public içerik oluşturacak her işlem
+  kullanıcıdan **ayrı ve açık yayın onayı** ister.
+
+Public yüzey tanımı geniştir: production web, Vercel preview, public repo
+branch'i, draft dahil her PR diff'i, build artifact ve generated static page —
+hepsi PUBLIC'tir. `publish/` klasöründe olmak, dosyanın uzantısı veya daha önce
+web sayfası olarak kullanılmış olması yayın izni değildir. Private repodan
+içerik alınarak public dosyaya gömülmesi yasaktır; "private raw fetch'i
+kaldırmak" bu yasağı kaldırmaz — gövdeyi gömmek fetch'ten daha kalıcı bir
+sızıntıdır.
+
+Teknik kapı: `ops/publication_gate/gate.py` (Katman 1: Public Release Gate,
+Katman 2: Sensitive Content Boundary — `docs/PUBLICATION_GATE.md`). Kapı CI,
+Vercel build ve pytest içinde koşar; PAT veya başka bir token sahibi olmak
+kapıyı geçme yetkisi vermez. Ajan kapıyı, manifestleri veya testlerini
+gevşetemez; bu dosyalar üzerindeki her gevşetme kurucu onayı ister.
+
+Özel veya sınıflandırması belirsiz içerik public yüzeye yaklaşırsa ajan işlemi
+kendiliğinden durdurur ve `BLOCKED_PUBLICATION_REVIEW_REQUIRED` formatında
+raporlar: kaynak dosya/yol, hedef public yüzey, engel nedeni, eksik
+sınıflandırma, gereken ayrı onay. İç belge gövdesi onay mesajına dahi
+kopyalanmaz.
+
 ## PR / CI / Deploy doğrulama (tüm ajanlar)
 
 - PR, CI, merge veya deploy durumu bildirirken canlı doğrulama yapılır.

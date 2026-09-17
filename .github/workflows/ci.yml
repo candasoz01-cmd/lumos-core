@@ -6,6 +6,17 @@ on:
   pull_request:
 
 jobs:
+  # Fail-closed yayın kapısı: bilinçli olarak `if:` koşulu, `continue-on-error`
+  # veya env/flag tabanlı atlama yolu yoktur; draft PR dahil her pull_request'te
+  # ve main push'unda koşar. Gevşetme kurucu onayı ister.
+  publication-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Public Release Gate + Sensitive Content Boundary
+        run: python3 ops/publication_gate/gate.py
+
   test:
     runs-on: ubuntu-latest
     defaults:
