@@ -165,10 +165,15 @@ kaldırmak" bu yasağı kaldırmaz — gövdeyi gömmek fetch'ten daha kalıcı 
 sızıntıdır.
 
 Teknik kapı: `ops/publication_gate/gate.py` (Katman 1: Public Release Gate,
-Katman 2: Sensitive Content Boundary — `docs/PUBLICATION_GATE.md`). Kapı CI,
-Vercel build ve pytest içinde koşar; PAT veya başka bir token sahibi olmak
-kapıyı geçme yetkisi vermez. Ajan kapıyı, manifestleri veya testlerini
-gevşetemez; bu dosyalar üzerindeki her gevşetme kurucu onayı ister.
+Katman 2: Sensitive Content Boundary — `docs/PUBLICATION_GATE.md`). Kapı
+pre-push kancası, CI, Vercel build ve pytest içinde koşar; PAT veya başka bir
+token sahibi olmak kapıyı geçme yetkisi vermez. Yayın onayının kanıtı kurucunun
+SSH imzasıdır — ajanın manifest'e yazacağı düz metin alanlar onay yerine
+geçmez; ajan kendi başına onay kaydı üretemez. Public GitHub'a push edilen
+içerik push anında yayımlanmış olur; CI bunu geri alamaz — bu yüzden denetim
+push'tan ÖNCE yapılır. Ajan kapıyı, manifestleri, `allowed_signers` dosyasını
+veya testlerini gevşetemez; bu dosyalar üzerindeki her gevşetme kurucu onayı
+ister.
 
 Özel veya sınıflandırması belirsiz içerik public yüzeye yaklaşırsa ajan işlemi
 kendiliğinden durdurur ve `BLOCKED_PUBLICATION_REVIEW_REQUIRED` formatında

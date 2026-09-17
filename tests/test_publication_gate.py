@@ -2,18 +2,22 @@
 
 Sızıntı olayının (private karar metinlerinin public .astro sayfalarına
 gömülmesi, 2026-07/08) tekrarını iki bağımsız katmanla engelleyen kapının
-sözleşmesi. Tüm "özel" içerikler sentetiktir; gerçek özel belge gövdesi bu
-dosyaya kopyalanmaz.
+sözleşmesi. Tüm "özel" içerikler ve anahtarlar sentetiktir; gerçek özel belge
+gövdesi bu dosyaya kopyalanmaz.
 
-Bu test dosyası zorunlu `test` CI check'i içinde koşar: kapı gevşetilirse veya
-public yüzeye kapısız gömülü belge girerse buradaki gerçek-repo taraması da
-kırmızıya döner.
+Onay modeli: düz metin manifest alanları onay DEĞİLDİR — onay, kurucunun
+private anahtarıyla üretilen SSH imzasıdır; ajan bu kaydı kendi başına
+üretemez. Testler imzayı geçici (sentetik) bir anahtar çiftiyle prova eder.
+
+Bu dosya zorunlu `test` CI check'i içinde koşar; #857'nin
+`test_public_pages_no_private_embed.py` testi bağımsız ikinci ağdır.
 """
 
 from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -24,6 +28,33 @@ GATE_PATH = REPO_ROOT / "ops" / "publication_gate" / "gate.py"
 _spec = importlib.util.spec_from_file_location("publication_gate", GATE_PATH)
 gate = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(gate)
+
+
+# --- sentetik imza altyapısı ------------------------------------------------
+
+@pytest.fixture(scope="session")
+def signer(tmp_path_factory):
+    """Sentetik 'kurucu' anahtar çifti + allowed_signers satırı."""
+    keydir = tmp_path_factory.mktemp("signer")
+    key = keydir / "id_test"
+    subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(key)],
+                   check=True)
+    pub = (keydir / "id_test.pub").read_text().strip()
+    key_type, key_blob = pub.split()[0], pub.split()[1]
+    return {"key": key, "principal": "kurucu-test",
+            "allowed_line": f"kurucu-test {key_type} {key_blob}\n",
+            "dir": keydir}
+
+
+def sign_payload(signer_info: dict, payload: bytes, key: Path | None = None) -> str:
+    work = signer_info["dir"] / "payload.bin"
+    work.write_bytes(payload)
+    sig = work.with_suffix(".bin.sig")
+    sig.unlink(missing_ok=True)
+    subprocess.run(["ssh-keygen", "-Y", "sign", "-f", str(key or signer_info["key"]),
+                    "-n", gate.SIGN_NAMESPACE, str(work)],
+                   check=True, capture_output=True)
+    return sig.read_text()
 
 
 # --- sentetik içerik üreticileri -------------------------------------------
@@ -40,7 +71,7 @@ def synthetic_fake_secret_line() -> str:
     return 'const t = "ghp_' + "a" * 36 + '";\n'
 
 
-def make_tree(tmp_path: Path, pages: dict[str, str],
+def make_tree(tmp_path: Path, pages: dict[str, str], signer_info: dict | None = None,
               manifest_entries: list[dict] | None = None,
               baseline_entries: list[dict] | None = None) -> tuple[Path, Path]:
     root = tmp_path / "repo"
@@ -55,11 +86,13 @@ def make_tree(tmp_path: Path, pages: dict[str, str],
     cfg_path = root / "config" / "publication" / "gate_config.json"
     cfg_path.write_text(json.dumps(real_cfg), encoding="utf-8")
 
+    (root / "config" / "publication" / "allowed_signers").write_text(
+        signer_info["allowed_line"] if signer_info else "", encoding="utf-8")
     (root / "config" / "publication" / "public_release_manifest.json").write_text(
-        json.dumps({"version": 1, "default": "PRIVATE_NOT_APPROVED",
+        json.dumps({"version": 2, "default": "PRIVATE_NOT_APPROVED",
                     "entries": manifest_entries or []}), encoding="utf-8")
     (root / "config" / "publication" / "sensitive_boundary_baseline.json").write_text(
-        json.dumps({"version": 1, "entries": baseline_entries or []}), encoding="utf-8")
+        json.dumps({"version": 2, "entries": baseline_entries or []}), encoding="utf-8")
     return root, cfg_path
 
 
@@ -68,15 +101,30 @@ def run(root: Path, cfg: Path) -> tuple[int, str]:
     return code, "\n".join(lines)
 
 
-def approved_entry(root: Path, rel: str) -> dict:
+def signed_entry(root: Path, rel: str, signer_info: dict, layer_id: str,
+                 key: Path | None = None) -> dict:
+    sha = gate.sha256_of(root / rel)
+    date = "2026-09-17"
+    payload = gate.signature_payload(layer_id, rel, sha, date)
     return {
         "path": rel,
         "status": "approved",
         "public_release_approved": True,
-        "content_sha256": gate.sha256_of(root / rel),
-        "approved_by": "kurucu",
-        "approved_date": "2026-09-17",
+        "content_sha256": sha,
+        "approved_by": signer_info["principal"],
+        "approved_date": date,
+        "approval_signature": sign_payload(signer_info, payload, key=key),
     }
+
+
+def write_manifest(root: Path, entries: list[dict]) -> None:
+    (root / "config/publication/public_release_manifest.json").write_text(
+        json.dumps({"version": 2, "entries": entries}), encoding="utf-8")
+
+
+def write_baseline(root: Path, entries: list[dict]) -> None:
+    (root / "config/publication/sensitive_boundary_baseline.json").write_text(
+        json.dumps({"version": 2, "entries": entries}), encoding="utf-8")
 
 
 # --- 1. private markdown → public astro embed bloklanır --------------------
@@ -99,48 +147,60 @@ def test_vercel_preview_build_runs_gate_first():
     assert "||" not in build and ";" not in build
 
 
-# --- 3. açıkça onaylı içerik geçer ------------------------------------------
+# --- 3. kurucu imzalı onay geçer --------------------------------------------
 
-def test_approved_content_passes(tmp_path):
+def test_signed_approved_content_passes(tmp_path, signer):
     page = "ui/src/pages/onayli.astro"
-    root, cfg = make_tree(tmp_path, {page: synthetic_embedded_body()})
-    entry = approved_entry(root, page)
-    (root / "config/publication/public_release_manifest.json").write_text(
-        json.dumps({"version": 1, "entries": [entry]}), encoding="utf-8")
+    root, cfg = make_tree(tmp_path, {page: synthetic_embedded_body()}, signer_info=signer)
+    write_manifest(root, [signed_entry(root, page, signer, gate.LAYER1_ID)])
     code, out = run(root, cfg)
     assert code == 0, out
 
 
-# --- 4. metadata'sız içerik bloklanır ---------------------------------------
+# --- 4. imzasız / düz metin "onay" bloklanır (ajan onay üretemez) -----------
 
-def test_missing_approval_metadata_blocked(tmp_path):
-    page = "ui/src/pages/eksik.astro"
-    root, cfg = make_tree(tmp_path, {page: synthetic_embedded_body()})
-    entry = approved_entry(root, page)
-    entry["approved_by"] = None
-    (root / "config/publication/public_release_manifest.json").write_text(
-        json.dumps({"version": 1, "entries": [entry]}), encoding="utf-8")
+def test_plain_metadata_without_signature_is_not_approval(tmp_path, signer):
+    page = "ui/src/pages/sahte-onay.astro"
+    root, cfg = make_tree(tmp_path, {page: synthetic_embedded_body()}, signer_info=signer)
+    entry = signed_entry(root, page, signer, gate.LAYER1_ID)
+    del entry["approval_signature"]
+    write_manifest(root, [entry])
     code, out = run(root, cfg)
     assert code == 1
-    assert "approval-metadata-incomplete" in out
+    assert "approval-signature-invalid" in out
 
 
-def test_unknown_status_blocked(tmp_path):
-    page = "ui/src/pages/garip.astro"
-    root, cfg = make_tree(tmp_path, {page: synthetic_embedded_body()})
-    entry = approved_entry(root, page)
-    entry["status"] = "probably-fine"
-    (root / "config/publication/public_release_manifest.json").write_text(
-        json.dumps({"version": 1, "entries": [entry]}), encoding="utf-8")
+def test_unlisted_signer_cannot_approve(tmp_path, signer):
+    # allowed_signers'ta olmayan bir anahtarla (ajanın kendi anahtarı gibi)
+    # üretilen imza geçmez.
+    rogue = signer["dir"] / "rogue_key"
+    if not rogue.exists():
+        subprocess.run(["ssh-keygen", "-q", "-t", "ed25519", "-N", "", "-f", str(rogue)],
+                       check=True)
+    page = "ui/src/pages/korsan.astro"
+    root, cfg = make_tree(tmp_path, {page: synthetic_embedded_body()}, signer_info=signer)
+    write_manifest(root, [signed_entry(root, page, signer, gate.LAYER1_ID, key=rogue)])
     code, out = run(root, cfg)
     assert code == 1
-    assert "unknown-status" in out
+    assert "approval-signature-invalid" in out
+
+
+def test_pending_or_legacy_status_is_not_approval(tmp_path, signer):
+    # "İnceleme bekliyor" türü ara statü yayın izni değildir.
+    page = "ui/src/pages/bekleyen.astro"
+    root, cfg = make_tree(tmp_path, {page: synthetic_embedded_body()}, signer_info=signer)
+    entry = signed_entry(root, page, signer, gate.LAYER1_ID)
+    entry["status"] = "legacy_baseline_review_required"
+    entry["public_release_approved"] = False
+    write_manifest(root, [entry])
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "not-approved" in out
 
 
 # --- 5. "404 düzelt" gibi görev çerçevesi kapıyı etkilemez ------------------
 
 def test_task_framing_is_irrelevant_content_decides(tmp_path):
-    # Dosya adı/görev bağlamı ne olursa olsun (404 sayfası dahil) içerik esastır.
     root, cfg = make_tree(tmp_path, {"ui/src/pages/404.astro": synthetic_embedded_body()})
     code, out = run(root, cfg)
     assert code == 1
@@ -154,20 +214,34 @@ def test_task_framing_is_irrelevant_content_decides(tmp_path):
 
 # --- 6. "private fetch kaldır" gövde gömmeye dönüşemez; katmanlar bağımsız ---
 
-def test_fetch_removal_cannot_inline_body_and_layers_are_independent(tmp_path):
-    # fetch yok ama gövde gömülü + private repo referansı var.
+def test_fetch_removal_cannot_inline_body_and_layers_are_independent(tmp_path, signer):
     content = synthetic_embedded_body().replace(
         "</body>", '<a href="https://github.com/candasoz01-cmd/Lumos/blob/main/docs/x.md">k</a></body>')
     page = "ui/src/pages/fetchsiz.astro"
-    root, cfg = make_tree(tmp_path, {page: content})
-    # Katman 1 onaylansa bile Katman 2 bağımsız durdurur.
-    entry = approved_entry(root, page)
-    (root / "config/publication/public_release_manifest.json").write_text(
-        json.dumps({"version": 1, "entries": [entry]}), encoding="utf-8")
+    root, cfg = make_tree(tmp_path, {page: content}, signer_info=signer)
+    # Katman 1 imzalı onaylansa bile Katman 2 bağımsız durdurur.
+    write_manifest(root, [signed_entry(root, page, signer, gate.LAYER1_ID)])
     code, out = run(root, cfg)
     assert code == 1
     assert "2-sensitive-content-boundary" in out
     assert "private-source-reference" in out
+
+
+def test_layer1_signature_cannot_ack_layer2(tmp_path, signer):
+    # Katman imza yükleri ayrıdır: layer1 imzası layer2 baseline'ında geçmez.
+    content = ('---\n---\n<a href="https://github.com/candasoz01-cmd/Lumos/blob/main/docs/x.md">k</a>\n')
+    page = "ui/src/pages/capraz.astro"
+    root, cfg = make_tree(tmp_path, {page: content}, signer_info=signer)
+    cross = signed_entry(root, page, signer, gate.LAYER1_ID)
+    write_baseline(root, [cross])
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "private-source-reference" in out
+
+    proper = signed_entry(root, page, signer, gate.LAYER2_ID)
+    write_baseline(root, [proper])
+    code2, out2 = run(root, cfg)
+    assert code2 == 0, out2
 
 
 # --- 7. public repo üzerindeki draft PR da public yüzeydir -------------------
@@ -176,13 +250,21 @@ def test_ci_gate_covers_all_pull_requests_including_drafts():
     ci = (REPO_ROOT / ".github" / "workflows" / "ci.yml").read_text()
     assert "publication-gate:" in ci
     assert "python3 ops/publication_gate/gate.py" in ci
-    # `pull_request:` tetikleyicisi daraltılmamış: draft'ları dışlayan types
-    # filtresi veya paths filtresi yok.
     assert "\n  pull_request:\n" in ci
     assert "types:" not in ci
     gate_job = ci.split("publication-gate:")[1].split("\n  test:")[0]
     assert "if:" not in gate_job
     assert "continue-on-error" not in gate_job
+
+
+def test_pre_push_hook_runs_gate_before_publish():
+    # Push anı = yayın; denetim push'tan önce koşmalı. CI ilk ifşayı geri alamaz.
+    hook = REPO_ROOT / ".githooks" / "pre-push"
+    text = hook.read_text(encoding="utf-8")
+    assert "python3 ops/publication_gate/gate.py" in text
+    assert hook.stat().st_mode & 0o111, "pre-push çalıştırılabilir olmalı"
+    makefile = (REPO_ROOT / "Makefile").read_text(encoding="utf-8")
+    assert "core.hooksPath .githooks" in makefile
 
 
 # --- 8. PAT/token sahibi olmak kapıyı geçirmez ------------------------------
@@ -212,19 +294,17 @@ def test_no_force_flag_or_skip_paths():
         assert banned not in source
 
 
-def test_secret_cannot_be_baselined(tmp_path):
+def test_secret_cannot_be_baselined_even_with_signature(tmp_path, signer):
     page = "ui/src/pages/sizinti.astro"
-    root, cfg = make_tree(tmp_path, {page: "---\n---\n" + synthetic_fake_secret_line()})
-    baseline = [{"path": page, "content_sha256": gate.sha256_of(root / page),
-                 "reasons": ["secret-material"]}]
-    (root / "config/publication/sensitive_boundary_baseline.json").write_text(
-        json.dumps({"version": 1, "entries": baseline}), encoding="utf-8")
+    root, cfg = make_tree(tmp_path, {page: "---\n---\n" + synthetic_fake_secret_line()},
+                          signer_info=signer)
+    write_baseline(root, [signed_entry(root, page, signer, gate.LAYER2_ID)])
     code, out = run(root, cfg)
     assert code == 1
     assert "secret-material" in out
 
 
-# --- 10. eski EMBED_REFRESH davranışı ve hash sürüklenmesi -------------------
+# --- 10. eski embed davranışı ve hash sürüklenmesi ---------------------------
 
 def test_legacy_embed_refresh_shape_fails(tmp_path):
     # Eski davranışın yapısal kopyası (sentetik metinle): canonical belgeyi
@@ -235,31 +315,27 @@ def test_legacy_embed_refresh_shape_fails(tmp_path):
     assert "embedded-document-body" in out
 
 
-def test_legacy_baseline_blocks_on_any_content_change(tmp_path):
-    page = "ui/src/pages/eski.astro"
-    root, cfg = make_tree(tmp_path, {page: synthetic_embedded_body()})
-    entry = {"path": page, "status": "legacy_baseline_review_required",
-             "public_release_approved": False,
-             "content_sha256": gate.sha256_of(root / page)}
-    manifest = root / "config/publication/public_release_manifest.json"
-    manifest.write_text(json.dumps({"version": 1, "entries": [entry]}), encoding="utf-8")
-    code, _ = run(root, cfg)
-    assert code == 0
-    # Tek baytlık değişiklik bile yeniden onay ister (iki yönlü türetme kanıtı).
+def test_signature_is_bound_to_content(tmp_path, signer):
+    # İmzalı onaydan sonra tek baytlık değişiklik bile yeniden onay ister.
+    page = "ui/src/pages/imzali.astro"
+    root, cfg = make_tree(tmp_path, {page: synthetic_embedded_body()}, signer_info=signer)
+    write_manifest(root, [signed_entry(root, page, signer, gate.LAYER1_ID)])
+    assert run(root, cfg)[0] == 0
     target = root / page
     target.write_text(target.read_text() + " ", encoding="utf-8")
-    code2, out2 = run(root, cfg)
-    assert code2 == 1
-    assert "content-hash-drift" in out2 or "bayat" in out2
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "content-hash-drift" in out or "bayat" in out
 
 
-def test_registry_entry_for_missing_file_blocks(tmp_path):
-    root, cfg = make_tree(tmp_path, {"ui/src/pages/temiz.astro": "---\n---\n<html></html>\n"})
-    manifest = root / "config/publication/public_release_manifest.json"
-    manifest.write_text(json.dumps({"version": 1, "entries": [
+def test_registry_entry_for_missing_file_blocks(tmp_path, signer):
+    root, cfg = make_tree(tmp_path, {"ui/src/pages/temiz.astro": "---\n---\n<html></html>\n"},
+                          signer_info=signer)
+    write_manifest(root, [
         {"path": "ui/src/pages/silinmis.astro", "status": "approved",
          "public_release_approved": True, "content_sha256": "0" * 64,
-         "approved_by": "kurucu", "approved_date": "2026-09-17"}]}), encoding="utf-8")
+         "approved_by": signer["principal"], "approved_date": "2026-09-17",
+         "approval_signature": "yok"}])
     code, out = run(root, cfg)
     assert code == 1
     assert "olmayan dosyayı" in out

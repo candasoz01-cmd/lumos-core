@@ -3,15 +3,25 @@
 
 Katman 1 — Public Release Gate: public yüzeye gömülü belge gövdesi taşıyan her
 dosya, `config/publication/public_release_manifest.json` içinde içerik hash'i
-eşleşen açık bir kayıt olmadan yayın hattına giremez. Varsayılan durum
-PRIVATE_NOT_APPROVED'dır.
+eşleşen VE kurucunun SSH imzasıyla doğrulanan açık bir kayıt olmadan yayın
+hattına giremez. Varsayılan durum PRIVATE_NOT_APPROVED'dır; "inceleme
+bekliyor" türü ara statü yoktur.
 
 Katman 2 — Sensitive Content Boundary: Katman 1'den bağımsız tarama. Private
-kaynak izleri, sınıflandırma işaretleri ve secret desenleri public yüzeyde
-bulunursa işlem durur. Secret bulgusu hiçbir kayıtla aklanamaz.
+kaynak izleri ve sınıflandırma işaretleri ancak yine kurucu imzalı, hash'e
+bağlı ayrı bir baseline kaydıyla geçer. Secret bulgusu hiçbir kayıtla
+aklanamaz.
+
+İnsan onayı doğrulaması: manifest/baseline kaydındaki düz metin alanlar tek
+başına onay DEĞİLDİR — ajan da yazabilir. Onay, kurucunun private anahtarıyla
+üretilmiş SSH imzasıdır (`ssh-keygen -Y sign`); kapı bunu repodaki
+`allowed_signers` public anahtarlarıyla doğrular. İmza yükü katman + dosya
+yolu + içerik sha256 + tarihe bağlıdır: içerik değişirse imza geçersizleşir,
+bir katmanın imzası diğer katmanda kullanılamaz.
 
 Bilinçli tasarım sınırları (gevşetme değişikliği kurucu onayı ister):
 - Ortam değişkeni OKUNMAZ; skip/force benzeri bypass bayrağı YOKTUR.
+- ssh-keygen yoksa veya imza çözülemiyorsa doğrulama BAŞARISIZ sayılır.
 - Bulgu raporu içerik alıntılamaz; yalnız dosya, satır ve kural kimliği verir.
 - Şüpheli durumda çıkış kodu sıfır olmaz (kontrollü false positive tercih edilir).
 """
@@ -22,13 +32,18 @@ import argparse
 import hashlib
 import json
 import re
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_CONFIG = REPO_ROOT / "config" / "publication" / "gate_config.json"
 
 BLOCK_PREFIX = "BLOCKED_PUBLICATION_REVIEW_REQUIRED"
+SIGN_NAMESPACE = "lumos-publication"
+LAYER1_ID = "layer1-public-release"
+LAYER2_ID = "layer2-sensitive-boundary"
 
 TEXT_EXTENSIONS = {
     ".astro", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".svelte", ".vue",
@@ -45,6 +60,42 @@ def sha256_of(path: Path) -> str:
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def signature_payload(layer_id: str, rel_path: str, content_sha256: str,
+                      approved_date: str) -> bytes:
+    return f"{layer_id}\n{rel_path}\n{content_sha256}\n{approved_date}\n".encode()
+
+
+def verify_founder_signature(allowed_signers: Path, layer_id: str, entry: dict) -> bool:
+    """Kaydın kurucu imzasını doğrula. Her hata = geçersiz (fail-closed)."""
+    approved_by = entry.get("approved_by")
+    approved_date = entry.get("approved_date")
+    signature = entry.get("approval_signature")
+    content_sha256 = entry.get("content_sha256")
+    rel_path = entry.get("path")
+    if not (approved_by and approved_date and signature and content_sha256 and rel_path):
+        return False
+    if not allowed_signers.is_file():
+        return False
+    payload = signature_payload(layer_id, rel_path, content_sha256, approved_date)
+    try:
+        with tempfile.NamedTemporaryFile("w", suffix=".sig", delete=False) as handle:
+            handle.write(signature)
+            sig_path = handle.name
+        result = subprocess.run(
+            ["ssh-keygen", "-Y", "verify", "-f", str(allowed_signers),
+             "-I", approved_by, "-n", SIGN_NAMESPACE, "-s", sig_path],
+            input=payload, capture_output=True, timeout=30, check=False,
+        )
+        return result.returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+    finally:
+        try:
+            Path(sig_path).unlink()
+        except (OSError, UnboundLocalError):
+            pass
 
 
 class Finding:
@@ -113,87 +164,80 @@ def detect_pattern_hits(text: str, patterns: list[str]) -> list[tuple[int, str]]
     return hits
 
 
-def manifest_entry_for(manifest: dict, rel_path: str) -> dict | None:
-    for entry in manifest.get("entries", []):
+def entry_for(registry: dict, rel_path: str) -> dict | None:
+    for entry in registry.get("entries", []):
         if entry.get("path") == rel_path:
             return entry
     return None
 
 
-def check_layer1(rel_path: str, file_path: Path, hits: list[int], manifest: dict) -> list[Finding]:
+def check_layer1(rel_path: str, file_path: Path, hits: list[int], manifest: dict,
+                 allowed_signers: Path) -> list[Finding]:
     findings: list[Finding] = []
-    entry = manifest_entry_for(manifest, rel_path)
+    entry = entry_for(manifest, rel_path)
     line = hits[0]
     if entry is None:
         findings.append(Finding(
             "1-public-release-gate", "embedded-document-body", rel_path, line,
             "public_release manifest kaydı yok (varsayılan: PRIVATE_NOT_APPROVED)",
-            "kurucudan ayrı yayın onayı + manifest kaydı (status, sha256, approved_by, approved_date)",
+            "kurucudan ayrı yayın onayı: imzalı manifest kaydı (bkz. docs/PUBLICATION_GATE.md)",
         ))
         return findings
-    actual_sha = sha256_of(file_path)
-    if entry.get("content_sha256") != actual_sha:
+    if entry.get("content_sha256") != sha256_of(file_path):
         findings.append(Finding(
             "1-public-release-gate", "content-hash-drift", rel_path, line,
             "manifest kaydındaki content_sha256 mevcut içerikle eşleşmiyor",
-            "içerik değişikliği için kurucudan yeniden yayın onayı + manifest güncellemesi",
+            "içerik değişikliği için kurucudan yeni imzalı onay",
         ))
         return findings
-    status = entry.get("status")
-    if status == "approved":
-        if entry.get("public_release_approved") is True and entry.get("approved_by") and entry.get("approved_date"):
-            return findings
+    if entry.get("status") != "approved" or entry.get("public_release_approved") is not True:
         findings.append(Finding(
-            "1-public-release-gate", "approval-metadata-incomplete", rel_path, line,
-            "approved kaydında public_release_approved/approved_by/approved_date eksik",
-            "eksik onay metadata'sının kurucu tarafından tamamlanması",
+            "1-public-release-gate", "not-approved", rel_path, line,
+            f"tek geçerli statü 'approved' + public_release_approved=true; bulunan: {entry.get('status')!r}",
+            "kurucudan imzalı yayın onayı — ara/bekleyen statü yayın izni değildir",
         ))
         return findings
-    if status == "legacy_baseline_review_required":
-        # Halihazırda yayında olan eski içerik: hash sabitlenmiştir, kurucu
-        # incelemesi bekler; içerik değişirse yukarıdaki hash kontrolü durdurur.
-        return findings
-    findings.append(Finding(
-        "1-public-release-gate", "unknown-status", rel_path, line,
-        f"tanınmayan manifest status değeri: {status!r}",
-        "status=approved (tam metadata) veya legacy_baseline_review_required",
-    ))
+    if not verify_founder_signature(allowed_signers, LAYER1_ID, entry):
+        findings.append(Finding(
+            "1-public-release-gate", "approval-signature-invalid", rel_path, line,
+            "kurucu imzası yok, çözülemedi veya allowed_signers ile doğrulanamadı",
+            "kurucunun ssh-keygen -Y sign ile ürettiği, içerik hash'ine bağlı imza",
+        ))
     return findings
 
 
-def baseline_entry_for(baseline: dict, rel_path: str) -> dict | None:
-    for entry in baseline.get("entries", []):
-        if entry.get("path") == rel_path:
-            return entry
-    return None
-
-
-def check_layer2(rel_path: str, file_path: Path, text: str, cfg: dict, baseline: dict) -> list[Finding]:
+def check_layer2(rel_path: str, file_path: Path, text: str, cfg: dict, baseline: dict,
+                 allowed_signers: Path) -> list[Finding]:
     findings: list[Finding] = []
 
-    for line, pattern in detect_pattern_hits(text, cfg.get("secret_patterns", [])):
+    for line, _pattern in detect_pattern_hits(text, cfg.get("secret_patterns", [])):
         findings.append(Finding(
             "2-sensitive-content-boundary", "secret-material", rel_path, line,
             "secret deseni public yüzeyde (hiçbir kayıtla aklanamaz)",
             "secret'ın kaldırılması ve rotasyonu; baseline ile geçilemez",
         ))
 
-    sensitive_hits: list[tuple[int, str, str]] = []
-    for line, pattern in detect_pattern_hits(text, cfg.get("private_source_patterns", [])):
-        sensitive_hits.append((line, "private-source-reference", pattern))
-    for line, pattern in detect_pattern_hits(text, cfg.get("classification_patterns", [])):
-        sensitive_hits.append((line, "classification-marker", pattern))
+    sensitive_hits: list[tuple[int, str]] = []
+    for line, _pattern in detect_pattern_hits(text, cfg.get("private_source_patterns", [])):
+        sensitive_hits.append((line, "private-source-reference"))
+    for line, _pattern in detect_pattern_hits(text, cfg.get("classification_patterns", [])):
+        sensitive_hits.append((line, "classification-marker"))
 
     if not sensitive_hits:
         return findings
 
-    entry = baseline_entry_for(baseline, rel_path)
-    if entry is None or entry.get("content_sha256") != sha256_of(file_path):
-        for line, rule, _pattern in sensitive_hits:
+    entry = entry_for(baseline, rel_path)
+    entry_valid = (
+        entry is not None
+        and entry.get("content_sha256") == sha256_of(file_path)
+        and verify_founder_signature(allowed_signers, LAYER2_ID, entry)
+    )
+    if not entry_valid:
+        for line, rule in sensitive_hits:
             findings.append(Finding(
                 "2-sensitive-content-boundary", rule, rel_path, line,
-                "sensitive baseline kaydı yok veya content_sha256 eşleşmiyor",
-                "kurucu incelemesi + hash sabitlenmiş baseline kaydı (ayrı ikinci onay)",
+                "kurucu imzalı, hash'i eşleşen baseline kaydı yok",
+                "kurucudan ayrı ikinci onay: imzalı baseline kaydı (bkz. docs/PUBLICATION_GATE.md)",
             ))
     return findings
 
@@ -217,6 +261,7 @@ def run_gate(root: Path, config_path: Path) -> tuple[int, list[str]]:
     cfg = load_json(config_path)
     manifest = load_json(root / cfg["public_release_manifest"])
     baseline = load_json(root / cfg["sensitive_boundary_baseline"])
+    allowed_signers = root / cfg["allowed_signers"]
     surface_label = cfg.get(
         "surface_label", "public web (production + preview + public repo/PR)")
 
@@ -231,8 +276,8 @@ def run_gate(root: Path, config_path: Path) -> tuple[int, list[str]]:
             continue
         d1_hits = detect_embedded_document_body(text, cfg)
         if d1_hits:
-            findings.extend(check_layer1(rel_path, file_path, d1_hits, manifest))
-        findings.extend(check_layer2(rel_path, file_path, text, cfg, baseline))
+            findings.extend(check_layer1(rel_path, file_path, d1_hits, manifest, allowed_signers))
+        findings.extend(check_layer2(rel_path, file_path, text, cfg, baseline, allowed_signers))
 
     registry_problems = validate_registries(manifest, baseline, root)
 
@@ -257,11 +302,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", type=Path, default=REPO_ROOT,
                         help="taranacak repo kökü")
     parser.add_argument("--hash", type=Path, default=None, metavar="DOSYA",
-                        help="tek dosyanın sha256 değerini yazdır (manifest kaydı hazırlamak için)")
+                        help="tek dosyanın sha256 değerini yazdır (onay imzası hazırlamak için)")
+    parser.add_argument("--payload", nargs=3, default=None,
+                        metavar=("KATMAN", "DOSYA", "TARIH"),
+                        help="kurucunun imzalayacağı yükü yazdır (katman: layer1|layer2)")
     args = parser.parse_args(argv)
 
     if args.hash is not None:
         print(sha256_of(args.hash))
+        return 0
+
+    if args.payload is not None:
+        layer_key, file_arg, date = args.payload
+        layer_id = {"layer1": LAYER1_ID, "layer2": LAYER2_ID}.get(layer_key)
+        if layer_id is None:
+            parser.error("KATMAN layer1 veya layer2 olmalı")
+        rel = Path(file_arg).resolve().relative_to(args.root.resolve()).as_posix()
+        sys.stdout.buffer.write(
+            signature_payload(layer_id, rel, sha256_of(Path(file_arg)), date))
         return 0
 
     exit_code, lines = run_gate(args.root.resolve(), args.config)

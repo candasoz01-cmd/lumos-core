@@ -1,0 +1,5 @@
+# Lumos yayın kapısı — onay imzası güven kökü.
+# Yalnız kurucunun public anahtarları. Kaynak: https://github.com/candasoz01-cmd.keys
+# (2026-09-17'de pinlendi). Bu dosyadaki değişiklik = güven kökü değişikliği;
+# kurucu incelemesi olmadan kabul edilmez (CODEOWNERS + required review önerilir).
+candasoz01-cmd ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIH9upa6ZCJRPBJuxG4XrJAoj5bxaHGS68gOTFrIOC1Fq

@@ -8,6 +8,7 @@
   ],
   "public_release_manifest": "config/publication/public_release_manifest.json",
   "sensitive_boundary_baseline": "config/publication/sensitive_boundary_baseline.json",
+  "allowed_signers": "config/publication/allowed_signers",
   "min_embedded_chars": 1500,
   "private_source_patterns": [
     "candasoz01-cmd/Lumos\\b",

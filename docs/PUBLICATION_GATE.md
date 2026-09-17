@@ -3,15 +3,17 @@
 # Yayın kapısı — çift katmanlı koruma
 
 > **Kapsam notu (2026-09-17):** Bu belge koruyucu altyapıyı tanımlar; hangi
-> içeriğin yayınlanacağına karar vermez. Yayın kararı her zaman kurucunun ayrı
-> ve açık onayıdır. Belge, 2026-07/08 döneminde private karar metinlerinin
-> public `.astro` sayfalarına gömülmesi olayından sonra yazılmıştır.
+> içeriğin yayınlanacağına karar vermez. Yayın kararı her zaman kurucunun ayrı,
+> açık ve **imzalı** onayıdır. Belge, 2026-07/08 döneminde private karar
+> metinlerinin public `.astro` sayfalarına gömülmesi olayından sonra yazıldı;
+> gömülü gövdeler PR #857 ile, kaynak taraf Lumos PR #370 ile kapatıldı.
 
 ## İlke
 
 **"Özel olduğunu tespit et" değil, "yayınlanabilir olduğunu kanıtla."**
-Varsayılan durum her içerik için `PRIVATE_NOT_APPROVED`'dır. İki katman
-birbirinden bağımsızdır: biri hata yapsa da diğeri durdurur.
+Varsayılan durum her içerik için `PRIVATE_NOT_APPROVED`'dır. "İnceleme
+bekliyor" türü ara statü YOKTUR — inceleme beklemek yayın izni değildir.
+İki katman birbirinden bağımsızdır: biri hata yapsa da diğeri durdurur.
 
 Public yüzey tanımı: production web (welockai.com), Vercel preview, public repo
 branch'i, draft dahil her PR, build artifact, generated static page.
@@ -23,66 +25,78 @@ branch'i, draft dahil her PR, build artifact, generated static page.
 gömülmüş belge gövdesi arar (kaçışlı `\n` ile tek satıra yazılmış, başlık/tablo
 taşıyan büyük string sabitleri; `BODY = "..."` deseni).
 
-Her bulgu için `config/publication/public_release_manifest.json` içinde kayıt
-zorunludur:
-
-| status | Anlamı | Geçer mi? |
-|--------|--------|-----------|
-| (kayıt yok) | `PRIVATE_NOT_APPROVED` — varsayılan | ❌ Bloklanır |
-| `approved` | Kurucunun ayrı yayın onayı; `public_release_approved: true`, `approved_by`, `approved_date` ve eşleşen `content_sha256` zorunlu | ✅ |
-| `legacy_baseline_review_required` | Kapı kurulmadan önce zaten yayında olan içerik; hash sabitlendi, kurucu incelemesi bekliyor. **Onay değildir.** | ✅ (yalnız birebir aynı içerik) |
-| başka her değer | Tanınmaz | ❌ Bloklanır |
-
-İçerik bir bayt bile değişirse hash eşleşmez ve kapı durdurur; değişiklik ancak
-kurucunun yeni onayı + manifest güncellemesiyle geçer. Hash üretimi:
-`python3 ops/publication_gate/gate.py --hash <dosya>`.
+Her bulgu için `config/publication/public_release_manifest.json` içinde
+**imzalı** kayıt zorunludur. Tek geçerli statü `approved`:
+`public_release_approved: true`, `approved_by`, `approved_date`, eşleşen
+`content_sha256` ve geçerli `approval_signature`. Kayıtsız, hash'i kaymış,
+statüsü farklı veya imzası doğrulanamayan her şey bloklanır.
 
 ## Katman 2 — Sensitive Content Boundary
 
 Katman 1'den bağımsız; manifest onayı olsa bile koşar. Aradıkları:
 
-- **private-source-reference:** private repo yolları/URL'leri
-  (`candasoz01-cmd/Lumos`, private raw URL'ler, `publish/welockai`,
-  `docs/canonical/`).
-- **classification-marker:** "İÇ KULLANIM", "YAYINLANMAZ", "public değil",
-  "TEK KAYNAK" gibi sınıflandırma işaretleri.
-- **secret-material:** token/anahtar desenleri (`ghp_…`, `github_pat_…`,
-  `sk-…`, `xox…`, `AKIA…`, private key blokları, `x-access-token:`).
+- **private-source-reference:** private repo yolları/URL'leri.
+- **classification-marker:** "İÇ KULLANIM", "YAYINLANMAZ", "public değil" gibi işaretler.
+- **secret-material:** token/anahtar desenleri.
 
 private-source-reference ve classification-marker bulguları yalnız
-`config/publication/sensitive_boundary_baseline.json` içinde hash'i eşleşen bir
-kayıtla geçer (ayrı ikinci insan onayı). **Secret bulgusu hiçbir kayıtla
-geçirilemez**; tek çözüm kaldırma + rotasyondur.
+`config/publication/sensitive_boundary_baseline.json` içinde hash'i eşleşen ve
+**kurucu imzalı** bir kayıtla geçer (ayrı ikinci insan onayı). **Secret bulgusu
+hiçbir kayıtla geçirilemez**; tek çözüm kaldırma + rotasyondur.
 
-## Nerede koşar (üç bağımsız zorlama noktası)
+## İnsan onayı = imza (ajan üretemez)
 
-1. **CI:** `.github/workflows/ci.yml` → `publication-gate` job'ı. `if:` koşulu,
-   `continue-on-error` veya atlama bayrağı yoktur; draft dahil her
-   `pull_request` ve `main` push'unda koşar.
-2. **Pytest:** `tests/test_publication_gate.py` gerçek repo taramasını da
-   içerir; kapı bulgusu varsa zorunlu `test` check'i kırmızıya döner.
-3. **Vercel build:** `vercel.json` → `buildCommand` önce kapıyı çalıştırır.
-   PAT'la push edilmiş bir branch'in preview'u bile, kapı geçilmeden **derlenmez**
-   — preview yüzeyi fail-closed'dır.
+Manifest/baseline'daki düz metin alanlar tek başına onay sayılmaz — bir ajan da
+yazabilir. Onayın kanıtı, kurucunun private SSH anahtarıyla üretilmiş imzadır;
+kapı bunu `config/publication/allowed_signers` içindeki public anahtarlarla
+(`ssh-keygen -Y verify`, namespace `lumos-publication`) doğrular.
 
-## Bypass edilemezlik
+- İmza yükü `katman-id \n dosya-yolu \n content_sha256 \n approved_date \n`
+  biçimindedir: içerik değişirse imza geçersizleşir; layer1 imzası layer2'de
+  kullanılamaz.
+- `ssh-keygen` yoksa, imza çözülemiyorsa veya `allowed_signers` eksikse
+  doğrulama BAŞARISIZ sayılır (fail-closed).
+- `allowed_signers` güven köküdür (kaynak: kurucunun GitHub hesabı anahtarları).
+  Bu dosyanın değiştirilmesi güven kökü değişikliğidir; zorlayıcı kilit için
+  GitHub tarafında `config/publication/**` + `ops/publication_gate/**` üzerine
+  CODEOWNERS + zorunlu inceleme gerekir (kurucu ayarı). O ayar olmadan imza
+  şeması denetlenebilir ama tek başına zorlanamaz.
 
-- `gate.py` ortam değişkeni okumaz; `--force`/`--skip` benzeri bayrak yoktur.
-- PAT veya bot token'ı sahibi olmak kapıyı geçme yetkisi vermez: push
-  yapılabilir, ama CI + Vercel build kapıyı her koşulda çalıştırır.
-- Rapor içerik alıntılamaz; yalnız dosya, satır, kural ve gereken onay yazılır.
-- Kapı, manifest, baseline veya testlerde her gevşetme kurucu onayı ister
-  (bkz. `AGENTS.md` § "Yayın ayrı bir kullanıcı eylemidir").
+### Onay prosedürü (kurucu, kendi makinesinde)
 
-Bilinen kalıntı sınırlar: `publication-gate` job'ının branch protection'da
-required check yapılması ve `config/publication/**` + `ops/publication_gate/**`
-için CODEOWNERS zorunlu incelemesi GitHub ayarıdır; kurucu eliyle açılır.
+```bash
+# 1. Yükü üret (layer1 veya layer2):
+python3 ops/publication_gate/gate.py --payload layer1 ui/src/pages/<dosya>.astro 2026-09-17 > /tmp/onay.payload
 
-## Onay prosedürü (kurucu)
+# 2. İmzala (private anahtarınla):
+ssh-keygen -Y sign -f ~/.ssh/id_ed25519 -n lumos-publication /tmp/onay.payload
 
-1. Yayınlanacak dosyayı incele.
-2. `python3 ops/publication_gate/gate.py --hash <dosya>` ile hash al.
-3. Manifest'e `status: "approved"`, `public_release_approved: true`,
-   `approved_by`, `approved_date`, `content_sha256` yaz.
-4. Katman 2 bulgusu da varsa baseline'a ayrı kayıt ekle (ikinci onay).
-5. Değişikliği normal PR akışıyla merge et.
+# 3. /tmp/onay.payload.sig içeriğini manifest kaydına approval_signature olarak,
+#    hash'i content_sha256 olarak yaz; normal PR akışıyla merge et.
+```
+
+## Nerede koşar (dört nokta)
+
+1. **pre-push kancası** (`.githooks/pre-push`, kurulum `make setup-commit-guard`):
+   public remote'a push'tan ÖNCE son yerel bariyer.
+2. **CI:** `.github/workflows/ci.yml` → `publication-gate` job'ı; `if:` yok,
+   `continue-on-error` yok, draft dahil her `pull_request`'te koşar.
+3. **Pytest:** `tests/test_publication_gate.py` gerçek repo taramasını içerir;
+   zorunlu `test` check'i içinde. (#857'nin `test_public_pages_no_private_embed.py`
+   testi bağımsız ikinci ağdır.)
+4. **Vercel build:** `vercel.json` → `buildCommand` önce kapıyı çalıştırır;
+   preview dahi kapı geçilmeden derlenmez.
+
+## Dürüst sınırlar
+
+- **Push anı = yayın.** Public GitHub'a push edilen içerik, CI verdikten önce
+  görünür olur; CI ilk ifşayı geri alamaz. Pre-push kancası bunu azaltır ama
+  `--no-verify`, kancasız klon veya doğrudan API push'u ile atlanabilir;
+  GitHub.com'da sunucu tarafı pre-receive yoktur. Atlatılamaz tek önlem kaynak
+  taraftadır: private içerik, public remote'a push yetkisi olan bir çalışma
+  ağacına hiç girmemelidir (Lumos PR #370'in kapattığı yol) — ajan kuralı da
+  push'u ayrı yetki sayar (`AGENTS.md`).
+- `publication-gate` job'ının branch protection'da required check yapılması ve
+  CODEOWNERS zorunlu incelemesi GitHub ayarıdır; kurucu eliyle açılır.
+- Kapı, manifest, baseline, `allowed_signers` veya testlerdeki her gevşetme
+  kurucu onayı ister.
