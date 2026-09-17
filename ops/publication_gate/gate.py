@@ -282,45 +282,70 @@ def check_layer2(rel_path: str, file_path: Path, text: str, cfg: dict, baseline:
     return findings
 
 
-def enrolled_signer_keys(allowed_signers: Path) -> list[str]:
-    """allowed_signers'taki anahtar satırlarını 'tip blob' olarak döndür."""
+SSH_KEY_TYPE_PREFIXES = ("ssh-", "ecdsa-", "sk-")
+
+
+def enrolled_signer_lines(allowed_signers: Path) -> list[str]:
+    """allowed_signers'taki kayıt satırları (yorum/boş hariç, olduğu gibi)."""
     if not allowed_signers.is_file():
         return []
-    keys: list[str] = []
+    lines: list[str] = []
     for line in allowed_signers.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            lines.append(line)
+    return lines
+
+
+def _fingerprint(pubkey_line: str) -> str | None:
+    try:
+        result = subprocess.run(
+            ["ssh-keygen", "-lf", "-"],
+            input=(pubkey_line + "\n").encode(),
+            capture_output=True, timeout=30, check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    parts = result.stdout.decode(errors="replace").split()
+    if len(parts) >= 2 and parts[1].startswith("SHA256:"):
+        return parts[1]
+    return None
+
+
+def validate_signer_roots(allowed_signers: Path) -> list[str]:
+    """Kayıtlı imza köklerini SATIR BAZINDA iptal listesine karşı denetle.
+
+    allowed_signers grameri `principal [opsiyonlar] tip blob`dur; opsiyon alanı
+    anahtarı parser'dan gizleyebildiği için her satırda tip-önekli TÜM aday
+    çiftler ayrı ayrı fingerprint'lenir. Hiçbir aday çözülemeyen satır ve
+    ssh-keygen hatası bulgudur — sessiz atlama yoktur (fail-closed).
+    """
+    problems: list[str] = []
+    for lineno, line in enumerate(
+            (allowed_signers.read_text(encoding="utf-8").splitlines()
+             if allowed_signers.is_file() else []), start=1):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
         parts = line.split()
-        if len(parts) >= 3:
-            keys.append(f"{parts[1]} {parts[2]}")
-    return keys
-
-
-def validate_signer_roots(allowed_signers: Path) -> list[str]:
-    """Kayıtlı imza köklerini iptal listesine karşı denetle (fail-closed).
-
-    Parmak izi hesaplanamıyorsa iptal denetimi yapılamaz; bu da bulgudur.
-    """
-    keys = enrolled_signer_keys(allowed_signers)
-    if not keys:
-        return []
-    try:
-        result = subprocess.run(
-            ["ssh-keygen", "-lf", "-"],
-            input="\n".join(keys).encode() + b"\n",
-            capture_output=True, timeout=30, check=False,
-        )
-    except (OSError, subprocess.SubprocessError):
-        result = None
-    if result is None or result.returncode != 0:
-        return ["imza kökü parmak izi hesaplanamadı; iptal denetimi yapılamıyor (fail-closed)"]
-    problems: list[str] = []
-    for line in result.stdout.decode(errors="replace").splitlines():
-        parts = line.split()
-        if len(parts) >= 2 and parts[1] in REVOKED_SIGNER_FINGERPRINTS:
+        fingerprints: list[str] = []
+        for idx in range(1, len(parts) - 1):
+            if parts[idx].startswith(SSH_KEY_TYPE_PREFIXES):
+                fingerprint = _fingerprint(f"{parts[idx]} {parts[idx + 1]}")
+                if fingerprint:
+                    fingerprints.append(fingerprint)
+        if not fingerprints:
             problems.append(
-                f"iptal edilmiş imza anahtarı allowed_signers'a kayıtlı: {parts[1]}")
+                f"allowed_signers satır {lineno}: anahtar çözümlenemedi; "
+                "iptal denetimi yapılamıyor (fail-closed)")
+            continue
+        for fingerprint in fingerprints:
+            if fingerprint in REVOKED_SIGNER_FINGERPRINTS:
+                problems.append(
+                    "iptal edilmiş imza anahtarı allowed_signers'a kayıtlı: "
+                    f"{fingerprint} (satır {lineno})")
     return problems
 
 

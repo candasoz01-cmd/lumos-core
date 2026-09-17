@@ -472,7 +472,32 @@ def test_real_repo_closed_default_no_enrolled_signer():
     # Kurucu insan-kapılı yeni kökü kaydederken bu assertion'ı bilinçli olarak
     # güncelller; ajan güncellerse bu bir kapsam ihlalidir.
     signers = REPO_ROOT / "config" / "publication" / "allowed_signers"
-    assert gate.enrolled_signer_keys(signers) == []
+    assert gate.enrolled_signer_lines(signers) == []
+
+
+def test_options_field_cannot_hide_revoked_key(tmp_path, signer):
+    # Delta güvenlik bulgusu (2026-09-18): options alanı (namespaces=...) +
+    # dolgu satırı kombinasyonu iptal anahtarını parser'dan gizleyebiliyordu.
+    revoked_blob = REVOKED_PUBKEY_LINE.split()[2]
+    content = (
+        signer["allowed_line"]
+        + f'kurucu namespaces="lumos-publication" ssh-ed25519 {revoked_blob}\n'
+    )
+    root, cfg = make_tree(tmp_path, {"ui/src/pages/temiz.astro": "---\n---\n<html></html>\n"})
+    (root / "config/publication/allowed_signers").write_text(content, encoding="utf-8")
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "iptal edilmiş imza anahtarı" in out
+
+
+def test_unparseable_signer_line_blocks(tmp_path, signer):
+    # Çözümlenemeyen kayıt satırı sessizce atlanmaz; bulgudur.
+    content = signer["allowed_line"] + "kurucu bozuk-veri daha-bozuk-veri\n"
+    root, cfg = make_tree(tmp_path, {"ui/src/pages/temiz.astro": "---\n---\n<html></html>\n"})
+    (root / "config/publication/allowed_signers").write_text(content, encoding="utf-8")
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "anahtar çözümlenemedi" in out
 
 
 def test_revoked_fingerprint_pinned_in_gate():
