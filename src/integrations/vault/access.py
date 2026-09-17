@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
 
+from integrations.vault.access_audit import append_credential_access_audit
+
 
 class CredentialAccessAction(str, Enum):
     """Kasa erişim kararı; secret veya token taşımaz."""
@@ -122,10 +124,25 @@ def evaluate_credential_access(
     *,
     now: datetime | None = None,
 ) -> CredentialAccessDecision:
-    """Geçerli düşük riskli bağı tekrar kullanır; şüphede kapalı kalır."""
+    """Geçerli düşük riskli bağı tekrar kullanır; şüphede kapalı kalır.
+
+    Her karar auditlenir (owner/provider/account/purpose, action, reason, zaman).
+    ``vault_ref`` ve secret audit kaydına girmez. Audit I/O bozulursa REUSE ve
+    consequential erişim sessiz başarıya dönmez (F8 fail-closed).
+    """
     checked_at = now or datetime.now(timezone.utc)
     _require_aware(checked_at, "now")
+    decision = _decide_credential_access(binding, request, checked_at=checked_at)
+    _audit_credential_access(request, decision, checked_at=checked_at)
+    return decision
 
+
+def _decide_credential_access(
+    binding: CredentialBinding | None,
+    request: CredentialAccessRequest,
+    *,
+    checked_at: datetime,
+) -> CredentialAccessDecision:
     if binding is None:
         return CredentialAccessDecision(
             CredentialAccessAction.REAUTHENTICATE,
@@ -160,6 +177,35 @@ def evaluate_credential_access(
         CredentialAccessAction.REUSE,
         "verified_context_reused",
     )
+
+
+def _audit_credential_access(
+    request: CredentialAccessRequest,
+    decision: CredentialAccessDecision,
+    *,
+    checked_at: datetime,
+) -> None:
+    """Reuse / consequential must not succeed without a trail; deny-class may."""
+    try:
+        append_credential_access_audit(
+            owner_id=request.key.owner_id,
+            provider=request.key.provider,
+            account_id=request.key.account_id,
+            purpose_code=request.key.purpose_code,
+            action=decision.action.value,
+            reason=decision.reason,
+            timestamp=checked_at,
+        )
+    except OSError:
+        if _audit_failure_must_fail_closed(request, decision):
+            raise
+
+
+def _audit_failure_must_fail_closed(
+    request: CredentialAccessRequest,
+    decision: CredentialAccessDecision,
+) -> bool:
+    return decision.action is CredentialAccessAction.REUSE or request.consequential
 
 
 def _require_aware(value: datetime, field_name: str) -> None:
