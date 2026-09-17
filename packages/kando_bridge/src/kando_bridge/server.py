@@ -1839,20 +1839,42 @@ class BridgeHandler(BaseHTTPRequestHandler):
             run_agent_auto=_maybe_agent_auto_patch,
         )
 
-    def _send_lumos_pipeline_out(self, out: dict, *, approval_path: Path | None = None) -> None:
-        """Gate çıktısı: policy → pending → blocked → deny → outbox (onay dosyası isteğe bağlı silinir)."""
+    def _append_gate_audit_log(self, out: dict) -> bool:
+        """Persist lumos_audit_log. False on I/O failure. Missing entry is OK."""
+        ent = out.get("lumos_audit_log")
+        if not isinstance(ent, dict):
+            return True
         try:
             from kando_runtime.lumos_audit import append_audit_log
 
-            ent = out.get("lumos_audit_log")
-            if isinstance(ent, dict):
-                append_audit_log(ROOT, ent)
-        except Exception:
-            pass
+            append_audit_log(ROOT, ent)
+            return True
+        except (ImportError, OSError):
+            return False
+
+    def _pipeline_requires_audit_trail(self, out: dict) -> bool:
+        """Pending / run results must not be returned as success without an audit trail."""
+        if out.get("policy_ok") is False:
+            return False
+        if out.get("execution_mode") == "blocked":
+            return False
+        if out.get("final_decision") == "deny":
+            return False
+        return True
+
+    def _send_lumos_pipeline_out(self, out: dict, *, approval_path: Path | None = None) -> None:
+        """Gate çıktısı: policy → pending → blocked → deny → outbox (onay dosyası isteğe bağlı silinir)."""
+        audit_ok = self._append_gate_audit_log(out)
         if out.get("policy_ok") is False:
             self._send_json(
                 int(out.get("http_status") or 403),
                 {"accepted": False, "error": "blocked by lumos"},
+            )
+            return
+        if not audit_ok and self._pipeline_requires_audit_trail(out):
+            self._send_json(
+                503,
+                {"accepted": False, "error": "audit_write_failed"},
             )
             return
 
@@ -2095,14 +2117,14 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 chat_user_text=message,
                 ingest_user_message=message.strip(),
             )
-            try:
-                from kando_runtime.lumos_audit import append_audit_log
-
-                ent = out.get("lumos_audit_log")
-                if isinstance(ent, dict):
-                    append_audit_log(ROOT, ent)
-            except Exception:
-                pass
+            if not self._append_gate_audit_log(out) and self._pipeline_requires_audit_trail(
+                out
+            ):
+                self._send_json(
+                    503,
+                    {"accepted": False, "error": "audit_write_failed"},
+                )
+                return
             self._attach_pending_approval_to_out(out)
             attach_execution_dispatch_to_out(out, repo_root=ROOT)
             if _is_dispatch_medium_pending(out):
@@ -2317,7 +2339,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
                         status="denied",
                         error="invalid_approval_token",
                     )
-            except ImportError:
+            except (ImportError, OSError):
                 pass
             self._send_json(200, {"accepted": False, "error": "geçersiz token"})
             return
