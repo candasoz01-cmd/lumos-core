@@ -386,6 +386,56 @@ def test_registry_entry_for_missing_file_blocks(tmp_path, signer):
     assert "olmayan dosyayı" in out
 
 
+# --- güvenlik incelemesi bulgusu (2026-09-18): fail-open tarama boşluğu ------
+
+def test_unknown_extension_is_scanned(tmp_path):
+    # Uzantı allowlist'i yok: .log/.csv/.pem/uzantısız dosyalar da taranır.
+    marker = "içerik https://github.com/candasoz01-cmd/Lumos/blob/main/docs/x.md\n"
+    for name in ("ui/public/notlar.log", "ui/public/veri.csv", "ui/public/aasa"):
+        root, cfg = make_tree(tmp_path / name.replace("/", "_"), {name: marker})
+        code, out = run(root, cfg)
+        assert code == 1, name
+        assert "private-source-reference" in out, name
+
+
+def test_secret_in_unlisted_extension_blocked(tmp_path):
+    root, cfg = make_tree(tmp_path, {"ui/public/yedek.pem": synthetic_fake_secret_line()})
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "secret-material" in out
+
+
+def test_utf16_content_is_scanned(tmp_path):
+    # UTF-16 kaydedilmiş dosya sessizce atlanmaz; çözülür ve taranır.
+    marker = "belge https://github.com/candasoz01-cmd/Lumos/blob/main/docs/x.md\n"
+    root, cfg = make_tree(tmp_path, {"ui/public/dummy.txt": "temiz\n"})
+    (root / "ui/public/gizli.txt").write_bytes(marker.encode("utf-16"))
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "private-source-reference" in out and "gizli.txt" in out
+
+
+def test_undecodable_file_is_a_finding_not_a_pass(tmp_path, signer):
+    root, cfg = make_tree(tmp_path, {"ui/public/temiz.txt": "temiz\n"}, signer_info=signer)
+    target = root / "ui/public/veri.bin"
+    target.write_bytes(bytes([0, 159, 146, 150, 255, 254, 1]) * 40)
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "unscannable-file" in out
+
+    entry = signed_entry(root, "ui/public/veri.bin", signer, gate.LAYER2_ID)
+    write_baseline(root, [entry])
+    code2, out2 = run(root, cfg)
+    assert code2 == 0, out2
+
+
+def test_binary_media_is_exempt(tmp_path):
+    root, cfg = make_tree(tmp_path, {"ui/public/temiz.txt": "temiz\n"})
+    (root / "ui/public/logo.png").write_bytes(b"\x89PNG\r\n\x1a\n" + bytes(64))
+    code, out = run(root, cfg)
+    assert code == 0, out
+
+
 # --- gerçek repo: kapı yeşil, sızıntı geri gelmedi ---------------------------
 
 def test_real_repo_passes_gate():

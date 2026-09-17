@@ -21,6 +21,8 @@ bir katmanın imzası diğer katmanda kullanılamaz.
 
 Bilinçli tasarım sınırları (gevşetme değişikliği kurucu onayı ister):
 - Ortam değişkeni OKUNMAZ; skip/force benzeri bypass bayrağı YOKTUR.
+- Tarama uzantı allowlist'i KULLANMAZ: medya (görüntü/font/ses-video) dışında
+  her dosya kapsanır; metne çözülemeyen dosya atlanmaz, BULGUDUR.
 - ssh-keygen yoksa veya imza çözülemiyorsa doğrulama BAŞARISIZ sayılır.
 - Bulgu raporu içerik alıntılamaz; yalnız dosya, satır ve kural kimliği verir.
 - Şüpheli durumda çıkış kodu sıfır olmaz (kontrollü false positive tercih edilir).
@@ -45,10 +47,13 @@ SIGN_NAMESPACE = "lumos-publication"
 LAYER1_ID = "layer1-public-release"
 LAYER2_ID = "layer2-sensitive-boundary"
 
-TEXT_EXTENSIONS = {
-    ".astro", ".js", ".mjs", ".cjs", ".ts", ".tsx", ".jsx", ".svelte", ".vue",
-    ".html", ".htm", ".css", ".md", ".mdx", ".txt", ".json", ".xml", ".svg",
-    ".yml", ".yaml", ".toml",
+# Tarama VARSAYILAN OLARAK her dosyayı kapsar (uzantı allowlist'i yok — .log,
+# .csv, .pem, uzantısız dosyalar dahil). Yalnız görüntü/font/ses-video medyası
+# atlanır; belge taşıyabilen hiçbir tür (pdf, zip, ...) bu listeye eklenmez.
+KNOWN_BINARY_MEDIA = {
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".icns", ".bmp", ".avif",
+    ".woff", ".woff2", ".ttf", ".otf", ".eot",
+    ".mp3", ".mp4", ".webm", ".ogg", ".wav", ".mov", ".heic",
 }
 
 EXCLUDED_DIR_NAMES = {"node_modules", "dist", ".astro", ".git", "__pycache__"}
@@ -126,9 +131,30 @@ def iter_surface_files(root: Path, surfaces: list[str]) -> list[Path]:
                 continue
             if any(part in EXCLUDED_DIR_NAMES for part in path.relative_to(root).parts):
                 continue
-            if path.suffix.lower() in TEXT_EXTENSIONS:
-                files.append(path)
+            if path.suffix.lower() in KNOWN_BINARY_MEDIA:
+                continue
+            files.append(path)
     return files
+
+
+def decode_surface_text(data: bytes) -> str | None:
+    """Public yüzey dosyasını metne çöz; çözülemeyen içerik None döner.
+
+    UTF-8 ve UTF-16 (BOM'lu/BOM'suz) denenir. Kontrol karakteri (tab/newline
+    dışında) içeren çözümler güvenilir taranamaz sayılır — çözememek geçiş
+    değil, bulgudur (fail-closed).
+    """
+    control_chars = {c for c in range(0x20) if c not in (0x09, 0x0A, 0x0D)}
+    control_chars |= set(range(0x7F, 0xA0))
+    for encoding in ("utf-8", "utf-16"):
+        try:
+            text = data.decode(encoding)
+        except (UnicodeDecodeError, UnicodeError):
+            continue
+        if any(ord(ch) in control_chars for ch in text):
+            return None
+        return text
+    return None
 
 
 def detect_embedded_document_body(text: str, cfg: dict) -> list[int]:
@@ -276,9 +302,21 @@ def run_gate(root: Path, config_path: Path) -> tuple[int, list[str]]:
 
     for file_path in iter_surface_files(root, cfg["public_surfaces"]):
         rel_path = file_path.relative_to(root).as_posix()
-        try:
-            text = file_path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
+        text = decode_surface_text(file_path.read_bytes())
+        if text is None:
+            # Çözülemeyen dosya taranamaz; taranamayan içerik yayına giremez.
+            entry = entry_for(baseline, rel_path)
+            entry_valid = (
+                entry is not None
+                and entry.get("content_sha256") == sha256_of(file_path)
+                and verify_founder_signature(allowed_signers, LAYER2_ID, entry)
+            )
+            if not entry_valid:
+                findings.append(Finding(
+                    "2-sensitive-content-boundary", "unscannable-file", rel_path, 1,
+                    "içerik metin olarak çözülemedi; tarama yapılamıyor",
+                    "dosyayı taranabilir hale getir veya kurucu imzalı baseline kaydı ekle",
+                ))
             continue
         d1_hits = detect_embedded_document_body(text, cfg)
         if d1_hits:

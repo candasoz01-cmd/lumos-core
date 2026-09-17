@@ -33,7 +33,12 @@ statüsü farklı veya imzası doğrulanamayan her şey bloklanır.
 
 ## Katman 2 — Sensitive Content Boundary
 
-Katman 1'den bağımsız; manifest onayı olsa bile koşar. Aradıkları:
+Katman 1'den bağımsız; manifest onayı olsa bile koşar. Kapsam uzantı
+allowlist'i kullanmaz: medya (görüntü/font/ses-video) dışında `public_surfaces`
+altındaki **her** dosya taranır (`.log`, `.csv`, `.pem`, uzantısız dahil);
+metne çözülemeyen dosya atlanmaz, `unscannable-file` bulgusudur ve ancak
+kurucu imzalı baseline kaydıyla geçer (güvenlik incelemesi bulgusu,
+2026-09-18'de kapatıldı). Aradıkları:
 
 - **private-source-reference:** private repo yolları/URL'leri
   (`candasoz01-cmd/Lumos` her harf biçiminde; public `lumos-core` hariç).
