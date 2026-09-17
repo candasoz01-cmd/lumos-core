@@ -406,13 +406,41 @@ def test_secret_in_unlisted_extension_blocked(tmp_path):
 
 
 def test_utf16_content_is_scanned(tmp_path):
-    # UTF-16 kaydedilmiş dosya sessizce atlanmaz; çözülür ve taranır.
+    # BOM'lu UTF-16 (Python encode("utf-16") = LE + BOM) çözülür ve taranır.
     marker = "belge https://github.com/candasoz01-cmd/Lumos/blob/main/docs/x.md\n"
     root, cfg = make_tree(tmp_path, {"ui/public/dummy.txt": "temiz\n"})
-    (root / "ui/public/gizli.txt").write_bytes(marker.encode("utf-16"))
+    payload = marker.encode("utf-16")
+    assert payload.startswith(b"\xff\xfe")
+    (root / "ui/public/gizli.txt").write_bytes(payload)
     code, out = run(root, cfg)
     assert code == 1
     assert "private-source-reference" in out and "gizli.txt" in out
+
+
+def test_utf16_be_with_bom_is_scanned(tmp_path):
+    marker = "belge https://github.com/candasoz01-cmd/Lumos/blob/main/docs/x.md\n"
+    root, cfg = make_tree(tmp_path, {"ui/public/dummy.txt": "temiz\n"})
+    payload = b"\xfe\xff" + marker.encode("utf-16-be")
+    (root / "ui/public/gizli-be.txt").write_bytes(payload)
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "private-source-reference" in out and "gizli-be.txt" in out
+
+
+def test_bomless_utf16_fallback_is_unscannable(tmp_path):
+    """Bugbot: UTF-8 fail olunca BOM'suz utf-16 native-endian mojibake açardı."""
+    root, cfg = make_tree(tmp_path, {"ui/public/temiz.txt": "temiz\n"})
+    # Invalid UTF-8, even length, no BOM. data.decode("utf-16") succeeds.
+    payload = bytes(range(0x80, 0xC0)) * 4
+    assert len(payload) % 2 == 0
+    assert not payload.startswith((b"\xff\xfe", b"\xfe\xff"))
+    payload.decode("utf-16")  # old decoder would accept this as text
+    (root / "ui/public/legacy.bin").write_bytes(payload)
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "unscannable-file" in out
+    assert "legacy.bin" in out
+    assert gate.decode_surface_text(payload) is None
 
 
 def test_undecodable_file_is_a_finding_not_a_pass(tmp_path, signer):

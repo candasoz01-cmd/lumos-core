@@ -145,23 +145,37 @@ def iter_surface_files(root: Path, surfaces: list[str]) -> list[Path]:
     return files
 
 
+_UTF16_LE_BOM = b"\xff\xfe"
+_UTF16_BE_BOM = b"\xfe\xff"
+
+
 def decode_surface_text(data: bytes) -> str | None:
     """Public yüzey dosyasını metne çöz; çözülemeyen içerik None döner.
 
-    UTF-8 ve UTF-16 (BOM'lu/BOM'suz) denenir. Kontrol karakteri (tab/newline
-    dışında) içeren çözümler güvenilir taranamaz sayılır — çözememek geçiş
-    değil, bulgudur (fail-closed).
+    Önce UTF-8. UTF-8 başarısızsa BOM'suz UTF-16 denenmez — Python'un
+    `decode("utf-16")` native-endian yolu neredeyse her çift uzunluktaki
+    bayt dizisini kabul eder ve legacy/binary içeriği mojibake'e çevirir.
+    UTF-16 yalnız BOM varsa (`FF FE` / `FE FF`) çözülür. Kontrol karakteri
+    (tab/newline dışında) içeren çözümler güvenilir taranamaz sayılır;
+    çözememek geçiş değil, bulgudur (fail-closed).
     """
     control_chars = {c for c in range(0x20) if c not in (0x09, 0x0A, 0x0D)}
     control_chars |= set(range(0x7F, 0xA0))
-    for encoding in ("utf-8", "utf-16"):
-        try:
-            text = data.decode(encoding)
-        except (UnicodeDecodeError, UnicodeError):
-            continue
+
+    def _accept(text: str) -> str | None:
         if any(ord(ch) in control_chars for ch in text):
             return None
         return text
+
+    try:
+        return _accept(data.decode("utf-8"))
+    except (UnicodeDecodeError, UnicodeError):
+        pass
+    if data.startswith((_UTF16_LE_BOM, _UTF16_BE_BOM)):
+        try:
+            return _accept(data.decode("utf-16"))
+        except (UnicodeDecodeError, UnicodeError):
+            return None
     return None
 
 

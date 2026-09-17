@@ -37,8 +37,9 @@ Katman 1'den bağımsız; manifest onayı olsa bile koşar. Kapsam uzantı
 allowlist'i kullanmaz: medya (görüntü/font/ses-video) dışında `public_surfaces`
 altındaki **her** dosya taranır (`.log`, `.csv`, `.pem`, uzantısız dahil);
 metne çözülemeyen dosya atlanmaz, `unscannable-file` bulgusudur ve ancak
-kurucu imzalı baseline kaydıyla geçer (güvenlik incelemesi bulgusu,
-2026-09-18'de kapatıldı). Aradıkları:
+kurucu imzalı baseline kaydıyla geçer. Çözüm sırası UTF-8, sonra yalnız
+BOM'lu UTF-16 (`FF FE` / `FE FF`); UTF-8 başarısızken BOM'suz `utf-16`
+denenmez (native-endian mojibake fail-open'ı, 2026-09-17 Bugbot). Aradıkları:
 
 - **private-source-reference:** private repo yolları/URL'leri
   (`candasoz01-cmd/Lumos` her harf biçiminde; public `lumos-core` hariç).
