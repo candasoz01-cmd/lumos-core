@@ -46,12 +46,23 @@ private-source-reference ve classification-marker bulguları yalnız
 **kurucu imzalı** bir kayıtla geçer (ayrı ikinci insan onayı). **Secret bulgusu
 hiçbir kayıtla geçirilemez**; tek çözüm kaldırma + rotasyondur.
 
-## İnsan onayı = imza (ajan üretemez)
+## İnsan onayı = imza (anahtar yönetimi şartıyla)
 
 Manifest/baseline'daki düz metin alanlar tek başına onay sayılmaz — bir ajan da
 yazabilir. Onayın kanıtı, kurucunun private SSH anahtarıyla üretilmiş imzadır;
 kapı bunu `config/publication/allowed_signers` içindeki public anahtarlarla
 (`ssh-keygen -Y verify`, namespace `lumos-publication`) doğrular.
+
+> **Doğrulanmış sınır (2026-09-18):** İmza, onayı yalnız *anahtara* bağlar.
+> "Ajan onay üretemez" garantisi ancak private anahtar, ajanların erişemediği
+> bir ortamda (donanım anahtarı, Secure Enclave, biyometrik onaylı agent)
+> tutulursa geçerlidir; bu repodan doğrulanamayan operasyonel bir şarttır.
+> Mevcut pinli anahtar kurucunun genel amaçlı GitHub anahtarıdır ve geliştirme
+> ortamında ajan erişimine kapalı olduğu DOĞRULANAMAMIŞTIR — bu şart
+> sağlanana kadar imza, "insan onayı"nın değil, "anahtara erişimi olanın
+> onayı"nın kanıtıdır. Gerekli kurucu aksiyonu: yalnız yayın onayı için ayrı
+> bir imza anahtarı üret (insan etkileşimi zorunlu bir kasada tut),
+> `allowed_signers`'ı onunla değiştir.
 
 - İmza yükü `katman-id \n dosya-yolu \n content_sha256 \n approved_date \n`
   biçimindedir: içerik değişirse imza geçersizleşir; layer1 imzası layer2'de
@@ -98,7 +109,21 @@ ssh-keygen -Y sign -f ~/.ssh/id_ed25519 -n lumos-publication /tmp/onay.payload
   taraftadır: private içerik, public remote'a push yetkisi olan bir çalışma
   ağacına hiç girmemelidir (Lumos PR #370'in kapattığı yol) — ajan kuralı da
   push'u ayrı yetki sayar (`AGENTS.md`).
-- `publication-gate` job'ının branch protection'da required check yapılması ve
-  CODEOWNERS zorunlu incelemesi GitHub ayarıdır; kurucu eliyle açılır.
+- **Zorlama için gereken GitHub ayarları** (2026-09-18'de doğrulanan mevcut
+  durum: `require_code_owner_reviews=false`, `required_approving_review_count=0`,
+  required checks yalnız test/rust/macos-app-build/ui-smoke/ui-e2e). Kurucunun
+  `main` branch protection'da yapması gerekenler:
+  1. Required status checks listesine `publication-gate` ekle.
+  2. "Require a pull request before merging" altında
+     `required_approving_review_count: 1` ve
+     "Require review from Code Owners" (`require_code_owner_reviews: true`) aç.
+  3. `enforce_admins` açık kalsın (bugün açık).
+  4. `.github/CODEOWNERS` bu PR ile geliyor; dosya, 2. madde açılmadan yalnız
+     bilgilendiricidir.
+  **Bilinen kilitlenme:** repoda tek insan hesabı var; PR yazarı kendi PR'ını
+  onaylayamaz. 2. madde açılırsa kurucunun kendi açtığı, CODEOWNERS kapsamına
+  giren PR'lar ikinci bir inceleyici hesap (veya inceleme botu) olmadan merge
+  edilemez; `enforce_admins` açıkken admin bypass da yoktur. Bu bilinçli bir
+  bedeldir — açmadan önce ikinci inceleyici hesabı planla.
 - Kapı, manifest, baseline, `allowed_signers` veya testlerdeki her gevşetme
   kurucu onayı ister.

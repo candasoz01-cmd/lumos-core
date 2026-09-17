@@ -169,7 +169,10 @@ Katman 2: Sensitive Content Boundary — `docs/PUBLICATION_GATE.md`). Kapı
 pre-push kancası, CI, Vercel build ve pytest içinde koşar; PAT veya başka bir
 token sahibi olmak kapıyı geçme yetkisi vermez. Yayın onayının kanıtı kurucunun
 SSH imzasıdır — ajanın manifest'e yazacağı düz metin alanlar onay yerine
-geçmez; ajan kendi başına onay kaydı üretemez. Public GitHub'a push edilen
+geçmez. Bu imzanın "insan onayı" sayılması, private imza anahtarının ajan
+erişimi olmayan bir ortamda tutulmasına bağlı operasyonel bir şarttır (durum
+ve gerekli aksiyon: `docs/PUBLICATION_GATE.md`); ajan hiçbir koşulda imza
+anahtarına erişmeye veya onay kaydı üretmeye çalışmaz. Public GitHub'a push edilen
 içerik push anında yayımlanmış olur; CI bunu geri alamaz — bu yüzden denetim
 push'tan ÖNCE yapılır. Ajan kapıyı, manifestleri, `allowed_signers` dosyasını
 veya testlerini gevşetemez; bu dosyalar üzerindeki her gevşetme kurucu onayı
