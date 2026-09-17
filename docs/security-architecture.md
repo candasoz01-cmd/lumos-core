@@ -61,7 +61,7 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **güvenl
 | SEC-031 | Bağlam, niyet, güvenlik sınırı ve önceki kararlarla tutarlılık kontrolü atlanmaz. | **güvenlik kuralı** |
 | SEC-032 | Belirsiz niyette kısa netleştirme; otomatik varsayım yok. | **güvenlik kuralı** |
 | SEC-033 | Gerçek Meet sesi yalnız `POST /v1/audio/transcriptions` (batch). Realtime Meet-sesi kapsam dışı. | **güvenlik kuralı** — [stt-data-boundary-v1](contracts/stt-data-boundary-v1.md) |
-| SEC-034 | STT ayrı OpenAI API projesinde; model yalnız `OPENAI_MODEL_STT` (`whisper-1` / `gpt-4o-transcribe` / `gpt-4o-mini-transcribe`). Sohbet/cyber env'ine düşülmez. | **güvenlik kuralı** |
+| SEC-034 | STT ayrı OpenAI API projesinde; batch model yalnız `OPENAI_MODEL_STT` (`gpt-transcribe`). Canlı transkripsiyon yalnız `gpt-live-transcribe`; sohbet/cyber env'ine düşülmez. | **güvenlik kuralı** |
 | SEC-035 | Depolama **ve** işleme `eu.api.openai.com` (Avrupa). Bölgesel işleme ayrı onaydır; veri yerleşimi uçlarında %10 ek ücret kabul. | **güvenlik kuralı** |
 | SEC-036 | Ham ses log/artifact olarak kalıcı saklanmaz. Katılımcı açık onayı olmadan gerçek toplantı sesi gönderilmez. | **güvenlik kuralı** |
 | SEC-037 | Avrupa yerleşimi + MAM/ZDR organizasyonda **yazılı** doğrulanana kadar yalnız sentetik/hassas olmayan test sesi. | **açılış kapısı** — ADR-025 |
