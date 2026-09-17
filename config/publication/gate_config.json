@@ -11,10 +11,10 @@
   "allowed_signers": "config/publication/allowed_signers",
   "min_embedded_chars": 1500,
   "private_source_patterns": [
-    "candasoz01-cmd/Lumos\\b",
-    "raw\\.githubusercontent\\.com/candasoz01-cmd/",
-    "publish/welockai",
-    "docs/canonical/"
+    "(?i)candasoz01-cmd/lumos(?![A-Za-z0-9_-])",
+    "(?i)raw\\.githubusercontent\\.com/candasoz01-cmd/(?!lumos-core(?:/|[\\\"']|\\s|$))",
+    "(?i)publish/welockai",
+    "(?i)docs/canonical/"
   ],
   "classification_patterns": [
     "TEK KAYNAK",

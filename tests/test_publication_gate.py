@@ -315,6 +315,51 @@ def test_legacy_embed_refresh_shape_fails(tmp_path):
     assert "embedded-document-body" in out
 
 
+def test_layer2_hash_only_without_signature_is_blocked(tmp_path, signer):
+    """Regression: matching content_sha256 without a founder signature is not approval."""
+    page = "ui/src/pages/ozel-kaynak.astro"
+    content = (
+        '---\n---\n<html><body>'
+        '<a href="https://github.com/candasoz01-cmd/Lumos/blob/main/docs/x.md">k</a>'
+        '</body></html>\n'
+    )
+    root, cfg = make_tree(tmp_path, {page: content}, signer_info=signer)
+    write_baseline(root, [{"path": page, "content_sha256": gate.sha256_of(root / page),
+                           "reasons": ["private-source-reference"]}])
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "private-source-reference" in out
+    assert "2-sensitive-content-boundary" in out
+
+
+def test_layer2_private_source_match_is_case_insensitive(tmp_path):
+    """GitHub treats owner/repo as case-insensitive; Layer 2 must too."""
+    page = "ui/src/pages/kucuk-harf.astro"
+    content = (
+        '---\n---\n<html><body>'
+        '<a href="https://github.com/CANDASOZ01-CMD/lumos/blob/main/docs/x.md">k</a>'
+        '</body></html>\n'
+    )
+    root, cfg = make_tree(tmp_path, {page: content})
+    code, out = run(root, cfg)
+    assert code == 1
+    assert "private-source-reference" in out
+    assert "2-sensitive-content-boundary" in out
+
+
+def test_layer2_does_not_flag_public_lumos_core(tmp_path):
+    """Public lumos-core links must not be treated as the private Lumos repo."""
+    page = "ui/src/pages/public-core.astro"
+    content = (
+        '---\n---\n<html><body>'
+        '<a href="https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/CONSTITUTION.md">k</a>'
+        '</body></html>\n'
+    )
+    root, cfg = make_tree(tmp_path, {page: content})
+    code, out = run(root, cfg)
+    assert code == 0, out
+
+
 def test_signature_is_bound_to_content(tmp_path, signer):
     # İmzalı onaydan sonra tek baytlık değişiklik bile yeniden onay ister.
     page = "ui/src/pages/imzali.astro"

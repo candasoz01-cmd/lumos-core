@@ -154,9 +154,12 @@ def detect_embedded_document_body(text: str, cfg: dict) -> list[int]:
     return sorted(hits)
 
 
-def detect_pattern_hits(text: str, patterns: list[str]) -> list[tuple[int, str]]:
+def detect_pattern_hits(
+    text: str, patterns: list[str], *, ignore_case: bool = False
+) -> list[tuple[int, str]]:
     hits: list[tuple[int, str]] = []
-    compiled = [(p, re.compile(p)) for p in patterns]
+    flags = re.IGNORECASE if ignore_case else 0
+    compiled = [(p, re.compile(p, flags)) for p in patterns]
     for idx, line in enumerate(text.splitlines(), start=1):
         for raw, rx in compiled:
             if rx.search(line):
@@ -218,7 +221,10 @@ def check_layer2(rel_path: str, file_path: Path, text: str, cfg: dict, baseline:
         ))
 
     sensitive_hits: list[tuple[int, str]] = []
-    for line, _pattern in detect_pattern_hits(text, cfg.get("private_source_patterns", [])):
+    # GitHub owner/repo names are case-insensitive; matching must be too.
+    for line, _pattern in detect_pattern_hits(
+        text, cfg.get("private_source_patterns", []), ignore_case=True
+    ):
         sensitive_hits.append((line, "private-source-reference"))
     for line, _pattern in detect_pattern_hits(text, cfg.get("classification_patterns", [])):
         sensitive_hits.append((line, "classification-marker"))

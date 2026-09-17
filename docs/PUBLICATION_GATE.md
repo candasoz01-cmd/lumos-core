@@ -35,7 +35,9 @@ statüsü farklı veya imzası doğrulanamayan her şey bloklanır.
 
 Katman 1'den bağımsız; manifest onayı olsa bile koşar. Aradıkları:
 
-- **private-source-reference:** private repo yolları/URL'leri.
+- **private-source-reference:** private repo yolları/URL'leri
+  (`candasoz01-cmd/Lumos` her harf biçiminde; public `lumos-core` hariç).
+  GitHub owner/repo eşlemesi büyük/küçük harfe duyarsızdır.
 - **classification-marker:** "İÇ KULLANIM", "YAYINLANMAZ", "public değil" gibi işaretler.
 - **secret-material:** token/anahtar desenleri.
 
