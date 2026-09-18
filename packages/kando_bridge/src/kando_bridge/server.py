@@ -920,7 +920,9 @@ def build_chat_reply(message: str, history: list | None = None) -> dict:
         + "\n"
     )
     r2 = client.responses.create(model=model, input=step2_input)
-    reply = (getattr(r2, "output_text", None) or "").strip()
+    from core.chat_visible_markup import strip_unsupported_chat_markup
+
+    reply = strip_unsupported_chat_markup(getattr(r2, "output_text", None) or "").strip()
 
     return {
         "reply": reply,
