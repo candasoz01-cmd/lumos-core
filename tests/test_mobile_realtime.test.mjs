@@ -117,6 +117,9 @@ test("realtime token returns only the short-lived client secret", async () => {
       const body = JSON.parse(init.body);
       upstreamBody = body;
       assert.equal(body.session.model, REALTIME_MODEL);
+  assert.equal(body.session.audio.input.turn_detection.type, "semantic_vad");
+      assert.equal(body.session.audio.input.turn_detection.eagerness, "medium");
+      assert.equal(body.session.audio.input.turn_detection.create_response, true);
       assert.equal(body.session.audio.input.turn_detection.interrupt_response, true);
       assert.deepEqual(body.session.audio.input.transcription, {
         model: "gpt-4o-mini-transcribe",
@@ -178,6 +181,9 @@ test("live voice page uses WebRTC and removes the secret from the address bar", 
   assert.match(source, /history\.replaceState/);
   assert.match(source, /Basılı tut ve konuş/);
   assert.match(source, /track\.enabled = talking/);
+  assert.match(source, /audio\.muted = talking/);
+  assert.match(source, /response\.cancel/);
+  assert.match(source, /eventsChannel = pc\.createDataChannel\("oai-events"\)/);
   assert.match(source, /pointerdown/);
   assert.match(source, /pointerup/);
   assert.doesNotMatch(source, /OPENAI_API_KEY/);
