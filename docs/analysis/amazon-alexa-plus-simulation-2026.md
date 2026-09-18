@@ -1,8 +1,8 @@
 # Amazon Alexa+ web simülasyonu — 2026
 
 > **Tarihsel (2026-09-18, #854).** `84c5709` web simülasyonu 16 Eylül yön
-> değişikliğinden önceki denemedir. Gerçek MCP uygulaması veya yarışma kabul
-> kanıtı **değildir**; genişletilmez ve nihai demo diye sunulmaz. Güncel dilim:
+> değişikliğinden önceki denemedir. Gerçek MCP uygulaması veya yarışma kabul kanıtı
+> değildir; genişletilmez ve nihai demo diye sunulmaz. Güncel dilim:
 > [`amazon-alexa-plus-mcp-2026.md`](amazon-alexa-plus-mcp-2026.md)
 > (`python -m alexa_plus_mcp`, MCP 2025-11-25 Streamable HTTP).
 

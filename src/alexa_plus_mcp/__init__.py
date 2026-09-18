@@ -1,8 +1,7 @@
 """Amazon Hackathon 2026 — Alexa+ MCP server (contest-period, not Lumos core).
 
 Issue: candasoz01-cmd/lumos-core#854. Transport: MCP 2025-11-25 Streamable HTTP.
-Ring is out of scope. The older `/alexa-plus-simulasyon` web page is historical
-and is not this server.
+The older `/alexa-plus-simulasyon` web page is historical and is not this server.
 """
 
 from __future__ import annotations
