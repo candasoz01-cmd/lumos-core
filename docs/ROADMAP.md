@@ -177,8 +177,13 @@ kullanıcı ürünü **değildir**. Lumos ile aynı motoru (AI Runtime / Router)
 kullanır, ayrı bir motor kurmaz.
 
 - **Karar durumu:** sınır tanımı kabul edildi (2026-08-08, ADR-019).
-- **Uygulama durumu:** yeni operatör arayüzü veya orchestration kodu
-  **yazılmadı**. Bugünkü kapsam `src/lumos_board/` CLI ile sınırlıdır.
+  **Duvar v1 hukuku kilitli (2026-09-18):**
+  [ADR-032](decisions/ADR-032-lumos-wall-v1.md) /
+  [`lumos-wall-v1`](contracts/lumos-wall-v1.md). Paralel claim yok; kapı
+  mevcut `src/lumos_board/claim_cli.py`.
+- **Uygulama durumu:** görsel operatör arayüzü **yazılmadı**. Bugünkü kapsam
+  `src/lumos_board/` CLI + v1 sözleşme. Ekran ayrı onay ister; iş mantığı
+  UI'ya gömülmez.
 - **Decision Queue / Human Action Queue (2026-08-24):** mevcut Agent Wall
   başlığının alt kavramı — paralel ajan işlerinde insan onayı bekleyen
   karar noktalarını görünür kılmak. Ayrı ROADMAP maddesi veya

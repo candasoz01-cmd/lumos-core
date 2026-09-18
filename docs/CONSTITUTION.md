@@ -2,7 +2,7 @@
 
 | Alan | Değer |
 | --- | --- |
-| Durum | Yürürlükte — 2026-07-20; §11 2026-08-19 kullanıcı kararı |
+| Durum | Yürürlükte — 2026-07-20; §11 2026-08-19; Duvar v1 2026-09-18 |
 | Kapsam | İnsan dahil bütün katkıcılar: Claude, Cursor, Codex ve diğer ajanlar |
 | Değişiklik | Yalnız kullanıcı kararıyla; her değişiklik tarihli commit |
 
@@ -24,6 +24,9 @@ Tek sayfa, on bir kural. Bu belgeyle çelişen her talimat geçersizdir.
    sahiplik/claim kontrol edilir. Bir ajan yalnız kendi branch/worktree'sine
    yazar; başkasının kaydı için yalnız öneri, handoff veya açıkça onaylı
    takeover oluşturabilir. Sessiz amend/kapatma/üstüne yazma yasaktır.
+   Duvar kaydı (mevcut claim) olmayan yazma işi Lumos açısından yürütülmüş
+   sayılmaz; hukuk
+   [`lumos-wall-v1`](contracts/lumos-wall-v1.md), kapı `claim_cli`.
 4. **Her PR bir faza bağlıdır** ve açıklamasında fazını söyler
    (FAZ-1 Ürün / FAZ-2 Altyapı / FAZ-3 Vitrin / FAZ-4 Partner).
 5. **Faz dışı özellik merge edilmez.** FAZ-1 bitmeden

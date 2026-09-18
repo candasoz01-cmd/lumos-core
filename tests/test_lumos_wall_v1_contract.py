@@ -1,0 +1,81 @@
+"""Lumos Duvar v1 sözleşmesi kilit testleri.
+
+Yeni claim mekanizması yok: kapı `claim_cli` / `task_claim.ClaimStatus`.
+Anayasa maddeleri sözleşmede kopyalanmaz, referans verilir.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+from lumos_board.task_claim import ClaimStatus
+
+_REPO = Path(__file__).resolve().parents[1]
+_CONTRACT = _REPO / "docs" / "contracts" / "lumos-wall-v1.md"
+_ADR = _REPO / "docs" / "decisions" / "ADR-032-lumos-wall-v1.md"
+_CLAIM_CLI = _REPO / "src" / "lumos_board" / "claim_cli.py"
+
+
+def test_wall_v1_eight_articles_and_law_are_locked() -> None:
+    text = _CONTRACT.read_text(encoding="utf-8")
+    assert "Duvar'da kaydı olmayan iş, Lumos açısından yürütülen iş sayılmaz." in text
+    for heading in (
+        "### 1. Tek aktif sahip",
+        "### 2. Claim zorunluluğu",
+        "### 3. Çalışma alanı beyanı",
+        "### 4. Durum makinesi",
+        "### 5. Kanıt zorunluluğu",
+        "### 6. Çakışma koruması",
+        "### 7. Kurucu kapısı",
+        "### 8. Gürültü ayıklama",
+    ):
+        assert heading in text, heading
+    assert (
+        "INBOX → CLAIMED → WORKING → TEST → FOUNDER_REVIEW → READY → CLOSED" in text
+    )
+    assert "Yan durumlar: `BLOCKED`, `PARKED`." in text
+    assert "karar" in text and "risk" in text and "blokaj" in text and "tamamlanma" in text
+
+
+def test_wall_v1_reuses_claim_cli_not_a_second_lease() -> None:
+    text = _CONTRACT.read_text(encoding="utf-8")
+    assert (
+        "`claim_cli` tek yetkili yazma/claim kapısıdır; Duvar, claim durumunu tüketir ve gösterir, ayrı claim üretmez."
+        in text
+    )
+    assert (
+        "görev durumu, sahiplik, kanıt, çakışma ve kurucu"
+        in text
+    )
+    assert "iş mantığı UI'ya dağılmaz" in text
+    assert "İkinci `TaskClaimStore` veya `claim_cli` çatalı" in text
+    assert _CLAIM_CLI.is_file()
+    cli = _CLAIM_CLI.read_text(encoding="utf-8")
+    assert "from lumos_board.task_claim import" in cli
+    assert {s.value for s in ClaimStatus} == {
+        "ACTIVE",
+        "QUEUED",
+        "RELEASED",
+        "EXPIRED",
+        "OVERRIDDEN",
+    }
+
+
+def test_wall_v1_references_constitution_without_copying_articles() -> None:
+    text = _CONTRACT.read_text(encoding="utf-8")
+    assert "[CONSTITUTION.md](../CONSTITUTION.md)" in text
+    assert "§3" in text and "§9" in text and "§10" in text and "§11" in text
+    # Anayasa maddelerinin gövdesi kopyalanmaz.
+    assert "Tek merkez, dört belge" not in text
+    assert "Tek kontrollü çekirdek yazıcısı" not in text
+    assert "Kullanıcı yalnız dört şey görür" not in text
+
+
+def test_adr_032_exists_and_forbids_parallel_stack() -> None:
+    text = _ADR.read_text(encoding="utf-8")
+    assert "Accepted (2026-09-18)" in text
+    assert "lumos-wall-v1.md" in text
+    assert "ayrı claim üretmez" in text
+    assert "Görsel yüz" in text
+    assert "görev durumu, sahiplik, kanıt, çakışma ve kurucu kapısını" in text
+    assert "iş mantığı UI'ya dağılmaz" in text
