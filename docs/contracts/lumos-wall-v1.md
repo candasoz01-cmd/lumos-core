@@ -4,19 +4,26 @@
 
 | Alan | Değer |
 | --- | --- |
-| Durum | **Kilitli (2026-09-18 kurucu kararı)** — hukuk bu dilimde; ekran yok |
-| Karar | [ADR-032](../decisions/ADR-032-lumos-wall-v1.md) |
+| Durum | **TASLAK — kurucu onayı bekliyor** (çerçeve: 2026-09-18 kurucu kararı; metin merge edilene kadar yürürlükte değildir) — hukuk bu dilimde; ekran yok |
+| Karar | [ADR-032](../decisions/ADR-032-lumos-wall-v1.md) (Proposed) |
+| Ad | **Duvar = Lumos Board'un iç operasyon yüzü.** Katmanın resmi adı Lumos Board'dur ([ADR-008](../decisions/ADR-008-agent-network-boundary.md)); "Duvar" bu sözleşmenin ve operasyon yüzünün adıdır, ikinci bir katman değildir |
 | Üst sınır | [CONSTITUTION.md](../CONSTITUTION.md) (metin burada kopyalanmaz) |
 | Yazma kapısı | Mevcut [`task-claim-v1.md`](task-claim-v1.md) + `src/lumos_board/claim_cli.py` / `task_claim.py` |
 | Bu dilim | Sözleşme. Yeni claim deposu, yeni CLI, yeni sayfa, yeni UI **yok** |
 
 Duvar, mevcut Lumos Board + claim + anayasa **üstünde** oturan iç operasyon
-merkezidir. Paralel sahiplik sistemi kurulmaz. Görsel yüz (ayrı onay) yalnız
+yüzüdür. Paralel sahiplik sistemi kurulmaz. Görsel yüz (ayrı onay) yalnız
 bu sözleşmenin görüntüsüdür; iş mantığı UI'ya gömülmez.
 
 ## Ana yasa
 
 > **Duvar'da kaydı olmayan iş, Lumos açısından yürütülen iş sayılmaz.**
+
+Uygulama karşılığı bugün **kısmidir**: claim olayları `claim_events.jsonl`
+append-only denetim izinde tutulur ([task-claim-v1](task-claim-v1.md) kural 11),
+ancak claim'siz görev kaydı tutan bir Duvar envanteri henüz yoktur (bkz.
+§ Mevcut altyapıyla eşleme). Ana yasa bu boşluğu kapatana kadar davranış
+kuralı olarak geçerlidir; kapatan katman ayrı onay ister.
 
 ## Teknik kilit
 
@@ -40,11 +47,23 @@ Her aktif görevin aynı anda bir `owner_agent`ı olur. `owner_agent`, claim
 kaydındaki `owner` alanıdır; ikinci bir sahip kimliği icat edilmez. Başka ajan
 göreve bakabilir, yazamaz.
 
+Devir (delegation) istisnası bu maddeyle çelişmez: alt görev parent kapsamı
+içinde **ayrı bir `task_id`** ve ayrı bir owner taşır; her görev kimliği yine
+tek sahiplidir ve parent'ın görev kimliği devirle ikinci kez aktifleşemez
+([task-claim-v1](task-claim-v1.md) kural 5).
+
 ### 2. Claim zorunluluğu
 
 Ajan yazmaya başlamadan görevi **mevcut** claim kapısından alır
 (`python -m lumos_board.claim_cli claim` → `TaskClaimStore`). Claim yoksa
-yalnız okuyabilir. Yeni lease, yeni store veya ikinci CLI **yasaktır**.
+yalnız okuyabilir (`list` komutu claim istemez). Yeni lease, yeni store veya
+ikinci CLI **yasaktır**.
+
+Güven sınırı: v1'de kimlikler (`owner`, `actor`) **self-asserted**'dır ve
+claim'i hiç çağırmayan bir yazıcıyı fiilen durduran teknik zorlayıcı yoktur
+([task-claim-v1](task-claim-v1.md) § Güven sınırı — kooperatif ajan varsayımı).
+Bu madde o varsayımı davranış kuralı olarak bağlar; zorlayıcı kapı ayrı bir
+dilimdir ve bu sözleşmeyle kurulmaz.
 
 ### 3. Çalışma alanı beyanı
 
@@ -73,11 +92,21 @@ projeksiyondur:
 | `CLAIMED` | `ACTIVE` | Sahiplik alındı |
 | `WORKING` | `ACTIVE` | Yazma/üretim |
 | `TEST` | `ACTIVE` | Doğrulama |
-| `FOUNDER_REVIEW` | `ACTIVE` | Anayasal insan kapısı |
-| `READY` | `ACTIVE` | Kanıt bağlı; merge izni değil |
+| `FOUNDER_REVIEW` | `ACTIVE` | Anayasal insan kapısı; kapsam inceleme bitene dek bırakılmaz |
+| `READY` | `ACTIVE` | Kanıt bağlı; merge izni değil; kapsam `CLOSED`'a kadar tutulur |
 | `CLOSED` | `RELEASED` | Görev kapandı |
-| `BLOCKED` | `ACTIVE` veya `QUEUED` | İnsan-dışı bekleyiş / kapsam kuyruğu |
-| `PARKED` | `ACTIVE` veya `QUEUED` | Bilinçli park; `FOUNDER_REVIEW` değildir |
+| `BLOCKED` | `ACTIVE` | İnsan-dışı bekleyiş; sahip lease'i tutmaya devam eder |
+| `PARKED` | `RELEASED` | Bilinçli park; kapsam serbest kalır, rehin tutulmaz; `FOUNDER_REVIEW` değildir |
+
+Eşleme kilidi (2026-09-18 kurucu kararı): `READY` = `ACTIVE`,
+`PARKED` = `RELEASED`, `BLOCKED` = `ACTIVE`. `QUEUED` bir Duvar görev durumu
+değildir; kapsam sırasında bekleyen **ikinci isteklinin** lease hâlidir ve
+Duvar'da çakışma/kuyruk göstergesi olarak görünür (Madde 6).
+
+Lease yükümlülüğü ve istisna yolları: claim TTL varsayılanı 1800 sn'dir ve
+heartbeat sahip yükümlülüğüdür (`claim_cli heartbeat`); TTL dolarsa claim
+`EXPIRED` olur. `EXPIRED` veya `OVERRIDDEN` (insan-onaylı devralma) sonrası
+görev Duvar'da `INBOX`'a döner; kapsam yeniden alınabilir.
 
 Ajan anlık koşu hali ayrıdır: [agent-status-v1.md](agent-status-v1.md) /
 [v2](agent-status-v2.md). v2 `awaiting_decision` Duvar `FOUNDER_REVIEW` ile
@@ -105,11 +134,54 @@ yayın kapısı) gerektiğinde görev otomatik `FOUNDER_REVIEW`e geçer. Ajan bu
 durumu `READY` veya `CLOSED` ilan edemez. `READY`, kurucuya **karar** düşürür;
 üçlü merge kapısını yeşil saymaz.
 
+İnsan kapısının bugünkü somut örneği claim override akışıdır ve **aynen
+korunur**: HMAC imzalı approval token, fail-closed approver registry ve
+"override onaycısı eski ve yeni owner'lardan farklı olmalı" kuralı
+([task-claim-v1](task-claim-v1.md) kural 8–10, `OverrideApprovalVerifier`).
+Bu sözleşme o kuralları gevşetmez, genişletmez.
+
 ### 8. Gürültü ayıklama
 
 Kurucuya yalnız `karar`, `risk`, `blokaj`, `tamamlanma` çıkar. Normal ajan
 hareketi (heartbeat, retry, log, dal gürültüsü) Duvar'da kalır. Bu süzgeç
 anayasa §10'un operatör→kurucu kanalıdır; dördüncü bir rapor dili yazılmaz.
+
+## Mevcut semantikle çelişki kontrolü (madde madde)
+
+Sekiz maddenin KA-002 semantiğiyle (`task_claim.py` / `claim_cli.py`) çelişip
+çelişmediği tek tek kontrol edilmiştir (2026-09-18):
+
+| Madde | Kontrol edilen KA-002 semantiği | Sonuç |
+| --- | --- | --- |
+| 1 | `DUPLICATE_TASK`, sahip-dışı heartbeat/release reddi; delegation'da alt görevin ayrı `task_id` taşıması | Çelişki yok — delegation tek-sahip ilkesini bozmaz |
+| 2 | `list` claim istemez; claim yazma öncesi kapıdır; kimlikler self-asserted (güven sınırı) | Çelişki yok — madde güven sınırını daraltmaz, davranış kuralı ekler |
+| 3 | `repo/branch/worktree/scopes` zorunlu; kök kapsam yasak | Çelişki yok — birebir örtüşür |
+| 4 | `ClaimStatus` beş durumu, `QUEUED` yer tutma + `started_at` terfisi, TTL/`EXPIRED`, kaskadlı öksüz kapama | Çelişki yok — Duvar durumu claim ekseninin **üstüne** projeksiyondur, hiçbir ClaimStatus geçişi değişmez |
+| 5 | `attach_pr` yalnız sahip ve açık claim | Çelişki yok — kanıt kümesi genişletilir, mevcut kural daraltılmaz |
+| 6 | `SCOPE_CONFLICT` üst-alt dizin ilişkisi; ret veya `QUEUED`; tek OS dosya kilidi | Çelişki yok — "conflict işareti" = mevcut `ClaimConflict` kaydı |
+| 7 | Override: imzalı token + fail-closed registry + onaycı ≠ owner'lar; override ile devir aynı istekte birleşemez | Çelişki yok — kurucu kapısı bu kuralları aynen korur, gevşetmez |
+| 8 | Audit append-only, yalnız kalıcılaşan durum yazılır | Çelişki yok — süzgeç okuma katmanındadır, audit'e dokunmaz |
+
+## Mevcut altyapıyla eşleme
+
+| Madde | `task_claim.py` / `claim_cli.py` karşılığı | CONSTITUTION karşılığı | Durum |
+| --- | --- | --- | --- |
+| 1. Tek aktif sahip | `DUPLICATE_TASK`, `owner`, sahip-dışı işlem reddi | §3 | **VAR** |
+| 2. Claim zorunluluğu | `claim` komutu, atomik kapı; zorlayıcı engel yok (kooperatif güven sınırı) | §3 | **KISMİ** |
+| 3. Çalışma alanı beyanı | `repo/branch/worktree/scopes` zorunlu alanlar | — | **VAR** |
+| 4. Durum makinesi | Claim ekseni tam (`ClaimStatus`); Duvar ekseni (`INBOX`/`TEST`/`FOUNDER_REVIEW`/`PARKED`) hiçbir store'da yok | — (agent-status v1/v2 yalnız projeksiyon) | **KISMİ** |
+| 5. Kanıt zorunluluğu | `attach_pr` (PR kanıtı); commit/test/log kanıt alanı yok | §9 | **KISMİ** |
+| 6. Çakışma koruması | `SCOPE_CONFLICT`, `QUEUED`, OS dosya kilidi | §3 | **VAR** |
+| 7. Kurucu kapısı | Override insan kapısı var; otomatik `FOUNDER_REVIEW` tetikleyicisi yok | §11, §2 | **KISMİ** |
+| 8. Gürültü ayıklama | Audit Duvar içi; kurucu-yüzü süzgeç mekanizması yok (agent-status-v2 ayrımı sözleşmede) | §10 | **KISMİ** |
+| Ana yasa | Append-only claim audit'i var; claim'siz görev envanteri yok | §9 | **KISMİ** |
+
+**Boşlukların ortak paydası:** eksik olan claim mekanizması değil, claim'in
+üstündeki **görev-kaydı katmanıdır** (Duvar ekseni durumları + kanıt alanları +
+kurucu-yüzü süzgeç). Bu katman [ADR-008](../decisions/ADR-008-agent-network-boundary.md)
+taksonomisindeki Task Queue / Agent Status'a denk düşer ve OD-063 kapsamındaki
+"yazıcı tarafı ayrı onay ister" kuralına tabidir — bu sözleşme onun için izin
+değil, gereksinim kaydıdır.
 
 ## Görsel yüz (yetkisiz)
 

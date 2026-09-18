@@ -2,8 +2,9 @@
 
 | Alan | Değer |
 | --- | --- |
-| Karar durumu | **Accepted (2026-09-18)** — kurucu, chat: önce hukuk, sonra ekran |
-| Uygulama durumu | Sözleşme kilitli. Görsel yok. Yazma kapısı mevcut claim |
+| Karar durumu | **Proposed (2026-09-18)** — sekiz maddelik çerçeve kurucu kararıdır (chat: önce hukuk, sonra ekran); bu metnin kendisi kurucu onayı/merge bekler, yürürlükte değildir |
+| Uygulama durumu | Sözleşme taslak. Görsel yok. Yazma kapısı mevcut claim |
+| Ad | Duvar = Lumos Board'un iç operasyon yüzü; katmanın resmi adı Lumos Board ([ADR-008](ADR-008-agent-network-boundary.md)) |
 | Sözleşme | [`lumos-wall-v1.md`](../contracts/lumos-wall-v1.md) |
 | Üst sınır | [CONSTITUTION.md](../CONSTITUTION.md), [ADR-019](ADR-019-product-surface-separation-modelregistry.md), [ADR-008](ADR-008-agent-network-boundary.md), [task-claim-v1.md](../contracts/task-claim-v1.md) |
 | STOP LIST | Yeni sayfa / yeni agent-orchestration katmanı **yok** |
@@ -26,7 +27,8 @@ iş mantığı UI'ya dağılmaz.
 
 - Yazmadan önce `claim_cli` zorunlu kalır.
 - Duvar durum makinesi claim `ClaimStatus` üzerine projeksiyondur; enum'u
-  genişletmek bu ADR'nin izni değildir.
+  genişletmek bu ADR'nin izni değildir. Eşleme kilidi (2026-09-18 kurucu
+  kararı): `READY` = `ACTIVE`, `PARKED` = `RELEASED`, `BLOCKED` = `ACTIVE`.
 - Kurucuya giden kanal anayasa §10 süzgecidir.
 - `#859` / `#860` / `#861` bu dilimin kapsamı değildir.
 
