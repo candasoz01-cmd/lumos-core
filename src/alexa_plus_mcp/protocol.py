@@ -107,8 +107,13 @@ def handle_jsonrpc(
     session: Session | None,
     *,
     new_session_id: str | None = None,
+    token_kind: str = "local",
 ) -> RpcOutcome:
-    """Handle one JSON-RPC object. Caller owns session persistence."""
+    """Handle one JSON-RPC object. Caller owns session persistence.
+
+    ``token_kind`` is ``local`` (dev bearer), ``service`` (client_credentials),
+    or ``user`` (authorization_code). ``tools/call`` requires local or user.
+    """
     if message.get("jsonrpc") != "2.0":
         return RpcOutcome(status=400, body=_error(_INVALID_REQUEST, "jsonrpc must be 2.0"))
 
@@ -179,6 +184,22 @@ def handle_jsonrpc(
         return RpcOutcome(status=200, body=_result(rpc_id, {"tools": tool_list()}))
 
     if method == "tools/call":
+        if token_kind == "service":
+            return RpcOutcome(
+                status=200,
+                body=_result(
+                    rpc_id,
+                    {
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "user token required for tools/call",
+                            }
+                        ],
+                        "isError": True,
+                    },
+                ),
+            )
         if not isinstance(params, dict):
             return RpcOutcome(
                 status=200,

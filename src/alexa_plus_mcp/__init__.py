@@ -12,12 +12,14 @@ from alexa_plus_mcp.protocol import (
     TOOL_NAME,
     handle_jsonrpc,
 )
+from alexa_plus_mcp.oauth import AuthServer
 from alexa_plus_mcp.server import serve
 
 __all__ = [
     "PROTOCOL_VERSION",
     "SERVER_NAME",
     "TOOL_NAME",
+    "AuthServer",
     "handle_jsonrpc",
     "serve",
 ]

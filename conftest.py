@@ -78,6 +78,10 @@ _LOCAL_CREDENTIAL_ENV = (
     "LUMOS_API_KEY",
     "LUMOS_RELAY_TOKEN",
     "LUMOS_ALEXA_MCP_TOKEN",
+    "LUMOS_ALEXA_OAUTH_CLIENT_ID",
+    "LUMOS_ALEXA_OAUTH_CLIENT_SECRET",
+    "LUMOS_ALEXA_OAUTH_REDIRECT_URIS",
+    "LUMOS_ALEXA_MCP_PUBLIC_URL",
 )
 
 # Decision points that ask a model and fall back to policy when it is absent.

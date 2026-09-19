@@ -1,8 +1,8 @@
 """Streamable HTTP transport for the Alexa+ MCP server (MCP 2025-11-25).
 
 JSON responses on POST /mcp. GET /mcp returns 405 (no standalone SSE stream).
-Local bind defaults to 127.0.0.1. Alexa+ account linking / deploy is out of
-this slice — see docs/analysis/amazon-alexa-plus-mcp-2026.md.
+Local bind defaults to 127.0.0.1. OAuth 2.1 metadata and token endpoints are
+served from the same process for Alexa+ account linking.
 """
 
 from __future__ import annotations
@@ -13,12 +13,23 @@ import threading
 from dataclasses import dataclass, field
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
+from alexa_plus_mcp.oauth import (
+    KIND_LOCAL,
+    AuthServer,
+    parse_basic_client,
+)
 from alexa_plus_mcp.protocol import PROTOCOL_VERSION, RpcOutcome, Session, handle_jsonrpc
 
 MCP_PATH = "/mcp"
 HEALTH_PATH = "/health"
+TOKEN_PATH = "/oauth/token"
+AUTHORIZE_PATH = "/oauth/authorize"
+AS_METADATA_PATH = "/.well-known/oauth-authorization-server"
+PRM_PATH = "/.well-known/oauth-protected-resource"
+PRM_MCP_PATH = "/.well-known/oauth-protected-resource/mcp"
+REGISTER_PATH = "/register"
 
 
 @dataclass
@@ -27,6 +38,7 @@ class ServerConfig:
     allowed_origins: frozenset[str] = field(default_factory=frozenset)
     host: str = "127.0.0.1"
     port: int = 8766
+    auth: AuthServer | None = None
 
 
 class SessionStore:
@@ -57,16 +69,31 @@ def origin_allowed(origin: str | None, extra: frozenset[str]) -> bool:
     return parsed.hostname in {"127.0.0.1", "localhost", "::1"}
 
 
-def _bearer_ok(header: str | None, token: str) -> bool:
-    if not header or not token:
-        return False
+def _bearer_token(header: str | None) -> str | None:
+    if not header:
+        return None
     prefix = "Bearer "
     if not header.startswith(prefix):
-        return False
+        return None
     given = header[len(prefix):].strip()
-    if len(given) != len(token):
-        return False
-    return secrets.compare_digest(given, token)
+    return given or None
+
+
+def resolve_token_kind(header: str | None, config: ServerConfig) -> str | None:
+    given = _bearer_token(header)
+    if not given:
+        return None
+    if config.token and secrets.compare_digest(given, config.token):
+        return KIND_LOCAL
+    if config.auth is not None:
+        record = config.auth.lookup(given)
+        if record is not None:
+            return record.kind
+    return None
+
+
+def _first_values(raw: dict[str, list[str]]) -> dict[str, str]:
+    return {key: values[0] if values else "" for key, values in raw.items()}
 
 
 def make_handler(config: ServerConfig, store: SessionStore):
@@ -91,6 +118,9 @@ def make_handler(config: ServerConfig, store: SessionStore):
             if body:
                 self.wfile.write(body)
 
+        def _send_json(self, status: int, payload: dict[str, Any]) -> None:
+            self._send(status, json.dumps(payload).encode("utf-8"))
+
         def _send_rpc(self, outcome: RpcOutcome) -> None:
             headers: dict[str, str] = dict(outcome.headers)
             if outcome.session_id:
@@ -101,14 +131,41 @@ def make_handler(config: ServerConfig, store: SessionStore):
                 headers.setdefault("Content-Type", "application/json")
             self._send(outcome.status, body, headers)
 
+        def _read_body(self, limit: int = 1_000_000) -> bytes | None:
+            length = int(self.headers.get("Content-Length") or "0")
+            if length < 0 or length > limit:
+                self._send(413, None)
+                return None
+            return self.rfile.read(length) if length else b""
+
         def do_GET(self) -> None:  # noqa: N802
-            if self.path.split("?", 1)[0] == HEALTH_PATH:
+            path = self.path.split("?", 1)[0]
+            if path == HEALTH_PATH:
                 payload = json.dumps(
-                    {"ok": True, "protocolVersion": PROTOCOL_VERSION, "transport": "streamable-http"}
+                    {
+                        "ok": True,
+                        "protocolVersion": PROTOCOL_VERSION,
+                        "transport": "streamable-http",
+                        "oauth": config.auth is not None,
+                    }
                 ).encode("utf-8")
                 self._send(200, payload)
                 return
-            if self.path.split("?", 1)[0] == MCP_PATH:
+            if config.auth is not None and path == AS_METADATA_PATH:
+                self._send_json(200, config.auth.authorization_server_metadata())
+                return
+            if config.auth is not None and path in {PRM_PATH, PRM_MCP_PATH}:
+                self._send_json(200, config.auth.protected_resource_metadata())
+                return
+            if config.auth is not None and path == AUTHORIZE_PATH:
+                query = _first_values(parse_qs(urlparse(self.path).query, keep_blank_values=True))
+                status, location, error = config.auth.authorize(query)
+                if location:
+                    self._send(status, None, {"Location": location})
+                    return
+                self._send_json(status, error or {"error": "invalid_request"})
+                return
+            if path == MCP_PATH:
                 self._send(405, None, {"Allow": "POST"})
                 return
             self._send(404, None)
@@ -121,6 +178,12 @@ def make_handler(config: ServerConfig, store: SessionStore):
 
         def do_POST(self) -> None:  # noqa: N802
             path = self.path.split("?", 1)[0]
+            if path == REGISTER_PATH:
+                self._send(404, json.dumps({"error": "dcr_not_supported"}).encode("utf-8"))
+                return
+            if path == TOKEN_PATH:
+                self._handle_token()
+                return
             if path != MCP_PATH:
                 self._send(404, None)
                 return
@@ -128,18 +191,17 @@ def make_handler(config: ServerConfig, store: SessionStore):
             if not origin_allowed(origin, config.allowed_origins):
                 self._send(403, json.dumps({"error": "origin_forbidden"}).encode("utf-8"))
                 return
-            if not _bearer_ok(self.headers.get("Authorization"), config.token):
+            token_kind = resolve_token_kind(self.headers.get("Authorization"), config)
+            if token_kind is None:
                 self._send(401, json.dumps({"error": "unauthorized"}).encode("utf-8"))
                 return
             accept = (self.headers.get("Accept") or "").lower()
             if "application/json" not in accept and "text/event-stream" not in accept:
                 self._send(406, json.dumps({"error": "accept_required"}).encode("utf-8"))
                 return
-            length = int(self.headers.get("Content-Length") or "0")
-            if length < 0 or length > 1_000_000:
-                self._send(413, None)
+            raw = self._read_body()
+            if raw is None:
                 return
-            raw = self.rfile.read(length) if length else b""
             try:
                 message = json.loads(raw.decode("utf-8"))
             except (UnicodeDecodeError, json.JSONDecodeError):
@@ -170,11 +232,11 @@ def make_handler(config: ServerConfig, store: SessionStore):
                 message,
                 None if method == "initialize" else session,
                 new_session_id=session.session_id if method == "initialize" else None,
+                token_kind=token_kind,
             )
             if "application/json" in accept:
                 self._send_rpc(outcome)
                 return
-            # Client asked only for SSE: wrap one JSON-RPC payload as a single event.
             if outcome.body is None:
                 self._send(outcome.status, None, outcome.headers)
                 return
@@ -183,6 +245,17 @@ def make_handler(config: ServerConfig, store: SessionStore):
             if outcome.session_id:
                 headers["MCP-Session-Id"] = outcome.session_id
             self._send(outcome.status, event, headers)
+
+        def _handle_token(self) -> None:
+            if config.auth is None:
+                self._send(404, None)
+                return
+            raw = self._read_body()
+            if raw is None:
+                return
+            form = _first_values(parse_qs(raw.decode("utf-8"), keep_blank_values=True))
+            status, payload = config.auth.token(form, parse_basic_client(self.headers.get("Authorization")))
+            self._send_json(status, payload)
 
     return Handler
 

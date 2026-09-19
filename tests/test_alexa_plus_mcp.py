@@ -6,35 +6,68 @@ The web simulation at `/alexa-plus-simulasyon` is not this server.
 
 from __future__ import annotations
 
+import base64
 import re
+import secrets
 import threading
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
 
 import pytest
 import requests
 
 from alexa_plus_mcp import PROTOCOL_VERSION, SERVER_NAME, TOOL_NAME, handle_jsonrpc
+from alexa_plus_mcp.oauth import AuthServer, SCOPE_SERVICE, SCOPE_TOOLS, s256_challenge
 from alexa_plus_mcp.protocol import Session, propose_lumos_task
 from alexa_plus_mcp.server import ServerConfig, origin_allowed, serve
 
 REPO = Path(__file__).resolve().parents[1]
 TOKEN = "test-token-for-alexa-plus-mcp"
 ACCEPT = "application/json, text/event-stream"
+OAUTH_CLIENT_ID = "lumos-test-client"
+OAUTH_CLIENT_SECRET = "lumos-test-secret"
+OAUTH_REDIRECT = "https://example.test/alexa/callback"
 
 
-@pytest.fixture()
-def mcp_http():
-    httpd = serve(ServerConfig(token=TOKEN, host="127.0.0.1", port=0))
+def _serve(auth: AuthServer | None = None):
+    httpd = serve(ServerConfig(token=TOKEN, host="127.0.0.1", port=0, auth=auth))
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
     host, port = httpd.server_address[:2]
     base = f"http://{host}:{port}"
+    if auth is not None:
+        auth.public_url = base
+    return httpd, thread, base
+
+
+def _stop(httpd, thread) -> None:
+    httpd.shutdown()
+    httpd.server_close()
+    thread.join(timeout=2)
+
+
+@pytest.fixture()
+def mcp_http():
+    httpd, thread, base = _serve()
     try:
         yield base
     finally:
-        httpd.shutdown()
-        httpd.server_close()
-        thread.join(timeout=2)
+        _stop(httpd, thread)
+
+
+@pytest.fixture()
+def mcp_oauth():
+    auth = AuthServer(
+        public_url="http://127.0.0.1:1",
+        client_id=OAUTH_CLIENT_ID,
+        client_secret=OAUTH_CLIENT_SECRET,
+        redirect_uris=frozenset({OAUTH_REDIRECT}),
+    )
+    httpd, thread, base = _serve(auth)
+    try:
+        yield base, auth
+    finally:
+        _stop(httpd, thread)
 
 
 def _post(base: str, payload: dict, *, token: str = TOKEN, session: str | None = None,
@@ -218,3 +251,339 @@ def test_simulation_page_is_marked_historical() -> None:
     assert "tarihsel" in note.lower()
     assert "yarışma kabul kanıtı" in note_flat
     assert "python -m alexa_plus_mcp" in page
+
+
+def _basic_auth() -> str:
+    raw = f"{OAUTH_CLIENT_ID}:{OAUTH_CLIENT_SECRET}".encode()
+    return "Basic " + base64.b64encode(raw).decode("ascii")
+
+
+def _token(base: str, form: dict[str, str], *, basic: bool = True) -> requests.Response:
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    if basic:
+        headers["Authorization"] = _basic_auth()
+    return requests.post(f"{base}/oauth/token", data=form, headers=headers, timeout=2)
+
+
+def _pkce() -> tuple[str, str]:
+    verifier = secrets.token_urlsafe(64)
+    return verifier, s256_challenge(verifier)
+
+
+def test_oauth_metadata_has_s256_and_prm(mcp_oauth: tuple[str, AuthServer]) -> None:
+    base, auth = mcp_oauth
+    as_meta = requests.get(f"{base}/.well-known/oauth-authorization-server", timeout=2)
+    prm = requests.get(f"{base}/.well-known/oauth-protected-resource", timeout=2)
+    prm_mcp = requests.get(f"{base}/.well-known/oauth-protected-resource/mcp", timeout=2)
+    assert as_meta.status_code == 200
+    assert "S256" in as_meta.json()["code_challenge_methods_supported"]
+    assert as_meta.json()["grant_types_supported"] == [
+        "authorization_code",
+        "client_credentials",
+        "refresh_token",
+    ]
+    assert prm.status_code == 200
+    assert prm.json()["resource"] == auth.resource
+    assert prm.json()["authorization_servers"] == [auth.issuer]
+    assert prm.json()["bearer_methods_supported"] == ["header"]
+    assert prm_mcp.json() == prm.json()
+    assert "WWW-Authenticate" not in as_meta.headers
+    assert "WWW-Authenticate" not in prm.headers
+
+
+def test_dcr_is_not_supported(mcp_oauth: tuple[str, AuthServer]) -> None:
+    base, _auth = mcp_oauth
+    response = requests.post(f"{base}/register", json={"redirect_uris": [OAUTH_REDIRECT]}, timeout=2)
+    assert response.status_code == 404
+
+
+def test_client_credentials_requires_resource_and_issues_service_token(
+    mcp_oauth: tuple[str, AuthServer],
+) -> None:
+    base, auth = mcp_oauth
+    missing = _token(base, {"grant_type": "client_credentials", "scope": SCOPE_SERVICE})
+    assert missing.status_code == 400
+    ok = _token(
+        base,
+        {
+            "grant_type": "client_credentials",
+            "scope": SCOPE_SERVICE,
+            "resource": auth.resource,
+        },
+    )
+    assert ok.status_code == 200
+    body = ok.json()
+    assert body["token_type"] == "Bearer"
+    assert body["scope"] == SCOPE_SERVICE
+    assert "refresh_token" not in body
+    assert "WWW-Authenticate" not in ok.headers
+
+
+def test_authorization_code_pkce_user_token_and_refresh_rotation(
+    mcp_oauth: tuple[str, AuthServer],
+) -> None:
+    base, auth = mcp_oauth
+    verifier, challenge = _pkce()
+    authorize = requests.get(
+        f"{base}/oauth/authorize",
+        params={
+            "response_type": "code",
+            "client_id": OAUTH_CLIENT_ID,
+            "redirect_uri": OAUTH_REDIRECT,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+            "resource": auth.resource,
+            "scope": SCOPE_TOOLS,
+            "state": "abc",
+        },
+        allow_redirects=False,
+        timeout=2,
+    )
+    assert authorize.status_code == 302
+    location = authorize.headers["Location"]
+    assert location.startswith(OAUTH_REDIRECT)
+    query = parse_qs(urlparse(location).query)
+    assert query["state"] == ["abc"]
+    code = query["code"][0]
+    token = _token(
+        base,
+        {
+            "grant_type": "authorization_code",
+            "code": code,
+            "code_verifier": verifier,
+            "redirect_uri": OAUTH_REDIRECT,
+            "resource": auth.resource,
+        },
+    )
+    assert token.status_code == 200
+    body = token.json()
+    assert body["scope"] == SCOPE_TOOLS
+    refresh = body["refresh_token"]
+    rotated = _token(
+        base,
+        {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh,
+            "resource": auth.resource,
+        },
+    )
+    assert rotated.status_code == 200
+    replay = _token(
+        base,
+        {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh,
+            "resource": auth.resource,
+        },
+    )
+    assert replay.status_code == 400
+
+
+def test_service_token_can_list_tools_but_cannot_call(
+    mcp_oauth: tuple[str, AuthServer],
+) -> None:
+    base, auth = mcp_oauth
+    issued = _token(
+        base,
+        {
+            "grant_type": "client_credentials",
+            "scope": SCOPE_SERVICE,
+            "resource": auth.resource,
+        },
+    ).json()["access_token"]
+    init = requests.post(
+        f"{base}/mcp",
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": PROTOCOL_VERSION,
+                "capabilities": {},
+                "clientInfo": {"name": "alexa+", "version": "0"},
+            },
+        },
+        headers={
+            "Authorization": f"Bearer {issued}",
+            "Accept": ACCEPT,
+            "Content-Type": "application/json",
+        },
+        timeout=2,
+    )
+    assert init.status_code == 200
+    sid = init.headers["MCP-Session-Id"]
+    ready = requests.post(
+        f"{base}/mcp",
+        json={"jsonrpc": "2.0", "method": "notifications/initialized"},
+        headers={
+            "Authorization": f"Bearer {issued}",
+            "Accept": ACCEPT,
+            "Content-Type": "application/json",
+            "MCP-Session-Id": sid,
+            "MCP-Protocol-Version": PROTOCOL_VERSION,
+        },
+        timeout=2,
+    )
+    assert ready.status_code == 202
+    listed = requests.post(
+        f"{base}/mcp",
+        json={"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+        headers={
+            "Authorization": f"Bearer {issued}",
+            "Accept": ACCEPT,
+            "Content-Type": "application/json",
+            "MCP-Session-Id": sid,
+            "MCP-Protocol-Version": PROTOCOL_VERSION,
+        },
+        timeout=2,
+    )
+    assert listed.status_code == 200
+    called = requests.post(
+        f"{base}/mcp",
+        json={
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": TOOL_NAME, "arguments": {"request": "prep a visit"}},
+        },
+        headers={
+            "Authorization": f"Bearer {issued}",
+            "Accept": ACCEPT,
+            "Content-Type": "application/json",
+            "MCP-Session-Id": sid,
+            "MCP-Protocol-Version": PROTOCOL_VERSION,
+        },
+        timeout=2,
+    )
+    assert called.status_code == 200
+    assert called.json()["result"]["isError"] is True
+
+
+def test_user_token_tools_call_does_not_write_task(
+    mcp_oauth: tuple[str, AuthServer],
+) -> None:
+    base, auth = mcp_oauth
+    verifier, challenge = _pkce()
+    authorize = requests.get(
+        f"{base}/oauth/authorize",
+        params={
+            "response_type": "code",
+            "client_id": OAUTH_CLIENT_ID,
+            "redirect_uri": OAUTH_REDIRECT,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+            "resource": auth.resource,
+            "scope": SCOPE_TOOLS,
+        },
+        allow_redirects=False,
+        timeout=2,
+    )
+    code = parse_qs(urlparse(authorize.headers["Location"]).query)["code"][0]
+    access = _token(
+        base,
+        {
+            "grant_type": "authorization_code",
+            "code": code,
+            "code_verifier": verifier,
+            "redirect_uri": OAUTH_REDIRECT,
+            "resource": auth.resource,
+        },
+    ).json()["access_token"]
+    init = requests.post(
+        f"{base}/mcp",
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": PROTOCOL_VERSION,
+                "capabilities": {},
+                "clientInfo": {"name": "alexa+", "version": "0"},
+            },
+        },
+        headers={
+            "Authorization": f"Bearer {access}",
+            "Accept": ACCEPT,
+            "Content-Type": "application/json",
+        },
+        timeout=2,
+    )
+    sid = init.headers["MCP-Session-Id"]
+    requests.post(
+        f"{base}/mcp",
+        json={"jsonrpc": "2.0", "method": "notifications/initialized"},
+        headers={
+            "Authorization": f"Bearer {access}",
+            "Accept": ACCEPT,
+            "Content-Type": "application/json",
+            "MCP-Session-Id": sid,
+            "MCP-Protocol-Version": PROTOCOL_VERSION,
+        },
+        timeout=2,
+    )
+    called = requests.post(
+        f"{base}/mcp",
+        json={
+            "jsonrpc": "2.0",
+            "id": 3,
+            "method": "tools/call",
+            "params": {"name": TOOL_NAME, "arguments": {"request": "Yarın 14:00 servis"}},
+        },
+        headers={
+            "Authorization": f"Bearer {access}",
+            "Accept": ACCEPT,
+            "Content-Type": "application/json",
+            "MCP-Session-Id": sid,
+            "MCP-Protocol-Version": PROTOCOL_VERSION,
+        },
+        timeout=2,
+    )
+    proposal = called.json()["result"]["structuredContent"]
+    assert called.json()["result"]["isError"] is False
+    assert proposal["created"] is False
+    assert proposal["writes_task"] is False
+    assert proposal["requires_human_approval"] is True
+
+
+def test_invalid_pkce_is_rejected(mcp_oauth: tuple[str, AuthServer]) -> None:
+    base, auth = mcp_oauth
+    _verifier, challenge = _pkce()
+    authorize = requests.get(
+        f"{base}/oauth/authorize",
+        params={
+            "response_type": "code",
+            "client_id": OAUTH_CLIENT_ID,
+            "redirect_uri": OAUTH_REDIRECT,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+            "resource": auth.resource,
+            "scope": SCOPE_TOOLS,
+        },
+        allow_redirects=False,
+        timeout=2,
+    )
+    code = parse_qs(urlparse(authorize.headers["Location"]).query)["code"][0]
+    token = _token(
+        base,
+        {
+            "grant_type": "authorization_code",
+            "code": code,
+            "code_verifier": "this-verifier-does-not-match-the-challenge-value-xx",
+            "redirect_uri": OAUTH_REDIRECT,
+            "resource": auth.resource,
+        },
+    )
+    assert token.status_code == 400
+
+
+def test_oauth_401_has_no_www_authenticate(mcp_oauth: tuple[str, AuthServer]) -> None:
+    base, _auth = mcp_oauth
+    response = requests.post(
+        f"{base}/mcp",
+        json={"jsonrpc": "2.0", "id": 1, "method": "ping"},
+        headers={"Accept": ACCEPT, "Content-Type": "application/json"},
+        timeout=2,
+    )
+    assert response.status_code == 401
+    assert "WWW-Authenticate" not in response.headers
+    assert "WWW-Authenticate" not in {k.title() for k in response.headers}
