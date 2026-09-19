@@ -1,16 +1,16 @@
-# Agent Status sözleşmesi — v2 (tasarım taslağı)
+# Agent Status sözleşmesi — v2
 
 | Alan | Değer |
 |------|-------|
-| Durum | **Tasarım taslağı — insan onay kapısında.** Kod yazılmadı; bu belge merge edilse bile tek başına kod izni değildir |
+| Durum | **Okuyucu birleşti (PR #804); yazıcı insan onay kapısında.** Bu belge tek başına yazıcı kodu izni değildir |
 | Karar dayanağı | OD-063 güncellemesi (2026-08-25, kurucu — minimal human-on-exception dilimi yetkilendirildi) · [ADR-008](../decisions/ADR-008-agent-network-boundary.md) § Gözlem (2026-08-24 saha kanıtı) |
 | Önceki sürüm | [`agent-status-v1.md`](agent-status-v1.md) — kod karşılığı `src/core/agent_status_contract.py` |
-| Kod karşılığı | **Yok** (hedef: aynı modülün v2 genişletmesi; ayrı PR, ayrı onay) |
+| Kod karşılığı | `src/core/agent_status_contract.py` — v1+v2 salt-okunur okuyucu (PR #804); yazıcı yok |
 | Şema sürümü | 2 |
 
-Tek şema hem bu belgede hem (yazıldığında) kodda tanımlı olacaktır; ayrışma
-olursa doküman güncellenene kadar kod esas alınır. Kod PR'ı, doküman ↔ kod
-eşitliğini **iki yönde** doğrulayan türetme testi olmadan kabul edilmez.
+Tek şema hem bu belgede hem kodda tanımlıdır; ayrışma olursa doküman
+güncellenene kadar kod esas alınır. `tests/test_agent_status_contract_v2.py`,
+doküman ↔ kod eşitliğini **iki yönde** doğrular.
 
 ## Amaç
 
@@ -99,14 +99,11 @@ değişmeden korunur; `version` v2 kayıtlarında `2`'dir. Eklenen alanlar:
    - **Bunlar dışındaki her açık değer fail closed reddedilir** — `null`,
      bool, float, string, sıfır/negatif ve gelecek sürümler dahil — ve asla
      sessizce eski format sayılıp normalize edilmez.
-4. **Rollout tehlikesi (doğrulanmış):** mevcut v1 okuyucu `version != 1` olan
-   her kaydı eski format sayıp normalize eder — bir v2 kaydını `agent_id =
-   kando.agent_runner`, `status = unknown` biçiminde **bozarak** okur. Bu
-   nedenle sıralama zorunludur: **Agent Status okuma/ayrıştırma yolu v1+v2
-   yetenekli olmadan hiçbir v2 yazıcısı var olamaz.** Bugünkü uygulama hedefi
-   `src/core/agent_status_contract.py`'dir; KA-003 gateway'inin bu okuma
-   yoluna katılımı, ileriki bir uygulama bu entegrasyonu kanıtlayıp
-   belgelemedikçe **varsayılmaz**. Kod PR'ının kabul kriteridir.
+4. **Rollout sırası (uygulandı):** eski v1 okuyucunun v2 kayıtlarını legacy
+   biçiminde bozarak okuma riski nedeniyle okuyucu önce birleştirildi. Bugünkü
+   `src/core/agent_status_contract.py` v1+v2 okuyucudur; hiçbir v2 yazıcısı
+   yoktur. KA-003 gateway'inin bu okuma yoluna katılımı, ileriki bir uygulama
+   bu entegrasyonu kanıtlayıp belgelemedikçe **varsayılmaz**.
 
 ## Güvenilir-yazıcı sınırı (öneri — karar değil, ayrı onay kapısı)
 
@@ -142,7 +139,7 @@ olmak veya ona referans vermek, tek başına yazıcı yetkisi **değildir**.
 - Claude/Cursor oturum bildirimlerinin otomatik yakalanması kapsam dışıdır;
   duvar yalnız Board'a **gönüllü yazılan** durumu görür.
 
-## Kod PR'ı kabul kriterleri
+## Okuyucu uygulamasının korunan kabul kriterleri
 
 1. v1 test kümesi değişmeden geçer; v1 kayıtları birebir aynı sonucu üretir.
 2. Doküman ↔ kod durum/`wait_reason` tabloları iki yönlü türetme testiyle bağlı.
