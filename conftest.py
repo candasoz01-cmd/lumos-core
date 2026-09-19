@@ -77,6 +77,7 @@ _PROVIDER_CREDENTIAL_ENV = (
 _LOCAL_CREDENTIAL_ENV = (
     "LUMOS_API_KEY",
     "LUMOS_RELAY_TOKEN",
+    "LUMOS_ALEXA_MCP_TOKEN",
 )
 
 # Decision points that ask a model and fall back to policy when it is absent.
