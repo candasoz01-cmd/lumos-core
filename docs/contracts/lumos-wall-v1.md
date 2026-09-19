@@ -4,8 +4,8 @@
 
 | Alan | Değer |
 | --- | --- |
-| Durum | **TASLAK — kurucu onayı bekliyor** (çerçeve: 2026-09-18 kurucu kararı; metin merge edilene kadar yürürlükte değildir) — hukuk bu dilimde; ekran yok |
-| Karar | [ADR-032](../decisions/ADR-032-lumos-wall-v1.md) (Proposed) |
+| Durum | **Yürürlükte — 2026-09-19 kurucu onayı** (çerçeve: 2026-09-18 kurucu kararı) — hukuk bu dilimde; ekran yok |
+| Karar | [ADR-032](../decisions/ADR-032-lumos-wall-v1.md) (Accepted) |
 | Ad | **Duvar = Lumos Board'un iç operasyon yüzü.** Katmanın resmi adı Lumos Board'dur ([ADR-008](../decisions/ADR-008-agent-network-boundary.md)); "Duvar" bu sözleşmenin ve operasyon yüzünün adıdır, ikinci bir katman değildir |
 | Üst sınır | [CONSTITUTION.md](../CONSTITUTION.md) (metin burada kopyalanmaz) |
 | Yazma kapısı | Mevcut [`task-claim-v1.md`](task-claim-v1.md) + `src/lumos_board/claim_cli.py` / `task_claim.py` |

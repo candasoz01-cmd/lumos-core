@@ -177,8 +177,8 @@ kullanıcı ürünü **değildir**. Lumos ile aynı motoru (AI Runtime / Router)
 kullanır, ayrı bir motor kurmaz.
 
 - **Karar durumu:** sınır tanımı kabul edildi (2026-08-08, ADR-019).
-  **Duvar v1 sözleşme taslağı (2026-09-18, kurucu onayı bekliyor):**
-  [ADR-032](decisions/ADR-032-lumos-wall-v1.md) (Proposed) /
+  **Duvar v1 hukuku yürürlükte (2026-09-19 kurucu onayı):**
+  [ADR-032](decisions/ADR-032-lumos-wall-v1.md) (Accepted) /
   [`lumos-wall-v1`](contracts/lumos-wall-v1.md). Paralel claim yok; kapı
   mevcut `src/lumos_board/claim_cli.py`.
 - **Uygulama durumu:** görsel operatör arayüzü **yazılmadı**. Bugünkü kapsam

@@ -37,10 +37,11 @@ def test_wall_v1_eight_articles_and_law_are_locked() -> None:
     assert "karar" in text and "risk" in text and "blokaj" in text and "tamamlanma" in text
 
 
-def test_wall_v1_status_is_draft_and_mapping_is_founder_locked() -> None:
+def test_wall_v1_status_in_force_and_mapping_is_founder_locked() -> None:
     text = _CONTRACT.read_text(encoding="utf-8")
-    # Erken "Kilitli/Accepted" beyanı yok: metin merge edilene kadar taslak.
-    assert "TASLAK — kurucu onayı bekliyor" in text
+    # 2026-09-19 kurucu onayı: sözleşme yürürlükte.
+    assert "Yürürlükte — 2026-09-19 kurucu onayı" in text
+    assert "TASLAK" not in text
     # 2026-09-18 kurucu alt kararları:
     assert "| `READY` | `ACTIVE` |" in text
     assert "| `PARKED` | `RELEASED` |" in text
@@ -88,8 +89,8 @@ def test_wall_v1_references_constitution_without_copying_articles() -> None:
 
 def test_adr_032_exists_and_forbids_parallel_stack() -> None:
     text = _ADR.read_text(encoding="utf-8")
-    assert "Proposed (2026-09-18)" in text
-    assert "Accepted" not in text
+    assert "Accepted (2026-09-19)" in text
+    assert "Proposed" not in text
     assert "lumos-wall-v1.md" in text
     assert "ayrı claim üretmez" in text
     assert "Görsel yüz" in text

@@ -2,8 +2,8 @@
 
 | Alan | Değer |
 | --- | --- |
-| Karar durumu | **Proposed (2026-09-18)** — sekiz maddelik çerçeve kurucu kararıdır (chat: önce hukuk, sonra ekran); bu metnin kendisi kurucu onayı/merge bekler, yürürlükte değildir |
-| Uygulama durumu | Sözleşme taslak. Görsel yok. Yazma kapısı mevcut claim |
+| Karar durumu | **Accepted (2026-09-19)** — sekiz maddelik çerçeve 2026-09-18 kurucu kararı; metin 2026-09-19 kurucu onayıyla yürürlükte (chat: önce hukuk, sonra ekran) |
+| Uygulama durumu | Sözleşme yürürlükte. Görsel yok. Yazma kapısı mevcut claim |
 | Ad | Duvar = Lumos Board'un iç operasyon yüzü; katmanın resmi adı Lumos Board ([ADR-008](ADR-008-agent-network-boundary.md)) |
 | Sözleşme | [`lumos-wall-v1.md`](../contracts/lumos-wall-v1.md) |
 | Üst sınır | [CONSTITUTION.md](../CONSTITUTION.md), [ADR-019](ADR-019-product-surface-separation-modelregistry.md), [ADR-008](ADR-008-agent-network-boundary.md), [task-claim-v1.md](../contracts/task-claim-v1.md) |
