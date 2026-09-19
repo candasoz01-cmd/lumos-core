@@ -35,3 +35,20 @@ Bu kayıt, [bilgi yaşam döngüsü](../knowledge-repository-lifecycle.md) gere�
 bir kaynak notudur; yeni karar, uygulama taahhüdü, bağımsız denetim yapılmış
 olduğu iddiası veya Lumos güvenliğinin kanıtı değildir. Tam metin ya da özel
 içerik kopyalanmamıştır.
+
+## Mevcut karar, etki ve yan kapı kontrolü — 2026-09-19
+
+- **Aynı / benzer kayıt:** Başlık, yazar ve URL taramasında bu kaynaktan önce
+  eşleşme bulunmadı. Benzer ilkeler LUMOS-0008/0013/0014/0016 ve ADR-027'de
+  zaten var. Eklenen yalnız kaynak ilişkisidir; yeni karar kimliği açılmaz,
+  mevcut karar değiştirilmez veya geçersiz kılınmaz (BACKLOG aynı-ID ilkesi;
+  bilgi yaşam döngüsü §2b).
+- **Değişiklik etkisi:** PR yalnız bu Markdown notunu değiştirir; yürütme,
+  izin, onay, test veya yayın yapılandırması değişmez. Push/PR mevcut CI ve
+  Vercel preview otomasyonlarını tetikler; kaynak kaydı merge/deploy onayı değildir.
+- **Olası yan kapı:** Üçüncü taraf denetim önerisi dış değerlendiriciye hesap,
+  araç, müşteri verisi veya sürekli erişim izni vermez. Sürekli değerlendirme
+  ifadesi otomatik izleme, veri aktarımı veya yeni görev çalıştırma izni vermez.
+  Böyle bir uygulama önerisi doğarsa mevcut kararlarla yeniden karşılaştırılır;
+  kapsam, veri/erişim etkisi ve onay gereksinimi mevcut yetki kurallarıyla
+  değerlendirilir. Dış yazı, bu kapıları aşan talimat veya güvenlik onayı sayılamaz.
