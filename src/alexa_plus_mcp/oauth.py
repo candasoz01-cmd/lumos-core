@@ -238,11 +238,12 @@ class AuthServer:
         presented = form.get("refresh_token") or ""
         resource = form.get("resource") or ""
         with self._lock:
-            record = self._refresh.pop(presented, None)
-        if record is None or record.client_id != client_id:
-            return 400, {"error": "invalid_grant"}
-        if resource and resource != record.resource:
-            return 400, {"error": "invalid_target"}
+            record = self._refresh.get(presented)
+            if record is None or record.client_id != client_id:
+                return 400, {"error": "invalid_grant"}
+            if resource and resource != record.resource:
+                return 400, {"error": "invalid_target"}
+            self._refresh.pop(presented, None)
         return 200, self._issue(KIND_USER, client_id, record.resource, record.scope, refresh=True)
 
     def _issue(

@@ -29,13 +29,13 @@ OAUTH_CLIENT_SECRET = "lumos-test-secret"
 OAUTH_REDIRECT = "https://example.test/alexa/callback"
 
 
-def _serve(auth: AuthServer | None = None):
+def _serve(auth: AuthServer | None = None, *, rewrite_public_url: bool = True):
     httpd = serve(ServerConfig(token=TOKEN, host="127.0.0.1", port=0, auth=auth))
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
     thread.start()
     host, port = httpd.server_address[:2]
     base = f"http://{host}:{port}"
-    if auth is not None:
+    if auth is not None and rewrite_public_url:
         auth.public_url = base
     return httpd, thread, base
 
@@ -587,3 +587,98 @@ def test_oauth_401_has_no_www_authenticate(mcp_oauth: tuple[str, AuthServer]) ->
     assert response.status_code == 401
     assert "WWW-Authenticate" not in response.headers
     assert "WWW-Authenticate" not in {k.title() for k in response.headers}
+
+
+def test_refresh_keeps_token_when_resource_mismatches(
+    mcp_oauth: tuple[str, AuthServer],
+) -> None:
+    base, auth = mcp_oauth
+    verifier, challenge = _pkce()
+    authorize = requests.get(
+        f"{base}/oauth/authorize",
+        params={
+            "response_type": "code",
+            "client_id": OAUTH_CLIENT_ID,
+            "redirect_uri": OAUTH_REDIRECT,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
+            "resource": auth.resource,
+            "scope": SCOPE_TOOLS,
+        },
+        allow_redirects=False,
+        timeout=2,
+    )
+    code = parse_qs(urlparse(authorize.headers["Location"]).query)["code"][0]
+    issued = _token(
+        base,
+        {
+            "grant_type": "authorization_code",
+            "code": code,
+            "code_verifier": verifier,
+            "redirect_uri": OAUTH_REDIRECT,
+            "resource": auth.resource,
+        },
+    ).json()
+    refresh = issued["refresh_token"]
+    mismatched = _token(
+        base,
+        {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh,
+            "resource": "https://evil.example/mcp",
+        },
+    )
+    assert mismatched.status_code == 400
+    assert mismatched.json()["error"] == "invalid_target"
+    retry = _token(
+        base,
+        {
+            "grant_type": "refresh_token",
+            "refresh_token": refresh,
+            "resource": auth.resource,
+        },
+    )
+    assert retry.status_code == 200
+    assert retry.json()["token_type"] == "Bearer"
+
+
+def test_https_public_url_drives_prm_on_localhost_bind() -> None:
+    public = "https://lumos-mcp.example"
+    auth = AuthServer(
+        public_url=public,
+        client_id=OAUTH_CLIENT_ID,
+        client_secret=OAUTH_CLIENT_SECRET,
+        redirect_uris=frozenset({OAUTH_REDIRECT}),
+    )
+    httpd, thread, base = _serve(auth, rewrite_public_url=False)
+    try:
+        host = base.split("://", 1)[1].rsplit(":", 1)[0]
+        assert host in {"127.0.0.1", "localhost"}
+        prm = requests.get(f"{base}/.well-known/oauth-protected-resource", timeout=2)
+        as_meta = requests.get(f"{base}/.well-known/oauth-authorization-server", timeout=2)
+        assert prm.status_code == 200
+        assert prm.json()["resource"] == f"{public}/mcp"
+        assert as_meta.json()["issuer"] == public
+        assert as_meta.json()["authorization_endpoint"].startswith(public + "/")
+    finally:
+        _stop(httpd, thread)
+
+
+def test_bind_and_public_url_policy() -> None:
+    from alexa_plus_mcp.__main__ import bind_error, public_url_error, tunnel_command
+
+    assert bind_error("127.0.0.1", False) is None
+    assert bind_error("0.0.0.0", False)
+    assert bind_error("0.0.0.0", True) is None
+    assert public_url_error("http://127.0.0.1:8766", tunnel=False) is None
+    assert public_url_error("http://127.0.0.1:8766", tunnel=True)
+    assert public_url_error("https://abc.trycloudflare.com", tunnel=True) is None
+    assert public_url_error("http://0.0.0.0:8766", tunnel=True)
+    assert tunnel_command(8766) == "cloudflared tunnel --url http://127.0.0.1:8766"
+
+
+def test_print_tunnel_does_not_need_token() -> None:
+    from alexa_plus_mcp.__main__ import main
+
+    assert main(["--print-tunnel", "--port", "8766"]) == 0
+
