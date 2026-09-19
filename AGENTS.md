@@ -10,6 +10,11 @@ dışına çıkma. Bir dosyanın aynı anda yalnızca bir sahibi vardır — gö
 tamamlanana veya devredilene kadar başka ajan o dosyaya yazmaz.
 
 Bu repoda yazma işi başlamadan önce Lumos Board üzerinde görev claim'i alınır.
+Duvar kaydı olmayan iş yürütülmüş sayılmaz
+([`docs/contracts/lumos-wall-v1.md`](docs/contracts/lumos-wall-v1.md)).
+Kapı mevcut `python -m lumos_board.claim_cli`'dir; ikinci claim mekanizması
+açılmaz. Duvar claim durumunu tüketir ve gösterir, ayrı claim üretmez
+(görev durumu, sahiplik, kanıt, çakışma, kurucu kapısı).
 
 1. Aynı görev kimliği ve çakışan dosya kapsamları kontrol edilir.
 2. Claim kaydında görev, repo, branch, worktree, sahip, kapsam ve TTL bulunur.
