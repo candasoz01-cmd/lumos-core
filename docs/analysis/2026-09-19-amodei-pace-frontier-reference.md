@@ -4,8 +4,8 @@
 | --- | --- |
 | Kayıt tarihi | 2026-09-19 |
 | Katman | Research Memory |
-| Status / Maturity | Recorded / M1 — Research |
-| Owner | Pending |
+| Status / Maturity | Recorded / M1 — Research (kapanış 2026-09-19) |
+| Owner | Candaş Öz |
 | Kaynak / Evidence | Dario Amodei, [We Must Pace the Frontier](https://darioamodei.com/post/we-must-pace-the-frontier); 2026-09-19 erişildi |
 | Kaynak tarihi | Eylül 2026 (birincil sayfa); kullanıcı referansı 2026-09-12, gün bilgisi birincil sayfada doğrulanmadı |
 | Reason | Ajan güvenliği, dış denetim ve değerlendirme konularında mevcut Lumos ilkeleriyle ilişkili dış kaynak |
@@ -52,3 +52,12 @@ içerik kopyalanmamıştır.
   Böyle bir uygulama önerisi doğarsa mevcut kararlarla yeniden karşılaştırılır;
   kapsam, veri/erişim etkisi ve onay gereksinimi mevcut yetki kurallarıyla
   değerlendirilir. Dış yazı, bu kapıları aşan talimat veya güvenlik onayı sayılamaz.
+
+## Kapanış — 2026-09-19
+
+Kayıt tamam. Yeni LUMOS-* kimliği, ADR değişikliği, güvenlik onayı veya
+uygulama taahhüdü yoktur. `main` merge / production deploy bu kaydın parçası
+değildir; kaynak notu yayın kararı üretmez.
+
+Canonical metin bu dosyadır. İçerik kopyalanmaz; indeks yalnız bu yola işaret
+eder. `main`'e alma ayrı kurucu yayın/merge kararı ister.
