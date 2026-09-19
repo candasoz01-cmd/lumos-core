@@ -26,6 +26,7 @@ registry = IntegrationRegistry()
 
 
 def register_default_integrations() -> IntegrationRegistry:
+    from integrations.providers.amazon_hackathon_provider import register_amazon_hackathon_provider
     from integrations.providers.bilibili_provider import register_bilibili_provider
     from integrations.providers.china_provider import register_china_provider
     from integrations.providers.communications_provider import register_communications_provider
@@ -49,6 +50,7 @@ def register_default_integrations() -> IntegrationRegistry:
     from integrations.providers.xiaohongshu_provider import register_xiaohongshu_provider
     from integrations.providers.youtube_provider import register_youtube_provider
 
+    register_amazon_hackathon_provider(registry.register)
     register_openai_provider(registry.register)
     register_web_search_provider(registry.register)
     register_device_provider(registry.register)

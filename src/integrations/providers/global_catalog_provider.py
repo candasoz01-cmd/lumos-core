@@ -129,6 +129,7 @@ GLOBAL_INTEGRATION_CATALOG: tuple[dict[str, Any], ...] = (
     _entry("apple_home", "Apple Home", "device", ("global",), "os_framework", capabilities=("home_devices", "scenes")),
     _entry("google_home", "Google Home", "device", ("global",), "oauth_cloud_api", capabilities=("home_devices", "automations")),
     _entry("amazon_alexa", "Amazon Alexa", "device", ("global",), "skill_api", capabilities=("home_devices", "voice")),
+    _entry("amazon_ring", "Amazon Ring", "device", ("global",), "sandbox_simulator", capabilities=("home_devices", "access_control", "caretaking")),
     _entry("samsung_smartthings", "Samsung SmartThings", "device", ("KR", "global"), "oauth_cloud_api", capabilities=("home_devices", "automations")),
     _entry("xiaomi_home", "Xiaomi Home", "device", ("CN", "global"), "vendor_cloud_api", capabilities=("home_devices",)),
     _entry("huawei_ai_life", "Huawei AI Life", "device", ("CN", "global"), "vendor_sdk", capabilities=("audio", "network", "home_devices")),

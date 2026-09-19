@@ -62,6 +62,7 @@ def test_device_catalog_covers_bluetooth_audio_and_home_ecosystems():
 
     assert {"bluetooth_classic_audio", "bluetooth_le_audio", "bluetooth_hid"} <= ids
     assert {"matter", "apple_home", "google_home", "samsung_smartthings", "home_assistant"} <= ids
+    assert {"amazon_alexa", "amazon_ring"} <= ids
     assert all(item["connected"] is False for item in result.data["providers"])
 
 
