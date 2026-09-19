@@ -89,10 +89,16 @@ test("hosted request keeps bounded history and current image", () => {
   assert.equal(request.contents[1].parts[1].inlineData.mimeType, "image/png");
 });
 
-test("hosted reply joins text parts", () => {
+test("hosted reply strips TextReference markup and keeps alt text", () => {
+  const leak =
+    'Özet:\n<TextReference\n path="/opt/cursor/artifacts/voice-stabilize-2026-09-18.log"\n start={1}\n end={20}\n alt="Voice stabilization test summary"></TextReference>\nDevam.';
   assert.equal(
-    geminiReply({ candidates: [{ content: { parts: [{ text: "Mer" }, { text: "haba" }] } }] }),
-    "Merhaba",
+    geminiReply({ candidates: [{ content: { parts: [{ text: leak }] } }] }),
+    "Özet:\nVoice stabilization test summary\nDevam.",
+  );
+  assert.equal(
+    openAIReply({ output: [{ content: [{ type: "output_text", text: leak }] }] }),
+    "Özet:\nVoice stabilization test summary\nDevam.",
   );
 });
 
