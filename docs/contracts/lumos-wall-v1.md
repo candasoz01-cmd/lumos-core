@@ -138,13 +138,48 @@ durumu `READY` veya `CLOSED` ilan edemez. `READY`, kurucuya **karar** düşürü
 korunur**: HMAC imzalı approval token, fail-closed approver registry ve
 "override onaycısı eski ve yeni owner'lardan farklı olmalı" kuralı
 ([task-claim-v1](task-claim-v1.md) kural 8–10, `OverrideApprovalVerifier`).
-Bu sözleşme o kuralları gevşetmez, genişletmez.
+Bu sözleşme o kuralları gevşetmez, genişletmez. Override, aşağıdaki onay
+şemasının uygulaması değildir.
+
+Kurucu kararı Duvar kartına düştüğünde kayıt [onay şeması v1](#onay-şeması-v1-sözleşme-gereksinimi)
+alanlarını taşır — depo veya CLI bu dilimde yoktur.
 
 ### 8. Gürültü ayıklama
 
 Kurucuya yalnız `karar`, `risk`, `blokaj`, `tamamlanma` çıkar. Normal ajan
 hareketi (heartbeat, retry, log, dal gürültüsü) Duvar'da kalır. Bu süzgeç
 anayasa §10'un operatör→kurucu kanalıdır; dördüncü bir rapor dili yazılmaz.
+
+## Onay şeması v1 (sözleşme gereksinimi)
+
+Bu bölüm **uygulanmış sistem değildir.** Yeni store, CLI, imza servisi,
+GitHub CheckRun veya yayın güvenlik kökü **açılmaz.** Anayasa metni bu
+dilimde değişmez; anayasa farkı ayrı açık karardır. Yayın güvenliği
+uygulaması ayrı hattır ve bu eke izin bağlanmaz.
+
+Kurucu onayı (Madde 7 / `FOUNDER_REVIEW` → karar) kayda geçecekse aşağıdaki
+altı alan zorunlu gereksinimdir. Boş kayıt, bekleyen kayıt olabilir; uydurma
+`approved_by` yazılamaz.
+
+| Alan | Anlam |
+| --- | --- |
+| `approval_id` | Bu onay kaydının kimliği |
+| `task` | Duvar / claim görev kimliği |
+| `gate` | Hangi kapı için verildiği (ör. kurucu inceleme; üçlü merge kapısı 3). İsim yeni bir kapı icat etmez |
+| `action` | Ne onaylandı; kapsam bundan okunur |
+| `head_sha` | Onayın bağlandığı commit. Head değişince sayaç sıfırlanır |
+| `approved_by` | Nihai insan yetkili. Ajan, bot veya App bu alanı insan onayı olarak dolduramaz |
+
+Tek nihai yetkili kurucudur; ikinci insan şartı yoktur.
+
+Aynı geçerli onay tekrar sorulmaz: `task` + `gate` + `action` + `head_sha`
+eşleşen ve `approved_by` dolu bir kayıt varken Lumos, verilen kapsamda aynı
+soruyu yeniden açmaz. Farklı `action`, farklı `gate` veya yeni `head_sha`
+yeni kayıttır.
+
+Bu şema, claim override HMAC'inden ayrıdır (lease devralma; task-claim-v1
+kural 8–10). İnsan etkileşimli yayın imzası ve PR'ın değiştiremediği
+doğrulayıcı bu dilimin kapsamı değildir.
 
 ## Mevcut semantikle çelişki kontrolü (madde madde)
 
@@ -161,6 +196,7 @@ Sekiz maddenin KA-002 semantiğiyle (`task_claim.py` / `claim_cli.py`) çelişip
 | 6 | `SCOPE_CONFLICT` üst-alt dizin ilişkisi; ret veya `QUEUED`; tek OS dosya kilidi | Çelişki yok — "conflict işareti" = mevcut `ClaimConflict` kaydı |
 | 7 | Override: imzalı token + fail-closed registry + onaycı ≠ owner'lar; override ile devir aynı istekte birleşemez | Çelişki yok — kurucu kapısı bu kuralları aynen korur, gevşetmez |
 | 8 | Audit append-only, yalnız kalıcılaşan durum yazılır | Çelişki yok — süzgeç okuma katmanındadır, audit'e dokunmaz |
+| Onay şeması v1 | Override `approval_id` / HMAC token (lease) | Çelişki yok — Duvar onay şeması ayrı gereksinimdir; bu dilimde kod yok |
 
 ## Mevcut altyapıyla eşleme
 
@@ -174,6 +210,7 @@ Sekiz maddenin KA-002 semantiğiyle (`task_claim.py` / `claim_cli.py`) çelişip
 | 6. Çakışma koruması | `SCOPE_CONFLICT`, `QUEUED`, OS dosya kilidi | §3 | **VAR** |
 | 7. Kurucu kapısı | Override insan kapısı var; otomatik `FOUNDER_REVIEW` tetikleyicisi yok | §11, §2 | **KISMİ** |
 | 8. Gürültü ayıklama | Audit Duvar içi; kurucu-yüzü süzgeç mekanizması yok (agent-status-v2 ayrımı sözleşmede) | §10 | **KISMİ** |
+| Onay şeması v1 | Altı alan (`approval_id` `task` `gate` `action` `head_sha` `approved_by`) depo/CLI'da yok; override HMAC ayrı | — (anayasa farkı ayrı karar) | **YOK** |
 | Ana yasa | Append-only claim audit'i var; claim'siz görev envanteri yok | §9 | **KISMİ** |
 
 **Boşlukların ortak paydası:** eksik olan claim mekanizması değil, claim'in
@@ -191,6 +228,7 @@ gömülmez. Yeni sayfa STOP LIST'tedir; görsel dilim ayrı kurucu onayı ister.
 ## Bilinçli yapılmaz
 
 - İkinci `TaskClaimStore` veya `claim_cli` çatalı
-- Anayasa maddelerinin bu dosyaya kopyalanması
+- Anayasa maddelerinin bu dosyaya kopyalanması; bu dilimde anayasa dosyasına yazma
+- Onay şeması için store, CLI, imza kökü veya GitHub CheckRun
 - Ajanlar arası komut ağı, auto-merge, auto-deploy
 - Son kullanıcı paneline claim/worktree sızdırma (PR-005 / ADR-019)
