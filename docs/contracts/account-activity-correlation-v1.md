@@ -2,7 +2,7 @@
 
 # Account Activity Correlation — v1
 
-Durum: ADR-032 sözleşmesi. Kod: `src/account_activity/engine.py`.
+Durum: ADR-033 sözleşmesi. Kod: `src/account_activity/engine.py`.
 
 Bu, activity tracking değildir. Üçüncü taraf güvenlik uyarısını, onaylı ve
 cihaza bağlı oturum özetiyle eşleştirir. Ledger **hesap kilidi değildir**.

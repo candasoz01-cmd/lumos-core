@@ -1,4 +1,4 @@
-"""ADR-032: privacy-preserving Account Activity Correlation kernel."""
+"""ADR-033: privacy-preserving Account Activity Correlation kernel."""
 
 from __future__ import annotations
 

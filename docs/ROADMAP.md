@@ -152,7 +152,7 @@ tracking, yeni sayfa, mail ürünü veya otomatik hesap eylemi yetkisi vermez.
 - mail uyarısı şifre değiştirme veya oturum kapatmaya **çevrilmez**;
 - yeni sayfa, yeni entegrasyon, tarayıcı sniffing veya çoklu cihaz senkronu **yok**.
 
-Normatif karar ve kabul kapıları: [ADR-032](decisions/ADR-032-account-activity-correlation.md).
+Normatif karar ve kabul kapıları: [ADR-033](decisions/ADR-033-account-activity-correlation.md).
 
 ## FAZ-1 sonrası provider stratejisi
 
