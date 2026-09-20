@@ -283,7 +283,7 @@ Değişen (yalnızca ek / dar düzeltme):
 | `ui/src/pages/panel.astro` | `WebMcpTools` import + mount; onay diyaloğuna **"Yazılacak alanlar"** bölümü; Görevler modülüne **görünür izin durumu + "İzni geri al"** satırı; ikisinin stilleri. |
 | `ui/src/components/panel/PanelRuntime.astro` | WebMCP köprüsü (`window.__lumosPanelWebMcp`) + **okuma izni kapısı**; `renderPanelConfirmationFields()`; `panelEnsureMutationConfirmation` artık `previewFields` alıyor; `persistPanelGorevCreateViaApi` `confirmationId` taşıyabiliyor; `showPanelConfirmationModal` bayat `close` olayını yok sayıyor. |
 | `ui/src/i18n/messages/panel/{tr,en}.ts` | `confirmation.labelFields`, `share_task_board` eylemi, `agent_read_task_board` etkisi ve `shell.infra.webmcp.*` etiketleri. |
-| `ui/package.json`, `package.json` | `e2e:webmcp` ve `e2e:webmcp:native` betikleri. |
+| `ui/package.json`, `package.json` | `e2e:webmcp:mock` (takma ad `e2e:webmcp`) ve `e2e:webmcp:native` betikleri. |
 
 `document.modelContext` yoksa hiçbir şey kaydedilmez, panel eskisi gibi çalışır:
 `document.documentElement.dataset.lumosWebmcp` `"unsupported"` olur.
@@ -303,8 +303,9 @@ cd /Users/candasoz/work_2026/lumos-core
 ### Uçtan uca — harness (ajan tarafı taklit)
 
 ```bash
-cd ui && npm run build && npm run e2e:webmcp
-# beklenen: WEBMCP_PANEL_E2E_RESULT: PASS
+cd ui && npm run build && npm run e2e:webmcp:mock
+# (eski takma ad `e2e:webmcp` aynı mock harness'i koşar)
+# beklenen: WEBMCP_PANEL_MOCK_E2E_RESULT: PASS
 ```
 
 **Dürüstlük notu:** bu senaryoda `document.modelContext`'i **test enjekte eder**
