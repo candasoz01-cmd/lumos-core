@@ -96,3 +96,31 @@ def test_adr_032_exists_and_forbids_parallel_stack() -> None:
     assert "Görsel yüz" in text
     assert "görev durumu, sahiplik, kanıt, çakışma ve kurucu kapısını" in text
     assert "iş mantığı UI'ya dağılmaz" in text
+    assert "sözleşme gereksinimidir" in text
+    assert "uygulanmış sistem değildir" in text
+
+
+def test_wall_v1_approval_schema_is_contract_requirement_not_a_system() -> None:
+    text = _CONTRACT.read_text(encoding="utf-8")
+    assert "## Onay şeması v1 (sözleşme gereksinimi)" in text
+    assert "**uygulanmış sistem değildir.**" in text
+    for field in (
+        "`approval_id`",
+        "`task`",
+        "`gate`",
+        "`action`",
+        "`head_sha`",
+        "`approved_by`",
+    ):
+        assert field in text, field
+    assert "Aynı geçerli onay tekrar sorulmaz" in text
+    assert "Ajan, bot veya App bu alanı insan onayı olarak dolduramaz" in text
+    assert "ikinci insan şartı yoktur" in text
+    assert "anayasa farkı ayrı açık karardır" in text
+    assert "Yayın güvenliği" in text and "bu eke izin bağlanmaz" in text
+    assert "Yeni store, CLI, imza servisi" in text
+    # Override HMAC lease kapısı ayrı kalır; şema onu genişletmez.
+    assert "Override, aşağıdaki onay" in text or "claim override HMAC" in text
+    adr = _ADR.read_text(encoding="utf-8")
+    assert "onay-şeması store/CLI" in adr
+    assert "anayasa yazımı" in adr

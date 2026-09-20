@@ -30,8 +30,13 @@ iş mantığı UI'ya dağılmaz.
   genişletmek bu ADR'nin izni değildir. Eşleme kilidi (2026-09-18 kurucu
   kararı): `READY` = `ACTIVE`, `PARKED` = `RELEASED`, `BLOCKED` = `ACTIVE`.
 - Kurucuya giden kanal anayasa §10 süzgecidir.
+- Onay şeması v1 (`approval_id`, `task`, `gate`, `action`, `head_sha`,
+  `approved_by`) **sözleşme gereksinimidir**, uygulanmış sistem değildir.
+  Aynı geçerli onay tekrar sorulmaz; ajan `approved_by` üretemez. Anayasa
+  farkı ve yayın güvenlik uygulaması bu ADR'nin izni değildir.
 - `#859` / `#860` / `#861` bu dilimin kapsamı değildir.
 
 ## Bilinçli yapılmaz
 
-UI, yeni endpoint, yeni lease deposu, ajanlar arası komut, auto-merge.
+UI, yeni endpoint, yeni lease deposu, onay-şeması store/CLI, anayasa yazımı,
+ajanlar arası komut, auto-merge.
