@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Yayın kapısı — push ÖNCESİ son yerel bariyer.
+# Public remote'a giden içerik push anında yayımlanmış olur; CI bunu geri
+# alamaz. Bu kanca kapıyı push'tan önce koşar. Sınır dürüstçe: --no-verify,
+# kancasız klon veya doğrudan API push'u bunu atlar — atlatılamaz garanti
+# yalnız kaynak taraftadır (private içerik public-push'lu ağaca hiç girmemeli).
+# Kurulum: make setup-commit-guard
+set -euo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_CEILING_DIRECTORIES
+
+echo ">>> pre-push: yayın kapısı (ops/publication_gate/gate.py)"
+python3 ops/publication_gate/gate.py

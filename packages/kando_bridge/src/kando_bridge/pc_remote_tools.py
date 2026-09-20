@@ -399,7 +399,7 @@ def _audit_execute_rejected(
             requested_by=requested_by,
             target_device=target_device,
         )
-    except ImportError:
+    except (ImportError, OSError):
         return
 
 
@@ -480,13 +480,22 @@ def execute_tool_stub(
         )
         if not gate.allowed:
             if gate.reason == "approval_required":
-                record = _persist_pending_approval(
-                    command,
-                    arguments,
-                    repo_root=repo_root,
-                    requested_by=requested_by,
-                    target_device=target_device,
-                )
+                try:
+                    record = _persist_pending_approval(
+                        command,
+                        arguments,
+                        repo_root=repo_root,
+                        requested_by=requested_by,
+                        target_device=target_device,
+                    )
+                except OSError:
+                    return {
+                        "ok": False,
+                        "status": "rejected",
+                        "command": command,
+                        "error": "audit_write_failed",
+                        "schema_version": SCHEMA_VERSION,
+                    }
                 return {
                     "ok": False,
                     "status": "pending_approval",
@@ -567,6 +576,15 @@ def execute_tool_stub(
             )
         except ImportError:
             pass
+        except OSError:
+            return {
+                "ok": False,
+                "status": "rejected",
+                "command": command,
+                "approval_required": True,
+                "error": "audit_write_failed",
+                "schema_version": SCHEMA_VERSION,
+            }
 
     ts = int(time.time() * 1000)
     base: dict[str, Any] = {
@@ -699,7 +717,10 @@ def approve_pc_remote_pending(
                 return False, bridge_result.reason or "confirmation validation failed", None
     except ImportError:
         pass
-    updated = approve_pending_record(path, record)
+    try:
+        updated = approve_pending_record(path, record)
+    except OSError:
+        return False, "audit_write_failed", None
     return True, "", {
         "status": "approved",
         "approval_id": updated.get("approval_id"),

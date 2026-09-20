@@ -1,5 +1,31 @@
 # Lumos
 
+## Devpost evaluation freeze — September 2026
+
+This evaluation branch restores the submission-time `main` baseline
+[`4b4a909`](https://github.com/candasoz01-cmd/lumos-core/commit/4b4a909a44307c9eb33d7c9615e615776839d51e),
+with only the three organizer-approved security fixes below and this disclosure.
+All other post-cutoff code changes are reverted in this branch. The extended
+submission cutoff was **2026-09-04 08:00 UTC (01:00 PDT)**.
+
+| Approved PR | Security fix | Merged (UTC) |
+| --- | --- | --- |
+| [#828](https://github.com/candasoz01-cmd/lumos-core/pull/828) | Remove unauthenticated pairing-code disclosure and pairing-window renewal; constant-time token checks and removal of internal provider/model fields from public responses. | 2026-09-04 12:05:37 |
+| [#829](https://github.com/candasoz01-cmd/lumos-core/pull/829) | Reject cross-origin browser requests to the local tasks API. | 2026-09-04 13:13:29 |
+| [#830](https://github.com/candasoz01-cmd/lumos-core/pull/830) | Require token authentication for the local tasks API and update its clients/tests. | 2026-09-04 14:21:21 |
+
+**Baseline correction:** earlier organizer correspondence named `19233a9` as
+deadline `main`. That was a side-branch commit, not deadline `main`; it entered
+`main` through post-cutoff PR #822. The actual baseline is `4b4a909` above.
+This note corrects the commit attribution; it does not claim new organizer
+approval. PR [#850](https://github.com/candasoz01-cmd/lumos-core/pull/850)
+tracks the remediation. This branch description does not certify a production
+deployment. The production URL, Devpost entry and demo video remain frozen;
+no additional features or presentation changes are included.
+PR [#852](https://github.com/candasoz01-cmd/lumos-core/pull/852) merged on
+2026-09-13 as a documentation-only governance change and did not change
+runtime code.
+
 Turkish: [README.tr.md](README.tr.md) · [docs/tr/](docs/tr/)
 
 **Lumos** is the primary product focus. It is a human-centered artificial intelligence **control and assistant layer**: it helps people understand, steer, and safely manage actions across devices, digital workflows, and connected systems—without replacing their judgment.
@@ -41,21 +67,13 @@ The current version includes:
 
 The current panel defines visible modules and product direction without claiming unfinished active functionality.
 
-## WebMCP (challenge slice, after 2026-08-25)
-
-The existing `/panel` Tasks board is exposed to agents through
-`document.modelContext.registerTool()` — three tools, no silent reads, no
-write without Lumos’s own confirmation dialog.
-
-- Live: [welockai.com/panel](https://welockai.com/panel/)
-- Contract and prior-vs-new split: [`docs/webmcp-challenge-2026.md`](docs/webmcp-challenge-2026.md)
-
 ## Open Source Status
 
 - Lumos Core is in early active development.
 - The repository is open source under the Apache-2.0 license.
-- The project is not yet a stable, fully contribution-ready open source product. External contributions are reviewed on a controlled basis; CONTRIBUTING.md will be added later.
+- The project is not yet a stable, fully contribution-ready open source product. External contributions are reviewed on a controlled basis — see [CONTRIBUTING.md](CONTRIBUTING.md) for local checks and PR expectations.
 - Visual brand assets, the Lumos / We Lock AI names, official services, production API access, and user data are **not** covered by the Apache-2.0 license. See [NOTICE](NOTICE).
+- Suspected vulnerabilities: please follow [SECURITY.md](SECURITY.md) rather than opening a public issue.
 
 ## Prerequisites
 

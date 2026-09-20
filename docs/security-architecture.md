@@ -61,7 +61,7 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **güvenl
 | SEC-031 | Bağlam, niyet, güvenlik sınırı ve önceki kararlarla tutarlılık kontrolü atlanmaz. | **güvenlik kuralı** |
 | SEC-032 | Belirsiz niyette kısa netleştirme; otomatik varsayım yok. | **güvenlik kuralı** |
 | SEC-033 | Gerçek Meet sesi yalnız `POST /v1/audio/transcriptions` (batch). Realtime Meet-sesi kapsam dışı. | **güvenlik kuralı** — [stt-data-boundary-v1](contracts/stt-data-boundary-v1.md) |
-| SEC-034 | STT ayrı OpenAI API projesinde; model yalnız `OPENAI_MODEL_STT` (`whisper-1` / `gpt-4o-transcribe` / `gpt-4o-mini-transcribe`). Sohbet/cyber env'ine düşülmez. | **güvenlik kuralı** |
+| SEC-034 | STT ayrı OpenAI API projesinde; batch model yalnız `OPENAI_MODEL_STT` (`gpt-transcribe`). Canlı transkripsiyon yalnız `gpt-live-transcribe`; sohbet/cyber env'ine düşülmez. | **güvenlik kuralı** |
 | SEC-035 | Depolama **ve** işleme `eu.api.openai.com` (Avrupa). Bölgesel işleme ayrı onaydır; veri yerleşimi uçlarında %10 ek ücret kabul. | **güvenlik kuralı** |
 | SEC-036 | Ham ses log/artifact olarak kalıcı saklanmaz. Katılımcı açık onayı olmadan gerçek toplantı sesi gönderilmez. | **güvenlik kuralı** |
 | SEC-037 | Avrupa yerleşimi + MAM/ZDR organizasyonda **yazılı** doğrulanana kadar yalnız sentetik/hassas olmayan test sesi. | **açılış kapısı** — ADR-025 |
@@ -75,6 +75,7 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **güvenl
 | SEC-040 | Bu belgeye production secret, PII veya operasyonel credential yazılmaz. | **güvenlik kuralı** |
 | SEC-041 | Public repo içeriği demo-safe olmalıdır. | **güvenlik kuralı** |
 | SEC-042 | Yürütme üç parçalıdır: Task Registry (görev resmi kaydı) + Capability Token (göreve özel kısa ömürlü anahtar; ajan/kullanıcı üretmez) + Immutable Ledger (kanıt; kapı değil). Kayıtlı görev zincirine bağlanmayan işlem yürümez. Deny default + `unclassified` şüphe; "saldırgan" etiketi yok. Grant `SECURITY_NEVER_AUTO` açmaz. Kullanıcı onayı her adımda değil, yalnız riskli kapılarda. | **güvenlik kuralı** — [ADR-031](decisions/ADR-031-task-execution-grant.md), opt-in `LUMOS_TASK_EXECUTION_GRANT_ENABLED` |
+| SEC-043 | Account Activity Correlation activity tracking değildir. Üçüncü taraf güvenlik uyarısı, onaylı ve kayda bağlı cihaz/oturum özetiyle eşleşir. Raw history, parola, içerik, düz IP yok. Verdict `owner_match` / `likely_owner` / `unknown` / `suspicious`; “kesin sendin” yok. Mail uyarısı otomatik hesap eylemine çevrilmez. | **güvenlik kuralı** — [ADR-033](decisions/ADR-033-account-activity-correlation.md); uygulama izni yalnız yerel çekirdek |
 
 ---
 
@@ -96,8 +97,9 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **güvenl
 - `docs/decision-log.md` — karar ve erteleme günlüğü
 - `docs/contracts/stt-data-boundary-v1.md` — Meet STT veri sınırı (ADR-025)
 - `docs/contracts/task-execution-grant-v1.md` — görev yürütme anahtarı (ADR-031)
+- `docs/contracts/account-activity-correlation-v1.md` — güvenlik kanıtı korelasyonu (ADR-033)
 - `docs/analysis/lumos-self-governance-surface.md` — denetim merceği; izinli yol gerekçesi (SEC-006)
 
 ---
 
-Son güncelleme: 2026-08-28 (SEC-006 izinli yol denetimi — yeni yön değil)
+Son güncelleme: 2026-09-04 (SEC-043 Account Activity Correlation — yerel çekirdek)

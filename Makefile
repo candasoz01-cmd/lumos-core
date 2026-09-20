@@ -27,9 +27,10 @@ install:
 
 # Tek komut: commit guard (ruff + pytest). Ayrıntı: docs/dev-commit-guard.md
 setup-commit-guard:
-	chmod +x .githooks/pre-commit 2>/dev/null || true
+	chmod +x .githooks/pre-commit .githooks/pre-push 2>/dev/null || true
 	git config core.hooksPath .githooks
 	@echo "Commit guard aktif: her commit öncesi ruff check . && pytest -q"
+	@echo "Push guard aktif: her push öncesi yayın kapısı (ops/publication_gate/gate.py)"
 	@echo "venv: pip install -e . && pip install -U ruff pytest"
 	@echo "Bypass: git commit --no-verify"
 
