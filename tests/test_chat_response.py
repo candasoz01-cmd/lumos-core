@@ -103,6 +103,25 @@ def test_build_chat_reply_local_time_skips_openai():
     fake_client.responses.create.assert_not_called()
 
 
+def test_build_chat_reply_strips_textreference_keeps_alt():
+    fake_r1 = MagicMock()
+    fake_r1.output_text = "INTENT: Özet vermek."
+    fake_r2 = MagicMock()
+    fake_r2.output_text = (
+        "Özet:\n<TextReference\n"
+        ' path="/opt/cursor/artifacts/voice-stabilize-2026-09-18.log"\n'
+        " start={1}\n"
+        " end={20}\n"
+        ' alt="Voice stabilization test summary"></TextReference>\nDevam.'
+    )
+    fake_client = MagicMock()
+    fake_client.responses.create.side_effect = [fake_r1, fake_r2]
+    with patch("openai.OpenAI", return_value=fake_client):
+        r = build_chat_reply("özetle")
+    assert r["reply"] == "Özet:\nVoice stabilization test summary\nDevam."
+    assert "TextReference" not in r["reply"]
+
+
 def test_build_chat_reply_local_time_weekday_skips_openai():
     fake_client = MagicMock()
     with patch("openai.OpenAI", return_value=fake_client):
