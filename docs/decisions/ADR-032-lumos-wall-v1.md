@@ -31,12 +31,14 @@ iş mantığı UI'ya dağılmaz.
   kararı): `READY` = `ACTIVE`, `PARKED` = `RELEASED`, `BLOCKED` = `ACTIVE`.
 - Kurucuya giden kanal anayasa §10 süzgecidir.
 - Onay şeması v1 (`approval_id`, `task`, `gate`, `action`, `head_sha`,
-  `approved_by`) **sözleşme gereksinimidir**, uygulanmış sistem değildir.
+  `approved_by`) **sözleşme gereksinimidir**; minimal kayıt deposu
+  2026-09-20 kurucu talimatıyla uygulandı (`lumos_board.founder_approval` +
+  `claim_cli approval`, fail-closed insan onaycı registry'si).
   Aynı geçerli onay tekrar sorulmaz; ajan `approved_by` üretemez. Anayasa
   farkı ve yayın güvenlik uygulaması bu ADR'nin izni değildir.
 - `#859` / `#860` / `#861` bu dilimin kapsamı değildir.
 
 ## Bilinçli yapılmaz
 
-UI, yeni endpoint, yeni lease deposu, onay-şeması store/CLI, anayasa yazımı,
-ajanlar arası komut, auto-merge.
+UI, yeni endpoint, yeni lease deposu, onay-şeması imza kökü/CheckRun,
+anayasa yazımı, ajanlar arası komut, auto-merge.
