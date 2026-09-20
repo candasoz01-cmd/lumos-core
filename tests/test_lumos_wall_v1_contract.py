@@ -97,13 +97,12 @@ def test_adr_032_exists_and_forbids_parallel_stack() -> None:
     assert "görev durumu, sahiplik, kanıt, çakışma ve kurucu kapısını" in text
     assert "iş mantığı UI'ya dağılmaz" in text
     assert "sözleşme gereksinimidir" in text
-    assert "uygulanmış sistem değildir" in text
+    assert "minimal kayıt deposu" in text
 
 
-def test_wall_v1_approval_schema_is_contract_requirement_not_a_system() -> None:
+def test_wall_v1_approval_schema_fields_and_limits_are_locked() -> None:
     text = _CONTRACT.read_text(encoding="utf-8")
     assert "## Onay şeması v1 (sözleşme gereksinimi)" in text
-    assert "**uygulanmış sistem değildir.**" in text
     for field in (
         "`approval_id`",
         "`task`",
@@ -118,9 +117,23 @@ def test_wall_v1_approval_schema_is_contract_requirement_not_a_system() -> None:
     assert "ikinci insan şartı yoktur" in text
     assert "anayasa farkı ayrı açık karardır" in text
     assert "Yayın güvenliği" in text and "bu eke izin bağlanmaz" in text
-    assert "Yeni store, CLI, imza servisi" in text
+    # 2026-09-20 dilimi: minimal depo/CLI uygulandı; imza kökü hâlâ kapalı.
+    assert "`lumos_board.founder_approval`" in text
+    assert "fail-closed" in text
+    assert "yayın güvenlik kökü **hâlâ açılmaz.**" in text
     # Override HMAC lease kapısı ayrı kalır; şema onu genişletmez.
     assert "Override, aşağıdaki onay" in text or "claim override HMAC" in text
     adr = _ADR.read_text(encoding="utf-8")
-    assert "onay-şeması store/CLI" in adr
+    assert "onay-şeması imza kökü/CheckRun" in adr
     assert "anayasa yazımı" in adr
+
+
+def test_wall_v1_approval_schema_implementation_exists() -> None:
+    module = _REPO / "src" / "lumos_board" / "founder_approval.py"
+    assert module.is_file()
+    source = module.read_text(encoding="utf-8")
+    for field in ('"approval_id"', '"task"', '"gate"', '"action"', '"head_sha"', '"approved_by"'):
+        assert field in source, field
+    cli = _CLAIM_CLI.read_text(encoding="utf-8")
+    assert 'subparsers.add_parser("approval")' in cli
+    assert "LUMOS_FOUNDER_APPROVER_REGISTRY" in cli
