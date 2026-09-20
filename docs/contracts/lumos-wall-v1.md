@@ -142,7 +142,8 @@ Bu sözleşme o kuralları gevşetmez, genişletmez. Override, aşağıdaki onay
 şemasının uygulaması değildir.
 
 Kurucu kararı Duvar kartına düştüğünde kayıt [onay şeması v1](#onay-şeması-v1-sözleşme-gereksinimi)
-alanlarını taşır — depo veya CLI bu dilimde yoktur.
+alanlarını taşır; minimal kayıt deposu 2026-09-20 kurucu talimatıyla
+uygulanmıştır (`lumos_board.founder_approval` + `claim_cli approval`).
 
 ### 8. Gürültü ayıklama
 
@@ -152,10 +153,15 @@ anayasa §10'un operatör→kurucu kanalıdır; dördüncü bir rapor dili yazı
 
 ## Onay şeması v1 (sözleşme gereksinimi)
 
-Bu bölüm **uygulanmış sistem değildir.** Yeni store, CLI, imza servisi,
-GitHub CheckRun veya yayın güvenlik kökü **açılmaz.** Anayasa metni bu
-dilimde değişmez; anayasa farkı ayrı açık karardır. Yayın güvenliği
-uygulaması ayrı hattır ve bu eke izin bağlanmaz.
+Minimal kayıt deposu 2026-09-20 kurucu talimatıyla uygulanmıştır:
+`src/lumos_board/founder_approval.py` (FounderApprovalStore, append-only
+`founder_approval_events.jsonl` denetim izi) ve mevcut tek kapı içinde
+`python -m lumos_board.claim_cli approval request|grant|check|list`.
+`grant`, `LUMOS_FOUNDER_APPROVER_REGISTRY` ile verilen fail-closed insan
+onaycı allowlist'ini zorunlu kılar. İmza servisi, GitHub CheckRun veya
+yayın güvenlik kökü **hâlâ açılmaz.** Anayasa metni bu dilimde değişmez;
+anayasa farkı ayrı açık karardır. Yayın güvenliği uygulaması ayrı hattır
+ve bu eke izin bağlanmaz.
 
 Kurucu onayı (Madde 7 / `FOUNDER_REVIEW` → karar) kayda geçecekse aşağıdaki
 altı alan zorunlu gereksinimdir. Boş kayıt, bekleyen kayıt olabilir; uydurma
@@ -196,7 +202,7 @@ Sekiz maddenin KA-002 semantiğiyle (`task_claim.py` / `claim_cli.py`) çelişip
 | 6 | `SCOPE_CONFLICT` üst-alt dizin ilişkisi; ret veya `QUEUED`; tek OS dosya kilidi | Çelişki yok — "conflict işareti" = mevcut `ClaimConflict` kaydı |
 | 7 | Override: imzalı token + fail-closed registry + onaycı ≠ owner'lar; override ile devir aynı istekte birleşemez | Çelişki yok — kurucu kapısı bu kuralları aynen korur, gevşetmez |
 | 8 | Audit append-only, yalnız kalıcılaşan durum yazılır | Çelişki yok — süzgeç okuma katmanındadır, audit'e dokunmaz |
-| Onay şeması v1 | Override `approval_id` / HMAC token (lease) | Çelişki yok — Duvar onay şeması ayrı gereksinimdir; bu dilimde kod yok |
+| Onay şeması v1 | Override `approval_id` / HMAC token (lease) | Çelişki yok — Duvar onay şeması ayrı depodadır (`founder_approval.py`); override HMAC'ine dokunmaz |
 
 ## Mevcut altyapıyla eşleme
 
@@ -210,7 +216,7 @@ Sekiz maddenin KA-002 semantiğiyle (`task_claim.py` / `claim_cli.py`) çelişip
 | 6. Çakışma koruması | `SCOPE_CONFLICT`, `QUEUED`, OS dosya kilidi | §3 | **VAR** |
 | 7. Kurucu kapısı | Override insan kapısı var; otomatik `FOUNDER_REVIEW` tetikleyicisi yok | §11, §2 | **KISMİ** |
 | 8. Gürültü ayıklama | Audit Duvar içi; kurucu-yüzü süzgeç mekanizması yok (agent-status-v2 ayrımı sözleşmede) | §10 | **KISMİ** |
-| Onay şeması v1 | Altı alan (`approval_id` `task` `gate` `action` `head_sha` `approved_by`) depo/CLI'da yok; override HMAC ayrı | — (anayasa farkı ayrı karar) | **YOK** |
+| Onay şeması v1 | Altı alan (`approval_id` `task` `gate` `action` `head_sha` `approved_by`) `founder_approval.py` + `claim_cli approval`; imza kökü/CheckRun yok; override HMAC ayrı | — (anayasa farkı ayrı karar) | **VAR** |
 | Ana yasa | Append-only claim audit'i var; claim'siz görev envanteri yok | §9 | **KISMİ** |
 
 **Boşlukların ortak paydası:** eksik olan claim mekanizması değil, claim'in
@@ -229,6 +235,6 @@ gömülmez. Yeni sayfa STOP LIST'tedir; görsel dilim ayrı kurucu onayı ister.
 
 - İkinci `TaskClaimStore` veya `claim_cli` çatalı
 - Anayasa maddelerinin bu dosyaya kopyalanması; bu dilimde anayasa dosyasına yazma
-- Onay şeması için store, CLI, imza kökü veya GitHub CheckRun
+- Onay şeması için imza kökü, imza servisi veya GitHub CheckRun (minimal depo/CLI 2026-09-20 diliminde uygulandı)
 - Ajanlar arası komut ağı, auto-merge, auto-deploy
 - Son kullanıcı paneline claim/worktree sızdırma (PR-005 / ADR-019)
