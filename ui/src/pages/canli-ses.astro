@@ -141,6 +141,7 @@ const title = "Canlı ses — Lumos";
         let pc = null;
         let stream = null;
         let mode = "auto";
+        let eventsChannel = null;
 
         const setStatus = (text) => { status.textContent = text; };
         const microphoneTrack = () => stream?.getAudioTracks()[0] || null;
@@ -148,6 +149,10 @@ const title = "Canlı ses — Lumos";
           if (mode !== "push" || pc?.connectionState !== "connected") return;
           const track = microphoneTrack();
           if (track) track.enabled = talking;
+          audio.muted = talking;
+          if (talking && eventsChannel?.readyState === "open") {
+            eventsChannel.send(JSON.stringify({ type: "response.cancel" }));
+          }
           pushToTalkButton.dataset.talking = String(talking);
           pushToTalkButton.textContent = talking ? "Dinliyorum…" : "Basılı tut ve konuş";
           setStatus(talking ? "Canlı — seni dinliyorum" : "Canlı — konuşmak için basılı tut");
@@ -172,6 +177,8 @@ const title = "Canlı ses — Lumos";
           stream = null;
           pc?.close();
           pc = null;
+          eventsChannel = null;
+          audio.muted = false;
           audio.srcObject = null;
           orb.dataset.live = "false";
           button.dataset.stop = "false";
@@ -213,7 +220,7 @@ const title = "Canlı ses — Lumos";
               },
             });
             stream.getTracks().forEach((track) => pc.addTrack(track, stream));
-            pc.createDataChannel("oai-events");
+            eventsChannel = pc.createDataChannel("oai-events");
 
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
