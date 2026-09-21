@@ -1,0 +1,230 @@
+---
+const UPDATED = "2026-09-18";
+---
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Alexa+ deneyim simülasyonu — Lumos</title>
+    <meta
+      name="description"
+      content="Lumos'un insan onaylı görev akışını gösteren Alexa+ deneyim simülasyonu."
+    />
+    <meta name="robots" content="noindex,nofollow" />
+    <link rel="stylesheet" href="/magazine-chrome.css" />
+    <style>
+      :root { color-scheme: dark; }
+      body { background: #071014; color: #e9f5f3; }
+      .sim-shell { max-width: 1180px; margin: 0 auto; padding: 1.25rem; }
+      .sim-head { display: grid; gap: .55rem; margin: 1rem 0 1.4rem; }
+      .sim-head h1 { margin: 0; font-size: clamp(1.8rem, 5vw, 3.5rem); }
+      .sim-kicker { color: #7fe0d4; font-weight: 800; letter-spacing: .08em; }
+      .sim-note { max-width: 76ch; color: #b9cbc9; }
+      .sim-grid { display: grid; grid-template-columns: minmax(280px, .72fr) minmax(420px, 1.28fr); gap: 1rem; }
+      .sim-card { background: #0c191e; border: 1px solid #20383e; border-radius: 18px; padding: 1rem; }
+      .sim-card h2 { margin-top: 0; }
+      .sim-form { display: grid; gap: .8rem; }
+      .sim-form label { display: grid; gap: .4rem; font-weight: 700; }
+      .sim-form textarea { min-height: 7rem; resize: vertical; border-radius: 12px; border: 1px solid #31525a; background: #071014; color: #f7fffe; padding: .85rem; font: inherit; }
+      .sim-actions { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+      .sim-button { border: 1px solid #41676d; border-radius: 999px; padding: .7rem 1rem; background: #10272d; color: #f7fffe; font-weight: 800; cursor: pointer; }
+      .sim-button--primary { background: #087f75; border-color: #087f75; }
+      .sim-button:disabled { cursor: wait; opacity: .55; }
+      .sim-status { min-height: 3.2rem; margin: .25rem 0 0; padding: .75rem; border-radius: 12px; background: #071014; color: #cfe3e0; }
+      .sim-status[data-state="ok"] { border: 1px solid #1a8f75; }
+      .sim-status[data-state="err"] { border: 1px solid #b95e63; color: #ffd9dc; }
+      .sim-frame { width: 100%; min-height: 680px; border: 1px solid #29464d; border-radius: 14px; background: #0b1418; }
+      .sim-log { margin: .8rem 0 0; color: #9db4b1; font-size: .9rem; }
+      code { color: #96ece1; }
+      @media (max-width: 850px) { .sim-grid { grid-template-columns: 1fr; } .sim-frame { min-height: 620px; } }
+    </style>
+  </head>
+  <body>
+    <main class="sim-shell">
+      <header class="sim-head">
+        <span class="sim-kicker">TARİHSEL · ALEXA+ WEB SİMÜLASYONU · YARIŞMA KANITI DEĞİL</span>
+        <h1>Söyle, Lumos hazırlasın; kararı sen ver.</h1>
+        <p class="sim-note">
+          Bu sayfa tarihsel bir web simülasyonudur; gerçek Alexa+ MCP sunucusu veya nihai demo
+          değildir. 16 Eylül 2026 sonrası kanıt
+          <code>python -m alexa_plus_mcp</code> (MCP 2025-11-25 Streamable HTTP) üzerindedir.
+          Simülasyon yalnız istek yapılandırır; Lumos paneli yazılacak alanları gösterir ve kullanıcı
+          onaylamadan görev oluşturulmaz.
+        </p>
+      </header>
+
+      <section class="sim-grid" aria-label="Alexa+ simülasyonu">
+        <article class="sim-card">
+          <h2>İstek</h2>
+          <form id="sim-form" class="sim-form">
+            <label for="sim-prompt">Alexa+'a ne söylersin?</label>
+            <textarea id="sim-prompt" required maxlength="240">Yarın 14:00 için servis ziyareti görevi hazırla</textarea>
+            <div class="sim-actions">
+              <button id="sim-run" class="sim-button sim-button--primary" type="submit">Görevi hazırla</button>
+              <button id="sim-export" class="sim-button" type="button">Kayıtları indir</button>
+            </div>
+          </form>
+          <p id="sim-status" class="sim-status" role="status" aria-live="polite">
+            Panel hazırlanıyor…
+          </p>
+          <p class="sim-log">
+            Bu tarayıcıdaki simülasyon olayları zaman damgasıyla yerel olarak tutulur. Ham konuşma
+            kaydedilmez; yalnız çıkarılan görev alanları ve sonuç saklanır. Kayıtlar bu cihazdan JSON
+            olarak indirilebilir. Bulut veritabanına gönderilmez.
+          </p>
+          <p class="sim-log">Güncelleme: {UPDATED} · kapsam: tek görev önerisi</p>
+        </article>
+
+        <article class="sim-card">
+          <h2>Lumos onay yüzeyi</h2>
+          <iframe
+            id="lumos-panel-frame"
+            class="sim-frame"
+            src="/panel?source=alexa-plus-simulation"
+            title="Lumos paneli — insan onay ekranı"
+          ></iframe>
+        </article>
+      </section>
+    </main>
+
+    <script is:inline>
+      (function () {
+        "use strict";
+        var STORAGE_KEY = "lumos_alexa_plus_simulation_events_v1";
+        var MAX_EVENTS = 500;
+        var form = document.getElementById("sim-form");
+        var promptEl = document.getElementById("sim-prompt");
+        var runBtn = document.getElementById("sim-run");
+        var exportBtn = document.getElementById("sim-export");
+        var statusEl = document.getElementById("sim-status");
+        var frame = document.getElementById("lumos-panel-frame");
+
+        function setStatus(message, state) {
+          statusEl.textContent = message;
+          statusEl.dataset.state = state || "";
+        }
+
+        function readEvents() {
+          try {
+            var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+            return Array.isArray(parsed) ? parsed : [];
+          } catch (_err) {
+            return [];
+          }
+        }
+
+        function recordEvent(event) {
+          var events = readEvents();
+          events.push(Object.assign({ at: new Date().toISOString(), simulation: true }, event));
+          if (events.length > MAX_EVENTS) events = events.slice(events.length - MAX_EVENTS);
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(events)); } catch (_err) {}
+        }
+
+        function parseRequest(raw) {
+          var text = String(raw || "").trim();
+          var time = text.match(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/);
+          var when = "";
+          if (/\byarın\b/i.test(text)) when = "Yarın";
+          else if (/\bbugün\b/i.test(text)) when = "Bugün";
+          if (time) when = (when ? when + " " : "") + time[1].padStart(2, "0") + ":" + time[2];
+          var priority = /\b(acil|önemli|yüksek öncelik)/i.test(text) ? "yuksek" : "orta";
+          var title = text
+            .replace(/\b(bugün|yarın)\b/gi, " ")
+            .replace(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/g, " ")
+            .replace(/\b(için|bana|bir|görevi|görevini|görev|hazırla|oluştur|ekle|lütfen)\b/gi, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+          if (!title) title = "İsimsiz görev";
+          title = title.charAt(0).toLocaleUpperCase("tr-TR") + title.slice(1);
+          return { title: title.slice(0, 160), priority: priority, when: when };
+        }
+
+        function bridge() {
+          try {
+            var panelWindow = frame && frame.contentWindow;
+            var value = panelWindow && panelWindow.__lumosPanelWebMcp;
+            return value && typeof value.proposeTask === "function" ? value : null;
+          } catch (_err) {
+            return null;
+          }
+        }
+
+        function markReady() {
+          var attempts = 0;
+          function check() {
+            attempts += 1;
+            if (bridge()) {
+              setStatus("Hazır. İstek gönderildiğinde karar Lumos panelinde verilecek.", "ok");
+              return;
+            }
+            if (attempts >= 80) {
+              setStatus("Lumos panel köprüsü hazırlanamadı. Sayfayı yenileyip tekrar dene.", "err");
+              return;
+            }
+            window.setTimeout(check, 125);
+          }
+          check();
+        }
+
+        frame.addEventListener("load", markReady);
+
+        form.addEventListener("submit", async function (event) {
+          event.preventDefault();
+          var raw = String(promptEl.value || "").trim();
+          if (!raw) {
+            setStatus("Önce bir görev isteği yaz.", "err");
+            return;
+          }
+          var panelBridge = bridge();
+          if (!panelBridge) {
+            setStatus("Panel henüz hazır değil.", "err");
+            return;
+          }
+          var task = parseRequest(raw);
+          runBtn.disabled = true;
+          setStatus("Görev hazırlandı. Alanları panelde kontrol edip Onayla veya Vazgeç seç.");
+          recordEvent({ type: "proposal_started", task: task });
+          try {
+            var result = await panelBridge.proposeTask(task);
+            if (result && result.ok === true && result.approved === true) {
+              setStatus("Onaylandı; görev Lumos panelinde oluşturuldu.", "ok");
+              recordEvent({ type: "proposal_approved", task: task, result: "created" });
+            } else if (result && result.reason === "user_rejected") {
+              setStatus("Vazgeçildi; görev oluşturulmadı.");
+              recordEvent({ type: "proposal_rejected", task: task, result: "not_created" });
+            } else {
+              var reason = result && result.reason ? String(result.reason) : "unknown";
+              setStatus("Görev oluşturulamadı: " + reason, "err");
+              recordEvent({ type: "proposal_failed", task: task, result: reason });
+            }
+          } catch (err) {
+            setStatus("Simülasyon çağrısı başarısız oldu.", "err");
+            recordEvent({ type: "proposal_failed", task: task, result: String(err && err.message || err) });
+          } finally {
+            runBtn.disabled = false;
+          }
+        });
+
+        exportBtn.addEventListener("click", function () {
+          var events = readEvents();
+          var body = JSON.stringify({
+            schema: "lumos.alexa_plus_simulation.events.v1",
+            exported_at: new Date().toISOString(),
+            event_count: events.length,
+            events: events,
+          }, null, 2);
+          var blob = new Blob([body], { type: "application/json" });
+          var url = URL.createObjectURL(blob);
+          var link = document.createElement("a");
+          link.href = url;
+          link.download = "lumos-alexa-plus-simulation-events.json";
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          URL.revokeObjectURL(url);
+          setStatus(events.length ? events.length + " kayıt indirildi." : "Henüz indirilecek kayıt yok.", "ok");
+        });
+      })();
+    </script>
+  </body>
+</html>
