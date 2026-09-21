@@ -14,6 +14,7 @@ import stat
 import subprocess
 import sys
 import threading
+import time
 from collections.abc import Sequence
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -1061,3 +1062,80 @@ def test_timeout_after_start_is_result_real_bwrap(repo: Path) -> None:
     assert result.returncode == 124  # SandboxUnavailableError DEĞİL: bir sonuç
     assert "timed out" in result.stderr
     assert "lumos-sandbox-start" not in result.stderr
+
+
+def test_destroy_memory_cgroup_retries_until_rmdir_succeeds(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bugbot Medium on c8b8c283: one-shot rmdir after cgroup.kill leaks."""
+    from lumos_board.observer_sandbox import _destroy_memory_cgroup
+
+    class _KillFile:
+        def exists(self) -> bool:
+            return True
+
+        def write_text(self, *_args: object, **_kwargs: object) -> None:
+            return None
+
+    class _Cg:
+        def __init__(self) -> None:
+            self.rmdir_calls = 0
+
+        def __truediv__(self, _name: str) -> _KillFile:
+            return _KillFile()
+
+        def rmdir(self) -> None:
+            self.rmdir_calls += 1
+            if self.rmdir_calls < 3:
+                raise OSError(16, "Device or resource busy")
+
+    cg = _Cg()
+    sleeps: list[float] = []
+    monkeypatch.setattr("lumos_board.observer_sandbox.time.sleep", sleeps.append)
+    _destroy_memory_cgroup(cg)  # type: ignore[arg-type]
+    assert cg.rmdir_calls == 3
+    assert sleeps == [0.05, 0.05]
+
+
+@needs_cgroup
+def test_destroy_memory_cgroup_reaps_live_sleeper() -> None:
+    """Live sleeper must not leave lumos-obs-* behind after destroy."""
+    from lumos_board.observer_sandbox import (
+        _MAX_TREE_MEMORY_BYTES,
+        _destroy_memory_cgroup,
+        _into_cgroup_command,
+        _memory_cgroup_insert_parent,
+    )
+
+    parent = _memory_cgroup_insert_parent()
+    cg = parent / f"lumos-reap-{os.getpid()}-{os.urandom(4).hex()}"
+    cg.mkdir(mode=0o700)
+    (cg / "memory.max").write_text(str(_MAX_TREE_MEMORY_BYTES), encoding="utf-8")
+    proc = subprocess.Popen(_into_cgroup_command(cg, ["/bin/sleep", "30"]))
+    try:
+        for _ in range(40):
+            try:
+                if proc.pid in {
+                    int(p)
+                    for p in (cg / "cgroup.procs").read_text(encoding="utf-8").split()
+                }:
+                    break
+            except (OSError, ValueError):
+                pass
+            time.sleep(0.01)
+        else:
+            proc.kill()
+            proc.wait(timeout=2)
+            _destroy_memory_cgroup(cg)
+            raise AssertionError("sleeper never entered the cgroup")
+        _destroy_memory_cgroup(cg)
+        assert not cg.exists(), "cgroup leaked after destroy"
+    finally:
+        try:
+            proc.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=2)
+        if cg.exists():
+            _destroy_memory_cgroup(cg)
+            assert not cg.exists()

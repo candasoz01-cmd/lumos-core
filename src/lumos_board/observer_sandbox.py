@@ -14,6 +14,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -69,6 +70,11 @@ _TIMEOUT_EXIT_CODE = 124
 _TIMEOUT_MARKER = b"\n[observer sandbox timed out]\n"
 _OUTPUT_LIMIT_EXIT_CODE = 125
 _OUTPUT_LIMIT_MARKER = b"\n[observer sandbox output limit reached]\n"
+# cgroup.kill delivers SIGKILL but does not wait for the cgroup to empty.
+# Immediate rmdir then leaks lumos-obs-* dirs after a wall-clock timeout
+# (Bugbot Medium on c8b8c283).
+_CGROUP_DESTROY_TIMEOUT = 2.0
+_CGROUP_DESTROY_SLICE = 0.05
 # Host-side only: move the launcher pid into the sandbox memory cgroup
 # before exec. Dash-safe ($1, no multi-digit fd). Must not read stdin —
 # fd 0 is the start-sentinel pipe for the inner wrapper.
@@ -295,16 +301,29 @@ def _memory_cgroup_insert_parent() -> Path:
 
 
 def _destroy_memory_cgroup(cg: Path) -> None:
+    """Kill the jail tree and remove the cgroup; retry until empty.
+
+    ``cgroup.kill`` is asynchronous: SIGKILL is posted, but tasks can still
+    sit in ``cgroup.procs`` for a short window. A one-shot ``rmdir`` then
+    fails and the directory leaks. A filter that always sleeps past the
+    wall clock would accumulate ``lumos-obs-*`` cgroups until creation
+    fails and later turns skip (Bugbot Medium on c8b8c283).
+    """
     kill = cg / "cgroup.kill"
-    if kill.exists():
+    deadline = time.monotonic() + _CGROUP_DESTROY_TIMEOUT
+    while True:
+        if kill.exists():
+            try:
+                kill.write_text("1", encoding="utf-8")
+            except OSError:
+                pass
         try:
-            kill.write_text("1")
+            cg.rmdir()
+            return
         except OSError:
-            pass
-    try:
-        cg.rmdir()
-    except OSError:
-        pass
+            if time.monotonic() >= deadline:
+                return
+            time.sleep(_CGROUP_DESTROY_SLICE)
 
 
 @contextmanager
