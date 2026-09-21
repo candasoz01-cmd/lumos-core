@@ -13,6 +13,7 @@ Testlerin taşıdığı iddialar:
 
 from __future__ import annotations
 
+import errno
 import json
 import os
 import shutil
@@ -1082,6 +1083,22 @@ def test_missing_index_is_not_a_refusal(tmp_path: Path) -> None:
     assert pin_repository(repo, [tmp_path])[0] == repo / ".git"
 
 
+def _write_non_utf8_named_file(repo: Path, payload: bytes) -> bytes:
+    # APFS (macOS) UTF-8 olmayan dosya adını EILSEQ ile reddeder; test edilen
+    # davranış (bozuk adın gözlem turunu düşürmemesi) bu dosya sisteminde
+    # üretilemez — skip doğru sinyal. ext4 (Linux CI) keyfi baytı kabul eder,
+    # test orada aynen koşar.
+    bad_name = os.path.join(os.fsencode(repo), b"bad\xffname.txt")
+    try:
+        with open(bad_name, "wb") as handle:
+            handle.write(payload)
+    except OSError as exc:
+        if exc.errno == errno.EILSEQ:
+            pytest.skip("filesystem rejects non-UTF-8 filenames")
+        raise
+    return bad_name
+
+
 def test_non_utf8_filename_does_not_abort_observation(tmp_path: Path) -> None:
     """
     Git `-z` çıktısı ham bayttır; UTF-8 olmayan tek bir dosya adı strict
@@ -1091,8 +1108,7 @@ def test_non_utf8_filename_does_not_abort_observation(tmp_path: Path) -> None:
     approved = tmp_path / "approved"
     approved.mkdir()
     repo = _repo_with_dirty_file(approved, "repo", "ok.txt")
-    with open(os.path.join(os.fsencode(repo), b"bad\xffname.txt"), "wb") as handle:
-        handle.write(b"x")
+    _write_non_utf8_named_file(repo, b"x")
 
     found = touched_paths(repo, allowed_roots=[approved], base_ref="HEAD")
     assert "ok.txt" in found
@@ -1154,9 +1170,7 @@ def test_clean_tracked_non_utf8_name_stays_clean(tmp_path: Path) -> None:
     _git(approved, "init", "-q", "-b", "main", str(repo))
     _git(repo, "config", "user.email", "t@e.invalid")
     _git(repo, "config", "user.name", "t")
-    bad_name = os.path.join(os.fsencode(repo), b"bad\xffname.txt")
-    with open(bad_name, "wb") as handle:
-        handle.write(b"v1\n")
+    bad_name = _write_non_utf8_named_file(repo, b"v1\n")
     (repo / "ok.txt").write_text("v1\n", encoding="utf-8")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-qm", "base")
