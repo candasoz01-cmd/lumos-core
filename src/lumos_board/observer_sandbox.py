@@ -263,15 +263,19 @@ def _with_start_sentinel(payload: Sequence[str]) -> tuple[list[str], bytes]:
     çağrı başına rastgele bir nonce basılır. Nonce görülmediyse sandbox hiç
     başlamamıştır; kurulum başarısızsa düşman kod hiç çalışmaz, taklit edemez.
 
-    Kanal seçimi de düşmanca doğrulandı; iki tasarım ELENDİ:
+    Kanal seçimi de düşmanca doğrulandı; üç tasarım ELENDİ:
 
     - stderr temp dosyası: payload aynı dosyayı fd 2'den miras alır ve
       `ftruncate` ile nonce'u SİLEBİLİR — canlı sandbox "kurulamadı" sanılır
       ve gözlem turu atlanır (Bugbot Medium, b56d6c9; repro'landı).
-    - miras kalan boru fd'si: boru truncate edilemez, ama payload
-      `/proc/self/fd/<N>`'i OKUMA modunda yeniden açıp nonce'u boşaltabilir
-      (repro'landı). dash çok haneli fd kapatamadığı için sarmalayıcı böyle
-      bir fd'yi exec'ten önce kapatamaz.
+    - `pass_fds` ile geçirilen numaralı fd (temp dosyası veya boru):
+      dash yalnız TEK haneli fd redirection'ı kabul eder; fd ≥ 10'da
+      (dolu fd tablosu olan her gerçek süreçte olağan) `Bad fd number`
+      sözdizimi hatası payload'ı hiç koşturmaz ve sandbox kalıcı
+      "unavailable" olur — fd 13 ile ölçüldü.
+    - fd'yi exec'ten önce KAPATMAYAN her sürüm: boru truncate edilemez ama
+      payload `/proc/self/fd/<N>`'i OKUMA modunda yeniden açıp nonce'u
+      boşaltabilir (repro'landı).
 
     Kalan tek sızdırmaz kanal: borunun yazma ucu çocuğa STDIN (fd 0) olarak
     verilir; sarmalayıcı nonce'u fd 0'a yazar ve `exec </dev/null` ile ucu
@@ -364,6 +368,21 @@ def _run_bwrap_limited(
     )
 
 
+def _run_bwrap_payload(
+    bwrap_prefix: Sequence[str],
+    payload: Sequence[str],
+    *,
+    timeout: float,
+) -> subprocess.CompletedProcess[bytes]:
+    """Run ``payload`` inside ``bwrap_prefix`` with the start-sentinel wrapper."""
+    wrapped, sentinel = _with_start_sentinel(payload)
+    return _run_bwrap_limited(
+        [*bwrap_prefix, *wrapped],
+        timeout=timeout,
+        start_sentinel=sentinel,
+    )
+
+
 def _host_bind_roots(allowed_roots: Sequence[Path]) -> list[str]:
     args: list[str] = []
     # Minimal host toolchain for git
@@ -428,12 +447,9 @@ def run_git_sandboxed(
     for k, v in env.items():
         bwrap_cmd += ["--setenv", k, v]
 
-    payload, sentinel = _with_start_sentinel([str(git_path), *args])
-    bwrap_cmd += payload
-
     # Bytes + replace: non-UTF-8 git output must not UnicodeDecodeError out
     # of the observation turn (Bugbot Medium on cde9103).
-    proc = _run_bwrap_limited(bwrap_cmd, timeout=timeout, start_sentinel=sentinel)
+    proc = _run_bwrap_payload(bwrap_cmd, [str(git_path), *args], timeout=timeout)
 
     return SandboxGitResult(
         returncode=proc.returncode,
@@ -460,9 +476,7 @@ def probe_sandbox_env(
     env = scrub_env_for_sandbox(host_env)
     for k, v in env.items():
         bwrap_cmd += ["--setenv", k, v]
-    payload, sentinel = _with_start_sentinel(["/usr/bin/env", "-0"])
-    bwrap_cmd += payload
-    proc = _run_bwrap_limited(bwrap_cmd, timeout=15, start_sentinel=sentinel)
+    proc = _run_bwrap_payload(bwrap_cmd, ["/usr/bin/env", "-0"], timeout=15)
     if proc.returncode != 0:
         raise SandboxUnavailableError(
             f"env probe failed: {proc.stderr!r}"
