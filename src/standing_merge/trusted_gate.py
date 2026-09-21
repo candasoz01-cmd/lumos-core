@@ -16,6 +16,7 @@ from pathlib import Path
 REQUIRED_BLOBS = (
     "src/standing_merge/__init__.py",
     "src/standing_merge/classify.py",
+    "src/standing_merge/attestation_log.py",
     "src/standing_merge/excluded_paths.json",
 )
 

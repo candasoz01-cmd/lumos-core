@@ -1,0 +1,58 @@
+name: Proposal
+description: Propose a change in behaviour, scope, or architecture
+labels: ["proposal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Lumos Core is in early active development and is not yet a fully
+        contribution-ready open source product. External proposals are reviewed
+        on a controlled basis. A focused proposal discussed here first is far
+        more likely to land than an unsolicited large pull request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is hard or impossible today? Describe the problem, not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Including doing nothing.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Does this touch an authority or automation boundary?
+      description: |
+        For example: what an agent may do unattended, what lands on `main`,
+        or what requires explicit human approval. If yes, expect to be asked
+        for an ADR under docs/decisions/.
+      options:
+        - "No"
+        - "Yes"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: boundary
+    attributes:
+      label: Public repository boundary
+      description: See CONTRIBUTING.md — "Public repository boundary".
+      options:
+        - label: This proposal does not require production secrets, private orchestration, commercial service logic, or operational backend infrastructure in this repository.
+          required: true

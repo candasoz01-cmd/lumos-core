@@ -9,6 +9,10 @@ import subprocess
 from pathlib import Path
 from typing import Sequence
 
+from lumos_board.founder_approval import (
+    FounderApprovalStore,
+    FounderApproverRegistry,
+)
 from lumos_board.task_claim import (
     ClaimError,
     DelegationVerifier,
@@ -73,12 +77,79 @@ def _parser() -> argparse.ArgumentParser:
 
     listing = subparsers.add_parser("list")
     listing.add_argument("--all", action="store_true")
+
+    approval = subparsers.add_parser("approval")
+    approval_commands = approval.add_subparsers(dest="approval_command", required=True)
+
+    request = approval_commands.add_parser("request")
+    request.add_argument("--task", required=True)
+    request.add_argument("--gate", required=True)
+    request.add_argument("--action", required=True)
+    request.add_argument("--head-sha", required=True)
+
+    grant = approval_commands.add_parser("grant")
+    grant.add_argument("approval_id")
+    grant.add_argument("--approved-by", required=True)
+
+    check = approval_commands.add_parser("check")
+    check.add_argument("--task", required=True)
+    check.add_argument("--gate", required=True)
+    check.add_argument("--action", required=True)
+    check.add_argument("--head-sha", required=True)
+
+    approval_commands.add_parser("list")
     return parser
+
+
+def _approval_main(args: argparse.Namespace) -> int:
+    registry = None
+    if args.approval_command == "grant":
+        registry_path = os.environ.get("LUMOS_FOUNDER_APPROVER_REGISTRY")
+        if not registry_path:
+            raise ClaimError("onay için LUMOS_FOUNDER_APPROVER_REGISTRY gerekli")
+        registry = FounderApproverRegistry.from_registry_file(Path(registry_path))
+    store = FounderApprovalStore(_store_dir(args.store), registry=registry)
+    if args.approval_command == "request":
+        approval = store.request(
+            task=args.task, gate=args.gate, action=args.action, head_sha=args.head_sha
+        )
+        print(
+            json.dumps(
+                {"approval": approval.to_dict(), "already_approved": approval.is_approved},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+        return 0
+    if args.approval_command == "grant":
+        approval = store.grant(args.approval_id, approved_by=args.approved_by)
+        print(json.dumps(approval.to_dict(), ensure_ascii=False, sort_keys=True))
+        return 0
+    if args.approval_command == "check":
+        approval = store.check(
+            task=args.task, gate=args.gate, action=args.action, head_sha=args.head_sha
+        )
+        if approval is None:
+            print(json.dumps({"approved": False}, ensure_ascii=False, sort_keys=True))
+            return 2
+        print(
+            json.dumps(
+                {"approved": True, "approval": approval.to_dict()},
+                ensure_ascii=False,
+                sort_keys=True,
+            )
+        )
+        return 0
+    values = [approval.to_dict() for approval in store.list_approvals()]
+    print(json.dumps({"approvals": values}, ensure_ascii=False, sort_keys=True))
+    return 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
+        if args.command == "approval":
+            return _approval_main(args)
         override_verifier = None
         delegation_verifier = None
         if args.command == "claim" and args.override_token:

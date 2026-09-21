@@ -10,6 +10,11 @@ dışına çıkma. Bir dosyanın aynı anda yalnızca bir sahibi vardır — gö
 tamamlanana veya devredilene kadar başka ajan o dosyaya yazmaz.
 
 Bu repoda yazma işi başlamadan önce Lumos Board üzerinde görev claim'i alınır.
+Duvar kaydı olmayan iş yürütülmüş sayılmaz
+([`docs/contracts/lumos-wall-v1.md`](docs/contracts/lumos-wall-v1.md)).
+Kapı mevcut `python -m lumos_board.claim_cli`'dir; ikinci claim mekanizması
+açılmaz. Duvar claim durumunu tüketir ve gösterir, ayrı claim üretmez
+(görev durumu, sahiplik, kanıt, çakışma, kurucu kapısı).
 
 1. Aynı görev kimliği ve çakışan dosya kapsamları kontrol edilir.
 2. Claim kaydında görev, repo, branch, worktree, sahip, kapsam ve TTL bulunur.
@@ -139,6 +144,51 @@ dosya da hariçtir. Canlı ihlal: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).
 `main`'de açıktır ama `required_status_checks` listesi boştur; fiziksel kilit
 Settings'te required check eklenene kadar yoktur. Ajan yine de bu sözleşmeyi
 uygular. Durum bildirimi bir sonraki bölümün formatını kullanır.
+
+## Yayın ayrı bir kullanıcı eylemidir (tüm ajanlar)
+
+**PUBLICATION IS A SEPARATE USER ACTION.** Aşağıdaki aşamalar birbirinden
+bağımsız yetkilerdir; bir aşamanın izni bir sonrakinin izni DEĞİLDİR:
+
+```text
+READ → EDIT → SUMMARIZE → GENERATE → COMMIT → PUSH → OPEN PR → PREVIEW → PUBLISH → DEPLOY
+```
+
+- edit izni ≠ commit izni · commit izni ≠ push izni · push izni ≠ public PR izni
+- PR izni ≠ merge izni · preview izni ≠ production izni
+- private dokümanı okuma izni ≠ içeriğini public alana taşıma izni
+- "Düzenle", "özetle", "404'ü düzelt", "preview'da kontrol et", "private fetch
+  kaldır" gibi görevler yayın izni üretmez. Public içerik oluşturacak her işlem
+  kullanıcıdan **ayrı ve açık yayın onayı** ister.
+
+Public yüzey tanımı geniştir: production web, Vercel preview, public repo
+branch'i, draft dahil her PR diff'i, build artifact ve generated static page —
+hepsi PUBLIC'tir. `publish/` klasöründe olmak, dosyanın uzantısı veya daha önce
+web sayfası olarak kullanılmış olması yayın izni değildir. Private repodan
+içerik alınarak public dosyaya gömülmesi yasaktır; "private raw fetch'i
+kaldırmak" bu yasağı kaldırmaz — gövdeyi gömmek fetch'ten daha kalıcı bir
+sızıntıdır.
+
+Teknik kapı: `ops/publication_gate/gate.py` (Katman 1: Public Release Gate,
+Katman 2: Sensitive Content Boundary — `docs/PUBLICATION_GATE.md`). Kapı
+pre-push kancası, CI, Vercel build ve pytest içinde koşar; PAT veya başka bir
+token sahibi olmak kapıyı geçme yetkisi vermez. Yayın onayının kanıtı kurucunun
+SSH imzasıdır — ajanın manifest'e yazacağı düz metin alanlar onay yerine
+geçmez. Şu an hiçbir imza kökü kayıtlı değildir (kapalı varsayılan): geçerli,
+insan-kapılı onay altyapısı kurulana kadar tüm yayın onayı ve istisna
+talepleri reddedilir; iptal edilmiş anahtarın yeniden kaydı kapı bulgusudur
+(durum: `docs/PUBLICATION_GATE.md`). Ajan hiçbir koşulda imza anahtarına
+erişmeye, anahtar kaydetmeye veya onay kaydı üretmeye çalışmaz. Public GitHub'a push edilen
+içerik push anında yayımlanmış olur; CI bunu geri alamaz — bu yüzden denetim
+push'tan ÖNCE yapılır. Ajan kapıyı, manifestleri, `allowed_signers` dosyasını
+veya testlerini gevşetemez; bu dosyalar üzerindeki her gevşetme kurucu onayı
+ister.
+
+Özel veya sınıflandırması belirsiz içerik public yüzeye yaklaşırsa ajan işlemi
+kendiliğinden durdurur ve `BLOCKED_PUBLICATION_REVIEW_REQUIRED` formatında
+raporlar: kaynak dosya/yol, hedef public yüzey, engel nedeni, eksik
+sınıflandırma, gereken ayrı onay. İç belge gövdesi onay mesajına dahi
+kopyalanmaz.
 
 ## PR / CI / Deploy doğrulama (tüm ajanlar)
 

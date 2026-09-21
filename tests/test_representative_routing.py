@@ -84,8 +84,12 @@ def test_realtime_stt_omits_language_when_direction_is_auto() -> None:
     """Dil sabitlenirse sağlayıcı karşı tarafın dilini de zorla çevirir."""
     from representative.realtime_stt import RealtimeSTTStream
 
-    assert "language" not in RealtimeSTTStream(language=None).transcription_config()
-    assert RealtimeSTTStream(language="tr").transcription_config()["language"] == "tr"
+    auto_config = RealtimeSTTStream(language=None).transcription_config()
+    assert "language" not in auto_config
+    assert "languages" not in auto_config
+    assert auto_config["model"] == "gpt-live-transcribe"
+    assert auto_config["delay"] == "low"
+    assert RealtimeSTTStream(language="tr").transcription_config()["languages"] == ["tr"]
 
 
 class EchoTranslator:

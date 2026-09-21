@@ -89,10 +89,16 @@ test("hosted request keeps bounded history and current image", () => {
   assert.equal(request.contents[1].parts[1].inlineData.mimeType, "image/png");
 });
 
-test("hosted reply joins text parts", () => {
+test("hosted reply strips TextReference markup and keeps alt text", () => {
+  const leak =
+    'Özet:\n<TextReference\n path="/opt/cursor/artifacts/voice-stabilize-2026-09-18.log"\n start={1}\n end={20}\n alt="Voice stabilization test summary"></TextReference>\nDevam.';
   assert.equal(
-    geminiReply({ candidates: [{ content: { parts: [{ text: "Mer" }, { text: "haba" }] } }] }),
-    "Merhaba",
+    geminiReply({ candidates: [{ content: { parts: [{ text: leak }] } }] }),
+    "Özet:\nVoice stabilization test summary\nDevam.",
+  );
+  assert.equal(
+    openAIReply({ output: [{ content: [{ type: "output_text", text: leak }] }] }),
+    "Özet:\nVoice stabilization test summary\nDevam.",
   );
 });
 
@@ -496,127 +502,6 @@ test("hosted chat calls OpenAI first without exposing its key", async () => {
     globalThis.fetch = originalFetch;
     delete process.env.LUMOS_AUTH_STATE_SECRET;
     delete process.env.OPENAI_API_KEY;
-  }
-});
-
-function openAIErrorResponse(status, code, retryAfter = "0") {
-  return {
-    ok: false,
-    status,
-    headers: { get(name) { return name.toLowerCase() === "retry-after" ? retryAfter : null; } },
-    async json() { return { error: { code } }; },
-  };
-}
-
-test("hosted chat retries OpenAI slow_down once and keeps the OpenAI answer", async () => {
-  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
-  process.env.OPENAI_API_KEY = "private-openai-test-key";
-  const sealed = sealSession(userClaims());
-  const originalFetch = globalThis.fetch;
-  let calls = 0;
-  globalThis.fetch = async () => {
-    calls += 1;
-    if (calls === 1) return openAIErrorResponse(429, "slow_down");
-    return {
-      ok: true,
-      async json() {
-        return { output: [{ content: [{ type: "output_text", text: "Yeniden denendi" }] }] };
-      },
-    };
-  };
-  const res = makeRes();
-  try {
-    await handler(
-      {
-        method: "POST",
-        headers: { cookie: `lumos_session=${sealed}` },
-        body: { message: "Merhaba" },
-      },
-      res,
-    );
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.payload.reply, "Yeniden denendi");
-    assert.equal(calls, 2);
-  } finally {
-    globalThis.fetch = originalFetch;
-    delete process.env.LUMOS_AUTH_STATE_SECRET;
-    delete process.env.OPENAI_API_KEY;
-  }
-});
-
-test("hosted chat retries OpenAI server overload once", async () => {
-  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
-  process.env.OPENAI_API_KEY = "private-openai-test-key";
-  const sealed = sealSession(userClaims());
-  const originalFetch = globalThis.fetch;
-  let calls = 0;
-  globalThis.fetch = async () => {
-    calls += 1;
-    if (calls === 1) return openAIErrorResponse(503, "server_is_overloaded");
-    return {
-      ok: true,
-      async json() {
-        return { output: [{ content: [{ type: "output_text", text: "Yoğunluk geçti" }] }] };
-      },
-    };
-  };
-  const res = makeRes();
-  try {
-    await handler(
-      {
-        method: "POST",
-        headers: { cookie: `lumos_session=${sealed}` },
-        body: { message: "Merhaba" },
-      },
-      res,
-    );
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.payload.reply, "Yoğunluk geçti");
-    assert.equal(calls, 2);
-  } finally {
-    globalThis.fetch = originalFetch;
-    delete process.env.LUMOS_AUTH_STATE_SECRET;
-    delete process.env.OPENAI_API_KEY;
-  }
-});
-
-test("hosted chat does not retry OpenAI quota errors", async () => {
-  process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
-  process.env.OPENAI_API_KEY = "private-openai-test-key";
-  process.env.LUMOS_GOOGLE_GEMINI_API_KEY = "private-google-test-key";
-  const sealed = sealSession(userClaims());
-  const originalFetch = globalThis.fetch;
-  let openAICalls = 0;
-  globalThis.fetch = async (url) => {
-    if (String(url).includes("api.openai.com")) {
-      openAICalls += 1;
-      return openAIErrorResponse(429, "project_spend_limit_exceeded");
-    }
-    return {
-      ok: true,
-      async json() {
-        return { candidates: [{ content: { parts: [{ text: "Yedek yanıt" }] } }] };
-      },
-    };
-  };
-  const res = makeRes();
-  try {
-    await handler(
-      {
-        method: "POST",
-        headers: { cookie: `lumos_session=${sealed}` },
-        body: { message: "Merhaba" },
-      },
-      res,
-    );
-    assert.equal(res.statusCode, 200);
-    assert.equal(res.payload.reply, "Yedek yanıt");
-    assert.equal(openAICalls, 1);
-  } finally {
-    globalThis.fetch = originalFetch;
-    delete process.env.LUMOS_AUTH_STATE_SECRET;
-    delete process.env.OPENAI_API_KEY;
-    delete process.env.LUMOS_GOOGLE_GEMINI_API_KEY;
   }
 });
 

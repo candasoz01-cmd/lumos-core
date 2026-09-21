@@ -23,10 +23,11 @@
  *     ağ istisnası `user_rejected` değil `confirmation_failed` /
  *     `confirmation_unavailable` olarak raporlanır; yazma yapılmaz.
  *
- * Not: Headless Chromium'da tarayıcının WebMCP uygulaması yok. Test yalnızca
- * TARAYICI TARAFINI (agent harness) taklit eder — sayfanın kendi kayıt ve
- * execute kodu gerçek olarak çalışır. Native WebMCP doğrulaması ayrı yapılır;
- * bkz. docs/webmcp-challenge-2026.md.
+ * Not: Headless Chromium'da tarayıcının WebMCP uygulaması yok. Bu betik
+ * mock/simulated kapsamdadır: `document.modelContext` TEST tarafından enjekte
+ * edilir ve sunucu onay yolu `POST /lumos-confirm/request` mock sunucusudur.
+ * Native Chrome WebMCP (`e2e:webmcp:native`) ayrı, macOS Chrome ortamı ister;
+ * Linux CI bu betiği native geçmiş saymaz.
  */
 import { chromium } from "playwright";
 import http from "node:http";
@@ -43,7 +44,8 @@ import {
 const EXPECTED_TOOLS = ["lumos-list-tasks", "lumos-propose-task", "lumos-complete-task"];
 
 function fail(reason) {
-  console.error("WEBMCP_PANEL_E2E_RESULT: FAIL");
+  console.error("WEBMCP_PANEL_MOCK_E2E_RESULT: FAIL");
+  console.error("scope: mock/simulated harness; not native Chrome WebMCP");
   console.error(reason);
   process.exit(1);
 }
@@ -297,6 +299,8 @@ function requireContains(label, actual, needle) {
 }
 
 assertPanelDistBuilt();
+console.log("WEBMCP_PANEL_MOCK_SCOPE: injected document.modelContext + mock POST /lumos-confirm/request");
+console.log("not native Chrome WebMCP; e2e:webmcp:native is a separate macOS environment");
 
 const { port, PANEL_URL } = getDefaultServerTargets();
 let server;
@@ -1127,8 +1131,10 @@ try {
 
   await browser.close();
   browser = null;
-  console.log("WEBMCP_PANEL_E2E_RESULT: PASS");
-  console.log("surface: ui/dist static + document.modelContext");
+  console.log("WEBMCP_PANEL_MOCK_E2E_RESULT: PASS");
+  console.log("scope: mock/simulated harness; not native Chrome WebMCP");
+  console.log("surface: ui/dist static + injected mock document.modelContext");
+  console.log("confirm: mock POST /lumos-confirm/request");
   console.log("tools:", EXPECTED_TOOLS.join(", "));
   console.log("read consent: refused without approval, granted on approval, revocable");
   console.log("--- üyelik oracle'ı (izin YOK, lumos-complete-task) ---");
