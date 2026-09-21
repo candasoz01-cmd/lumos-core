@@ -1,12 +1,13 @@
-"""§4 acceptance tests for Agent Wall observer sandbox MVP (ADR-033 / sandbox-v0).
+"""Acceptance tests for Agent Wall observer sandbox MVP (sandbox-v0).
 
-Maps to `agent-wall-observer-sandbox-v0` §4 kabul ölçütleri — each criterion
-needs a real (non-fake-green) proof below.
+Bubblewrap integration tests skip when `bwrap` is absent. Unit checks for env
+scrub and launcher construction still run so CI without bwrap is not silent.
 """
 
 from __future__ import annotations
 
 import os
+import shutil
 import socket
 import stat
 import subprocess
@@ -24,8 +25,8 @@ from lumos_board.observer_sandbox import (
     scrub_env_for_sandbox,
 )
 
-pytestmark = pytest.mark.skipif(
-    __import__("shutil").which("bwrap") is None,
+needs_bwrap = pytest.mark.skipif(
+    shutil.which("bwrap") is None,
     reason="bubblewrap (bwrap) required for sandbox MVP tests",
 )
 
@@ -60,6 +61,7 @@ def repo(tmp_path: Path) -> Path:
     return root
 
 
+@needs_bwrap
 def test_backend_is_bubblewrap() -> None:
     assert sandbox_backend() == "bubblewrap"
 
@@ -83,6 +85,7 @@ def test_scrub_env_drops_operator_credentials() -> None:
     assert cleaned["HOME"] == "/tmp/lumos-observer-home"
 
 
+@needs_bwrap
 def test_probe_env_does_not_leak_host_secrets(repo: Path) -> None:
     """§4.2 negative: secrets do not enter the sandbox env."""
     host = {
@@ -98,6 +101,7 @@ def test_probe_env_does_not_leak_host_secrets(repo: Path) -> None:
     assert inside.get("GIT_ASKPASS") == "/bin/false"
 
 
+@needs_bwrap
 def test_non_utf8_git_output_does_not_crash(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Bugbot Medium: binary/non-UTF-8 stdout must not UnicodeDecodeError out."""
     def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
@@ -126,6 +130,7 @@ def test_non_utf8_git_output_does_not_crash(repo: Path, monkeypatch: pytest.Monk
     assert "warn-" in result.stderr
 
 
+@needs_bwrap
 def test_git_output_is_bounded_and_fails_closed(repo: Path) -> None:
     """§3.2 — a repository cannot make observer capture grow without bound."""
     payload = b"x" * (1024 * 1024 + 4096)
@@ -192,6 +197,7 @@ def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int
     return subprocess.run(cmd, capture_output=True, check=False, timeout=15).returncode
 
 
+@needs_bwrap
 def test_network_unshared_fail_closed(repo: Path) -> None:
     """§4.3 — prove --unshare-net, not DNS-to-invalid-TLD fake-green.
 
@@ -249,6 +255,7 @@ def test_network_unshared_fail_closed(repo: Path) -> None:
             httpd.server_close()
 
 
+@needs_bwrap
 def test_worktree_writes_fail_closed(repo: Path) -> None:
     """§4.4 worktree write denied under ro-bind."""
     before = (repo / "a.txt").read_text(encoding="utf-8")
@@ -269,10 +276,12 @@ def test_worktree_writes_fail_closed(repo: Path) -> None:
     assert head
 
 
+@needs_bwrap
 def test_clean_filter_capability_denial(repo: Path, tmp_path: Path) -> None:
     """§4.1 — repo-controlled filter may run; capabilities outside sandbox denied.
 
-    Helper lives *inside* allowed_roots (see sandbox-v0 §8.2 measurement error #2).
+    Helper lives *inside* allowed_roots (measurement error: helper outside the
+    jail is not a sandbox proof).
     Outside marker + journal path must stay untouched.
     """
     marker_outside = tmp_path / "filter-ran.marker"
@@ -322,6 +331,7 @@ def test_clean_filter_capability_denial(repo: Path, tmp_path: Path) -> None:
     )
 
 
+@needs_bwrap
 def test_filter_cannot_read_operator_env_from_sandbox_pid1(
     repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -355,6 +365,7 @@ def test_filter_cannot_read_operator_env_from_sandbox_pid1(
     assert "PID1_ENV_LEAKED" not in result.stderr
 
 
+@needs_bwrap
 def test_filter_cannot_open_controlling_tty(repo: Path) -> None:
     """Security Review Medium: --dev /dev + inherited stdin must not leak TTY.
 
@@ -389,6 +400,7 @@ def test_filter_cannot_open_controlling_tty(repo: Path) -> None:
     assert "TTY_OPENED" not in result.stderr, result.stderr
 
 
+@needs_bwrap
 def test_sandbox_uses_new_session_and_devnull_stdin(
     repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -445,6 +457,7 @@ def test_bwrap_launcher_uses_resolved_absolute_host_path(
     assert _bwrap_isolation_prefix()[0] == "/opt/bubblewrap/bin/bwrap"
 
 
+@needs_bwrap
 def test_missing_prlimit_fails_closed(
     repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -460,6 +473,7 @@ def test_missing_prlimit_fails_closed(
         run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
+@needs_bwrap
 def test_nested_alternates_outside_root_not_readable(
     repo: Path, tmp_path: Path
 ) -> None:
@@ -515,6 +529,7 @@ def test_nested_alternates_outside_root_not_readable(
         )
 
 
+@needs_bwrap
 def test_host_journal_path_not_writable_from_sandbox(
     repo: Path, tmp_path: Path
 ) -> None:
@@ -536,6 +551,7 @@ def test_host_journal_path_not_writable_from_sandbox(
     assert journal.read_text(encoding="utf-8") == before
 
 
+@needs_bwrap
 def test_read_status_works_for_in_root_repo(repo: Path) -> None:
     result = run_git_sandboxed(
         ["status", "--porcelain"],

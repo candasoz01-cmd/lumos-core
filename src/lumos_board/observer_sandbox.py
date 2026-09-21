@@ -1,9 +1,10 @@
-"""Agent Wall observer — sandboxed git execution (ADR-033 / sandbox-v0 MVP).
+"""Agent Wall observer — sandboxed git execution (sandbox-v0 MVP).
 
 Primary boundary is a real low-privilege sandbox (bubblewrap on Linux).
 In-process cwd/env jails are NOT sufficient.
 
 This module does **not** wire Wall signals, claims, or control paths.
+ADR-033 on main is Account Activity Correlation; this file is not that ADR.
 """
 
 from __future__ import annotations
