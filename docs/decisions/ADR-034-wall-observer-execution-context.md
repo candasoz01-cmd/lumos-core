@@ -58,8 +58,10 @@ Her tur doğru bir yama üretti ve her tur yeni bir kapı buldu. #832'nin kendi
 tespiti: bu, **yakınsamayan bir sayımın** imzasıdır — git'in keşif yüzeyi
 dışarıdan tam sayılamaz. Ayrıca `-c` ile kapatılamayan bir yürütme yolu ölçülüp
 kayda geçirildi: `filter.<ad>.clean` sürücüsü, adı saldırgan seçtiği için
-wildcard'la kapatılamaz (#832 "clean filter ran" tablosu; §3.1'de bugünkü
-teyidi).
+wildcard'la kapatılamaz (#832 "clean filter ran" tablosu; çıplak git için
+§3.1'de bugünkü teyidi). Statükonun buna cevabı sonunda config değil komut
+seçimi oldu: observer içerik hash'leten git komutlarını hiç çağırmaz, bu
+yüzden bu sürücüler observer sürecinde çalışmaz (`e26d8c13`+; §4 Seçenek 1).
 
 Soru: kalan cevap statüko mu, gerçek sandbox mı, git'i hiç çağırmamak mı?
 
@@ -110,9 +112,13 @@ yakınsamayan sayım probleminin kendisi. Linux `bwrap` bu turda **yeniden
 notu aynen taşınır: Linux ağ izolasyonu Ubuntu CI'da koşulmadan "kanıtlandı"
 yazılamaz.
 
-`direct` satırı aynı zamanda **statükonun yürütme-sonrası satırıdır**: kod içi
-jail git'in *nereye bakacağını* sınırlar; bir kez koşan düşman filter kodunun
-*ne yapabileceğini* sınırlamaz. Statükoda o kod observer'ın kimliğiyle koşar —
+`direct` satırı **çıplak git'i** ölçer; statükonun güncel okuma yolunu değil.
+Observer bugün çalışma ağacını hash'leten git komutlarını hiç kullanmadığı için
+repo-local `filter.*.clean` / `.process` sürücüleri gözlemci sürecinde
+çalışmaz (`e26d8c13` ve devamı; otoriter kayıt:
+[`agent-wall-observation-v1` §1.1](../contracts/agent-wall-observation-v1.md)).
+Satırın buradaki değeri şudur: sayımı garanti edilemeyen yüzeyde bir yürütme
+yolu gözden kaçarsa, koşan kodun eli observer yetkisiyle tamamen serbesttir —
 kök dışını okur, ağa çıkar, yazar (ölçüldü).
 
 ### 3.2 Index'i saf Python ile okuma — fizibilite ölçümü (Seçenek 3)
@@ -155,14 +161,21 @@ allowlist'li; worktree içerikleri git filtresinden geçirilmeyip index blob'u
 ile ham hash karşılaştırılır (`_raw_worktree_blob` — bu parça zaten saf
 Python'dadır).
 
-- **Güvenlik yüzeyi:** Bilinen beş ilkel kapalı ve 86 testle pinli. Açık
-  kalanlar: (a) **kök içi düşman depo** — `filter.*.clean` observer
-  yetkisiyle koşar (§3.1 `direct` satırı; modül docstring'i ve
-  `test_in_root_clean_filter_still_executes_documented_residual_risk` bunu
-  bilinçli olarak açık risk diye pinler); (b) **sayım problemi** — altıncı
-  ilkelin var olmadığı iddiası kurulamaz, sekiz turun deneyimi aksi yönde;
-  (c) **TOCTOU** — jail kontrolleri ile git koşumu arasında depo mutasyona
-  uğrayabilir; kontroller atomik değildir.
+- **Güvenlik yüzeyi:** Bilinen beş ilkel kapalı ve 86 testle pinli. Bilinen
+  yürütme yolları da kapalı: `filter.*.clean` / `.process` yolu `e26d8c13`
+  ve devamıyla **kodda kapatıldı** — observer içerik hash'leten git komutu
+  kullanmaz, karşılaştırma `_raw_worktree_blob` ile git dışında yapılır; pin
+  testleri `test_in_root_filters_never_execute` ve
+  `test_filter_from_include_and_info_attributes_never_runs`, otoriter kayıt
+  [`agent-wall-observation-v1` §1.1](../contracts/agent-wall-observation-v1.md).
+  (#832 gövdesindeki "residual risk stands" kaydı ve eski
+  `test_in_root_clean_filter_still_executes_documented_residual_risk` testi
+  yedinci tura aittir; sonraki turlar yolu kapattı, eski test silindi.)
+  Açık kalanlar: (a) **sayım problemi** — hem yönlendirme hem yürütme
+  yüzeyinde "altıncı ilkel yok" ve "yürütme yüzeyi sıfır" iddiaları
+  kurulamaz; sekiz turun deneyimi aksi yönde; (b) **TOCTOU** — jail
+  kontrolleri ile git koşumu arasında depo mutasyona uğrayabilir;
+  kontroller atomik değildir.
 - **Bakım maliyeti:** 966 satır modül + 1.226 satır / 86 test; her yeni git
   sürümü yeni keşif/yönlendirme özelliği getirebilir ve bu yüzey dışarıdan
   izlenmek zorundadır. Sekiz turun tarihi, bu bakımın "ara sıra" değil
@@ -231,7 +244,7 @@ Bileşen bileşen maliyet (sinyal → gereken parça):
 
 | Eksen | 1 — Statüko | 2 — Sandbox | 3 — Git'siz |
 |-------|-------------|-------------|-------------|
-| Kök içi düşman depo kodu | **Koşar, observer yetkisiyle** (ölçüldü §3.1) | Koşar, eli boş — yalnız Linux'ta ölçülü; **macOS'ta birincil sınır kurulamadı** (ölçüldü §3.1) | **Koşmaz** — subprocess yok |
+| Kök içi düşman depo kodu | Bilinen yollar kodda kapalı ve pinli (sözleşme §1.1); sayım garantisi yok — gözden kaçan yol observer yetkisiyle koşar (§3.1 `direct`) | Koşar, eli boş — yalnız Linux'ta ölçülü; **macOS'ta birincil sınır kurulamadı** (ölçüldü §3.1) | **Koşmaz** — subprocess yok |
 | Yönlendirme sayım problemi | Açık (5 ilkel / 8 tur, yakınsamadı) | Önemsizleşir (ro-bind allowlist) — macOS hariç | Sınıf olarak kapanır |
 | macOS (fiili platform) | Çalışır | Birincil sınır için mikro-VM/Linux şart | Çalışır |
 | TOCTOU | Açık | Açık | Açık |
@@ -244,9 +257,10 @@ Bileşen bileşen maliyet (sinyal → gereken parça):
 Teknik öneri **Seçenek 3'e yönelmekti**, kademeli ve mevcut jail'i koruyarak:
 
 1. Tehdit modelinin ağırlık merkezi, sekiz turun sonunda "kök dışına kaçış"tan
-   "**kök içi düşman depo**"ya kaymıştır. O tehdide karşı statükonun cevabı
-   yalnız operasyonel bir talimat, sandbox'ın cevabı ise fiili platformda
-   (macOS) kurulamayan bir sınırdır — ikisi de ölçülmüştür (§3.1).
+   "**kök içi düşman depo**"ya kaymıştır. Statüko bilinen yürütme yollarını
+   kodda kapatmıştır (sözleşme §1.1) ama bu, dışarıdan sayılamayan bir yüzeyin
+   nokta nokta kapatılmasıdır — garanti sayım yoktur; sandbox'ın cevabı ise
+   fiili platformda (macOS) kurulamayan bir sınırdır (ölçüldü §3.1).
 2. Seçenek 3 açık kalan yüzeyi "düşman bağlamda kod yürütme"den "düşman veriyi
    parse etme"ye indirger; bu, bu kod tabanının zaten iyi yaptığı, fail-closed
    test edilebilir bir iş sınıfıdır (`read_claims`, `_raw_worktree_blob`,
