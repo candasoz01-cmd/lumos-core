@@ -1084,6 +1084,9 @@ def test_destroy_memory_cgroup_retries_until_rmdir_succeeds(
         def __truediv__(self, _name: str) -> _KillFile:
             return _KillFile()
 
+        def is_dir(self) -> bool:
+            return True
+
         def rmdir(self) -> None:
             self.rmdir_calls += 1
             if self.rmdir_calls < 3:
@@ -1095,6 +1098,33 @@ def test_destroy_memory_cgroup_retries_until_rmdir_succeeds(
     _destroy_memory_cgroup(cg)  # type: ignore[arg-type]
     assert cg.rmdir_calls == 3
     assert sleeps == [0.05, 0.05]
+
+
+def test_destroy_memory_cgroup_missing_dir_does_not_spin(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """mkdir-failed degrade path must not wait the 2s destroy deadline."""
+    from lumos_board.observer_sandbox import _destroy_memory_cgroup
+
+    sleeps: list[float] = []
+    monkeypatch.setattr("lumos_board.observer_sandbox.time.sleep", sleeps.append)
+    _destroy_memory_cgroup(tmp_path / "lumos-obs-absent")
+    assert sleeps == []
+
+
+def test_try_create_memory_cgroup_degrades_when_undelegated(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """cgroup v1 / no delegation: None, not SandboxUnavailableError."""
+    from lumos_board.observer_sandbox import _try_create_memory_cgroup
+
+    def _nope() -> Path:
+        raise SandboxUnavailableError("no delegated cgroup memory controller")
+
+    monkeypatch.setattr(
+        "lumos_board.observer_sandbox._memory_cgroup_insert_parent", _nope
+    )
+    assert _try_create_memory_cgroup(None) is None
 
 
 @needs_cgroup

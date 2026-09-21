@@ -309,6 +309,14 @@ def _destroy_memory_cgroup(cg: Path) -> None:
     wall clock would accumulate ``lumos-obs-*`` cgroups until creation
     fails and later turns skip (Bugbot Medium on c8b8c283).
     """
+    try:
+        present = cg.is_dir()
+    except OSError:
+        return
+    if not present:
+        # mkdir never succeeded (degrade cleanup). Do not spin on rmdir
+        # until _CGROUP_DESTROY_TIMEOUT.
+        return
     kill = cg / "cgroup.kill"
     deadline = time.monotonic() + _CGROUP_DESTROY_TIMEOUT
     while True:
