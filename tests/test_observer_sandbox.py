@@ -793,16 +793,12 @@ def test_join_keyring_eperm_is_noop_and_child_execs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Bugbot Medium on b8302b77: keyctl EPERM must not become unavailable."""
-    import ctypes
     import errno
 
     import lumos_board.observer_sandbox as sandbox
 
-    def _eperm(*_a: object, **_k: object) -> int:
-        ctypes.set_errno(errno.EPERM)
-        return -1
-
-    monkeypatch.setattr(sandbox, "_LIBC_SYSCALL", _eperm)
+    monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.EPERM))
+    monkeypatch.setattr(sandbox, "_keyctl_search_is_live", lambda: False)
     sandbox._join_fresh_session_keyring()
     proc = subprocess.run(
         ["/bin/true"],
@@ -817,16 +813,12 @@ def test_join_keyring_edquot_aborts_child_before_exec(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Bugbot Medium on 90acc2ec: join -1 with live SEARCH must not exec."""
-    import ctypes
     import errno
 
     import lumos_board.observer_sandbox as sandbox
 
-    def _edquot(*_a: object, **_k: object) -> int:
-        ctypes.set_errno(errno.EDQUOT)
-        return -1
-
-    monkeypatch.setattr(sandbox, "_LIBC_SYSCALL", _edquot)
+    monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.EDQUOT))
+    monkeypatch.setattr(sandbox, "_keyctl_search_is_live", lambda: True)
     proc = subprocess.run(
         ["/bin/true"],
         preexec_fn=sandbox._join_fresh_session_keyring,
@@ -834,6 +826,53 @@ def test_join_keyring_edquot_aborts_child_before_exec(
         check=False,
     )
     assert proc.returncode != 0
+
+
+def test_join_keyring_eacces_aborts_when_search_live(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bugbot Medium on 73928f52: EACCES is not a dead keyctl."""
+    import errno
+
+    import lumos_board.observer_sandbox as sandbox
+
+    monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.EACCES))
+    monkeypatch.setattr(sandbox, "_keyctl_search_is_live", lambda: True)
+    proc = subprocess.run(
+        ["/bin/true"],
+        preexec_fn=sandbox._join_fresh_session_keyring,
+        timeout=5,
+        check=False,
+    )
+    assert proc.returncode != 0
+
+
+def test_join_keyring_eacces_execs_when_search_blocked(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import errno
+
+    import lumos_board.observer_sandbox as sandbox
+
+    monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.EACCES))
+    monkeypatch.setattr(sandbox, "_keyctl_search_is_live", lambda: False)
+    proc = subprocess.run(
+        ["/bin/true"],
+        preexec_fn=sandbox._join_fresh_session_keyring,
+        timeout=5,
+        check=False,
+    )
+    assert proc.returncode == 0
+
+
+def test_keyctl_blocked_errnos_are_syscall_dead_only() -> None:
+    import errno
+
+    from lumos_board.observer_sandbox import _KEYCTL_BLOCKED
+
+    assert _KEYCTL_BLOCKED == frozenset({errno.EPERM, errno.ENOSYS})
+    assert errno.EACCES not in _KEYCTL_BLOCKED
+    assert errno.ENOTSUP not in _KEYCTL_BLOCKED
 
 
 def test_keyctl_denial_does_not_skip_started_sandbox(
@@ -871,6 +910,68 @@ def test_keyctl_join_edquot_is_unavailable(
     monkeypatch.setattr(sandbox, "_probe_join_errno", lambda: errno.EDQUOT)
     with pytest.raises(SandboxUnavailableError, match="inherited @s"):
         run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
+
+
+def test_probe_sigsys_degrades_not_skip(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Bugbot Medium on 73928f52: probe SIGSYS is blocked keyctl, not EINVAL skip."""
+    _stub_launcher(monkeypatch, tmp_path)
+    import lumos_board.observer_sandbox as sandbox
+
+    monkeypatch.setattr(sandbox.os, "fork", lambda: 4242)
+
+    def _waitpid(pid: int, flags: int) -> tuple[int, int]:
+        assert pid == 4242
+        return pid, int(signal.SIGSYS)
+
+    monkeypatch.setattr(sandbox.os, "waitpid", _waitpid)
+
+    def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
+        command = list(args[0] if args else kwargs["args"])
+        _write_start_sentinel(command, kwargs.get("stdin"))
+        assert kwargs.get("preexec_fn") is None
+        kwargs["stdout"].write(b"")
+        return subprocess.CompletedProcess(args=command, returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+    result = run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
+    assert result.returncode == 0
+
+
+def test_probe_hang_degrades_not_block(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Bugbot Medium on 73928f52: waitpid is bounded and does not skip."""
+    _stub_launcher(monkeypatch, tmp_path)
+    import lumos_board.observer_sandbox as sandbox
+
+    monkeypatch.setattr(sandbox, "_PROBE_WAIT_S", 0.04)
+    monkeypatch.setattr(sandbox, "_PROBE_SLICE_S", 0.01)
+    monkeypatch.setattr(sandbox.os, "fork", lambda: 4242)
+    killed: list[tuple[int, int]] = []
+
+    def _waitpid(pid: int, flags: int) -> tuple[int, int]:
+        if flags == os.WNOHANG:
+            return 0, 0
+        return pid, 0
+
+    monkeypatch.setattr(sandbox.os, "waitpid", _waitpid)
+    monkeypatch.setattr(
+        sandbox.os, "kill", lambda pid, sig: killed.append((pid, sig))
+    )
+
+    def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
+        command = list(args[0] if args else kwargs["args"])
+        _write_start_sentinel(command, kwargs.get("stdin"))
+        assert kwargs.get("preexec_fn") is None
+        kwargs["stdout"].write(b"")
+        return subprocess.CompletedProcess(args=command, returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+    result = run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
+    assert result.returncode == 0
+    assert killed == [(4242, signal.SIGKILL)]
 
 
 def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(

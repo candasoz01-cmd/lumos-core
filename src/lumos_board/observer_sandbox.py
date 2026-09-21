@@ -14,6 +14,7 @@ import errno
 import logging
 import os
 import shutil
+import signal
 import subprocess
 import tempfile
 import time
@@ -79,21 +80,18 @@ _CGROUP_DESTROY_TIMEOUT = 2.0
 _CGROUP_DESTROY_SLICE = 0.05
 # linux/keyctl.h KEYCTL_JOIN_SESSION_KEYRING; SYS_keyctl per arch.
 _KEYCTL_JOIN_SESSION_KEYRING = 1
+_KEYCTL_SEARCH = 10
+_KEY_SPEC_SESSION_KEYRING = -3
 _SYS_KEYCTL = {
     "x86_64": 250,
     "aarch64": 219,
 }
-# keyctl blocked: SEARCH is also dead, so inherited @s is not readable.
-# Other join errnos (ENOMEM, EDQUOT) leave SEARCH live — do not exec.
-_KEYCTL_BLOCKED = frozenset(
-    {
-        errno.EPERM,
-        errno.EACCES,
-        errno.ENOSYS,
-        errno.ENOTSUP,
-        getattr(errno, "EOPNOTSUPP", errno.ENOTSUP),
-    }
-)
+# Only these mean the *syscall* is dead, so SEARCH is also dead.
+# EACCES/ENOTSUP deny this join but leave KEYCTL_SEARCH live
+# (Bugbot Medium on 73928f52).
+_KEYCTL_BLOCKED = frozenset({errno.EPERM, errno.ENOSYS})
+_PROBE_WAIT_S = 0.2
+_PROBE_SLICE_S = 0.01
 # Host-side only: move the launcher pid into the sandbox memory cgroup
 # before exec. Dash-safe ($1, no multi-digit fd). Must not read stdin —
 # fd 0 is the start-sentinel pipe for the inner wrapper.
@@ -485,26 +483,38 @@ def _pidns_reaper_command(command: Sequence[str]) -> list[str]:
     ]
 
 
-def _keyctl_join_raw() -> tuple[int, int]:
-    """``KEYCTL_JOIN_SESSION_KEYRING``; ``(ret, errno)``. Never raises."""
+def _keyctl_raw(cmd: int, *args: object) -> tuple[int, int]:
+    """``keyctl(cmd, ...)`` via the parent-bound syscall. Never raises."""
     syscall = _LIBC_SYSCALL
     nr = _SYS_KEYCTL_NR
     if syscall is None or nr is None:
         return -1, errno.ENOSYS
     try:
         ctypes.set_errno(0)
-        ret = int(
-            syscall(
-                ctypes.c_long(nr),
-                ctypes.c_long(_KEYCTL_JOIN_SESSION_KEYRING),
-                ctypes.c_long(0),
-            )
-        )
+        ret = int(syscall(ctypes.c_long(nr), ctypes.c_long(cmd), *args))
     except Exception:
         return -1, errno.EPERM
     if ret >= 0:
         return ret, 0
     return ret, ctypes.get_errno() or errno.EINVAL
+
+
+def _keyctl_join_raw() -> tuple[int, int]:
+    return _keyctl_raw(_KEYCTL_JOIN_SESSION_KEYRING, ctypes.c_long(0))
+
+
+def _keyctl_search_is_live() -> bool:
+    """True if KEYCTL_SEARCH still works on inherited ``@s`` (ENOKEY or hit)."""
+    ret, err = _keyctl_raw(
+        _KEYCTL_SEARCH,
+        ctypes.c_long(_KEY_SPEC_SESSION_KEYRING),
+        b"user",
+        b"lumos-obs-probe",
+        ctypes.c_long(0),
+    )
+    if ret >= 0:
+        return True
+    return err == errno.ENOKEY
 
 
 def _join_fresh_session_keyring() -> None:
@@ -522,14 +532,16 @@ def _join_fresh_session_keyring() -> None:
 
     Must not ``CDLL`` / ``uname`` / ``raise`` here: CPython runs this after
     ``fork`` and before ``exec``. A raise becomes a missing start sentinel
-    and skips every observation turn (Bugbot Mediums on b8302b77). A
-    blocked ``keyctl`` (EPERM/ENOSYS) also blocks SEARCH, so inherited
-    ``@s`` is inert and the child still execs. ``ret == -1`` with a live
-    SEARCH (ENOMEM, EDQUOT) must not exec: ``os._exit`` rather than raise
-    (Bugbot Medium on 90acc2ec).
+    and skips every observation turn (Bugbot Mediums on b8302b77). Join
+    failure is ignorable only when SEARCH is also dead (EPERM/ENOSYS or a
+    SEARCH that itself fails without ENOKEY). ``EACCES``/``ENOTSUP`` deny
+    this join but leave SEARCH live — ``os._exit`` (Bugbot Medium on
+    73928f52).
     """
     ret, err = _keyctl_join_raw()
-    if ret >= 0 or err in _KEYCTL_BLOCKED:
+    if ret >= 0:
+        return
+    if err in _KEYCTL_BLOCKED or not _keyctl_search_is_live():
         return
     os._exit(1)
 
@@ -537,7 +549,13 @@ def _join_fresh_session_keyring() -> None:
 def _probe_join_errno() -> int:
     """Join in a throwaway child so the observer's own ``@s`` is not replaced.
 
-    Returns 0 on success, a positive ``errno`` on join failure.
+    Returns 0 on success, ``EPERM``/``ENOSYS`` when keyctl is dead (degrade),
+    another errno when join failed but SEARCH is still live (fail-closed).
+
+    Probe ``SIGSYS`` (seccomp kill) is blocked-keyctl, not ``EINVAL`` skip.
+    ``waitpid`` is bounded; a stuck child is SIGKILL'd and treated as
+    blocked so the observer timeout is not bypassed (Bugbot Medium on
+    73928f52).
     """
     if _LIBC_SYSCALL is None or _SYS_KEYCTL_NR is None:
         return errno.ENOSYS
@@ -547,8 +565,35 @@ def _probe_join_errno() -> int:
         return exc.errno or errno.EAGAIN
     if pid == 0:
         ret, err = _keyctl_join_raw()
-        os._exit(0 if ret >= 0 else min(err or 1, 127))
-    _pid, status = os.waitpid(pid, 0)
+        if ret >= 0:
+            os._exit(0)
+        if err in _KEYCTL_BLOCKED or not _keyctl_search_is_live():
+            os._exit(errno.EPERM if err not in _KEYCTL_BLOCKED else min(err, 127))
+        os._exit(min(err or errno.EINVAL, 127))
+    deadline = time.monotonic() + _PROBE_WAIT_S
+    status = 0
+    reaped = False
+    while time.monotonic() < deadline:
+        wpid, status = os.waitpid(pid, os.WNOHANG)
+        if wpid:
+            reaped = True
+            break
+        time.sleep(_PROBE_SLICE_S)
+    if not reaped:
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except OSError:
+            pass
+        try:
+            os.waitpid(pid, 0)
+        except OSError:
+            pass
+        return errno.EPERM
+    if os.WIFSIGNALED(status):
+        sig = os.WTERMSIG(status)
+        if sig in (signal.SIGSYS, signal.SIGKILL):
+            return errno.EPERM
+        return errno.EINVAL
     if not os.WIFEXITED(status):
         return errno.EINVAL
     return os.WEXITSTATUS(status)
