@@ -272,7 +272,11 @@ def _with_start_sentinel(payload: Sequence[str]) -> tuple[list[str], bytes]:
       dash yalnız TEK haneli fd redirection'ı kabul eder; fd ≥ 10'da
       (dolu fd tablosu olan her gerçek süreçte olağan) `Bad fd number`
       sözdizimi hatası payload'ı hiç koşturmaz ve sandbox kalıcı
-      "unavailable" olur — fd 13 ile ölçüldü.
+      "unavailable" olur — fd 13 ile ölçüldü. `preexec_fn` + `dup2` ile
+      fd'yi 3'e sabitlemek de kurtarmaz: CPython `preexec_fn`'i
+      `close_fds`'ten ÖNCE çağırır ve `pass_fds`'te olmayan fd 3 sonra
+      kapatılır — `sh: 3: Bad file descriptor` ölçüldü; yalnız temp
+      dosyası şans eseri fd 3'e düşerse çalışır.
     - fd'yi exec'ten önce KAPATMAYAN her sürüm: boru truncate edilemez ama
       payload `/proc/self/fd/<N>`'i OKUMA modunda yeniden açıp nonce'u
       boşaltabilir (repro'landı).

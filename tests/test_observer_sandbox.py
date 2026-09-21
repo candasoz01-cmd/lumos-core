@@ -488,6 +488,22 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
         assert "exec </dev/null" in wrapper
 
 
+def test_start_sentinel_wrapper_is_dash_safe() -> None:
+    """Sarmalayıcı yalnız TEK haneli fd (0) kullanır — dash `Bad fd number`
+    riskini taşıyan çok haneli redirection içeremez (6108e84/ac642ca dersleri:
+    numaralı sentinel fd, fd tablosu doluyken sandbox'ı kalıcı düşürüyordu)."""
+    import re
+
+    from lumos_board.observer_sandbox import _with_start_sentinel
+
+    wrapped, needle = _with_start_sentinel(["/bin/true"])
+    script = wrapped[2]
+    assert ">&0;" in script
+    assert "exec </dev/null;" in script
+    assert not re.search(r">&\d{2,}", script), script
+    assert needle.startswith(b"lumos-sandbox-start-")
+
+
 def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
