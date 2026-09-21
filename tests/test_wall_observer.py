@@ -14,17 +14,27 @@ Testlerin taşıdığı iddialar:
 from __future__ import annotations
 
 import errno
+import hashlib
 import json
 import os
 import shutil
+import struct
 import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 
+from lumos_board import wall_observer as wall_observer_module
 from lumos_board.task_claim import TaskClaimStore
 from lumos_board.wall_observer import (
+    INDEX_REASON_ENTRY_CAP,
+    INDEX_REASON_EXTENSION,
+    INDEX_REASON_HASH,
+    INDEX_REASON_MALFORMED,
+    INDEX_REASON_TOO_LARGE,
+    INDEX_REASON_UNREADABLE,
+    INDEX_REASON_VERSION,
     OBSERVATION_SCHEMA,
     REASON_INDEX_REDIRECTED,
     REASON_MISSING,
@@ -1238,3 +1248,235 @@ def test_failed_git_read_is_a_named_skip_not_a_clean_worktree(tmp_path: Path) ->
         o.claim_id == claim.claim_id and "ok.txt" in o.evidence.get("paths", [])
         for o in run.observations
     )
+
+
+# --- Index'i git'siz okumak (WALL-OBS-INDEX-SLICE, ADR-034 Seçenek 3 dilim 1) --
+#
+# `git ls-files --stage` subprocess'inin yerini `_read_index_entries` aldı.
+# İddialar: (1) parser gerçek git çıktısıyla birebir aynı kümeyi üretir,
+# (2) desteklenmeyen/doğrulanamayan biçim adlı fail-closed rettir ve git'e
+# GERİ DÜŞÜLMEZ, (3) bir gözlem okuması artık 4 değil 3 git subprocess'i
+# çalıştırır ve `ls-files --stage` koda geri dönemez.
+
+def _ls_files_stage_set(repo: Path) -> set[tuple[str, str, str, int]]:
+    out = subprocess.run(
+        ["git", "ls-files", "--stage", "-z"], cwd=str(repo),
+        check=True, capture_output=True,
+    ).stdout.decode("utf-8", "surrogateescape")
+    expected: set[tuple[str, str, str, int]] = set()
+    for record in out.split("\0"):
+        if not record:
+            continue
+        metadata, name = record.split("\t", 1)
+        mode, oid, stage = metadata.split()
+        expected.add((name, mode, oid, int(stage)))
+    return expected
+
+
+def _rewrite_index_with_extension(index_path: Path, signature: bytes, payload: bytes) -> None:
+    body = index_path.read_bytes()[:-20]
+    body += signature + struct.pack(">I", len(payload)) + payload
+    index_path.write_bytes(body + hashlib.sha1(body).digest())
+
+
+def test_index_parser_matches_git_ls_files_stage(git_repo: Path) -> None:
+    """Differential: exe, symlink, boşluklu ad, alt dizin — birebir aynı küme."""
+    tool = git_repo / "src" / "tool.sh"
+    tool.write_text("#!/bin/sh\n", encoding="utf-8")
+    os.chmod(tool, 0o755)
+    os.symlink("base.py", git_repo / "src" / "link.py")
+    (git_repo / "has space.txt").write_text("v\n", encoding="utf-8")
+    _git(git_repo, "add", "-A")
+
+    entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
+    assert failure is None
+    expected = _ls_files_stage_set(git_repo)
+    assert set(entries) == expected
+    assert len(entries) == len(expected)  # sessiz kayıp/çoğaltma yok
+
+
+def test_index_parser_reads_unmerged_and_non_utf8_entries(git_repo: Path) -> None:
+    """
+    stage>0 (çakışma) ve UTF-8 olmayan ad. `--index-info` dosya OLUŞTURMADAN
+    index'e yazar; bu yüzden bu test APFS'te de tam etkin koşar (EILSEQ yok).
+    """
+    oid = subprocess.run(
+        ["git", "hash-object", "-w", "--stdin"], cwd=str(git_repo),
+        input=b"v\n", check=True, capture_output=True,
+    ).stdout.strip().decode("ascii")
+    info = "".join(
+        f"100644 {oid} {stage}\tconflict.txt\n" for stage in (1, 2, 3)
+    ).encode("ascii") + b"100644 " + oid.encode("ascii") + b" 0\tbad\xffname.txt\n"
+    subprocess.run(
+        ["git", "update-index", "--index-info"], cwd=str(git_repo),
+        input=info, check=True, capture_output=True,
+    )
+
+    entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
+    assert failure is None
+    assert set(entries) == _ls_files_stage_set(git_repo)
+    assert {s for (n, _, _, s) in entries if n == "conflict.txt"} == {1, 2, 3}
+    assert any(n == "bad\udcffname.txt" for (n, _, _, _) in entries)  # surrogateescape
+
+
+def test_index_v3_skip_worktree_entry_is_read(git_repo: Path) -> None:
+    """v3: extended flags sözcüğü atlanır, yol listesi git ile aynı kalır."""
+    _git(git_repo, "update-index", "--skip-worktree", "src/base.py")
+    raw = (git_repo / ".git" / "index").read_bytes()
+    assert struct.unpack(">I", raw[4:8])[0] == 3  # bayrak v3 olmadan yazılamaz
+
+    entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
+    assert failure is None
+    assert set(entries) == _ls_files_stage_set(git_repo)
+
+
+def test_index_split_index_link_extension_is_refused(git_repo: Path) -> None:
+    """`link` küçük harfli = zorunlu uzantı: split-index bu dilimde rettir."""
+    _git(git_repo, "update-index", "--split-index")
+    entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
+    assert entries == ()
+    assert failure == f"{INDEX_REASON_EXTENSION}:link"
+
+
+def test_index_unknown_lowercase_extension_is_refused(git_repo: Path) -> None:
+    """Kural genel: yalnız link/sdir değil, TANINMAYAN her lowercase uzantı ret."""
+    _rewrite_index_with_extension(git_repo / ".git" / "index", b"zzzz", b"\x00" * 4)
+    entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
+    assert entries == ()
+    assert failure == f"{INDEX_REASON_EXTENSION}:zzzz"
+
+
+def test_index_uppercase_extension_is_skipped(git_repo: Path) -> None:
+    """Büyük harfli uzantı salt önbellektir; okuma tam ve birebir kalır."""
+    _rewrite_index_with_extension(git_repo / ".git" / "index", b"ZZZZ", b"\x01\x02")
+    entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
+    assert failure is None
+    assert set(entries) == _ls_files_stage_set(git_repo)
+
+
+def test_index_unsupported_version_is_refused(tmp_path: Path) -> None:
+    """v4 (prefix compression) bu dilimde desteklenmez; ret sürümü adlandırır."""
+    gitdir = tmp_path / "g"
+    gitdir.mkdir()
+    body = b"DIRC" + struct.pack(">II", 4, 0)
+    (gitdir / "index").write_bytes(body + hashlib.sha1(body).digest())
+    entries, failure = wall_observer_module._read_index_entries(gitdir)
+    assert entries == ()
+    assert failure == f"{INDEX_REASON_VERSION}:4"
+
+
+def test_index_bad_checksum_is_honest_about_hash(git_repo: Path) -> None:
+    """
+    SHA-1 trailer tutmuyorsa bunun SHA-256 deposu mu bozulma mı olduğu TAHMİN
+    EDİLMEZ; tek dürüst gerekçe "doğrulanamadı"dır. (SHA-256 desteği ayrı dilim.)
+    """
+    index_path = git_repo / ".git" / "index"
+    data = bytearray(index_path.read_bytes())
+    data[12] ^= 0xFF  # içerik baytı; trailer değil
+    index_path.write_bytes(bytes(data))
+    entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
+    assert entries == ()
+    assert failure == INDEX_REASON_HASH
+
+
+def test_index_lying_entry_count_is_malformed(tmp_path: Path) -> None:
+    """Checksum geçerli ama girdi sayısı gövdeyle çelişiyor → malformed ret."""
+    gitdir = tmp_path / "g"
+    gitdir.mkdir()
+    body = b"DIRC" + struct.pack(">II", 2, 5)  # 5 girdi vaat eder, sıfır taşır
+    (gitdir / "index").write_bytes(body + hashlib.sha1(body).digest())
+    entries, failure = wall_observer_module._read_index_entries(gitdir)
+    assert entries == ()
+    assert failure == INDEX_REASON_MALFORMED
+
+
+def test_index_symlinked_index_is_unreadable(git_repo: Path) -> None:
+    """O_NOFOLLOW: jail kontrolü ile okuma arasına sıkışan symlink de açılmaz."""
+    index_path = git_repo / ".git" / "index"
+    moved = git_repo / ".git" / "index_moved"
+    index_path.rename(moved)
+    os.symlink("index_moved", index_path)
+    entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
+    assert entries == ()
+    assert failure == INDEX_REASON_UNREADABLE
+
+
+def test_index_caps_are_fail_closed(git_repo: Path, monkeypatch) -> None:
+    """Boyut/girdi tavanı aşımı kısmi okuma değil, adlı rettir."""
+    monkeypatch.setattr(wall_observer_module, "_INDEX_SIZE_CAP", 8)
+    entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
+    assert (entries, failure) == ((), INDEX_REASON_TOO_LARGE)
+
+    monkeypatch.setattr(wall_observer_module, "_INDEX_SIZE_CAP", 128 * 1024 * 1024)
+    monkeypatch.setattr(wall_observer_module, "_INDEX_ENTRY_CAP", 1)
+    entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
+    assert (entries, failure) == ((), INDEX_REASON_ENTRY_CAP)
+
+
+def test_unreadable_index_is_named_skip_with_partial_evidence(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """
+    Yalnız BİZİM reddettiğimiz index (git için geçerli) "temiz worktree" gibi
+    görünemez; git fallback'i de yoktur. Diğer okumaların kanıtı (untracked)
+    korunur ve sinyale girer. (Bilinmeyen zorunlu uzantı senaryosu bilerek
+    kullanılmadı: onda git'in kendi okumaları da ölür ve kanıt zaten kalmaz —
+    o durum yukarıdaki uzantı testlerinde ayrıca pinli.)
+    """
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    repo = _repo_with_dirty_file(approved, "repo", "ok.txt")
+    (repo / "loose.txt").write_text("x\n", encoding="utf-8")
+    monkeypatch.setattr(wall_observer_module, "_INDEX_ENTRY_CAP", 0)
+
+    with pytest.raises(GitReadError) as caught:
+        touched_paths(repo, allowed_roots=[approved], base_ref="HEAD")
+    assert f"index:{INDEX_REASON_ENTRY_CAP}" in caught.value.commands
+    assert "loose.txt" in caught.value.partial_paths
+
+    store = _store(tmp_path)
+    claim = _claim(store, worktree=str(repo))
+    run = observe(store.store_dir, allowed_roots=[approved], base_ref="HEAD", now=NOW)
+    assert any(
+        claim.claim_id in s and f"git_read_failed:index:{INDEX_REASON_ENTRY_CAP}" in s
+        for s in run.skipped
+    )
+    assert any(
+        o.claim_id == claim.claim_id and "loose.txt" in o.evidence.get("paths", [])
+        for o in run.observations
+    )
+
+
+def test_touched_paths_runs_exactly_three_git_subprocesses(git_repo: Path, monkeypatch) -> None:
+    """4 → 3 kanıtı: index artık subprocess değil; `ls-files --stage` koşmaz."""
+    (git_repo / "src" / "base.py").write_text("x = 9\n", encoding="utf-8")
+    calls: list[list[str]] = []
+    real_run = subprocess.run
+
+    def counting(cmd, *args, **kwargs):
+        calls.append(list(cmd))
+        return real_run(cmd, *args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", counting)
+    found = touched_paths(git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD")
+    assert "src/base.py" in found  # dirty tespiti index'ten, git'siz çalıştı
+
+    git_calls = [c for c in calls if c and os.path.basename(c[0]) == "git"]
+    assert len(git_calls) == 3  # diff, diff --cached, ls-files --others
+    assert not any("--stage" in c for c in git_calls)
+
+
+def test_observer_never_invokes_ls_files_stage() -> None:
+    """
+    AST pin: `--stage` argümanı modülün çalışan koduna geri dönemez. Yorum ve
+    docstring serbesttir; çağrı argümanı olarak string sabiti yasaktır.
+    """
+    import ast
+
+    source = Path(wall_observer_module.__file__).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    hits = [
+        node for node in ast.walk(tree)
+        if isinstance(node, ast.Constant) and node.value == "--stage"
+    ]
+    assert hits == [], "ls-files --stage subprocess'i geri gelmiş"
