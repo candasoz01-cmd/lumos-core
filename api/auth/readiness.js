@@ -14,6 +14,10 @@ export default async function handler(req, res) {
   const identityDedicated = (process.env.LUMOS_ID_SECRET || "").trim();
   const memoryUrl = (process.env.LUMOS_MEMORY_LOOKUP_URL || "").trim();
   const memoryToken = (process.env.LUMOS_MEMORY_SERVICE_TOKEN || "").trim();
+  const hasModelKey = Boolean(
+    (process.env.OPENAI_API_KEY || "").trim() ||
+    (process.env.LUMOS_GOOGLE_GEMINI_API_KEY || "").trim()
+  );
   const redirect = (
     process.env.LUMOS_GOOGLE_WEB_REDIRECT_URI ||
     "https://welockai.com/auth/google/callback"
@@ -34,8 +38,11 @@ export default async function handler(req, res) {
       redirect_uri: redirect,
       has_client_secret: Boolean(secret),
       has_dedicated_state_secret: Boolean(stateDedicated),
-      stable_identity: Boolean(identityDedicated || stateDedicated),
+      stable_identity: identityDedicated.length >= 32,
       has_dedicated_identity_secret: identityDedicated.length >= 32,
+      has_model_key: hasModelKey,
+      // Yalnız env hazırlığı; gerçek OAuth/model çağrısı veya canlı kabul kanıtı değil.
+      panel_configured: live && identityDedicated.length >= 32 && hasModelKey,
       consent_memory_lookup: Boolean(memoryUrl && memoryToken),
       door: "lumos",
     })

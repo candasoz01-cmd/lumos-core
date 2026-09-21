@@ -19,8 +19,15 @@ const MAX_AGE = 604800;
 const STATE_MAX_AGE = 600;
 
 export function authSecret() {
+  const dedicated = process.env.LUMOS_AUTH_STATE_SECRET || "";
+  const hosted = process.env.NODE_ENV === "production" ||
+    ["production", "preview"].includes(process.env.VERCEL_ENV);
+  // Hosted oturumlar OAuth client secret'a geri düşemez.
+  if (hosted && dedicated.trim().length < 32) {
+    throw new Error("lumos_auth_secret_unconfigured");
+  }
   const secret = (
-    process.env.LUMOS_AUTH_STATE_SECRET ||
+    dedicated ||
     process.env.LUMOS_GOOGLE_WEB_CLIENT_SECRET ||
     ""
   );
@@ -108,9 +115,9 @@ export function openSession(token) {
     decipher.setAuthTag(tag);
     const pt = Buffer.concat([decipher.update(enc), decipher.final()]);
     const claims = JSON.parse(pt.toString("utf8"));
-    if (!claims || typeof claims !== "object") return null;
-    const exp = Number(claims.exp || 0);
-    if (exp && Math.floor(Date.now() / 1000) > exp) return null;
+    if (!claims || typeof claims !== "object" || Array.isArray(claims)) return null;
+    const exp = claims.exp;
+    if (!Number.isSafeInteger(exp) || exp <= Math.floor(Date.now() / 1000)) return null;
     return claims;
   } catch {
     return null;
