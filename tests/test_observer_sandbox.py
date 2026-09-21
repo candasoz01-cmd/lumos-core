@@ -757,6 +757,82 @@ def test_fresh_session_keyring_hides_parent_user_key() -> None:
     assert hidden.stdout.split()[1] == "126"  # ENOKEY
 
 
+def test_join_keyring_preexec_does_not_cdll_or_raise(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bugbot Medium on b8302b77: CDLL after fork deadlocks; raise skips the turn."""
+    import ast
+    import inspect
+
+    from lumos_board.observer_sandbox import _join_fresh_session_keyring
+
+    tree = ast.parse(inspect.getsource(_join_fresh_session_keyring))
+    calls = [
+        getattr(n.func, "attr", getattr(n.func, "id", None))
+        for n in ast.walk(tree)
+        if isinstance(n, ast.Call)
+    ]
+    assert "CDLL" not in calls
+    assert "uname" not in calls
+    assert not any(isinstance(n, ast.Raise) for n in ast.walk(tree))
+
+    def _boom(*_a: object, **_k: object) -> object:
+        raise RuntimeError("CDLL after fork")
+
+    monkeypatch.setattr("ctypes.CDLL", _boom)
+    proc = subprocess.run(
+        ["/bin/true"],
+        preexec_fn=_join_fresh_session_keyring,
+        timeout=5,
+        check=False,
+    )
+    assert proc.returncode == 0
+
+
+def test_join_keyring_eperm_is_noop_and_child_execs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bugbot Medium on b8302b77: keyctl EPERM must not become unavailable."""
+    import errno
+
+    import lumos_board.observer_sandbox as sandbox
+
+    def _eperm(*_a: object, **_k: object) -> int:
+        raise OSError(errno.EPERM, "Operation not permitted")
+
+    monkeypatch.setattr(sandbox, "_LIBC_SYSCALL", _eperm)
+    sandbox._join_fresh_session_keyring()
+    proc = subprocess.run(
+        ["/bin/true"],
+        preexec_fn=sandbox._join_fresh_session_keyring,
+        timeout=5,
+        check=False,
+    )
+    assert proc.returncode == 0
+
+
+def test_keyctl_denial_does_not_skip_started_sandbox(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Blocked keyctl degrades (no preexec) instead of skip-closing the turn."""
+    _stub_launcher(monkeypatch, tmp_path)
+    import lumos_board.observer_sandbox as sandbox
+
+    monkeypatch.setattr(sandbox, "_LIBC_SYSCALL", None)
+    monkeypatch.setattr(sandbox, "_SYS_KEYCTL_NR", None)
+
+    def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
+        command = list(args[0] if args else kwargs["args"])
+        _write_start_sentinel(command, kwargs.get("stdin"))
+        assert kwargs.get("preexec_fn") is None
+        kwargs["stdout"].write(b"")
+        return subprocess.CompletedProcess(args=command, returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+    result = run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
+    assert result.returncode == 0
+
+
 def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

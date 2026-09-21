@@ -10,7 +10,6 @@ ADR-033 on main is Account Activity Correlation; this file is not that ADR.
 from __future__ import annotations
 
 import ctypes
-import errno
 import logging
 import os
 import shutil
@@ -79,6 +78,8 @@ _CGROUP_DESTROY_TIMEOUT = 2.0
 _CGROUP_DESTROY_SLICE = 0.05
 # linux/keyctl.h KEYCTL_JOIN_SESSION_KEYRING; SYS_keyctl per arch.
 _KEYCTL_JOIN_SESSION_KEYRING = 1
+_KEYCTL_GET_KEYRING_ID = 0
+_KEY_SPEC_SESSION_KEYRING = -3
 _SYS_KEYCTL = {
     "x86_64": 250,
     "aarch64": 219,
@@ -87,6 +88,30 @@ _SYS_KEYCTL = {
 # before exec. Dash-safe ($1, no multi-digit fd). Must not read stdin —
 # fd 0 is the start-sentinel pipe for the inner wrapper.
 _CGROUP_ENTER_SCRIPT = 'printf "%s\\n" $$ > "$1/cgroup.procs" && shift && exec "$@"'
+
+
+def _bind_keyctl_syscall() -> tuple[int | None, object | None]:
+    """Resolve ``libc.syscall`` in the parent process.
+
+    ``ctypes.CDLL`` after ``fork`` takes the dynamic-linker lock. A
+    multithreaded caller that already holds it deadlocks the child before
+    the start sentinel, and the wall-clock timeout becomes
+    ``SandboxUnavailableError`` (Bugbot Medium on b8302b77). Binding here
+    means ``preexec_fn`` only invokes an already-resolved function.
+    """
+    nr = _SYS_KEYCTL.get(os.uname().machine)
+    if nr is None:
+        return None, None
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        fn = libc.syscall
+        fn.restype = ctypes.c_long
+        return nr, fn
+    except OSError:
+        return None, None
+
+
+_SYS_KEYCTL_NR, _LIBC_SYSCALL = _bind_keyctl_syscall()
 
 
 class SandboxUnavailableError(RuntimeError):
@@ -462,24 +487,59 @@ def _join_fresh_session_keyring() -> None:
     this process and its descendants. Measured: parent user key is visible
     in a child until this join; after join + ``setsid``, search returns
     ENOKEY.
+
+    Must not ``CDLL`` / ``uname`` / ``raise`` here: CPython runs this after
+    ``fork`` and before ``exec``. A raise becomes a missing start sentinel
+    and skips every observation turn (Bugbot Mediums on b8302b77). Join
+    failure is best-effort isolation, same class as cgroup degrade.
     """
-    nr = _SYS_KEYCTL.get(os.uname().machine)
-    if nr is None:
-        raise OSError(
-            errno.ENOSYS,
-            f"keyctl unsupported on {os.uname().machine}",
+    syscall = _LIBC_SYSCALL
+    nr = _SYS_KEYCTL_NR
+    if syscall is None or nr is None:
+        return
+    try:
+        syscall(
+            ctypes.c_long(nr),
+            ctypes.c_long(_KEYCTL_JOIN_SESSION_KEYRING),
+            ctypes.c_long(0),
         )
-    libc = ctypes.CDLL(None, use_errno=True)
-    libc.syscall.restype = ctypes.c_long
-    ctypes.set_errno(0)
-    ret = libc.syscall(
-        ctypes.c_long(nr),
-        ctypes.c_long(_KEYCTL_JOIN_SESSION_KEYRING),
-        ctypes.c_long(0),
-    )
-    if ret < 0:
-        err = ctypes.get_errno() or errno.EINVAL
-        raise OSError(err, os.strerror(err))
+    except Exception:
+        return
+
+
+def _keyctl_is_usable() -> bool:
+    """Parent-side probe: ``keyctl`` is not seccomp/LSM blocked.
+
+    Uses ``KEYCTL_GET_KEYRING_ID`` so the observer's own ``@s`` is not
+    replaced. A blocked ``keyctl`` also blocks ``KEYCTL_SEARCH``, so the
+    credential leak is already dead; skipping the join is residual, not
+    fail-closed.
+    """
+    syscall = _LIBC_SYSCALL
+    nr = _SYS_KEYCTL_NR
+    if syscall is None or nr is None:
+        return False
+    try:
+        ret = syscall(
+            ctypes.c_long(nr),
+            ctypes.c_long(_KEYCTL_GET_KEYRING_ID),
+            ctypes.c_long(_KEY_SPEC_SESSION_KEYRING),
+            ctypes.c_long(0),
+        )
+    except Exception:
+        return False
+    return int(ret) >= 0
+
+
+def _session_keyring_preexec() -> object | None:
+    """``preexec_fn`` when ``keyctl`` can isolate ``@s``; else None + WARNING."""
+    if _LIBC_SYSCALL is None or _SYS_KEYCTL_NR is None or not _keyctl_is_usable():
+        _LOG.warning(
+            "observer sandbox: keyctl unavailable; session keyring @s is "
+            "not isolated this run — degrading, not skip-closed"
+        )
+        return None
+    return _join_fresh_session_keyring
 
 
 def _resource_limited_command(command: Sequence[str], *, timeout: float) -> list[str]:
@@ -609,7 +669,7 @@ def _run_bwrap_limited(
                             timeout=timeout,
                             check=False,
                             close_fds=True,
-                            preexec_fn=_join_fresh_session_keyring,
+                            preexec_fn=_session_keyring_preexec(),
                             env=scrub_env_for_sandbox(),
                         )
                     except OSError as exc:
