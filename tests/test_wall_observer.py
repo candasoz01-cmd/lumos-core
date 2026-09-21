@@ -1082,12 +1082,27 @@ def test_missing_index_is_not_a_refusal(tmp_path: Path) -> None:
     assert pin_repository(repo, [tmp_path])[0] == repo / ".git"
 
 
+def _require_non_utf8_filenames(tmp_path: Path) -> None:
+    # Yetenek kapısı: APFS (macOS) UTF-8 olmayan baytlı adları errno 92 ile
+    # reddeder; test edilen kod daha çalışmadan fixture düşer. Platform adına
+    # değil, dosya sisteminin gerçek davranışına bakarız — Linux'ta test tam
+    # etkin kalır.
+    probe = os.path.join(os.fsencode(tmp_path), b"probe\xffname")
+    try:
+        with open(probe, "wb"):
+            pass
+    except OSError:
+        pytest.skip("dosya sistemi UTF-8 olmayan baytlı adları reddediyor")
+    os.unlink(probe)
+
+
 def test_non_utf8_filename_does_not_abort_observation(tmp_path: Path) -> None:
     """
     Git `-z` çıktısı ham bayttır; UTF-8 olmayan tek bir dosya adı strict
     decode ile bütün turu düşürürdü — gözlenen tarafın gözlemciyi kapattığı
     bir fail-open. Bozuk ad maskelenmiş biçimde kaydedilir, tur yaşar.
     """
+    _require_non_utf8_filenames(tmp_path)
     approved = tmp_path / "approved"
     approved.mkdir()
     repo = _repo_with_dirty_file(approved, "repo", "ok.txt")
@@ -1147,6 +1162,7 @@ def test_clean_tracked_non_utf8_name_stays_clean(tmp_path: Path) -> None:
     SILENT_DRIFT). Baytlar içeride kayıpsız taşınır: temiz dosya temiz kalır,
     gerçekten değişince maskeli adıyla raporlanır.
     """
+    _require_non_utf8_filenames(tmp_path)
     approved = tmp_path / "approved"
     approved.mkdir()
     repo = approved / "repo"
