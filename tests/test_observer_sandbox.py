@@ -793,12 +793,14 @@ def test_join_keyring_eperm_is_noop_and_child_execs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Bugbot Medium on b8302b77: keyctl EPERM must not become unavailable."""
+    import ctypes
     import errno
 
     import lumos_board.observer_sandbox as sandbox
 
     def _eperm(*_a: object, **_k: object) -> int:
-        raise OSError(errno.EPERM, "Operation not permitted")
+        ctypes.set_errno(errno.EPERM)
+        return -1
 
     monkeypatch.setattr(sandbox, "_LIBC_SYSCALL", _eperm)
     sandbox._join_fresh_session_keyring()
@@ -811,15 +813,39 @@ def test_join_keyring_eperm_is_noop_and_child_execs(
     assert proc.returncode == 0
 
 
+def test_join_keyring_edquot_aborts_child_before_exec(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bugbot Medium on 90acc2ec: join -1 with live SEARCH must not exec."""
+    import ctypes
+    import errno
+
+    import lumos_board.observer_sandbox as sandbox
+
+    def _edquot(*_a: object, **_k: object) -> int:
+        ctypes.set_errno(errno.EDQUOT)
+        return -1
+
+    monkeypatch.setattr(sandbox, "_LIBC_SYSCALL", _edquot)
+    proc = subprocess.run(
+        ["/bin/true"],
+        preexec_fn=sandbox._join_fresh_session_keyring,
+        timeout=5,
+        check=False,
+    )
+    assert proc.returncode != 0
+
+
 def test_keyctl_denial_does_not_skip_started_sandbox(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Blocked keyctl degrades (no preexec) instead of skip-closing the turn."""
     _stub_launcher(monkeypatch, tmp_path)
+    import errno
+
     import lumos_board.observer_sandbox as sandbox
 
-    monkeypatch.setattr(sandbox, "_LIBC_SYSCALL", None)
-    monkeypatch.setattr(sandbox, "_SYS_KEYCTL_NR", None)
+    monkeypatch.setattr(sandbox, "_probe_join_errno", lambda: errno.EPERM)
 
     def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
         command = list(args[0] if args else kwargs["args"])
@@ -831,6 +857,20 @@ def test_keyctl_denial_does_not_skip_started_sandbox(
     monkeypatch.setattr(subprocess, "run", _fake_run)
     result = run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
     assert result.returncode == 0
+
+
+def test_keyctl_join_edquot_is_unavailable(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Join failed with SEARCH still live → skip-closed, not inherited @s."""
+    _stub_launcher(monkeypatch, tmp_path)
+    import errno
+
+    import lumos_board.observer_sandbox as sandbox
+
+    monkeypatch.setattr(sandbox, "_probe_join_errno", lambda: errno.EDQUOT)
+    with pytest.raises(SandboxUnavailableError, match="inherited @s"):
+        run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
 def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(

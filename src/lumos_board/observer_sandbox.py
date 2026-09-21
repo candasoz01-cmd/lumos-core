@@ -10,6 +10,7 @@ ADR-033 on main is Account Activity Correlation; this file is not that ADR.
 from __future__ import annotations
 
 import ctypes
+import errno
 import logging
 import os
 import shutil
@@ -78,12 +79,21 @@ _CGROUP_DESTROY_TIMEOUT = 2.0
 _CGROUP_DESTROY_SLICE = 0.05
 # linux/keyctl.h KEYCTL_JOIN_SESSION_KEYRING; SYS_keyctl per arch.
 _KEYCTL_JOIN_SESSION_KEYRING = 1
-_KEYCTL_GET_KEYRING_ID = 0
-_KEY_SPEC_SESSION_KEYRING = -3
 _SYS_KEYCTL = {
     "x86_64": 250,
     "aarch64": 219,
 }
+# keyctl blocked: SEARCH is also dead, so inherited @s is not readable.
+# Other join errnos (ENOMEM, EDQUOT) leave SEARCH live — do not exec.
+_KEYCTL_BLOCKED = frozenset(
+    {
+        errno.EPERM,
+        errno.EACCES,
+        errno.ENOSYS,
+        errno.ENOTSUP,
+        getattr(errno, "EOPNOTSUPP", errno.ENOTSUP),
+    }
+)
 # Host-side only: move the launcher pid into the sandbox memory cgroup
 # before exec. Dash-safe ($1, no multi-digit fd). Must not read stdin —
 # fd 0 is the start-sentinel pipe for the inner wrapper.
@@ -475,6 +485,28 @@ def _pidns_reaper_command(command: Sequence[str]) -> list[str]:
     ]
 
 
+def _keyctl_join_raw() -> tuple[int, int]:
+    """``KEYCTL_JOIN_SESSION_KEYRING``; ``(ret, errno)``. Never raises."""
+    syscall = _LIBC_SYSCALL
+    nr = _SYS_KEYCTL_NR
+    if syscall is None or nr is None:
+        return -1, errno.ENOSYS
+    try:
+        ctypes.set_errno(0)
+        ret = int(
+            syscall(
+                ctypes.c_long(nr),
+                ctypes.c_long(_KEYCTL_JOIN_SESSION_KEYRING),
+                ctypes.c_long(0),
+            )
+        )
+    except Exception:
+        return -1, errno.EPERM
+    if ret >= 0:
+        return ret, 0
+    return ret, ctypes.get_errno() or errno.EINVAL
+
+
 def _join_fresh_session_keyring() -> None:
     """Install an empty session keyring in this process (preexec child).
 
@@ -490,56 +522,54 @@ def _join_fresh_session_keyring() -> None:
 
     Must not ``CDLL`` / ``uname`` / ``raise`` here: CPython runs this after
     ``fork`` and before ``exec``. A raise becomes a missing start sentinel
-    and skips every observation turn (Bugbot Mediums on b8302b77). Join
-    failure is best-effort isolation, same class as cgroup degrade.
+    and skips every observation turn (Bugbot Mediums on b8302b77). A
+    blocked ``keyctl`` (EPERM/ENOSYS) also blocks SEARCH, so inherited
+    ``@s`` is inert and the child still execs. ``ret == -1`` with a live
+    SEARCH (ENOMEM, EDQUOT) must not exec: ``os._exit`` rather than raise
+    (Bugbot Medium on 90acc2ec).
     """
-    syscall = _LIBC_SYSCALL
-    nr = _SYS_KEYCTL_NR
-    if syscall is None or nr is None:
+    ret, err = _keyctl_join_raw()
+    if ret >= 0 or err in _KEYCTL_BLOCKED:
         return
-    try:
-        syscall(
-            ctypes.c_long(nr),
-            ctypes.c_long(_KEYCTL_JOIN_SESSION_KEYRING),
-            ctypes.c_long(0),
-        )
-    except Exception:
-        return
+    os._exit(1)
 
 
-def _keyctl_is_usable() -> bool:
-    """Parent-side probe: ``keyctl`` is not seccomp/LSM blocked.
+def _probe_join_errno() -> int:
+    """Join in a throwaway child so the observer's own ``@s`` is not replaced.
 
-    Uses ``KEYCTL_GET_KEYRING_ID`` so the observer's own ``@s`` is not
-    replaced. A blocked ``keyctl`` also blocks ``KEYCTL_SEARCH``, so the
-    credential leak is already dead; skipping the join is residual, not
-    fail-closed.
+    Returns 0 on success, a positive ``errno`` on join failure.
     """
-    syscall = _LIBC_SYSCALL
-    nr = _SYS_KEYCTL_NR
-    if syscall is None or nr is None:
-        return False
+    if _LIBC_SYSCALL is None or _SYS_KEYCTL_NR is None:
+        return errno.ENOSYS
     try:
-        ret = syscall(
-            ctypes.c_long(nr),
-            ctypes.c_long(_KEYCTL_GET_KEYRING_ID),
-            ctypes.c_long(_KEY_SPEC_SESSION_KEYRING),
-            ctypes.c_long(0),
-        )
-    except Exception:
-        return False
-    return int(ret) >= 0
+        pid = os.fork()
+    except OSError as exc:
+        return exc.errno or errno.EAGAIN
+    if pid == 0:
+        ret, err = _keyctl_join_raw()
+        os._exit(0 if ret >= 0 else min(err or 1, 127))
+    _pid, status = os.waitpid(pid, 0)
+    if not os.WIFEXITED(status):
+        return errno.EINVAL
+    return os.WEXITSTATUS(status)
 
 
 def _session_keyring_preexec() -> object | None:
-    """``preexec_fn`` when ``keyctl`` can isolate ``@s``; else None + WARNING."""
-    if _LIBC_SYSCALL is None or _SYS_KEYCTL_NR is None or not _keyctl_is_usable():
+    """``preexec_fn`` when join works; degrade if blocked; else fail-closed."""
+    err = _probe_join_errno()
+    if err == 0:
+        return _join_fresh_session_keyring
+    if err in _KEYCTL_BLOCKED:
         _LOG.warning(
-            "observer sandbox: keyctl unavailable; session keyring @s is "
-            "not isolated this run — degrading, not skip-closed"
+            "observer sandbox: keyctl unavailable (errno %s); session "
+            "keyring @s is not isolated this run — degrading, not skip-closed",
+            err,
         )
         return None
-    return _join_fresh_session_keyring
+    raise SandboxUnavailableError(
+        f"session keyring join failed (errno {err}); "
+        "refusing to start jail with inherited @s"
+    )
 
 
 def _resource_limited_command(command: Sequence[str], *, timeout: float) -> list[str]:
