@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { runInNewContext } from "node:vm";
 
 import handler, {
   REALTIME_MODEL,
@@ -189,6 +190,69 @@ test("live voice page uses WebRTC and removes the secret from the address bar", 
   assert.match(source, /pointerdown/);
   assert.match(source, /pointerup/);
   assert.doesNotMatch(source, /OPENAI_API_KEY/);
+});
+
+test("switching from held push-to-talk to auto restores remote audio", async () => {
+  const source = await readFile(
+    new URL("../ui/src/pages/canli-ses.astro", import.meta.url),
+    "utf8",
+  );
+  const script = source.match(/<script is:inline>([\s\S]*?)<\/script>/)[1];
+  const elements = new Map();
+  const element = (id) => {
+    if (!elements.has(id)) elements.set(id, {
+      dataset: {},
+      muted: false,
+      listeners: {},
+      setAttribute() {},
+      addEventListener(name, listener) { this.listeners[name] = listener; },
+    });
+    return elements.get(id);
+  };
+  const track = { enabled: true };
+  const stream = { getAudioTracks: () => [track], getTracks: () => [track] };
+  const sent = [];
+  let connected;
+  const ready = new Promise((resolve) => { connected = resolve; });
+  runInNewContext(script, {
+    document: { getElementById: element },
+    location: { hash: "#token=test-only", pathname: "/canli-ses" },
+    history: { replaceState() {} },
+    URLSearchParams,
+    navigator: { mediaDevices: { getUserMedia: async () => stream } },
+    fetch: async () => ({ ok: true, text: async () => "test-answer" }),
+    RTCPeerConnection: class {
+      addTrack() {}
+      createDataChannel() {
+        return { readyState: "open", send: (message) => sent.push(JSON.parse(message)) };
+      }
+      async createOffer() { return { sdp: "test-offer" }; }
+      async setLocalDescription() {}
+      async setRemoteDescription() {
+        this.connectionState = "connected";
+        this.onconnectionstatechange();
+        connected();
+      }
+    },
+  });
+  element("toggle").listeners.click();
+  await ready;
+  element("mode-push").listeners.click();
+  assert.equal(track.enabled, false);
+  element("push-to-talk").listeners.pointerdown({ preventDefault() {}, pointerId: 1 });
+  assert.equal(element("remote-audio").muted, true);
+  assert.equal(track.enabled, true);
+  assert.deepEqual(sent, [{ type: "response.cancel" }]);
+
+  element("mode-auto").listeners.click();
+  assert.equal(element("remote-audio").muted, false);
+  assert.equal(track.enabled, true);
+  assert.equal(element("push-to-talk").hidden, true);
+  for (const event of ["pointerup", "pointercancel", "lostpointercapture"]) {
+    element("push-to-talk").listeners[event]();
+    assert.equal(element("remote-audio").muted, false);
+    assert.equal(track.enabled, true);
+  }
 });
 
 test.after(() => {
