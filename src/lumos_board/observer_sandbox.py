@@ -345,12 +345,19 @@ def _bwrap_isolation_prefix() -> list[str]:
     child's stdin is never a host TTY either: it is the sentinel pipe's write
     end, which the wrapper swaps for ``/dev/null`` before the payload execs
     (``_with_start_sentinel``), or ``/dev/null`` directly when no sentinel.
+
+    ``--disable-userns`` is the nested-userns lock: size-capped ``/tmp`` and
+    ``/dev/shm`` are otherwise remountable as uncapped tmpfs after
+    ``unshare -Um`` (Bugbot Medium on ff356baa). ``RLIMIT_AS`` does not
+    count tmpfs pages. This flag stays on *bwrap*, not the host preexec
+    seccomp — that filter runs before the degrade ``unshare --user`` wrapper.
     """
     return [
         _bwrap_path(),
         "--die-with-parent",
         "--new-session",
         "--unshare-all",
+        "--disable-userns",
         "--proc",
         "/proc",
         *_dev_jail_args(),

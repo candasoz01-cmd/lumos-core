@@ -543,6 +543,7 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
         assert "bwrap" in [Path(part).name for part in cmd]
         assert "--new-session" in cmd
         assert "--unshare-all" in cmd
+        assert "--disable-userns" in cmd
         # stdin bir boru — asla operatör TTY'si veya miras host stdin'i değil;
         # payload tarafında sarmalayıcı /dev/null'a çevirir. Cgroup
         # sarmalayıcısı stdin'i okumaz; exec ile iç sarmalayıcıya taşır.
@@ -1275,6 +1276,8 @@ def test_bwrap_launcher_uses_resolved_absolute_host_path(
     prefix = _bwrap_isolation_prefix()
     assert prefix[0] == "/opt/bubblewrap/bin/bwrap"
     assert "--dev" not in prefix
+    assert "--disable-userns" in prefix
+    assert prefix.index("--unshare-all") < prefix.index("--disable-userns")
     tmpfs_targets: list[str] = []
     for i, part in enumerate(prefix):
         if part == "--size":
