@@ -496,7 +496,7 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
     stdin artık sentinel borusunun yazma ucudur (TTY değildir); sarmalayıcı
     onu payload exec'inden önce `exec </dev/null` ile değiştirir.
     """
-    seen: list[tuple[list[str], object]] = []
+    seen: list[tuple[list[str], object, object, object]] = []
     real_run = subprocess.run
 
     def _wrap(*args, **kwargs):  # type: ignore[no-untyped-def]
@@ -505,14 +505,16 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
         stdin_is_pipe = isinstance(stdin, int) and stdin >= 0 and stat.S_ISFIFO(
             os.fstat(stdin).st_mode
         )
-        seen.append((cmd, stdin, stdin_is_pipe))
+        seen.append((cmd, stdin, stdin_is_pipe, kwargs.get("preexec_fn")))
         return real_run(*args, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", _wrap)
     run_git_sandboxed(["status", "--porcelain"], cwd=repo, allowed_roots=[repo])
     probe_sandbox_env(allowed_roots=[repo], host_env=os.environ.copy())
     assert len(seen) >= 2
-    for cmd, stdin, stdin_is_pipe in seen:
+    from lumos_board.observer_sandbox import _join_fresh_session_keyring
+
+    for cmd, stdin, stdin_is_pipe, preexec in seen:
         assert cmd
         # Launcher ya cgroup sarmalayıcısıyla (sh -> cgroup.procs) ya da cgroup
         # delege değilse doğrudan prlimit ile başlar (graceful degrade). İkisi de
@@ -545,6 +547,7 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
         # payload tarafında sarmalayıcı /dev/null'a çevirir. Cgroup
         # sarmalayıcısı stdin'i okumaz; exec ile iç sarmalayıcıya taşır.
         assert stdin_is_pipe, f"stdin {stdin!r} is not the sentinel pipe"
+        assert preexec is _join_fresh_session_keyring
         wrapper = next(
             part
             for part in cmd
@@ -675,6 +678,85 @@ def test_pidns_reaper_reaps_setsid_daemon() -> None:
             proc.wait(timeout=2)
 
 
+def test_fresh_session_keyring_hides_parent_user_key() -> None:
+    """Security Review Medium on 4b92706f: @s is not isolated by setsid."""
+    import ctypes
+
+    from lumos_board.observer_sandbox import (
+        _SYS_KEYCTL,
+        _join_fresh_session_keyring,
+    )
+
+    nr = _SYS_KEYCTL.get(os.uname().machine)
+    if nr is None:
+        pytest.skip(f"keyctl unsupported on {os.uname().machine}")
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.syscall.restype = ctypes.c_long
+    KEYCTL_SEARCH = 10
+    KEY_SPEC_SESSION_KEYRING = -3
+    SYS_add_key = {"x86_64": 248, "aarch64": 217}.get(os.uname().machine)
+    if SYS_add_key is None:
+        pytest.skip("add_key syscall unknown")
+    desc = f"lumos-obs-key-{os.urandom(6).hex()}"
+    ctypes.set_errno(0)
+    added = libc.syscall(
+        ctypes.c_long(SYS_add_key),
+        b"user",
+        desc.encode("ascii"),
+        b"sekrit",
+        ctypes.c_long(6),
+        ctypes.c_long(KEY_SPEC_SESSION_KEYRING),
+    )
+    if added < 0:
+        pytest.skip(f"add_key failed errno={ctypes.get_errno()}")
+
+    def _search() -> int:
+        ctypes.set_errno(0)
+        return int(
+            libc.syscall(
+                ctypes.c_long(nr),
+                ctypes.c_long(KEYCTL_SEARCH),
+                ctypes.c_long(KEY_SPEC_SESSION_KEYRING),
+                b"user",
+                desc.encode("ascii"),
+                ctypes.c_long(0),
+            )
+        )
+
+    assert _search() > 0
+    code = (
+        "import ctypes, os, sys\n"
+        "from lumos_board.observer_sandbox import _join_fresh_session_keyring\n"
+        "os.setsid()\n"
+        f"desc = {desc!r}.encode()\n"
+        "nr = {'x86_64': 250, 'aarch64': 219}[os.uname().machine]\n"
+        "libc = ctypes.CDLL(None, use_errno=True)\n"
+        "libc.syscall.restype = ctypes.c_long\n"
+        "ctypes.set_errno(0)\n"
+        "ret = libc.syscall(nr, 10, ctypes.c_long(-3), b'user', desc, 0)\n"
+        "print(int(ret), ctypes.get_errno())\n"
+        "sys.exit(0 if int(ret) < 0 else 3)\n"
+    )
+    visible = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+    )
+    assert visible.returncode == 3, visible.stdout
+    hidden = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+        preexec_fn=_join_fresh_session_keyring,
+    )
+    assert hidden.returncode == 0, hidden.stdout
+    assert hidden.stdout.split()[1] == "126"  # ENOKEY
+
+
 def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -745,6 +827,9 @@ def test_git_child_failure_with_sentinel_is_result(
         command = list(args[0] if args else kwargs["args"])
         seen_cmd.append(command)
         _write_start_sentinel(command, kwargs.get("stdin"))
+        from lumos_board.observer_sandbox import _join_fresh_session_keyring
+
+        assert kwargs.get("preexec_fn") is _join_fresh_session_keyring
         kwargs["stderr"].write(b"fatal: not a git repository\n")
         return subprocess.CompletedProcess(args=command, returncode=128)
 

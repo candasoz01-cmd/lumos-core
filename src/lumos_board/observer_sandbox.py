@@ -9,6 +9,8 @@ ADR-033 on main is Account Activity Correlation; this file is not that ADR.
 
 from __future__ import annotations
 
+import ctypes
+import errno
 import logging
 import os
 import shutil
@@ -75,6 +77,12 @@ _OUTPUT_LIMIT_MARKER = b"\n[observer sandbox output limit reached]\n"
 # (Bugbot Medium on c8b8c283).
 _CGROUP_DESTROY_TIMEOUT = 2.0
 _CGROUP_DESTROY_SLICE = 0.05
+# linux/keyctl.h KEYCTL_JOIN_SESSION_KEYRING; SYS_keyctl per arch.
+_KEYCTL_JOIN_SESSION_KEYRING = 1
+_SYS_KEYCTL = {
+    "x86_64": 250,
+    "aarch64": 219,
+}
 # Host-side only: move the launcher pid into the sandbox memory cgroup
 # before exec. Dash-safe ($1, no multi-digit fd). Must not read stdin —
 # fd 0 is the start-sentinel pipe for the inner wrapper.
@@ -442,6 +450,38 @@ def _pidns_reaper_command(command: Sequence[str]) -> list[str]:
     ]
 
 
+def _join_fresh_session_keyring() -> None:
+    """Install an empty session keyring in this process (preexec child).
+
+    ``bwrap --new-session`` is POSIX ``setsid``: it does not isolate the
+    kernel session keyring ``@s``. User/pid/ipc namespaces do not either.
+    A Git filter running as the mapped UID can ``KEYCTL_READ`` operator
+    keys inherited on ``@s`` (Kerberos ``KEYRING:`` ccaches) and write
+    them to captured git output (Security Review Medium on 4b92706f).
+    ``KEYCTL_JOIN_SESSION_KEYRING`` with a NULL name replaces ``@s`` for
+    this process and its descendants. Measured: parent user key is visible
+    in a child until this join; after join + ``setsid``, search returns
+    ENOKEY.
+    """
+    nr = _SYS_KEYCTL.get(os.uname().machine)
+    if nr is None:
+        raise OSError(
+            errno.ENOSYS,
+            f"keyctl unsupported on {os.uname().machine}",
+        )
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.syscall.restype = ctypes.c_long
+    ctypes.set_errno(0)
+    ret = libc.syscall(
+        ctypes.c_long(nr),
+        ctypes.c_long(_KEYCTL_JOIN_SESSION_KEYRING),
+        ctypes.c_long(0),
+    )
+    if ret < 0:
+        err = ctypes.get_errno() or errno.EINVAL
+        raise OSError(err, os.strerror(err))
+
+
 def _resource_limited_command(command: Sequence[str], *, timeout: float) -> list[str]:
     """Wrap the sandbox launcher in host-enforced *per-process* rlimits.
 
@@ -569,6 +609,7 @@ def _run_bwrap_limited(
                             timeout=timeout,
                             check=False,
                             close_fds=True,
+                            preexec_fn=_join_fresh_session_keyring,
                             env=scrub_env_for_sandbox(),
                         )
                     except OSError as exc:
