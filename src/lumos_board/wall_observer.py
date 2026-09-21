@@ -74,15 +74,15 @@ _MAX_GITFILE_HOPS = 4
 
 # Index okuma sınırları. Tavanlar düşman girdinin DoS koluna karşıdır; filo
 # gerçeği çok altında (bu repo ~2k girdi, ~250 KB). Aşım fail-closed rettir —
-# kısmi/sessiz okuma değil.
-_INDEX_SIZE_CAP = 128 * 1024 * 1024
+# kısmi/sessiz okuma değil. 50 MB tavanı kurucu kararıdır (2026-09-21).
+_INDEX_SIZE_CAP = 50 * 1024 * 1024
 _INDEX_ENTRY_CAP = 1_000_000
 
 INDEX_REASON_UNREADABLE = "index_unreadable"
 INDEX_REASON_TOO_LARGE = "index_too_large"
 INDEX_REASON_MALFORMED = "index_malformed"
 INDEX_REASON_HASH = "index_hash_unsupported_or_invalid"
-INDEX_REASON_VERSION = "index_version_unsupported"
+INDEX_REASON_VERSION = "index_format_unsupported"
 INDEX_REASON_EXTENSION = "index_extension_unsupported"
 INDEX_REASON_ENTRY_CAP = "index_entry_count_exceeds_cap"
 
@@ -594,8 +594,8 @@ def _read_index_entries(
     üretebilen düşman deponun okumayı subprocess yoluna geri yönlendirme
     kolu olurdu. Desteklenmeyen biçim "temiz" değil, adlı bir rettir.
 
-    Biçim sınırı: v2 tam, v3 (extended flags sözcüğü atlanır — skip-worktree/
-    intent-to-add yol listesini değiştirmez). v4, split-index (`link`),
+    Biçim sınırı: yalnız v2 (kurucu kararı, 2026-09-21: v3 de bu dilimde
+    fail-closed'dur — `index_format_unsupported:v3`). v4, split-index (`link`),
     sparse (`sdir`) ve tanınmayan HER küçük-harf uzantı ret: git'in kendi
     kuralına göre küçük harfle başlayan uzantı "anlamadan geçilemez"dir,
     büyük harfli uzantı (TREE, REUC, …) salt önbellektir ve atlanabilir.
@@ -634,8 +634,8 @@ def _read_index_entries(
     if hashlib.sha1(data[:-20]).digest() != data[-20:]:
         return (), INDEX_REASON_HASH
     version, count = struct.unpack(">II", data[4:12])
-    if version not in (2, 3):
-        return (), f"{INDEX_REASON_VERSION}:{version}"
+    if version != 2:
+        return (), f"{INDEX_REASON_VERSION}:v{version}"
     if count > _INDEX_ENTRY_CAP:
         return (), INDEX_REASON_ENTRY_CAP
     body_end = len(data) - 20
@@ -650,9 +650,7 @@ def _read_index_entries(
         stage = (flags >> 12) & 0x3
         name_offset = offset + 62
         if flags & 0x4000:
-            if version < 3:
-                return (), INDEX_REASON_MALFORMED  # extended bit v2'de sıfır olmak zorunda
-            name_offset += 2
+            return (), INDEX_REASON_MALFORMED  # extended bit v2'de sıfır olmak zorunda
         name_length = flags & 0x0FFF
         if name_length < 0x0FFF:
             if name_offset + name_length > body_end:

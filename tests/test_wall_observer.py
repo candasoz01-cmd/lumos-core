@@ -1319,15 +1319,19 @@ def test_index_parser_reads_unmerged_and_non_utf8_entries(git_repo: Path) -> Non
     assert any(n == "bad\udcffname.txt" for (n, _, _, _) in entries)  # surrogateescape
 
 
-def test_index_v3_skip_worktree_entry_is_read(git_repo: Path) -> None:
-    """v3: extended flags sözcüğü atlanır, yol listesi git ile aynı kalır."""
+def test_index_v3_is_refused_fail_closed(git_repo: Path) -> None:
+    """
+    v2-only (kurucu kararı, 2026-09-21): v3 bu dilimde desteklenmez ve adlı
+    rettir. skip-worktree gerçek bir v3 index üretir; sonuç skip'tir, yanlış
+    okuma değil.
+    """
     _git(git_repo, "update-index", "--skip-worktree", "src/base.py")
     raw = (git_repo / ".git" / "index").read_bytes()
     assert struct.unpack(">I", raw[4:8])[0] == 3  # bayrak v3 olmadan yazılamaz
 
     entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
-    assert failure is None
-    assert set(entries) == _ls_files_stage_set(git_repo)
+    assert entries == ()
+    assert failure == f"{INDEX_REASON_VERSION}:v3"
 
 
 def test_index_split_index_link_extension_is_refused(git_repo: Path) -> None:
@@ -1362,7 +1366,7 @@ def test_index_unsupported_version_is_refused(tmp_path: Path) -> None:
     (gitdir / "index").write_bytes(body + hashlib.sha1(body).digest())
     entries, failure = wall_observer_module._read_index_entries(gitdir)
     assert entries == ()
-    assert failure == f"{INDEX_REASON_VERSION}:4"
+    assert failure == f"{INDEX_REASON_VERSION}:v4"
 
 
 def test_index_bad_checksum_is_honest_about_hash(git_repo: Path) -> None:
@@ -1407,7 +1411,7 @@ def test_index_caps_are_fail_closed(git_repo: Path, monkeypatch) -> None:
     entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
     assert (entries, failure) == ((), INDEX_REASON_TOO_LARGE)
 
-    monkeypatch.setattr(wall_observer_module, "_INDEX_SIZE_CAP", 128 * 1024 * 1024)
+    monkeypatch.setattr(wall_observer_module, "_INDEX_SIZE_CAP", 50 * 1024 * 1024)
     monkeypatch.setattr(wall_observer_module, "_INDEX_ENTRY_CAP", 1)
     entries, failure = wall_observer_module._read_index_entries(git_repo / ".git")
     assert (entries, failure) == ((), INDEX_REASON_ENTRY_CAP)
