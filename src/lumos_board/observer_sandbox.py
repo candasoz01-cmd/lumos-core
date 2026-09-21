@@ -504,7 +504,12 @@ def _keyctl_join_raw() -> tuple[int, int]:
 
 
 def _keyctl_search_is_live() -> bool:
-    """True if KEYCTL_SEARCH still works on inherited ``@s`` (ENOKEY or hit)."""
+    """True unless KEYCTL_SEARCH itself is syscall-dead (EPERM/ENOSYS).
+
+    ENOKEY or a hit means SEARCH works. ENOMEM/EINTR/EACCES do **not**
+    make ``@s`` unreadable — treating those as dead let a failed join
+    still exec with inherited keys (Bugbot Medium on f540ce92).
+    """
     ret, err = _keyctl_raw(
         _KEYCTL_SEARCH,
         ctypes.c_long(_KEY_SPEC_SESSION_KEYRING),
@@ -512,9 +517,11 @@ def _keyctl_search_is_live() -> bool:
         b"lumos-obs-probe",
         ctypes.c_long(0),
     )
-    if ret >= 0:
+    if ret >= 0 or err == errno.ENOKEY:
         return True
-    return err == errno.ENOKEY
+    if err in _KEYCTL_BLOCKED:
+        return False
+    return True
 
 
 def _join_fresh_session_keyring() -> None:
@@ -533,10 +540,10 @@ def _join_fresh_session_keyring() -> None:
     Must not ``CDLL`` / ``uname`` / ``raise`` here: CPython runs this after
     ``fork`` and before ``exec``. A raise becomes a missing start sentinel
     and skips every observation turn (Bugbot Mediums on b8302b77). Join
-    failure is ignorable only when SEARCH is also dead (EPERM/ENOSYS or a
-    SEARCH that itself fails without ENOKEY). ``EACCES``/``ENOTSUP`` deny
-    this join but leave SEARCH live — ``os._exit`` (Bugbot Medium on
-    73928f52).
+    failure is ignorable only when SEARCH is also syscall-dead
+    (EPERM/ENOSYS). ``EACCES``/``ENOTSUP``/``ENOMEM`` on JOIN or SEARCH
+    leave ``@s`` readable — ``os._exit`` (Bugbot Mediums on 73928f52 and
+    f540ce92).
     """
     ret, err = _keyctl_join_raw()
     if ret >= 0:
@@ -585,10 +592,23 @@ def _probe_join_errno() -> int:
         except OSError:
             pass
         try:
-            os.waitpid(pid, 0)
+            wpid, status = os.waitpid(pid, 0)
+            reaped = wpid != 0
         except OSError:
-            pass
-        return errno.EPERM
+            return errno.EPERM
+        if not reaped:
+            return errno.EPERM
+    return _classify_probe_status(status)
+
+
+def _classify_probe_status(status: int) -> int:
+    """Map a wait status to join errno. SIGSYS/SIGKILL → blocked (EPERM).
+
+    A timeout path that SIGKILLs must still honour a child that *already
+    exited* (success or fail-closed errno). Discarding that status and
+    returning EPERM ran the jail on inherited ``@s`` (Bugbot Medium on
+    f540ce92).
+    """
     if os.WIFSIGNALED(status):
         sig = os.WTERMSIG(status)
         if sig in (signal.SIGSYS, signal.SIGKILL):

@@ -875,6 +875,26 @@ def test_keyctl_blocked_errnos_are_syscall_dead_only() -> None:
     assert errno.ENOTSUP not in _KEYCTL_BLOCKED
 
 
+def test_join_keyring_enomem_search_aborts_child(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bugbot Medium on f540ce92: SEARCH ENOMEM is not a dead keyctl."""
+    import errno
+
+    import lumos_board.observer_sandbox as sandbox
+
+    monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.ENOMEM))
+    monkeypatch.setattr(sandbox, "_keyctl_raw", lambda *_a, **_k: (-1, errno.ENOMEM))
+    assert sandbox._keyctl_search_is_live() is True
+    proc = subprocess.run(
+        ["/bin/true"],
+        preexec_fn=sandbox._join_fresh_session_keyring,
+        timeout=5,
+        check=False,
+    )
+    assert proc.returncode != 0
+
+
 def test_keyctl_denial_does_not_skip_started_sandbox(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -954,7 +974,7 @@ def test_probe_hang_degrades_not_block(
     def _waitpid(pid: int, flags: int) -> tuple[int, int]:
         if flags == os.WNOHANG:
             return 0, 0
-        return pid, 0
+        return pid, int(signal.SIGKILL)
 
     monkeypatch.setattr(sandbox.os, "waitpid", _waitpid)
     monkeypatch.setattr(
@@ -972,6 +992,60 @@ def test_probe_hang_degrades_not_block(
     result = run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
     assert result.returncode == 0
     assert killed == [(4242, signal.SIGKILL)]
+
+
+def test_probe_timeout_honours_late_success_status(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Bugbot Medium on f540ce92: timeout must not discard an already-exited child."""
+    _stub_launcher(monkeypatch, tmp_path)
+    import lumos_board.observer_sandbox as sandbox
+
+    monkeypatch.setattr(sandbox, "_PROBE_WAIT_S", 0.04)
+    monkeypatch.setattr(sandbox, "_PROBE_SLICE_S", 0.01)
+    monkeypatch.setattr(sandbox.os, "fork", lambda: 4242)
+
+    def _waitpid(pid: int, flags: int) -> tuple[int, int]:
+        if flags == os.WNOHANG:
+            return 0, 0
+        return pid, 0  # WIFEXITED 0 — join succeeded before SIGKILL landed
+
+    monkeypatch.setattr(sandbox.os, "waitpid", _waitpid)
+    monkeypatch.setattr(sandbox.os, "kill", lambda *_a: None)
+
+    def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
+        command = list(args[0] if args else kwargs["args"])
+        _write_start_sentinel(command, kwargs.get("stdin"))
+        assert kwargs.get("preexec_fn") is sandbox._join_fresh_session_keyring
+        kwargs["stdout"].write(b"")
+        return subprocess.CompletedProcess(args=command, returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+    result = run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
+    assert result.returncode == 0
+
+
+def test_probe_timeout_honours_late_fail_closed_status(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _stub_launcher(monkeypatch, tmp_path)
+    import errno
+
+    import lumos_board.observer_sandbox as sandbox
+
+    monkeypatch.setattr(sandbox, "_PROBE_WAIT_S", 0.04)
+    monkeypatch.setattr(sandbox, "_PROBE_SLICE_S", 0.01)
+    monkeypatch.setattr(sandbox.os, "fork", lambda: 4242)
+
+    def _waitpid(pid: int, flags: int) -> tuple[int, int]:
+        if flags == os.WNOHANG:
+            return 0, 0
+        return pid, errno.EDQUOT << 8
+
+    monkeypatch.setattr(sandbox.os, "waitpid", _waitpid)
+    monkeypatch.setattr(sandbox.os, "kill", lambda *_a: None)
+    with pytest.raises(SandboxUnavailableError, match="inherited @s"):
+        run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
 def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(
