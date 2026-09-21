@@ -105,17 +105,23 @@ class ObservationRun:
 
 class GitReadError(RuntimeError):
     """
-    Bir git okuması başarısız oldu (sıfır-dışı çıkış, timeout, spawn hatası).
+    En az bir git okuması başarısız oldu (sıfır-dışı çıkış, timeout, spawn).
 
     Sessizce boş küme dönmek, başarısız incelemeyi TEMİZ worktree ile aynı
-    gösterirdi: commit'lenmiş S1/S2 kanıtı iz bırakmadan kaybolur, skip
-    kaydı da düşmezdi. Başarısız okuma "temiz" değil "okunamadı"dır;
-    `observe` bunu `git_read_failed:<komut>` gerekçeli skip kaydına indirir.
+    gösterirdi: S1/S2 kanıtı iz bırakmadan kaybolur, skip kaydı da düşmezdi.
+    Ama tersine, tek okuma hatasında HER kanıtı atmak da körlük: eksik base
+    ref commit diff'ini düşürür, çalışma ağacındaki commit'lenmemiş sapma
+    yine okunabilirdir — ve bu katmanın asıl hedefi tam da odur. Bu yüzden
+    hata, okunabilen kısmı `partial_paths` ile birlikte taşır: `observe`
+    sinyalleri kısmi kanıttan üretir VE `git_read_failed:<komutlar>`
+    gerekçesini kayda düşer. Başarısız okuma "temiz" değil "okunamadı"dır;
+    okunabilen kanıt da hataya kurban edilmez.
     """
 
-    def __init__(self, command: str):
-        super().__init__(command)
-        self.command = command
+    def __init__(self, commands: Sequence[str], partial_paths: Sequence[str] = ()):
+        super().__init__(",".join(commands))
+        self.commands = tuple(commands)
+        self.partial_paths = tuple(partial_paths)
 
 
 def _format_time(value: datetime) -> str:
@@ -164,10 +170,13 @@ def touched_paths(
     gitdir = resolve_pinned_gitdir(safe, allowed_roots)
     if gitdir is None:
         return ()
-    collected: set[str] = set()
-    collected.update(_git_diff_paths(safe, base_ref, gitdir=gitdir))
-    collected.update(_git_status_paths(safe, gitdir=gitdir))
-    return _repo_relative(collected)
+    diff_paths, diff_failed = _git_diff_paths(safe, base_ref, gitdir=gitdir)
+    status_paths, status_failed = _git_status_paths(safe, gitdir=gitdir)
+    paths = _repo_relative(diff_paths | status_paths)
+    failed = diff_failed + status_failed
+    if failed:
+        raise GitReadError(failed, partial_paths=paths)
+    return paths
 
 
 def resolve_inspectable_worktree(raw: str | Path, allowed_roots: Sequence[Path | str]) -> Path | None:
@@ -500,14 +509,16 @@ def _run_git(worktree: Path, args: Sequence[str], *, gitdir: Path) -> str | None
     return proc.stdout.decode("utf-8", errors="surrogateescape")
 
 
-def _git_diff_paths(worktree: Path, base_ref: str, *, gitdir: Path) -> set[str]:
+def _git_diff_paths(
+    worktree: Path, base_ref: str, *, gitdir: Path
+) -> tuple[set[str], list[str]]:
     """Commit'lenmiş fark. `-z` ile NUL ayraç: boşluklu yol bozulmaz."""
     out = _run_git(worktree, ["diff", "--name-only", "-z", f"{base_ref}...HEAD"], gitdir=gitdir)
     if out is None:
         # Eksik base ref, bozuk depo, timeout: hiçbiri "değişiklik yok" demek
-        # değildir. Boş küme dönmek kanıtı sessizce yutardı.
-        raise GitReadError("diff")
-    return {chunk for chunk in out.split("\0") if chunk}
+        # değildir. Hata kaydedilir; diğer okumalar yine denenir.
+        return set(), ["diff"]
+    return {chunk for chunk in out.split("\0") if chunk}, []
 
 
 def _raw_worktree_blob(worktree: Path, path: str, oid: str) -> tuple[str, str] | None:
@@ -552,7 +563,7 @@ def _raw_worktree_blob(worktree: Path, path: str, oid: str) -> tuple[str, str] |
             os.close(directory)
 
 
-def _git_status_paths(worktree: Path, *, gitdir: Path) -> set[str]:
+def _git_status_paths(worktree: Path, *, gitdir: Path) -> tuple[set[str], list[str]]:
     """Index/staged/untracked yolları oku; status'un clean filter'ını çalıştırma.
 
     Ham hash karşılaştırması dönüşümlü dosyalarda muhafazakârdır; repo-local
@@ -560,17 +571,21 @@ def _git_status_paths(worktree: Path, *, gitdir: Path) -> set[str]:
     staged diff'te --no-renames ile ayrı yollar olarak korunur.
     """
     paths: set[str] = set()
-    for args in (
-        ["diff", "--cached", "--name-only", "--no-renames", "--no-ext-diff", "--no-textconv", "-z"],
-        ["ls-files", "--others", "--exclude-standard", "-z"],
+    failed: list[str] = []
+    for name, args in (
+        ("diff-cached", ["diff", "--cached", "--name-only", "--no-renames",
+                         "--no-ext-diff", "--no-textconv", "-z"]),
+        ("ls-files-others", ["ls-files", "--others", "--exclude-standard", "-z"]),
     ):
         out = _run_git(worktree, args, gitdir=gitdir)
         if out is None:
-            raise GitReadError(args[0])
+            failed.append(name)
+            continue
         paths.update(chunk for chunk in out.split("\0") if chunk)
     entries = _run_git(worktree, ["ls-files", "--stage", "-z"], gitdir=gitdir)
     if entries is None:
-        raise GitReadError("ls-files")
+        failed.append("ls-files-stage")
+        entries = ""
     for entry in entries.split("\0"):
         if not entry:
             continue
@@ -582,7 +597,7 @@ def _git_status_paths(worktree: Path, *, gitdir: Path) -> set[str]:
             actual = _raw_worktree_blob(worktree, path, oid)
             if actual != (oid, mode):
                 paths.add(path)
-    return paths
+    return paths, failed
 
 
 def _path_in_scopes(path: str, scopes: Sequence[str]) -> bool:
@@ -908,10 +923,14 @@ def observe(
                         Path(claim.worktree), allowed_roots=allowed_roots, base_ref=base_ref
                     )
                 except GitReadError as exc:
-                    # Başarısız git okuması "temiz worktree" DEĞİLDİR; kanıt
-                    # sessizce kaybolmaz, gerekçe skip kaydına iner.
-                    paths = ()
-                    run.skipped.append(f"{claim.claim_id}: git_read_failed:{exc.command}")
+                    # Başarısız git okuması "temiz worktree" DEĞİLDİR; gerekçe
+                    # kayda iner. Okunabilen kısmi kanıt da atılmaz: eksik base
+                    # ref commit diff'ini düşürse bile commit'lenmemiş sapma
+                    # hâlâ görünürdür ve sinyaller ondan üretilir.
+                    paths = exc.partial_paths
+                    run.skipped.append(
+                        f"{claim.claim_id}: git_read_failed:{','.join(exc.commands)}"
+                    )
                 except Exception as exc:
                     paths = ()
                     run.skipped.append(

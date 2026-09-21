@@ -1206,13 +1206,21 @@ def test_failed_git_read_is_a_named_skip_not_a_clean_worktree(tmp_path: Path) ->
     approved.mkdir()
     repo = _repo_with_dirty_file(approved, "repo", "ok.txt")
 
-    with pytest.raises(GitReadError):
+    with pytest.raises(GitReadError) as caught:
         # origin/main bu depoda yok: diff başarısız, sonuç "temiz" olamaz.
         touched_paths(repo, allowed_roots=[approved], base_ref="origin/main")
+    # Kısmi kanıt hataya kurban edilmez: commit'lenmemiş sapma hâlâ okunur.
+    assert "diff" in caught.value.commands
+    assert "ok.txt" in caught.value.partial_paths
 
     store = _store(tmp_path)
     claim = _claim(store, worktree=str(repo))
     run = observe(store.store_dir, allowed_roots=[approved], base_ref="origin/main", now=NOW)
     assert any(
         claim.claim_id in s and "git_read_failed:diff" in s for s in run.skipped
+    )
+    # Sinyaller kısmi kanıttan yine üretilir (ok.txt kapsam dışıdır).
+    assert any(
+        o.claim_id == claim.claim_id and "ok.txt" in o.evidence.get("paths", [])
+        for o in run.observations
     )
