@@ -511,8 +511,17 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
     probe_sandbox_env(allowed_roots=[repo], host_env=os.environ.copy())
     assert len(seen) >= 2
     for cmd, stdin, stdin_is_pipe in seen:
-        assert cmd and Path(cmd[0]).name == "sh"
-        assert any("cgroup.procs" in part for part in cmd if isinstance(part, str))
+        assert cmd
+        # Launcher ya cgroup sarmalayıcısıyla (sh -> cgroup.procs) ya da cgroup
+        # delege değilse doğrudan prlimit ile başlar (graceful degrade). İkisi de
+        # geçerli; TTY/stdin invariantı her iki path'te de aynıdır.
+        if Path(cmd[0]).name == "sh":
+            assert any("cgroup.procs" in part for part in cmd if isinstance(part, str))
+        else:
+            assert Path(cmd[0]).name == "prlimit"
+            assert not any(
+                "cgroup.procs" in part for part in cmd if isinstance(part, str)
+            )
         assert any(Path(part).name == "prlimit" for part in cmd)
         nproc = next(part for part in cmd if part.startswith("--nproc="))
         soft, hard = nproc.removeprefix("--nproc=").split(":")
@@ -996,3 +1005,59 @@ def test_memory_cgroup_bounds_forked_anonymous_pages() -> None:
     if proc.stdout:
         alive = proc.stdout.decode().strip().splitlines()[-1]
         assert alive != "8"
+
+
+@needs_bwrap
+def test_observer_runs_when_cgroup_unavailable(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Option (a) graceful degrade: cgroup v2/delegation yoksa observer SUSMAZ.
+
+    cgroup v1 hostta (ölçüldü) fail-closed, düşman hiçbir şey yapmadan her
+    gözlem turunu atlatırdı. Delege memory controller yokken run_git_sandboxed
+    per-process rlimit'lerle koşmaya devam etmeli — SandboxUnavailableError
+    DEĞİL — ve launcher cgroup'a taşınmamalı (cgroup.procs komutta yok).
+    """
+    def _no_cgroup() -> Path:
+        raise SandboxUnavailableError("forced: no delegated cgroup for test")
+
+    monkeypatch.setattr(
+        "lumos_board.observer_sandbox._memory_cgroup_insert_parent", _no_cgroup
+    )
+
+    real_run = subprocess.run
+    seen: list[list[str]] = []
+
+    def _wrap(*args, **kwargs):  # type: ignore[no-untyped-def]
+        seen.append(list(args[0] if args else kwargs.get("args") or []))
+        return real_run(*args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", _wrap)
+    result = run_git_sandboxed(["status", "--porcelain"], cwd=repo, allowed_roots=[repo])
+    assert result.returncode == 0  # observer çalıştı, tur atlanmadı
+    launcher = next((c for c in seen if any("bwrap" in Path(p).name for p in c)), None)
+    assert launcher is not None
+    assert not any("cgroup.procs" in p for p in launcher), (
+        "degrade modunda launcher cgroup'a taşınmamalı"
+    )
+
+
+@needs_bwrap
+def test_timeout_after_start_is_result_real_bwrap(repo: Path) -> None:
+    """Security Review Medium on 6aef3d3f (gerçek bwrap): repo-kontrollü bir
+    clean filter wall-clock timeout'a kadar uyusa bile canlı jail'in sonucu
+    setup-failure DEĞİL — SandboxGitResult (rc 124), tur atlanmaz. Böylece
+    düşman filter timeout üzerinden her gözlem turunu bastıramaz."""
+    (repo / ".gitattributes").write_text("hangme filter=sleeper\n", encoding="utf-8")
+    (repo / "hangme").write_text("v1\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-m", "hang")
+    _git(repo, "config", "filter.sleeper.clean", "sleep 30")
+    (repo / "hangme").write_text("v2\n", encoding="utf-8")  # unstaged: clean filter koşar
+
+    result = run_git_sandboxed(
+        ["diff", "--", "hangme"], cwd=repo, allowed_roots=[repo], timeout=3
+    )
+    assert result.returncode == 124  # SandboxUnavailableError DEĞİL: bir sonuç
+    assert "timed out" in result.stderr
+    assert "lumos-sandbox-start" not in result.stderr

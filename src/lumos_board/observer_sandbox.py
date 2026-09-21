@@ -9,6 +9,7 @@ ADR-033 on main is Account Activity Correlation; this file is not that ADR.
 
 from __future__ import annotations
 
+import logging
 import os
 import shutil
 import subprocess
@@ -17,6 +18,8 @@ from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+
+_LOG = logging.getLogger(__name__)
 
 # Env keys that must never enter the sandbox (operator / agent credentials).
 _BLOCKED_ENV_PREFIXES = (
@@ -307,42 +310,63 @@ def _destroy_memory_cgroup(cg: Path) -> None:
 @contextmanager
 def _sandbox_memory_cgroup(
     *, limit_bytes: int | None = None
-) -> Iterator[Path]:
-    """Create a sibling cgroup with ``memory.max`` = tree budget; fail closed."""
-    parent = _memory_cgroup_insert_parent()
+) -> Iterator[Path | None]:
+    """Gerçek tree ``memory.max`` (cgroup v2 delege memory controller varsa),
+    yoksa ``None`` — graceful degrade, per-process rlimit'lerle devam.
+
+    Fail-closed DEĞİLDİR. cgroup v2/delegation olmayan bir hostta (ör. cgroup
+    v1, ölçüldü) toplam-RAM tavanı kurulamıyor diye observer'ı komple
+    susturmak, düşman hiçbir şey yapmadan HER gözlem turunu atlatırdı —
+    timeout bulgusunun (6aef3d3) çözdüğü observation-skip sınıfının koşulsuz
+    ve daha kötü hali. Bu yüzden cap uygulanamadığında ``None`` döner,
+    ``_resource_limited_command``'ın per-process ``--as``/``nproc`` sınırları
+    yürür ve residual risk WARNING olarak kaydedilir. Sahte bir "toplam limit"
+    İDDİA edilmez; yalnızca o turda tree-RAM tavanı yoktur (Security Review
+    Medium on 6aef3d3f; option (a): gerçek cgroup varsa uygula, yoksa degrade).
+    """
+    cg = _try_create_memory_cgroup(limit_bytes)
+    try:
+        yield cg
+    finally:
+        if cg is not None:
+            _destroy_memory_cgroup(cg)
+
+
+def _try_create_memory_cgroup(limit_bytes: int | None) -> Path | None:
+    """Sibling cgroup + ``memory.max``; kurulamıyorsa None (degrade), asla raise."""
+    try:
+        parent = _memory_cgroup_insert_parent()
+    except SandboxUnavailableError as exc:
+        _LOG.warning(
+            "observer sandbox tree-RAM cgroup unavailable (%s); degrading to "
+            "per-process rlimits only — no total-RAM cap this run",
+            exc,
+        )
+        return None
     name = f"lumos-obs-{os.getpid()}-{os.urandom(6).hex()}"
     cg = parent / name
     try:
         cg.mkdir(mode=0o700)
-    except OSError as exc:
-        raise SandboxUnavailableError(
-            f"cannot create sandbox memory cgroup: {exc}"
-        ) from exc
-    try:
         budget = _MAX_TREE_MEMORY_BYTES if limit_bytes is None else limit_bytes
-        try:
-            (cg / "memory.max").write_text(str(budget), encoding="utf-8")
-        except OSError as exc:
-            raise SandboxUnavailableError(
-                f"cannot set cgroup memory.max: {exc}"
-            ) from exc
+        (cg / "memory.max").write_text(str(budget), encoding="utf-8")
         swap = cg / "memory.swap.max"
         if swap.exists():
-            try:
-                swap.write_text("0", encoding="utf-8")
-            except OSError as exc:
-                raise SandboxUnavailableError(
-                    f"cannot set cgroup memory.swap.max: {exc}"
-                ) from exc
+            swap.write_text("0", encoding="utf-8")
         oom = cg / "memory.oom.group"
         if oom.exists():
             try:
                 oom.write_text("1", encoding="utf-8")
             except OSError:
                 pass
-        yield cg
-    finally:
+        return cg
+    except OSError as exc:
+        _LOG.warning(
+            "observer sandbox cgroup memory.max not applied (%s); degrading to "
+            "per-process rlimits only — no total-RAM cap this run",
+            exc,
+        )
         _destroy_memory_cgroup(cg)
+        return None
 
 
 def _into_cgroup_command(cgroup: Path, command: Sequence[str]) -> list[str]:
@@ -458,7 +482,10 @@ def _run_bwrap_limited(
     try:
         limited_command = _resource_limited_command(command, timeout=timeout)
         with _sandbox_memory_cgroup() as cgroup:
-            limited_command = _into_cgroup_command(cgroup, limited_command)
+            # cgroup None ise (v1/delegation yok) graceful degrade: launcher'ı
+            # cgroup'a taşımadan, yalnız per-process rlimit'lerle koş.
+            if cgroup is not None:
+                limited_command = _into_cgroup_command(cgroup, limited_command)
             timed_out = False
             try:
                 with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
