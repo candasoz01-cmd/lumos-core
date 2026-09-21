@@ -460,7 +460,6 @@ def _run_git(worktree: Path, args: Sequence[str], *, gitdir: Path) -> str | None
             ["git", *overrides, *pinned, *args],
             cwd=str(worktree),
             capture_output=True,
-            text=True,
             timeout=30,
             check=False,
             env=_git_env(),
@@ -469,7 +468,12 @@ def _run_git(worktree: Path, args: Sequence[str], *, gitdir: Path) -> str | None
         return None
     if proc.returncode != 0:
         return None
-    return proc.stdout
+    # `-z` çıktısı ham bayttır: dosya adı UTF-8 olmak zorunda değildir.
+    # `text=True` strict decode kullanır ve kök içindeki TEK bozuk dosya adı
+    # UnicodeDecodeError ile bütün gözlem turunu düşürürdü — gözlenen tarafın
+    # gözlemciyi kapatabildiği bir fail-open. NUL ayraç geçerli kaldığı için
+    # replace yalnız bozuk adı maskeler; yol yine kaydedilir, tur yaşar.
+    return proc.stdout.decode("utf-8", errors="replace")
 
 
 def _git_diff_paths(worktree: Path, base_ref: str, *, gitdir: Path) -> set[str]:
@@ -850,9 +854,18 @@ def observe(
                 paths = ()
                 run.skipped.append(f"{claim.claim_id}: {reason}")
             else:
-                paths = touched_paths(
-                    Path(claim.worktree), allowed_roots=allowed_roots, base_ref=base_ref
-                )
+                # Tek claim'in beklenmedik hatası bütün turu düşüremez: aksi
+                # halde gözlenen taraf kendi worktree'siyle DİĞER claim'lerin
+                # gözlemini kapatabilirdi. Hata, sebebiyle skip kaydına iner.
+                try:
+                    paths = touched_paths(
+                        Path(claim.worktree), allowed_roots=allowed_roots, base_ref=base_ref
+                    )
+                except Exception as exc:
+                    paths = ()
+                    run.skipped.append(
+                        f"{claim.claim_id}: inspection_error:{type(exc).__name__}"
+                    )
 
         run.observations.extend(
             observe_scope(claim, paths, other_active=active, now=moment)

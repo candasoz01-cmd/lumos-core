@@ -1078,3 +1078,60 @@ def test_missing_index_is_not_a_refusal(tmp_path: Path) -> None:
     repo = _repo_with_dirty_file(tmp_path, "repo", "ok.txt")
     (repo / ".git" / "index").unlink()
     assert pin_repository(repo, [tmp_path])[0] == repo / ".git"
+
+
+def test_non_utf8_filename_does_not_abort_observation(tmp_path: Path) -> None:
+    """
+    Git `-z` çıktısı ham bayttır; UTF-8 olmayan tek bir dosya adı strict
+    decode ile bütün turu düşürürdü — gözlenen tarafın gözlemciyi kapattığı
+    bir fail-open. Bozuk ad maskelenmiş biçimde kaydedilir, tur yaşar.
+    """
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    repo = _repo_with_dirty_file(approved, "repo", "ok.txt")
+    with open(os.path.join(os.fsencode(repo), b"bad\xffname.txt"), "wb") as handle:
+        handle.write(b"x")
+
+    found = touched_paths(repo, allowed_roots=[approved], base_ref="HEAD")
+    assert "ok.txt" in found
+    assert any("�" in p for p in found)
+
+    store = _store(tmp_path)
+    poisoned = _claim(store, worktree=str(repo))
+    healthy = _claim(store, task_id="TD-98", owner="agent-b", branch="codex/y", scopes=["docs"])
+    run = observe(
+        store.store_dir,
+        allowed_roots=[approved],
+        worktree_paths={healthy.claim_id: ["panel/x.py"]},
+        now=NOW,
+    )
+    assert any(o.claim_id == poisoned.claim_id for o in run.observations)
+    assert any(o.claim_id == healthy.claim_id for o in run.observations)
+
+
+def test_unexpected_inspection_error_is_a_skip_not_an_abort(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Tek claim'in beklenmedik hatası diğer claim'lerin gözlemini kapatamaz;
+    # hata gerekçesiyle skip kaydına iner.
+    import lumos_board.wall_observer as wall_observer_module
+
+    store = _store(tmp_path)
+    repo = _repo_with_dirty_file(tmp_path, "repo", "ok.txt")
+    broken = _claim(store, worktree=str(repo))
+    healthy = _claim(store, task_id="TD-98", owner="agent-b", branch="codex/y", scopes=["docs"])
+
+    def boom(*args: object, **kwargs: object) -> tuple[str, ...]:
+        raise RuntimeError("boom")
+
+    monkeypatch.setattr(wall_observer_module, "touched_paths", boom)
+    run = observe(
+        store.store_dir,
+        allowed_roots=[tmp_path],
+        worktree_paths={healthy.claim_id: ["panel/x.py"]},
+        now=NOW,
+    )
+    assert any(
+        broken.claim_id in s and "inspection_error:RuntimeError" in s for s in run.skipped
+    )
+    assert any(o.claim_id == healthy.claim_id for o in run.observations)
