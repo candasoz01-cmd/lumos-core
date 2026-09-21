@@ -25,6 +25,7 @@ import pytest
 from lumos_board.task_claim import TaskClaimStore
 from lumos_board.wall_observer import (
     OBSERVATION_SCHEMA,
+    REASON_INDEX_REDIRECTED,
     REASON_MISSING,
     REASON_NOT_A_DIR,
     REASON_NO_REPO,
@@ -1027,3 +1028,53 @@ def test_alternate_path_control_characters_are_not_line_separators(
     (objects / f"safe{separator}bounce").symlink_to(outside, target_is_directory=True)
     (objects / "info" / "alternates").write_bytes(f"safe{separator}bounce\n".encode())
     assert pin_repository(git_repo, [git_repo]) == (None, REASON_OBJECTS_OUTSIDE)
+
+
+def test_index_symlinked_to_foreign_repo_is_refused(tmp_path: Path) -> None:
+    """
+    Depo, commondir ve nesne deposu hapsedildi diye index hapsedilmiş olmaz:
+    `ls-files --stage` ile `diff --cached`'in okuduğu veri `$GIT_DIR/index`'tir
+    ve git oradaki symlink'i takip eder. Kök içindeki bir worktree index'i
+    başka bir okunabilir deponun index'ine bağlarsa, o deponun izlenen yolları
+    bu claim'in dokunuşu gibi günceye yazılırdı.
+    """
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    outside = _repo_with_dirty_file(tmp_path, "secret_repo", "OUTSIDE_SECRET.txt")
+    victim = _repo_with_dirty_file(approved, "innocent", "ok.txt")
+    index = victim / ".git" / "index"
+    index.unlink()
+    index.symlink_to(outside / ".git" / "index")
+
+    # Kontrol: aynı fixture gerçekten Git'e yabancı index'i okutabiliyor.
+    leaked = subprocess.run(["git", "ls-files"], cwd=victim,
+                            capture_output=True, text=True, check=True).stdout
+    assert "OUTSIDE_SECRET.txt" in leaked
+
+    assert pin_repository(victim, [approved]) == (None, REASON_INDEX_REDIRECTED)
+    assert touched_paths(victim, allowed_roots=[approved], base_ref="HEAD") == ()
+    store = _store(tmp_path)
+    claim = _claim(store, worktree=str(victim))
+    run = observe(store.store_dir, allowed_roots=[approved], now=NOW)
+    assert any(REASON_INDEX_REDIRECTED in s and claim.claim_id in s for s in run.skipped)
+    assert "OUTSIDE_SECRET" not in str(run.observations)
+
+
+def test_sharedindex_symlink_is_refused(tmp_path: Path) -> None:
+    # Split-index parçaları da index gibi `$GIT_DIR`'den okunur; symlink'leri
+    # aynı yönlendirme kapısıdır.
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    outside = _repo_with_dirty_file(tmp_path, "secret_repo", "OUTSIDE_SECRET.txt")
+    repo = _repo_with_dirty_file(approved, "repo", "ok.txt")
+    shared = repo / ".git" / "sharedindex.0000"
+    shared.symlink_to(outside / ".git" / "index")
+    assert pin_repository(repo, [approved]) == (None, REASON_INDEX_REDIRECTED)
+    assert touched_paths(repo, allowed_roots=[approved]) == ()
+
+
+def test_missing_index_is_not_a_refusal(tmp_path: Path) -> None:
+    # Index'in hiç olmaması yönlendirme değildir; taze depo incelenebilir kalır.
+    repo = _repo_with_dirty_file(tmp_path, "repo", "ok.txt")
+    (repo / ".git" / "index").unlink()
+    assert pin_repository(repo, [tmp_path])[0] == repo / ".git"

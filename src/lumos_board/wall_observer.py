@@ -175,6 +175,7 @@ REASON_NO_REPO = "no_repository_at_worktree"
 REASON_REPO_MALFORMED = "repository_pointer_malformed"
 REASON_REPO_OUTSIDE = "repository_outside_approved_root"
 REASON_OBJECTS_OUTSIDE = "object_store_outside_approved_root"
+REASON_INDEX_REDIRECTED = "index_not_a_regular_file"
 REASON_OK = "inside_approved_root"
 
 
@@ -366,6 +367,16 @@ def pin_repository(worktree: Path, allowed_roots: Sequence[Path | str]) -> tuple
     if not _object_store_inside(gitdir, inside):
         return None, REASON_OBJECTS_OUTSIDE
 
+    # Depoyu ve nesne deposunu sabitlemek yetmez: `ls-files --stage` ile
+    # `diff --cached`'in okuduğu VERİ `$GIT_DIR/index`'tir ve git oradaki
+    # symlink'i takip eder. Kök içindeki bir worktree, index'i başka bir
+    # okunabilir deponun index'ine bağlayarak o deponun izlenen yollarını bu
+    # claim'in dokunuşu gibi günceye yazdırabilirdi. Split-index parçaları
+    # (`sharedindex.*`) aynı dizinden aynı biçimde okunur; hepsi düz dosya
+    # olmak zorundadır.
+    if not _index_files_regular(gitdir):
+        return None, REASON_INDEX_REDIRECTED
+
     return gitdir, REASON_OK
 
 
@@ -410,6 +421,18 @@ def _object_store_inside(gitdir: Path, inside) -> bool:
                     candidate = Path(entry)
                     pending.append(candidate if candidate.is_absolute() else store / candidate)
     except (OSError, RuntimeError, ValueError):
+        return False
+    return True
+
+
+def _index_files_regular(gitdir: Path) -> bool:
+    """Index ve split-index dosyaları symlink izlenmeden düz dosya olmalı."""
+    try:
+        for candidate in (gitdir / "index", *sorted(gitdir.glob("sharedindex.*"))):
+            if candidate.exists() or candidate.is_symlink():
+                if not stat.S_ISREG(candidate.lstat().st_mode):
+                    return False
+    except OSError:
         return False
     return True
 
