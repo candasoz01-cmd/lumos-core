@@ -172,9 +172,11 @@ def _bwrap_isolation_prefix() -> list[str]:
     """Shared jail flags: no net, new session, no inherited TTY.
 
     Device nodes git needs (``/dev/null``, urandom) come from ``_dev_jail_args``.
-    Combined with ``--new-session`` and ``stdin=DEVNULL`` so a repo-controlled
-    filter cannot steal the operator controlling TTY (Security Review Medium
-    on 2d56ed6).
+    Combined with ``--new-session`` so a repo-controlled filter cannot steal
+    the operator controlling TTY (Security Review Medium on 2d56ed6). The
+    child's stdin is never a host TTY either: it is the sentinel pipe's write
+    end, which the wrapper swaps for ``/dev/null`` before the payload execs
+    (``_with_start_sentinel``), or ``/dev/null`` directly when no sentinel.
     """
     return [
         _bwrap_path(),
@@ -250,21 +252,42 @@ def _bounded_file_bytes(handle) -> tuple[bytes, bool]:  # type: ignore[no-untype
 
 
 def _with_start_sentinel(payload: Sequence[str]) -> tuple[list[str], bytes]:
-    """Payload'ı, jail kurulduktan sonra stderr'e nonce basan sarmalayıcıya al.
+    """Payload'ı, jail kurulunca nonce'u sentinel kanalına basan sarmalayıcıya al.
 
     Kurulum hatası git hatası DEĞİLDİR: bwrap exec olup jail'i kuramadan
     çökerse (bind hatası, userns reddi) sıfır-dışı çıkış normal bir git
     sonucu gibi dönüyordu ve sözleşmenin "sandbox kurulamadı → tur atlanır"
     semantiği kayboluyordu. bwrap'ın `--info-fd`'si bu ayrımı VEREMEZ —
-    ölçüldü: bind hatasında bile info verisi yazılıyor (fd, child henüz
-    kurulumu bitirmeden doldu). Tek güvenilir işaret payload'ın kendisinin
-    başlamasıdır: jail içinde, komuttan hemen önce, çağrı başına rastgele
-    bir nonce stderr'e basılır. Nonce görülmediyse sandbox hiç başlamamıştır.
-    Düşman kod nonce'u ancak payload BAŞLADIKTAN sonra görebilir; kurulum
-    başarısızsa hiç çalışmaz, taklit edemez.
+    ölçüldü: bind hatasında bile info verisi yazılıyor. Tek güvenilir işaret
+    payload'ın kendisinin başlamasıdır: jail içinde, komuttan hemen önce,
+    çağrı başına rastgele bir nonce basılır. Nonce görülmediyse sandbox hiç
+    başlamamıştır; kurulum başarısızsa düşman kod hiç çalışmaz, taklit edemez.
+
+    Kanal seçimi de düşmanca doğrulandı; iki tasarım ELENDİ:
+
+    - stderr temp dosyası: payload aynı dosyayı fd 2'den miras alır ve
+      `ftruncate` ile nonce'u SİLEBİLİR — canlı sandbox "kurulamadı" sanılır
+      ve gözlem turu atlanır (Bugbot Medium, b56d6c9; repro'landı).
+    - miras kalan boru fd'si: boru truncate edilemez, ama payload
+      `/proc/self/fd/<N>`'i OKUMA modunda yeniden açıp nonce'u boşaltabilir
+      (repro'landı). dash çok haneli fd kapatamadığı için sarmalayıcı böyle
+      bir fd'yi exec'ten önce kapatamaz.
+
+    Kalan tek sızdırmaz kanal: borunun yazma ucu çocuğa STDIN (fd 0) olarak
+    verilir; sarmalayıcı nonce'u fd 0'a yazar ve `exec </dev/null` ile ucu
+    payload exec'inden ÖNCE kapatır. Payload'da boruya açık hiçbir fd kalmaz
+    (`/proc/self/fd` üzerinden yeniden açılamaz), stdin yine /dev/null olur —
+    fd 0 tek hanelidir, dash kısıtına takılmaz. `/dev/null` jail'de
+    `_dev_jail_args` ile garantidir.
     """
     nonce = f"lumos-sandbox-start-{os.urandom(12).hex()}"
-    wrapped = ["/bin/sh", "-c", f'echo {nonce} >&2; exec "$@"', "sh", *payload]
+    wrapped = [
+        "/bin/sh",
+        "-c",
+        f'echo {nonce} >&0; exec </dev/null; exec "$@"',
+        "sh",
+        *payload,
+    ]
     return wrapped, (nonce + "\n").encode("ascii")
 
 
@@ -276,34 +299,51 @@ def _run_bwrap_limited(
 ) -> subprocess.CompletedProcess[bytes]:
     """Run bwrap without pipe-backed, unbounded capture buffers."""
     limited_command = _resource_limited_command(command, timeout=timeout)
-    try:
-        with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
-            proc = subprocess.run(
-                limited_command,
-                stdin=subprocess.DEVNULL,
-                stdout=stdout_file,
-                stderr=stderr_file,
-                text=False,
-                timeout=timeout,
-                check=False,
-                close_fds=True,
-                env=scrub_env_for_sandbox(),
-            )
-            stdout, stdout_limited = _bounded_file_bytes(stdout_file)
-            stderr, stderr_limited = _bounded_file_bytes(stderr_file)
-    except OSError as exc:
-        raise SandboxUnavailableError(f"sandbox failed to exec: {exc}") from exc
-    except subprocess.TimeoutExpired as exc:
-        raise SandboxUnavailableError(f"sandbox process timed out: {exc}") from exc
-
+    # Sentinel kanalı: yazma ucu çocuğa stdin olarak gider, sarmalayıcı onu
+    # payload'dan önce kapatır (_with_start_sentinel). Payload'a hiçbir zaman
+    # boru fd'si ulaşmaz; boruya yazılmış nonce ise silinemez.
+    sentinel_read = sentinel_write = -1
     if start_sentinel is not None:
-        if start_sentinel not in stderr:
-            detail = stderr.decode("utf-8", "replace").strip()[:300]
-            raise SandboxUnavailableError(
-                f"sandbox failed to start: {detail or proc.returncode}"
-            )
-        # Sentinel iç mekanizmadır; çağırana git'in kendi stderr'i döner.
-        stderr = stderr.replace(start_sentinel, b"", 1)
+        sentinel_read, sentinel_write = os.pipe()
+    try:
+        try:
+            with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
+                proc = subprocess.run(
+                    limited_command,
+                    stdin=sentinel_write if start_sentinel is not None else subprocess.DEVNULL,
+                    stdout=stdout_file,
+                    stderr=stderr_file,
+                    text=False,
+                    timeout=timeout,
+                    check=False,
+                    close_fds=True,
+                    env=scrub_env_for_sandbox(),
+                )
+                stdout, stdout_limited = _bounded_file_bytes(stdout_file)
+                stderr, stderr_limited = _bounded_file_bytes(stderr_file)
+        except OSError as exc:
+            raise SandboxUnavailableError(f"sandbox failed to exec: {exc}") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise SandboxUnavailableError(f"sandbox process timed out: {exc}") from exc
+        finally:
+            if sentinel_write != -1:
+                os.close(sentinel_write)
+
+        if start_sentinel is not None:
+            os.set_blocking(sentinel_read, False)
+            try:
+                # Nonce sarmalayıcının İLK yazmasıdır; başka meşru yazar yok.
+                seen = os.read(sentinel_read, 4096)
+            except BlockingIOError:
+                seen = b""
+            if not seen.startswith(start_sentinel):
+                detail = stderr.decode("utf-8", "replace").strip()[:300]
+                raise SandboxUnavailableError(
+                    f"sandbox failed to start: {detail or proc.returncode}"
+                )
+    finally:
+        if sentinel_read != -1:
+            os.close(sentinel_read)
 
     if stdout_limited or stderr_limited:
         stderr = (

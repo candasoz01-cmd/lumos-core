@@ -110,17 +110,20 @@ def test_non_utf8_git_output_does_not_crash(repo: Path, monkeypatch: pytest.Monk
         # the bounded regular files used instead of unbounded capture pipes.
         if kwargs.get("text") is True:
             raise AssertionError("run_git_sandboxed must not use text=True")
-        if kwargs.get("stdin") is not subprocess.DEVNULL:
-            raise AssertionError("run_git_sandboxed must pass stdin=DEVNULL")
+        if not isinstance(kwargs.get("stdin"), int):
+            raise AssertionError(
+                "run_git_sandboxed must pass the sentinel pipe write end as stdin"
+            )
         # Başlamış bir sandbox'ı simüle et: gerçek koşumda nonce'u jail
-        # içindeki sarmalayıcı basar; sahte koşum onu komuttan çıkarır.
+        # içindeki sarmalayıcı stdin borusuna basar; sahte koşum onu
+        # komuttan çıkarıp aynı boruya yazar.
         command = args[0] if args else kwargs["args"]
         sentinel = next(
             part.split()[1]
             for part in command
             if isinstance(part, str) and part.startswith("echo lumos-sandbox-start-")
         )
-        kwargs["stderr"].write(sentinel.encode("ascii") + b"\n")
+        os.write(kwargs["stdin"], sentinel.encode("ascii") + b"\n")
         kwargs["stdout"].write(b"ok-\xff-binary\n")
         kwargs["stderr"].write(b"warn-\xfe\n")
         return subprocess.CompletedProcess(
@@ -425,23 +428,31 @@ def test_filter_cannot_open_controlling_tty(repo: Path) -> None:
 
 
 @needs_bwrap
-def test_sandbox_uses_new_session_and_devnull_stdin(
+def test_sandbox_uses_new_session_and_non_tty_stdin(
     repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Always-on proof for TTY/session Medium (this host may have no /dev/tty)."""
+    """Always-on proof for TTY/session Medium (this host may have no /dev/tty).
+
+    stdin artık sentinel borusunun yazma ucudur (TTY değildir); sarmalayıcı
+    onu payload exec'inden önce `exec </dev/null` ile değiştirir.
+    """
     seen: list[tuple[list[str], object]] = []
     real_run = subprocess.run
 
     def _wrap(*args, **kwargs):  # type: ignore[no-untyped-def]
         cmd = list(args[0] if args else kwargs.get("args") or [])
-        seen.append((cmd, kwargs.get("stdin")))
+        stdin = kwargs.get("stdin")
+        stdin_is_pipe = isinstance(stdin, int) and stdin >= 0 and stat.S_ISFIFO(
+            os.fstat(stdin).st_mode
+        )
+        seen.append((cmd, stdin, stdin_is_pipe))
         return real_run(*args, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", _wrap)
     run_git_sandboxed(["status", "--porcelain"], cwd=repo, allowed_roots=[repo])
     probe_sandbox_env(allowed_roots=[repo], host_env=os.environ.copy())
     assert len(seen) >= 2
-    for cmd, stdin in seen:
+    for cmd, stdin, stdin_is_pipe in seen:
         assert cmd and Path(cmd[0]).name == "prlimit"
         nproc = next(part for part in cmd if part.startswith("--nproc="))
         soft, hard = nproc.removeprefix("--nproc=").split(":")
@@ -452,7 +463,11 @@ def test_sandbox_uses_new_session_and_devnull_stdin(
         assert "bwrap" in [Path(part).name for part in cmd]
         assert "--new-session" in cmd
         assert "--unshare-all" in cmd
-        assert stdin is subprocess.DEVNULL
+        # stdin bir boru — asla operatör TTY'si veya miras host stdin'i değil;
+        # payload tarafında sarmalayıcı /dev/null'a çevirir.
+        assert stdin_is_pipe, f"stdin {stdin!r} is not the sentinel pipe"
+        wrapper = next(part for part in cmd if isinstance(part, str) and "exec" in part)
+        assert "exec </dev/null" in wrapper
 
 
 def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(
@@ -523,7 +538,8 @@ def test_setup_failure_without_sentinel_is_unavailable(
 def test_git_child_failure_with_sentinel_is_result(
     repo: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Git nonzero after the start nonce remains SandboxGitResult; nonce is stripped."""
+    """Git nonzero after the start nonce remains SandboxGitResult; nonce never
+    reaches the caller-visible stderr (it travels on the stdin pipe)."""
     real_which = __import__("shutil").which
 
     def _which(name: str):
@@ -540,7 +556,7 @@ def test_git_child_failure_with_sentinel_is_result(
             for part in command
             if isinstance(part, str) and part.startswith("echo lumos-sandbox-start-")
         )
-        kwargs["stderr"].write(sentinel.encode("ascii") + b"\n")
+        os.write(kwargs["stdin"], sentinel.encode("ascii") + b"\n")
         kwargs["stderr"].write(b"fatal: not a git repository\n")
         return subprocess.CompletedProcess(args=command, returncode=128)
 
@@ -754,6 +770,46 @@ def test_setup_failure_is_unavailable_but_git_error_is_a_result(repo: Path) -> N
     ok = run_git_sandboxed(["status", "--porcelain"], cwd=repo, allowed_roots=[repo])
     assert ok.returncode == 0
     assert "lumos-sandbox-start" not in ok.stderr
+
+
+@needs_bwrap
+def test_start_sentinel_survives_hostile_payload(tmp_path: Path) -> None:
+    """
+    Bugbot Medium (b56d6c9): stderr temp dosyasındaki start nonce'u payload
+    `ftruncate(2, 0)` ile silebiliyordu — CANLI sandbox "kurulamadı" sanılıp
+    tur atlanıyordu; düşman repo kendi gözlemini bastırabilirdi. Nonce artık
+    stdin olarak verilen boruya yazılır ve sarmalayıcı ucu payload exec'inden
+    önce kapatır: boru truncate edilemez, payload'da yeniden açılacak fd
+    kalmaz. Bu test iki saldırıyı birden dener (stderr truncate + fd tarayıp
+    okuma) ve sonucun normal bir git-benzeri sonuç kaldığını doğrular.
+    """
+    from lumos_board.observer_sandbox import (
+        _run_bwrap_limited,
+        _with_start_sentinel,
+    )
+
+    hostile = [
+        "/bin/sh",
+        "-c",
+        # 1) eski saldırı: paylaşılan stderr yakalama dosyasını sıfırla
+        ": > /proc/self/fd/2; "
+        # 2) yeni yüzey: miras kalan her fd'yi okuma modunda açıp boşaltmayı
+        #    dene (boru drenajı) — sentinel borusu görünür olmamalı
+        'for f in /proc/self/fd/*; do cat "$f" >/dev/null 2>&1; done; '
+        "readlink /proc/self/fd/0; echo PAYLOAD-RAN",
+    ]
+    payload, sentinel = _with_start_sentinel(hostile)
+    cmd = _bwrap_isolation_prefix()
+    for host in ("/usr", "/bin", "/lib", "/lib64"):
+        if Path(host).exists():
+            cmd += ["--ro-bind", host, host]
+    cmd += ["--clearenv"] + payload
+    proc = _run_bwrap_limited(cmd, timeout=30, start_sentinel=sentinel)
+    # Sandbox başladı ve saldırıya rağmen SONUÇ döndü — Unavailable değil.
+    assert proc.returncode == 0
+    out = proc.stdout.decode()
+    assert "PAYLOAD-RAN" in out
+    assert "/dev/null" in out  # payload stdin'i boru değil /dev/null
 
 
 @needs_bwrap
