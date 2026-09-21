@@ -13,6 +13,7 @@ import stat
 import subprocess
 import sys
 import threading
+from collections.abc import Sequence
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -30,6 +31,17 @@ needs_bwrap = pytest.mark.skipif(
     shutil.which("bwrap") is None,
     reason="bubblewrap (bwrap) required for sandbox MVP tests",
 )
+
+
+def _write_start_sentinel_fd(command: Sequence[str]) -> None:
+    """Simulate the jail wrapper: nonce goes to the private fd, not stderr."""
+    for part in command:
+        if isinstance(part, str) and part.startswith("echo lumos-sandbox-start-"):
+            echo_stmt = part.split(";", 1)[0].strip()
+            nonce, _sep, fd_text = echo_stmt.partition(">&")
+            os.write(int(fd_text), (nonce.split()[1] + "\n").encode("ascii"))
+            return
+    raise AssertionError("start sentinel missing from sandbox command")
 
 
 def _git(cwd: Path, *args: str) -> None:
@@ -115,12 +127,7 @@ def test_non_utf8_git_output_does_not_crash(repo: Path, monkeypatch: pytest.Monk
         # Başlamış bir sandbox'ı simüle et: gerçek koşumda nonce'u jail
         # içindeki sarmalayıcı basar; sahte koşum onu komuttan çıkarır.
         command = args[0] if args else kwargs["args"]
-        sentinel = next(
-            part.split()[1]
-            for part in command
-            if isinstance(part, str) and part.startswith("echo lumos-sandbox-start-")
-        )
-        kwargs["stderr"].write(sentinel.encode("ascii") + b"\n")
+        _write_start_sentinel_fd(command)
         kwargs["stdout"].write(b"ok-\xff-binary\n")
         kwargs["stderr"].write(b"warn-\xfe\n")
         return subprocess.CompletedProcess(
@@ -167,6 +174,17 @@ def _probe_interpreter() -> str:
     kanıtı hiç koşamaz. Testi koşturan yorumlayıcının gerçek yolu kullanılır.
     """
     return str(Path(sys.executable).resolve())
+
+
+def _bwrap_probe(inner: list[str], *, timeout: float):
+    from lumos_board.observer_sandbox import _bwrap_isolation_prefix, _run_bwrap_payload
+
+    cmd = _bwrap_isolation_prefix()
+    for host in ("/usr", "/bin", "/lib", "/lib64"):
+        if Path(host).exists():
+            cmd += ["--ro-bind", host, host]
+    cmd += ["--clearenv"]
+    return _run_bwrap_payload(cmd, inner, timeout=timeout)
 
 
 def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int:
@@ -535,12 +553,7 @@ def test_git_child_failure_with_sentinel_is_result(
 
     def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
         command = args[0] if args else kwargs["args"]
-        sentinel = next(
-            part.split()[1]
-            for part in command
-            if isinstance(part, str) and part.startswith("echo lumos-sandbox-start-")
-        )
-        kwargs["stderr"].write(sentinel.encode("ascii") + b"\n")
+        _write_start_sentinel_fd(command)
         kwargs["stderr"].write(b"fatal: not a git repository\n")
         return subprocess.CompletedProcess(args=command, returncode=128)
 
@@ -549,6 +562,32 @@ def test_git_child_failure_with_sentinel_is_result(
     assert result.returncode == 128
     assert "not a git repository" in result.stderr
     assert "lumos-sandbox-start" not in result.stderr
+
+
+def test_stderr_truncate_does_not_skip_started_sandbox(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Bugbot Medium on b56d6c90: wiping stderr must not look like setup fail."""
+    real_which = __import__("shutil").which
+
+    def _which(name: str):
+        if name == "bwrap":
+            return real_which("bwrap") or "/usr/bin/bwrap"
+        return real_which(name)
+
+    monkeypatch.setattr("lumos_board.observer_sandbox.shutil.which", _which)
+
+    def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
+        command = args[0] if args else kwargs["args"]
+        _write_start_sentinel_fd(command)
+        # Hostile filter ftruncate()'d the inherited stderr file.
+        kwargs["stderr"].write(b"")
+        kwargs["stdout"].write(b"")
+        return subprocess.CompletedProcess(args=command, returncode=0)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+    result = run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
+    assert result.returncode == 0
 
 
 @needs_bwrap
@@ -662,12 +701,7 @@ def test_tmpfs_is_size_capped(tmp_path: Path) -> None:
     `fsize` dosya başınadır, `RLIMIT_AS` tmpfs sayfalarını saymaz; sınırsız
     tmpfs 1MiB'lik çok dosyayla host RAM'ini şişirmeye açıktı.
     """
-    from lumos_board.observer_sandbox import (
-        _TMPFS_BYTES,
-        _bwrap_isolation_prefix,
-        _run_bwrap_limited,
-        _with_start_sentinel,
-    )
+    from lumos_board.observer_sandbox import _TMPFS_BYTES
 
     attempts = (_TMPFS_BYTES // (1024 * 1024)) + 6
     code = (
@@ -680,13 +714,7 @@ def test_tmpfs_is_size_capped(tmp_path: Path) -> None:
         "  pass\n"
         "print(n)\n"
     )
-    payload, sentinel = _with_start_sentinel([_probe_interpreter(), "-c", code])
-    cmd = _bwrap_isolation_prefix()
-    for host in ("/usr", "/bin", "/lib", "/lib64"):
-        if Path(host).exists():
-            cmd += ["--ro-bind", host, host]
-    cmd += ["--clearenv"] + payload
-    proc = _run_bwrap_limited(cmd, timeout=60, start_sentinel=sentinel)
+    proc = _bwrap_probe([_probe_interpreter(), "-c", code], timeout=60)
     written = int(proc.stdout.decode().strip() or "0")
     assert 0 < written < attempts, f"tmpfs sınırsız görünüyor: {written}/{attempts}"
 
@@ -694,12 +722,7 @@ def test_tmpfs_is_size_capped(tmp_path: Path) -> None:
 @needs_bwrap
 def test_dev_shm_is_size_capped(tmp_path: Path) -> None:
     """Security Review Medium on 0ed05a33 — /dev/shm is not an uncapped tmpfs."""
-    from lumos_board.observer_sandbox import (
-        _TMPFS_BYTES,
-        _bwrap_isolation_prefix,
-        _run_bwrap_limited,
-        _with_start_sentinel,
-    )
+    from lumos_board.observer_sandbox import _TMPFS_BYTES
 
     attempts = (_TMPFS_BYTES // (1024 * 1024)) + 6
     code = (
@@ -711,13 +734,7 @@ def test_dev_shm_is_size_capped(tmp_path: Path) -> None:
         "  pass\n"
         "print(n)\n"
     )
-    payload, sentinel = _with_start_sentinel([_probe_interpreter(), "-c", code])
-    cmd = _bwrap_isolation_prefix()
-    for host in ("/usr", "/bin", "/lib", "/lib64"):
-        if Path(host).exists():
-            cmd += ["--ro-bind", host, host]
-    cmd += ["--clearenv"] + payload
-    proc = _run_bwrap_limited(cmd, timeout=60, start_sentinel=sentinel)
+    proc = _bwrap_probe([_probe_interpreter(), "-c", code], timeout=60)
     written = int(proc.stdout.decode().strip() or "0")
     assert 0 < written < attempts, f"/dev/shm sınırsız görünüyor: {written}/{attempts}"
 
@@ -731,20 +748,15 @@ def test_setup_failure_is_unavailable_but_git_error_is_a_result(repo: Path) -> N
     `--info-fd` bu ayrımı veremiyor (bind hatasında bile info yazılıyor);
     ayrım başlangıç sentineliyle yapılır ve sentinel çağırana sızmaz.
     """
-    from lumos_board.observer_sandbox import (
-        _bwrap_isolation_prefix,
-        _run_bwrap_limited,
-        _with_start_sentinel,
-    )
+    from lumos_board.observer_sandbox import _bwrap_isolation_prefix, _run_bwrap_payload
 
-    payload, sentinel = _with_start_sentinel(["/bin/true"])
-    cmd = _bwrap_isolation_prefix() + [
+    prefix = _bwrap_isolation_prefix() + [
         "--ro-bind", "/nonexistent-lumos-test-path", "/x",
         "--ro-bind", "/usr", "/usr",
         "--ro-bind", "/bin", "/bin",
-    ] + payload
+    ]
     with pytest.raises(SandboxUnavailableError, match="failed to start"):
-        _run_bwrap_limited(cmd, timeout=15, start_sentinel=sentinel)
+        _run_bwrap_payload(prefix, ["/bin/true"], timeout=15)
 
     result = run_git_sandboxed(
         ["rev-parse", "no-such-ref-xyz"], cwd=repo, allowed_roots=[repo]
@@ -763,12 +775,6 @@ def test_dev_root_is_readonly_but_device_nodes_still_write(tmp_path: Path) -> No
     Aygıt düğümüne yazmak fs yazması değildir; /dev/null çalışmayı sürdürür,
     ayrı mount olan /dev/shm yazılabilir kalır.
     """
-    from lumos_board.observer_sandbox import (
-        _bwrap_isolation_prefix,
-        _run_bwrap_limited,
-        _with_start_sentinel,
-    )
-
     code = (
         "try:\n"
         "  open('/dev/evil', 'wb').write(b'x'); dev_write = True\n"
@@ -784,11 +790,5 @@ def test_dev_root_is_readonly_but_device_nodes_still_write(tmp_path: Path) -> No
         "  shm = False\n"
         "print(dev_write, devnull, shm)\n"
     )
-    payload, sentinel = _with_start_sentinel([_probe_interpreter(), "-c", code])
-    cmd = _bwrap_isolation_prefix()
-    for host in ("/usr", "/bin", "/lib", "/lib64"):
-        if Path(host).exists():
-            cmd += ["--ro-bind", host, host]
-    cmd += ["--clearenv"] + payload
-    proc = _run_bwrap_limited(cmd, timeout=30, start_sentinel=sentinel)
+    proc = _bwrap_probe([_probe_interpreter(), "-c", code], timeout=30)
     assert proc.stdout.decode().split() == ["False", "True", "True"]
