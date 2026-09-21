@@ -33,6 +33,7 @@ if _SRC.is_dir() and str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from core.lumos_base_dir import lumos_base_dir  # noqa: E402
+from panel_tasks_auth import AuthError, PanelTasksAuth  # noqa: E402
 from core.panel_bridge_state import task_action_gate  # noqa: E402
 from core.panel_runtime_lock import (  # noqa: E402
     bootstrap_panel_runtime_lock_from_bridge_env,
@@ -90,6 +91,16 @@ if os.environ.get("LUMOS_BASE_DIR") is None:
     os.environ["LUMOS_BASE_DIR"] = str(_REPO_ROOT / ".lumos")
 
 _DEFAULT_PORT = 8766
+_PANEL_TASKS_AUTH: PanelTasksAuth | None = None
+
+
+def panel_tasks_auth() -> PanelTasksAuth:
+    """Süreç başına tek store; boş `LUMOS_PANEL_TASKS_SECRET` fail-closed."""
+    global _PANEL_TASKS_AUTH
+    if _PANEL_TASKS_AUTH is None:
+        secret = (os.environ.get("LUMOS_PANEL_TASKS_SECRET") or "").strip()
+        _PANEL_TASKS_AUTH = PanelTasksAuth(secret=secret)
+    return _PANEL_TASKS_AUTH
 
 _WS_RE = re.compile(r"[\u00a0\u1680\u2000-\u200a\u202f\u205f\u3000\ufeff]")
 
@@ -768,6 +779,7 @@ def _send_json(handler: BaseHTTPRequestHandler, code: int, obj: dict) -> None:
     handler.send_response(code)
     handler.send_header("Content-Type", "application/json; charset=utf-8")
     handler.send_header("Content-Length", str(len(raw)))
+    handler.send_header("Cache-Control", "no-store")
     handler._cors()
     handler.end_headers()
     handler.wfile.write(raw)
@@ -829,6 +841,15 @@ class Handler(BaseHTTPRequestHandler):
             },
         )
 
+    def _require_auth(self) -> bool:
+        """TD-24 Faz-2: Origin geçtikten sonra zorunlu jeton (köprü deseni)."""
+        try:
+            panel_tasks_auth().authenticate(dict(self.headers.items()))
+            return True
+        except AuthError as exc:
+            _send_json(self, 401, {"ok": False, "error": exc.code})
+            return False
+
     def _cors(self) -> None:
         # Wildcard YOK (TD-24): yalnız izin verilen loopback origin yankılanır.
         # Origin gelmediyse CORS başlığına gerek yok — istek tarayıcıdan değil.
@@ -837,7 +858,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
         self.send_header("Access-Control-Allow-Methods", "GET, PUT, POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header(
+            "Access-Control-Allow-Headers",
+            "Content-Type, Authorization, X-Kando-Token",
+        )
 
     def _parse_path(self) -> str:
         return (self.path.split("?")[0].rstrip("/") or "/")
@@ -1035,6 +1059,13 @@ class Handler(BaseHTTPRequestHandler):
             self._reject_origin()
             return
         p = self._parse_path()
+        if p in ("/", "/index.html") or p.startswith("/js/") or p.startswith("/css/"):
+            if self._try_serve_panel_static(p):
+                return
+            self.send_error(404)
+            return
+        if not self._require_auth():
+            return
         if p == "/lumos-read-state":
             self._get_lumos_read_state()
             return
@@ -1084,6 +1115,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(raw)))
+        self.send_header("Cache-Control", "no-store")
         self._cors()
         self.end_headers()
         self.wfile.write(raw)
@@ -1091,6 +1123,8 @@ class Handler(BaseHTTPRequestHandler):
     def do_PUT(self) -> None:
         if not self._origin_allowed():
             self._reject_origin()
+            return
+        if not self._require_auth():
             return
         if self._parse_path() != "/tasks.json":
             self.send_error(404)
@@ -1152,6 +1186,8 @@ class Handler(BaseHTTPRequestHandler):
         # aksi halde her _post_* yolunda ayrı ele almak gerekirdi (işlenmeyen istisna → 500).
         if not self._origin_allowed():
             self._reject_origin()
+            return
+        if not self._require_auth():
             return
         try:
             p = self._parse_path()

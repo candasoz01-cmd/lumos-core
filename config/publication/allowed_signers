@@ -1,0 +1,14 @@
+# Lumos yayın kapısı — onay imzası güven kökü.
+#
+# KAPALI VARSAYILAN (2026-09-18): şu an HİÇBİR imza kökü kayıtlı değildir.
+# Geçerli ve güvenilir onay altyapısı (yalnız insan etkileşimiyle kullanılabilen,
+# ajan erişimi olmayan özel imza anahtarı) kurulana kadar tüm yayın onayı ve
+# istisna talepleri reddedilir.
+#
+# Önceki kayıt (kurucunun genel amaçlı GitHub anahtarı,
+# SHA256:fCmMHAEP2k865znMPpzZdBZEdEVSLQVST9WT/hHhNHc) 2026-09-18'de geliştirme
+# ortamında ajan erişimine açık bulunduğu için çıkarıldı; parmak izi
+# ops/publication_gate/gate.py REVOKED_SIGNER_FINGERPRINTS listesindedir ve
+# yeniden kaydı kapı bulgusudur.
+#
+# Yeni kök kaydı prosedürü: docs/PUBLICATION_GATE.md § İnsan onayı.

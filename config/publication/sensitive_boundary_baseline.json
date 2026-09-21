@@ -1,0 +1,5 @@
+{
+  "$comment": "Sensitive Content Boundary kayıt defteri — Katman 1'den bağımsız ikinci onay. Her kayıt kurucunun hash'e bağlı SSH imzasını gerektirir (layer2 yükü; layer1 imzası burada geçmez). Secret bulgusu bu dosyayla HİÇBİR ZAMAN geçirilemez. Prosedür: docs/PUBLICATION_GATE.md.",
+  "version": 2,
+  "entries": []
+}

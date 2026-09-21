@@ -1,0 +1,6 @@
+{
+  "$comment": "Public Release Gate kayıt defteri. Varsayılan durum PRIVATE_NOT_APPROVED: kayıtsız, hash'i eşleşmeyen veya kurucu imzası doğrulanamayan gömülü belge içeriği yayın hattına giremez. Tek geçerli statü 'approved'dır ve kurucunun ssh-keygen -Y sign imzasını (approval_signature) gerektirir — düz metin approved_by alanı tek başına onay değildir. Ara/bekleyen statü yoktur. Prosedür: docs/PUBLICATION_GATE.md.",
+  "version": 2,
+  "default": "PRIVATE_NOT_APPROVED",
+  "entries": []
+}
