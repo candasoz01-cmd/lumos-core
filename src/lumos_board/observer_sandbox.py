@@ -51,9 +51,10 @@ _BLOCKED_ENV_KEYS = frozenset(
 _MAX_PROCESSES = 64
 _MAX_OUTPUT_BYTES = 1024 * 1024
 _MAX_ADDRESS_SPACE_BYTES = 1024 * 1024 * 1024
-# Sandbox'ın tek yazılabilir yüzeyi /tmp tmpfs'idir. `fsize` DOSYA başına,
-# `RLIMIT_AS` süreç adres alanına bakar; tmpfs sayfaları ikisine de sayılmaz.
-# Sınırsız tmpfs, 1MiB'lik çok dosyayla host RAM'ini şişirmeye açıktı.
+# Sandbox'ın yazılabilir yüzeyleri /tmp ve /dev/shm tmpfs'leridir; ikisi de
+# bu tavanla bağlanır. `fsize` DOSYA başına, `RLIMIT_AS` süreç adres alanına
+# bakar; tmpfs sayfaları ikisine de sayılmaz. Sınırsız tmpfs, 1MiB'lik çok
+# dosyayla host RAM'ini şişirmeye açıktı.
 _TMPFS_BYTES = 64 * 1024 * 1024
 _OUTPUT_LIMIT_EXIT_CODE = 125
 _OUTPUT_LIMIT_MARKER = b"\n[observer sandbox output limit reached]\n"
@@ -138,6 +139,18 @@ def _bwrap_isolation_prefix() -> list[str]:
         "--proc",
         "/proc",
         "--dev",
+        "/dev",
+        # bwrap'ın `--dev`'i de YAZILABİLİR bir tmpfs'tir (çekirdek varsayılanı
+        # ~yarım RAM, /dev/shm dahil) — /tmp tavanı tek başına RAM şişirmeyi
+        # kapatmaz. /dev/shm aynı tavanla ayrı bağlanır; /dev'in kendisi
+        # salt-okunur remount edilir. Aygıt düğümüne yazmak (/dev/null) fs
+        # yazması değildir, ro remount'tan etkilenmez; iç bağlar (shm, pts)
+        # kendi bayraklarını korur.
+        "--size",
+        str(_TMPFS_BYTES),
+        "--tmpfs",
+        "/dev/shm",
+        "--remount-ro",
         "/dev",
         "--size",
         str(_TMPFS_BYTES),

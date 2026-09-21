@@ -482,10 +482,16 @@ def test_bwrap_launcher_uses_resolved_absolute_host_path(
 
     prefix = _bwrap_isolation_prefix()
     assert prefix[0] == "/opt/bubblewrap/bin/bwrap"
-    size_at = prefix.index("--size")
-    assert prefix[size_at + 1] == str(_TMPFS_BYTES)
-    assert prefix[size_at + 2] == "--tmpfs"
-    assert prefix[size_at + 3] == "/tmp"
+    sized_tmpfs = [
+        prefix[i + 3]
+        for i in range(len(prefix) - 3)
+        if prefix[i] == "--size"
+        and prefix[i + 1] == str(_TMPFS_BYTES)
+        and prefix[i + 2] == "--tmpfs"
+    ]
+    # Her yazılabilir tmpfs tavanlıdır; /dev'in kendisi salt-okunur remount edilir.
+    assert sized_tmpfs == ["/dev/shm", "/tmp"]
+    assert prefix[prefix.index("--remount-ro") + 1] == "/dev"
 
 
 def test_setup_failure_without_sentinel_is_unavailable(
@@ -713,3 +719,50 @@ def test_setup_failure_is_unavailable_but_git_error_is_a_result(repo: Path) -> N
     ok = run_git_sandboxed(["status", "--porcelain"], cwd=repo, allowed_roots=[repo])
     assert ok.returncode == 0
     assert "lumos-sandbox-start" not in ok.stderr
+
+
+@needs_bwrap
+def test_dev_shm_is_capped_and_dev_root_is_readonly(tmp_path: Path) -> None:
+    """
+    §3.2 devamı — bwrap'ın `--dev`'i de yazılabilir bir tmpfs'tir (/dev/shm
+    dahil, çekirdek varsayılanı ~yarım RAM). /tmp tavanı tek başına RAM
+    şişirmeyi kapatmaz: /dev/shm aynı tavanı taşımalı, /dev'in kendisi
+    salt-okunur kalmalı, aygıt düğümüne yazmak (/dev/null) çalışmayı
+    sürdürmelidir.
+    """
+    from lumos_board.observer_sandbox import (
+        _TMPFS_BYTES,
+        _bwrap_isolation_prefix,
+        _run_bwrap_limited,
+        _with_start_sentinel,
+    )
+
+    attempts = (_TMPFS_BYTES // (1024 * 1024)) + 6
+    code = (
+        "n = 0\n"
+        "try:\n"
+        f"  for i in range({attempts}):\n"
+        "    open(f'/dev/shm/f{i}', 'wb').write(b'x' * (1024 * 1024 - 4096)); n += 1\n"
+        "except OSError:\n"
+        "  pass\n"
+        "try:\n"
+        "  open('/dev/evil', 'wb').write(b'x'); dev_write = True\n"
+        "except OSError:\n"
+        "  dev_write = False\n"
+        "try:\n"
+        "  open('/dev/null', 'wb').write(b'x'); devnull = True\n"
+        "except OSError:\n"
+        "  devnull = False\n"
+        "print(n, dev_write, devnull)\n"
+    )
+    payload, sentinel = _with_start_sentinel([_probe_interpreter(), "-c", code])
+    cmd = _bwrap_isolation_prefix()
+    for host in ("/usr", "/bin", "/lib", "/lib64"):
+        if Path(host).exists():
+            cmd += ["--ro-bind", host, host]
+    cmd += ["--clearenv"] + payload
+    proc = _run_bwrap_limited(cmd, timeout=90, start_sentinel=sentinel)
+    written, dev_write, devnull = proc.stdout.decode().split()
+    assert 0 < int(written) < attempts, f"/dev/shm sınırsız görünüyor: {written}/{attempts}"
+    assert dev_write == "False"  # /dev köküne dosya yazılamaz
+    assert devnull == "True"  # aygıt düğümü yazması ro remount'tan etkilenmez
