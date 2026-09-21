@@ -33,15 +33,22 @@ needs_bwrap = pytest.mark.skipif(
 )
 
 
-def _write_start_sentinel_fd(command: Sequence[str]) -> None:
-    """Simulate the jail wrapper: nonce goes to the private fd, not stderr."""
+def _write_start_sentinel_fd(
+    command: Sequence[str], *, pass_fds: Sequence[int] | None = None
+) -> None:
+    """Simulate the jail wrapper: nonce goes to the private host fd, not stderr."""
+    nonce = None
     for part in command:
         if isinstance(part, str) and part.startswith("echo lumos-sandbox-start-"):
             echo_stmt = part.split(";", 1)[0].strip()
-            nonce, _sep, fd_text = echo_stmt.partition(">&")
-            os.write(int(fd_text), (nonce.split()[1] + "\n").encode("ascii"))
-            return
-    raise AssertionError("start sentinel missing from sandbox command")
+            nonce = echo_stmt.split()[1]
+            assert ">&3" in echo_stmt, echo_stmt
+            break
+    if nonce is None:
+        raise AssertionError("start sentinel missing from sandbox command")
+    if not pass_fds:
+        raise AssertionError("pass_fds missing for start sentinel")
+    os.write(pass_fds[0], (nonce + "\n").encode("ascii"))
 
 
 def _git(cwd: Path, *args: str) -> None:
@@ -127,7 +134,7 @@ def test_non_utf8_git_output_does_not_crash(repo: Path, monkeypatch: pytest.Monk
         # Başlamış bir sandbox'ı simüle et: gerçek koşumda nonce'u jail
         # içindeki sarmalayıcı basar; sahte koşum onu komuttan çıkarır.
         command = args[0] if args else kwargs["args"]
-        _write_start_sentinel_fd(command)
+        _write_start_sentinel_fd(command, pass_fds=kwargs.get("pass_fds"))
         kwargs["stdout"].write(b"ok-\xff-binary\n")
         kwargs["stderr"].write(b"warn-\xfe\n")
         return subprocess.CompletedProcess(
@@ -485,6 +492,17 @@ def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(
     assert "--nproc=164:164" in command
 
 
+def test_start_sentinel_script_uses_dash_safe_fd() -> None:
+    from lumos_board.observer_sandbox import _SENTINEL_CHILD_FD, _with_start_sentinel
+
+    assert _SENTINEL_CHILD_FD == 3
+    wrapped, needle = _with_start_sentinel(["/bin/true"])
+    script = wrapped[2]
+    assert f">&{_SENTINEL_CHILD_FD};" in script
+    assert "exec 3>&-;" in script
+    assert needle.startswith(b"lumos-sandbox-start-")
+
+
 def test_bwrap_launcher_uses_resolved_absolute_host_path(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -553,7 +571,7 @@ def test_git_child_failure_with_sentinel_is_result(
 
     def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
         command = args[0] if args else kwargs["args"]
-        _write_start_sentinel_fd(command)
+        _write_start_sentinel_fd(command, pass_fds=kwargs.get("pass_fds"))
         kwargs["stderr"].write(b"fatal: not a git repository\n")
         return subprocess.CompletedProcess(args=command, returncode=128)
 
@@ -579,7 +597,7 @@ def test_stderr_truncate_does_not_skip_started_sandbox(
 
     def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
         command = args[0] if args else kwargs["args"]
-        _write_start_sentinel_fd(command)
+        _write_start_sentinel_fd(command, pass_fds=kwargs.get("pass_fds"))
         # Hostile filter ftruncate()'d the inherited stderr file.
         kwargs["stderr"].write(b"")
         kwargs["stdout"].write(b"")

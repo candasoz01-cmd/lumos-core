@@ -249,9 +249,10 @@ def _bounded_file_bytes(handle) -> tuple[bytes, bool]:  # type: ignore[no-untype
     return handle.read(_MAX_OUTPUT_BYTES), size >= _MAX_OUTPUT_BYTES
 
 
-def _with_start_sentinel(
-    payload: Sequence[str], *, sentinel_fd: int
-) -> tuple[list[str], bytes]:
+_SENTINEL_CHILD_FD = 3  # dash accepts only single-digit redirects (Bugbot Medium on 6108e840)
+
+
+def _with_start_sentinel(payload: Sequence[str]) -> tuple[list[str], bytes]:
     """Jail-inside start nonce on a dedicated fd the payload cannot inherit.
 
     Kurulum hatası git hatası DEĞİLDİR: bwrap exec olup jail'i kuramadan
@@ -263,21 +264,32 @@ def _with_start_sentinel(
     Nonce stderr'e YAZILMAZ. Capture stderr is a host TemporaryFile the
     payload inherits, so a filter can ``ftruncate`` it and make a live
     sandbox look like setup failure (Bugbot Medium on b56d6c90). Write
-    to ``sentinel_fd``, then close that fd before exec.
+    to fd 3 (dash-safe), then close that fd before exec. Host
+    ``TemporaryFile`` may have a two-digit fileno; the child maps it onto
+    3 via ``dup2`` (Bugbot Medium on 6108e840).
     """
-    if sentinel_fd in (0, 1, 2):
-        raise SandboxUnavailableError(
-            "start sentinel fd must not be stdin/stdout/stderr"
-        )
     nonce = f"lumos-sandbox-start-{os.urandom(12).hex()}"
+    fd = _SENTINEL_CHILD_FD
     wrapped = [
         "/bin/sh",
         "-c",
-        f"echo {nonce} >&{sentinel_fd}; exec {sentinel_fd}>&-; exec \"$@\"",
+        f"echo {nonce} >&{fd}; exec {fd}>&-; exec \"$@\"",
         "sh",
         *payload,
     ]
     return wrapped, (nonce + "\n").encode("ascii")
+
+
+def _pin_sentinel_fd(src_fd: int):
+    """In the child, put the sentinel file on dash-safe fd 3."""
+
+    def _preexec() -> None:
+        if src_fd != _SENTINEL_CHILD_FD:
+            os.dup2(src_fd, _SENTINEL_CHILD_FD)
+            os.close(src_fd)
+        os.set_inheritable(_SENTINEL_CHILD_FD, True)
+
+    return _preexec
 
 
 def _run_bwrap_limited(
@@ -290,8 +302,11 @@ def _run_bwrap_limited(
     """Run bwrap without pipe-backed, unbounded capture buffers."""
     limited_command = _resource_limited_command(command, timeout=timeout)
     extra_fds: tuple[int, ...] = ()
+    preexec = None
     if sentinel_file is not None:
-        extra_fds = (sentinel_file.fileno(),)
+        src_fd = sentinel_file.fileno()
+        extra_fds = (src_fd,)
+        preexec = _pin_sentinel_fd(src_fd)
     try:
         with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
             proc = subprocess.run(
@@ -304,6 +319,7 @@ def _run_bwrap_limited(
                 check=False,
                 close_fds=True,
                 pass_fds=extra_fds,
+                preexec_fn=preexec,
                 env=scrub_env_for_sandbox(),
             )
             stdout, stdout_limited = _bounded_file_bytes(stdout_file)
@@ -353,7 +369,7 @@ def _run_bwrap_payload(
     with tempfile.TemporaryFile() as sentinel_file:
         fd = sentinel_file.fileno()
         os.set_inheritable(fd, True)
-        wrapped, sentinel = _with_start_sentinel(payload, sentinel_fd=fd)
+        wrapped, sentinel = _with_start_sentinel(payload)
         return _run_bwrap_limited(
             [*bwrap_prefix, *wrapped],
             timeout=timeout,
