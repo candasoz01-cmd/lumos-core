@@ -11,6 +11,7 @@ import shutil
 import socket
 import stat
 import subprocess
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
@@ -148,8 +149,20 @@ def test_git_output_is_bounded_and_fails_closed(repo: Path) -> None:
     assert "output limit reached" in result.stderr
 
 
+def _probe_interpreter() -> str:
+    """Sandbox içinde çalıştırılacak Python: tam çözülmüş gerçek yol.
+
+    `/usr/bin/python3` çoğu Debian/Ubuntu'da `/etc/alternatives` üzerinden
+    symlink'tir; sandbox `/etc`'yi bağlamadığı için o yol içeride KÖRDÜR ve
+    kontrol probe'u `execvp: No such file or directory` ile düşer — izolasyon
+    kanıtı hiç koşamaz. Testi koşturan yorumlayıcının gerçek yolu kullanılır.
+    """
+    return str(Path(sys.executable).resolve())
+
+
 def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int:
     """Same bind shape as the MVP motor; optional --unshare-net for contrast."""
+    interpreter = _probe_interpreter()
     cmd: list[str] = [
         "bwrap",
         "--die-with-parent",
@@ -173,6 +186,8 @@ def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int
     if Path("/lib64").exists():
         cmd += ["--ro-bind", "/lib64", "/lib64"]
     cmd += ["--ro-bind", str(allowed_root), str(allowed_root)]
+    if not (interpreter.startswith("/usr/") or interpreter.startswith("/bin/")):
+        cmd += ["--ro-bind", interpreter, interpreter]
     if unshare_net:
         cmd.append("--unshare-net")
     cmd += [
@@ -182,7 +197,7 @@ def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int
         "--setenv",
         "PATH",
         "/usr/bin:/bin",
-        "/usr/bin/python3",
+        interpreter,
         "-c",
         (
             "import socket,sys;\n"

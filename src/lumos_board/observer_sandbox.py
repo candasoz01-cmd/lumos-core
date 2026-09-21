@@ -151,21 +151,24 @@ def _current_uid_task_count() -> int:
     try:
         statuses = Path("/proc").glob("[0-9]*/status")
         for status in statuses:
+            # Yalnız Uid/Threads okunur. Bütün dosyayı sözlüğe açmak kırılgandı:
+            # ek grubu olmayan süreçte "Groups:\t " satırı tek parçaya bölünür,
+            # unpacking ValueError'ı DOSYANIN TAMAMINI atlatır ve sayaç 0 kalıp
+            # sandbox'ı bwrap kuruluyken bile kalıcı fail-closed'a kilitlerdi —
+            # konteynerlerde bu satır olağandır.
             try:
-                fields = {
-                    key.rstrip(":"): value.strip()
-                    for key, value in (
-                        line.split(maxsplit=1)
-                        for line in status.read_text(
-                            encoding="utf-8", errors="replace"
-                        ).splitlines()
-                        if "\t" in line or " " in line
-                    )
-                }
-                real_uid = int(fields["Uid"].split()[0])
+                real_uid: int | None = None
+                threads = 1
+                for line in status.read_text(
+                    encoding="utf-8", errors="replace"
+                ).splitlines():
+                    if line.startswith("Uid:"):
+                        real_uid = int(line.split()[1])
+                    elif line.startswith("Threads:"):
+                        threads = int(line.split()[1])
                 if real_uid == uid:
-                    total += int(fields.get("Threads", "1"))
-            except (FileNotFoundError, KeyError, PermissionError, ValueError):
+                    total += threads
+            except (FileNotFoundError, IndexError, PermissionError, ValueError, OSError):
                 continue
     except OSError as exc:
         raise SandboxUnavailableError(f"cannot count host tasks: {exc}") from exc
