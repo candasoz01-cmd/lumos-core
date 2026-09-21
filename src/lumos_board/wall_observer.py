@@ -23,7 +23,11 @@ modül onları tespit dayanağı olarak kullanmaz.
 
 Çalışma ağacı içerikleri Git filtrelerinden geçirilmez; index'teki blob
 kimliğiyle ham içerik karşılaştırılır. Filtre/CRLF dönüşümü kullanan dosyalar
-bu yüzden ihtiyatlı biçimde değişmiş sayılabilir. Bu gözlemci bir işletim
+bu yüzden ihtiyatlı biçimde değişmiş sayılabilir. Index'in kendisi de git
+çağrılmadan okunur (`_read_index_entries`, ADR-034 Seçenek 3'ün ilk dilimi):
+desteklenmeyen/doğrulanamayan biçim fail-closed rettir ve git'e geri düşülmez —
+subprocess fallback'i, düşman deponun bilerek reddedilen bir index üretip
+okumayı kaldırılan yürütme yoluna geri yönlendirebileceği bir kol olurdu. Bu gözlemci bir işletim
 sistemi sandbox'ı değildir; eşzamanlı depo mutasyonlarına karşı izolasyon
 sağlamaz ve izlediği ajanlardan fazla yetkiyle çalıştırılmamalıdır.
 """
@@ -34,6 +38,7 @@ import hashlib
 import json
 import os
 import stat
+import struct
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -66,6 +71,20 @@ STALE_AFTER = timedelta(hours=6)
 # Gitfile zincirinde izin verilen adım sayısı. Meşru `git worktree` tek hop
 # kullanır; sınır döngüsel/derin zincirleri fail-closed keser.
 _MAX_GITFILE_HOPS = 4
+
+# Index okuma sınırları. Tavanlar düşman girdinin DoS koluna karşıdır; filo
+# gerçeği çok altında (bu repo ~2k girdi, ~250 KB). Aşım fail-closed rettir —
+# kısmi/sessiz okuma değil. 50 MB tavanı kurucu kararıdır (2026-09-21).
+_INDEX_SIZE_CAP = 50 * 1024 * 1024
+_INDEX_ENTRY_CAP = 1_000_000
+
+INDEX_REASON_UNREADABLE = "index_unreadable"
+INDEX_REASON_TOO_LARGE = "index_too_large"
+INDEX_REASON_MALFORMED = "index_malformed"
+INDEX_REASON_HASH = "index_hash_unsupported_or_invalid"
+INDEX_REASON_VERSION = "index_format_unsupported"
+INDEX_REASON_EXTENSION = "index_extension_unsupported"
+INDEX_REASON_ENTRY_CAP = "index_entry_count_exceeds_cap"
 
 
 @dataclass(frozen=True)
@@ -563,12 +582,114 @@ def _raw_worktree_blob(worktree: Path, path: str, oid: str) -> tuple[str, str] |
             os.close(directory)
 
 
+def _read_index_entries(
+    gitdir: Path,
+) -> tuple[tuple[tuple[str, str, str, int], ...], str | None]:
+    """
+    `$GIT_DIR/index`'i git ÇAĞIRMADAN okur → ((path, mode, oid, stage), …).
+
+    `git ls-files --stage` subprocess'inin yerine geçer (ADR-034 Seçenek 3,
+    ilk dilim). İkinci dönüş değeri hata gerekçesidir; gerekçe varsa girdi
+    listesi boştur ve git'e GERİ DÜŞÜLMEZ — fallback, reddedilen bir index
+    üretebilen düşman deponun okumayı subprocess yoluna geri yönlendirme
+    kolu olurdu. Desteklenmeyen biçim "temiz" değil, adlı bir rettir.
+
+    Biçim sınırı: yalnız v2 (kurucu kararı, 2026-09-21: v3 de bu dilimde
+    fail-closed'dur — `index_format_unsupported:v3`). v4, split-index (`link`),
+    sparse (`sdir`) ve tanınmayan HER küçük-harf uzantı ret: git'in kendi
+    kuralına göre küçük harfle başlayan uzantı "anlamadan geçilemez"dir,
+    büyük harfli uzantı (TREE, REUC, …) salt önbellektir ve atlanabilir.
+    SHA-1 trailer'ı bütün dosyayı doğrular; tutmuyorsa bunun SHA-256 deposu
+    mu bozulma mı olduğu TAHMİN EDİLMEZ — tek dürüst cevap "doğrulanamadı".
+
+    Okuma dirfd + O_NOFOLLOW + fstat iledir: `pin_repository` index'in düz
+    dosya olduğunu zaten şart koştu, ama o kontrol ile bu okuma arasında bir
+    pencere var; pencere burada daraltılır. Genel TOCTOU riski yine açıktır
+    (ADR-034) — bu fonksiyon onu çözdüğünü iddia etmez.
+    """
+    directory = None
+    try:
+        directory = os.open(gitdir, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        try:
+            fd = os.open("index", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                         dir_fd=directory)
+        except FileNotFoundError:
+            return (), None  # taze repo: index yokluğu boş index'tir (git ile aynı)
+        with os.fdopen(fd, "rb") as stream:
+            metadata = os.fstat(stream.fileno())
+            if not stat.S_ISREG(metadata.st_mode):
+                return (), INDEX_REASON_UNREADABLE
+            if metadata.st_size > _INDEX_SIZE_CAP:
+                return (), INDEX_REASON_TOO_LARGE
+            data = stream.read(_INDEX_SIZE_CAP + 1)
+    except OSError:
+        return (), INDEX_REASON_UNREADABLE
+    finally:
+        if directory is not None:
+            os.close(directory)
+    if len(data) > _INDEX_SIZE_CAP:
+        return (), INDEX_REASON_TOO_LARGE  # fstat ile read arası büyüme de ret
+    if len(data) < 12 + 20 or data[:4] != b"DIRC":
+        return (), INDEX_REASON_MALFORMED
+    if hashlib.sha1(data[:-20]).digest() != data[-20:]:
+        return (), INDEX_REASON_HASH
+    version, count = struct.unpack(">II", data[4:12])
+    if version != 2:
+        return (), f"{INDEX_REASON_VERSION}:v{version}"
+    if count > _INDEX_ENTRY_CAP:
+        return (), INDEX_REASON_ENTRY_CAP
+    body_end = len(data) - 20
+    entries: list[tuple[str, str, str, int]] = []
+    offset = 12
+    for _ in range(count):
+        if offset + 62 > body_end:
+            return (), INDEX_REASON_MALFORMED
+        (mode,) = struct.unpack(">I", data[offset + 24:offset + 28])
+        oid = data[offset + 40:offset + 60].hex()
+        (flags,) = struct.unpack(">H", data[offset + 60:offset + 62])
+        stage = (flags >> 12) & 0x3
+        name_offset = offset + 62
+        if flags & 0x4000:
+            return (), INDEX_REASON_MALFORMED  # extended bit v2'de sıfır olmak zorunda
+        name_length = flags & 0x0FFF
+        if name_length < 0x0FFF:
+            if name_offset + name_length > body_end:
+                return (), INDEX_REASON_MALFORMED
+            name = data[name_offset:name_offset + name_length]
+        else:
+            end = data.find(b"\0", name_offset, body_end)
+            if end < 0:
+                return (), INDEX_REASON_MALFORMED
+            name = data[name_offset:end]
+        # Girdi, adın ardından en az 1 NUL ile 8'in katına dolgulanır.
+        offset += (name_offset - offset + len(name) + 8) & ~7
+        if offset > body_end:
+            return (), INDEX_REASON_MALFORMED
+        entries.append(
+            (name.decode("utf-8", "surrogateescape"), f"{mode:o}", oid, stage)
+        )
+    while offset < body_end:
+        if offset + 8 > body_end:
+            return (), INDEX_REASON_MALFORMED
+        signature = data[offset:offset + 4]
+        (size,) = struct.unpack(">I", data[offset + 4:offset + 8])
+        if size > body_end - offset - 8:
+            return (), INDEX_REASON_MALFORMED
+        if not (65 <= signature[0] <= 90):  # 'A'..'Z' dışı ilk bayt = zorunlu uzantı
+            label = signature.decode("ascii", "replace")
+            return (), f"{INDEX_REASON_EXTENSION}:{label}"
+        offset += 8 + size
+    return tuple(entries), None
+
+
 def _git_status_paths(worktree: Path, *, gitdir: Path) -> tuple[set[str], list[str]]:
     """Index/staged/untracked yolları oku; status'un clean filter'ını çalıştırma.
 
     Ham hash karşılaştırması dönüşümlü dosyalarda muhafazakârdır; repo-local
     clean/process sürücüleri hiçbir aşamada çalıştırılmaz. Rename'in iki ucu
-    staged diff'te --no-renames ile ayrı yollar olarak korunur.
+    staged diff'te --no-renames ile ayrı yollar olarak korunur. Index listesi
+    subprocess ile değil `_read_index_entries` ile okunur; okunamayan index
+    diğer git hataları gibi gerekçeli taşınır, git fallback'i yoktur.
     """
     paths: set[str] = set()
     failed: list[str] = []
@@ -582,16 +703,11 @@ def _git_status_paths(worktree: Path, *, gitdir: Path) -> tuple[set[str], list[s
             failed.append(name)
             continue
         paths.update(chunk for chunk in out.split("\0") if chunk)
-    entries = _run_git(worktree, ["ls-files", "--stage", "-z"], gitdir=gitdir)
-    if entries is None:
-        failed.append("ls-files-stage")
-        entries = ""
-    for entry in entries.split("\0"):
-        if not entry:
-            continue
-        metadata, path = entry.split("\t", 1)
-        mode, oid, stage = metadata.split()
-        if stage != "0":
+    entries, index_failure = _read_index_entries(gitdir)
+    if index_failure is not None:
+        failed.append(f"index:{index_failure}")
+    for path, mode, oid, stage in entries:
+        if stage != 0:
             paths.add(path)
         elif mode != "160000":  # gitlink içerikleri ayrı depoya aittir.
             actual = _raw_worktree_blob(worktree, path, oid)
