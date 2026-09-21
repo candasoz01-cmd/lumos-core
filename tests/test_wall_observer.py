@@ -38,9 +38,11 @@ from lumos_board.wall_observer import (
     SIGNAL_OUT_OF_SCOPE,
     SIGNAL_SILENT_DRIFT,
     SIGNAL_STALE_CLAIM,
+    GitReadError,
     Observation,
     _git_env,
     inspect_decision,
+    last_event_times,
     pin_repository,
     observe,
     observe_drift,
@@ -1103,6 +1105,7 @@ def test_non_utf8_filename_does_not_abort_observation(tmp_path: Path) -> None:
         store.store_dir,
         allowed_roots=[approved],
         worktree_paths={healthy.claim_id: ["panel/x.py"]},
+        base_ref="HEAD",
         now=NOW,
     )
     assert any(o.claim_id == poisoned.claim_id for o in run.observations)
@@ -1167,3 +1170,49 @@ def test_clean_tracked_non_utf8_name_stays_clean(tmp_path: Path) -> None:
         handle.write(b"v2\n")
     found = touched_paths(repo, allowed_roots=[approved], base_ref="HEAD")
     assert any("�" in p for p in found)  # gerçek değişiklik maskeli adla görünür
+
+
+def test_corrupt_event_log_does_not_abort_observation(tmp_path: Path) -> None:
+    """
+    `claim_events.jsonl`'a ajanlar da yazar; tek bozuk bayt strict UTF-8'de
+    bütün turu düşürürdü — gözlenen tarafın duvarı herkes için karartması.
+    Bozuk satır elenir, geçerli satırlar ve tur yaşar.
+    """
+    log = tmp_path / "claim_events.jsonl"
+    log.write_bytes(
+        b'{"claim_id": "a", "at": "2026-09-04T10:00:00Z"}\n'
+        b'\xff\xfe bozuk \xff\n'
+        b'{"claim_id": "b", "at": "2026-09-04T10:05:00Z"}\n'
+    )
+    times = last_event_times(log)
+    assert set(times) == {"a", "b"}
+
+    store = _store(tmp_path)
+    claim = _claim(store)
+    (store.store_dir / "claim_events.jsonl").write_bytes(b"\xff\xfe bozuk \xff\n")
+    run = observe(
+        store.store_dir, worktree_paths={claim.claim_id: ["panel/x.py"]}, now=NOW
+    )
+    assert any(o.claim_id == claim.claim_id for o in run.observations)
+
+
+def test_failed_git_read_is_a_named_skip_not_a_clean_worktree(tmp_path: Path) -> None:
+    """
+    Eksik base ref / bozuk depo / timeout "değişiklik yok" demek değildir.
+    Boş küme dönmek commit'lenmiş S1/S2 kanıtını iz bırakmadan yutuyordu;
+    başarısız okuma artık gerekçeli skip kaydıdır.
+    """
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    repo = _repo_with_dirty_file(approved, "repo", "ok.txt")
+
+    with pytest.raises(GitReadError):
+        # origin/main bu depoda yok: diff başarısız, sonuç "temiz" olamaz.
+        touched_paths(repo, allowed_roots=[approved], base_ref="origin/main")
+
+    store = _store(tmp_path)
+    claim = _claim(store, worktree=str(repo))
+    run = observe(store.store_dir, allowed_roots=[approved], base_ref="origin/main", now=NOW)
+    assert any(
+        claim.claim_id in s and "git_read_failed:diff" in s for s in run.skipped
+    )

@@ -103,6 +103,21 @@ class ObservationRun:
     skipped: list[str] = field(default_factory=list)
 
 
+class GitReadError(RuntimeError):
+    """
+    Bir git okuması başarısız oldu (sıfır-dışı çıkış, timeout, spawn hatası).
+
+    Sessizce boş küme dönmek, başarısız incelemeyi TEMİZ worktree ile aynı
+    gösterirdi: commit'lenmiş S1/S2 kanıtı iz bırakmadan kaybolur, skip
+    kaydı da düşmezdi. Başarısız okuma "temiz" değil "okunamadı"dır;
+    `observe` bunu `git_read_failed:<komut>` gerekçeli skip kaydına indirir.
+    """
+
+    def __init__(self, command: str):
+        super().__init__(command)
+        self.command = command
+
+
 def _format_time(value: datetime) -> str:
     return value.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
@@ -489,7 +504,9 @@ def _git_diff_paths(worktree: Path, base_ref: str, *, gitdir: Path) -> set[str]:
     """Commit'lenmiş fark. `-z` ile NUL ayraç: boşluklu yol bozulmaz."""
     out = _run_git(worktree, ["diff", "--name-only", "-z", f"{base_ref}...HEAD"], gitdir=gitdir)
     if out is None:
-        return set()
+        # Eksik base ref, bozuk depo, timeout: hiçbiri "değişiklik yok" demek
+        # değildir. Boş küme dönmek kanıtı sessizce yutardı.
+        raise GitReadError("diff")
     return {chunk for chunk in out.split("\0") if chunk}
 
 
@@ -548,10 +565,13 @@ def _git_status_paths(worktree: Path, *, gitdir: Path) -> set[str]:
         ["ls-files", "--others", "--exclude-standard", "-z"],
     ):
         out = _run_git(worktree, args, gitdir=gitdir)
-        if out is not None:
-            paths.update(chunk for chunk in out.split("\0") if chunk)
+        if out is None:
+            raise GitReadError(args[0])
+        paths.update(chunk for chunk in out.split("\0") if chunk)
     entries = _run_git(worktree, ["ls-files", "--stage", "-z"], gitdir=gitdir)
-    for entry in (entries or "").split("\0"):
+    if entries is None:
+        raise GitReadError("ls-files")
+    for entry in entries.split("\0"):
         if not entry:
             continue
         metadata, path = entry.split("\t", 1)
@@ -793,31 +813,48 @@ def read_claims(store_dir: Path) -> tuple[TaskClaim, ...]:
 
 
 def last_event_times(audit_path: Path) -> dict[str, datetime]:
-    """`claim_events.jsonl` → claim_id başına en son olay zamanı."""
+    """
+    `claim_events.jsonl` → claim_id başına en son olay zamanı.
+
+    Bu güncede ajanlar da yazar; içeriği güvenilmezdir. Strict UTF-8 ile
+    açmak, tek bozuk baytla bütün gözlem turunu düşürürdü — gözlenen tarafın
+    duvarı herkes için karartabildiği bir fail-open. Bozuk bayt maskelenir
+    (bozulan satır json.loads'ta zaten elenir), okuma hatası okunabilen
+    kadarıyla döner; hiçbiri turu öldürmez.
+    """
     result: dict[str, datetime] = {}
     if not Path(audit_path).is_file():
         return result
-    with Path(audit_path).open("r", encoding="utf-8") as handle:
-        for line in handle:
-            text = line.strip()
-            if not text:
-                continue
-            try:
-                row = json.loads(text)
-            except json.JSONDecodeError:
-                continue  # yarım satır sessizce atlanır; gözlem yazma yapmaz
-            claim_id = str(row.get("claim_id") or "")
-            raw_at = str(row.get("at") or "")
-            if not claim_id or not raw_at:
-                continue
-            try:
-                stamp = datetime.fromisoformat(raw_at.replace("Z", "+00:00"))
-            except ValueError:
-                continue
-            if stamp.tzinfo is None:
-                stamp = stamp.replace(tzinfo=timezone.utc)
-            if claim_id not in result or stamp > result[claim_id]:
-                result[claim_id] = stamp
+    try:
+        with Path(audit_path).open("r", encoding="utf-8", errors="replace") as handle:
+            result.update(_parse_event_lines(handle))
+    except OSError:
+        pass  # kısmi sonuç: o ana kadar okunanlar geçerli
+    return result
+
+
+def _parse_event_lines(handle) -> dict[str, datetime]:
+    result: dict[str, datetime] = {}
+    for line in handle:
+        text = line.strip()
+        if not text:
+            continue
+        try:
+            row = json.loads(text)
+        except json.JSONDecodeError:
+            continue  # yarım satır sessizce atlanır; gözlem yazma yapmaz
+        claim_id = str(row.get("claim_id") or "")
+        raw_at = str(row.get("at") or "")
+        if not claim_id or not raw_at:
+            continue
+        try:
+            stamp = datetime.fromisoformat(raw_at.replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        if stamp.tzinfo is None:
+            stamp = stamp.replace(tzinfo=timezone.utc)
+        if claim_id not in result or stamp > result[claim_id]:
+            result[claim_id] = stamp
     return result
 
 
@@ -870,6 +907,11 @@ def observe(
                     paths = touched_paths(
                         Path(claim.worktree), allowed_roots=allowed_roots, base_ref=base_ref
                     )
+                except GitReadError as exc:
+                    # Başarısız git okuması "temiz worktree" DEĞİLDİR; kanıt
+                    # sessizce kaybolmaz, gerekçe skip kaydına iner.
+                    paths = ()
+                    run.skipped.append(f"{claim.claim_id}: git_read_failed:{exc.command}")
                 except Exception as exc:
                     paths = ()
                     run.skipped.append(
