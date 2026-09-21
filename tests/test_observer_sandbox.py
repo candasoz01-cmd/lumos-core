@@ -754,7 +754,90 @@ def test_fresh_session_keyring_hides_parent_user_key() -> None:
         preexec_fn=_join_fresh_session_keyring,
     )
     assert hidden.returncode == 0, hidden.stdout
-    assert hidden.stdout.split()[1] == "126"  # ENOKEY
+    # After join, SEARCH @s is ENOKEY (126). After seccomp, keyctl is EPERM (1).
+    # Either proves the parent user key is not readable; EPERM is the Medium fix.
+    assert hidden.stdout.split()[1] in {"1", "126"}
+
+
+def test_user_keyring_not_searchable_after_preexec() -> None:
+    """Security Review Medium on 35d48bf7: JOIN leaves @u live; seccomp EPERMs it.
+
+    Must not KEYCTL_CLEAR @u — that mutates the observer's keys.
+    """
+    import ctypes
+
+    from lumos_board.observer_sandbox import (
+        _SYS_KEYCTL,
+        _join_fresh_session_keyring,
+        _keyctl_join_raw,
+    )
+
+    nr = _SYS_KEYCTL.get(os.uname().machine)
+    if nr is None:
+        pytest.skip(f"keyctl unsupported on {os.uname().machine}")
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.syscall.restype = ctypes.c_long
+    SYS_add_key = {"x86_64": 248, "aarch64": 217}.get(os.uname().machine)
+    if SYS_add_key is None:
+        pytest.skip("add_key syscall unknown")
+    desc = f"lumos-obs-ukey-{os.urandom(6).hex()}"
+    ctypes.set_errno(0)
+    added = libc.syscall(
+        ctypes.c_long(SYS_add_key),
+        b"user",
+        desc.encode("ascii"),
+        b"sekrit",
+        ctypes.c_long(6),
+        ctypes.c_long(-4),  # KEY_SPEC_USER_KEYRING
+    )
+    if added < 0:
+        pytest.skip(f"add_key @u failed errno={ctypes.get_errno()}")
+
+    code = (
+        "import ctypes, os, sys\n"
+        f"desc = {desc!r}.encode()\n"
+        "nr = {'x86_64': 250, 'aarch64': 219}[os.uname().machine]\n"
+        "libc = ctypes.CDLL(None, use_errno=True)\n"
+        "libc.syscall.restype = ctypes.c_long\n"
+        "def search(spec):\n"
+        "    ctypes.set_errno(0)\n"
+        "    ret = int(libc.syscall(nr, 10, ctypes.c_long(spec), b'user', desc, 0))\n"
+        "    return ret, ctypes.get_errno()\n"
+        "u, s = search(-4), search(-3)\n"
+        "print(u[0], u[1], s[0], s[1])\n"
+        "sys.exit(0 if u[0] < 0 and s[0] < 0 else 3)\n"
+    )
+    visible = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+    )
+    assert visible.returncode == 3, visible.stdout
+
+    join_only = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+        preexec_fn=_keyctl_join_raw,
+    )
+    assert join_only.returncode == 3, join_only.stdout  # Medium: @u still live
+
+    hidden = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+        preexec_fn=_join_fresh_session_keyring,
+    )
+    assert hidden.returncode == 0, hidden.stdout
+    parts = hidden.stdout.split()
+    assert parts[1] == "1"  # EPERM on @u
+    assert parts[3] == "1"  # EPERM on @s
 
 
 def test_join_keyring_preexec_does_not_cdll_or_raise(
@@ -764,17 +847,21 @@ def test_join_keyring_preexec_does_not_cdll_or_raise(
     import ast
     import inspect
 
-    from lumos_board.observer_sandbox import _join_fresh_session_keyring
+    from lumos_board.observer_sandbox import (
+        _block_key_syscalls,
+        _join_fresh_session_keyring,
+    )
 
-    tree = ast.parse(inspect.getsource(_join_fresh_session_keyring))
-    calls = [
-        getattr(n.func, "attr", getattr(n.func, "id", None))
-        for n in ast.walk(tree)
-        if isinstance(n, ast.Call)
-    ]
-    assert "CDLL" not in calls
-    assert "uname" not in calls
-    assert not any(isinstance(n, ast.Raise) for n in ast.walk(tree))
+    for fn in (_join_fresh_session_keyring, _block_key_syscalls):
+        tree = ast.parse(inspect.getsource(fn))
+        calls = [
+            getattr(n.func, "attr", getattr(n.func, "id", None))
+            for n in ast.walk(tree)
+            if isinstance(n, ast.Call)
+        ]
+        assert "CDLL" not in calls, fn.__name__
+        assert "uname" not in calls, fn.__name__
+        assert not any(isinstance(n, ast.Raise) for n in ast.walk(tree)), fn.__name__
 
     def _boom(*_a: object, **_k: object) -> object:
         raise RuntimeError("CDLL after fork")
@@ -799,7 +886,6 @@ def test_join_keyring_eperm_is_noop_and_child_execs(
 
     monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.EPERM))
     monkeypatch.setattr(sandbox, "_keyctl_search_is_live", lambda: False)
-    sandbox._join_fresh_session_keyring()
     proc = subprocess.run(
         ["/bin/true"],
         preexec_fn=sandbox._join_fresh_session_keyring,
@@ -809,7 +895,7 @@ def test_join_keyring_eperm_is_noop_and_child_execs(
     assert proc.returncode == 0
 
 
-def test_join_keyring_edquot_aborts_child_before_exec(
+def test_join_keyring_edquot_aborts_when_seccomp_fails(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Bugbot Medium on 90acc2ec: join -1 with live SEARCH must not exec."""
@@ -819,6 +905,7 @@ def test_join_keyring_edquot_aborts_child_before_exec(
 
     monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.EDQUOT))
     monkeypatch.setattr(sandbox, "_keyctl_search_is_live", lambda: True)
+    monkeypatch.setattr(sandbox, "_block_key_syscalls", lambda: errno.ENOSYS)
     proc = subprocess.run(
         ["/bin/true"],
         preexec_fn=sandbox._join_fresh_session_keyring,
@@ -826,6 +913,25 @@ def test_join_keyring_edquot_aborts_child_before_exec(
         check=False,
     )
     assert proc.returncode != 0
+
+
+def test_join_keyring_edquot_execs_when_seccomp_blocks_keys(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Failed join is OK once key syscalls cannot SEARCH inherited rings."""
+    import errno
+
+    import lumos_board.observer_sandbox as sandbox
+
+    monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.EDQUOT))
+    monkeypatch.setattr(sandbox, "_block_key_syscalls", lambda: 0)
+    proc = subprocess.run(
+        ["/bin/true"],
+        preexec_fn=sandbox._join_fresh_session_keyring,
+        timeout=5,
+        check=False,
+    )
+    assert proc.returncode == 0
 
 
 def test_join_keyring_eacces_aborts_when_search_live(
@@ -838,6 +944,7 @@ def test_join_keyring_eacces_aborts_when_search_live(
 
     monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.EACCES))
     monkeypatch.setattr(sandbox, "_keyctl_search_is_live", lambda: True)
+    monkeypatch.setattr(sandbox, "_block_key_syscalls", lambda: errno.ENOSYS)
     proc = subprocess.run(
         ["/bin/true"],
         preexec_fn=sandbox._join_fresh_session_keyring,
@@ -885,6 +992,7 @@ def test_join_keyring_enomem_search_aborts_child(
 
     monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.ENOMEM))
     monkeypatch.setattr(sandbox, "_keyctl_raw", lambda *_a, **_k: (-1, errno.ENOMEM))
+    monkeypatch.setattr(sandbox, "_block_key_syscalls", lambda: errno.ENOSYS)
     assert sandbox._keyctl_search_is_live() is True
     proc = subprocess.run(
         ["/bin/true"],
@@ -916,6 +1024,21 @@ def test_keyctl_denial_does_not_skip_started_sandbox(
     monkeypatch.setattr(subprocess, "run", _fake_run)
     result = run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
     assert result.returncode == 0
+
+
+def test_probe_seccomp_enosys_live_search_is_unavailable(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Seccomp ENOSYS with SEARCH live must fail-closed, not degrade."""
+    _stub_launcher(monkeypatch, tmp_path)
+    import errno
+
+    import lumos_board.observer_sandbox as sandbox
+
+    monkeypatch.setattr(sandbox, "_block_key_syscalls", lambda: errno.ENOSYS)
+    monkeypatch.setattr(sandbox, "_keyctl_search_is_live", lambda: True)
+    with pytest.raises(SandboxUnavailableError, match="inherited @s"):
+        run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
 def test_keyctl_join_edquot_is_unavailable(

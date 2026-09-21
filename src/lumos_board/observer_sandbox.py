@@ -86,12 +86,36 @@ _SYS_KEYCTL = {
     "x86_64": 250,
     "aarch64": 219,
 }
+_SYS_ADD_KEY = {
+    "x86_64": 248,
+    "aarch64": 217,
+}
+_SYS_REQUEST_KEY = {
+    "x86_64": 249,
+    "aarch64": 218,
+}
 # Only these mean the *syscall* is dead, so SEARCH is also dead.
 # EACCES/ENOTSUP deny this join but leave KEYCTL_SEARCH live
 # (Bugbot Medium on 73928f52).
 _KEYCTL_BLOCKED = frozenset({errno.EPERM, errno.ENOSYS})
 _PROBE_WAIT_S = 0.2
 _PROBE_SLICE_S = 0.01
+_PR_SET_NO_NEW_PRIVS = 38
+_PR_SET_SECCOMP = 22
+_SECCOMP_MODE_FILTER = 2
+_SECCOMP_RET_ALLOW = 0x7FFF0000
+_SECCOMP_RET_ERRNO = 0x00050000
+_BPF_LD_W_ABS = 0x20
+_BPF_JMP_JEQ_K = 0x15
+_BPF_RET_K = 0x06
+_SECCOMP_DATA_NR = 0
+_SECCOMP_DATA_ARCH = 4
+# linux/audit.h AUDIT_ARCH_* for native 64-bit. Wrong-arch syscalls
+# (i386 int 0x80 keyctl=288) would miss the native nr and stay allowed.
+_AUDIT_ARCH = {
+    "x86_64": 0xC000003E,
+    "aarch64": 0xC00000B7,
+}
 # Host-side only: move the launcher pid into the sandbox memory cgroup
 # before exec. Dash-safe ($1, no multi-digit fd). Must not read stdin —
 # fd 0 is the start-sentinel pipe for the inner wrapper.
@@ -120,6 +144,80 @@ def _bind_keyctl_syscall() -> tuple[int | None, object | None]:
 
 
 _SYS_KEYCTL_NR, _LIBC_SYSCALL = _bind_keyctl_syscall()
+
+
+class _SockFilter(ctypes.Structure):
+    _fields_ = [
+        ("code", ctypes.c_uint16),
+        ("jt", ctypes.c_uint8),
+        ("jf", ctypes.c_uint8),
+        ("k", ctypes.c_uint32),
+    ]
+
+
+class _SockFprog(ctypes.Structure):
+    _fields_ = [
+        ("len", ctypes.c_ushort),
+        ("filter", ctypes.POINTER(_SockFilter)),
+    ]
+
+
+def _bind_prctl() -> object | None:
+    try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        fn = libc.prctl
+        fn.restype = ctypes.c_int
+        fn.argtypes = [
+            ctypes.c_int,
+            ctypes.c_ulong,
+            ctypes.c_ulong,
+            ctypes.c_ulong,
+            ctypes.c_ulong,
+        ]
+        return fn
+    except OSError:
+        return None
+
+
+def _build_key_seccomp() -> tuple[object | None, int]:
+    """Parent-built seccomp filter: EPERM for add_key/request_key/keyctl.
+
+    JOIN_SESSION_KEYRING only replaces ``@s``. ``@u``/``@us`` stay
+    searchable (Security Review Medium on 35d48bf7). Clearing those rings
+    would mutate the observer's keys. Blocking the key syscalls after
+    join closes SEARCH/READ without touching host keyrings.
+    """
+    machine = os.uname().machine
+    audit_arch = _AUDIT_ARCH.get(machine)
+    nrs = [
+        n
+        for n in (
+            _SYS_KEYCTL.get(machine),
+            _SYS_ADD_KEY.get(machine),
+            _SYS_REQUEST_KEY.get(machine),
+        )
+        if n is not None
+    ]
+    if audit_arch is None or not nrs:
+        return None, 0
+    eperm = _SECCOMP_RET_ERRNO | errno.EPERM
+    ins = [
+        _SockFilter(_BPF_LD_W_ABS, 0, 0, _SECCOMP_DATA_ARCH),
+        _SockFilter(_BPF_JMP_JEQ_K, 1, 0, audit_arch),
+        _SockFilter(_BPF_RET_K, 0, 0, eperm),
+        _SockFilter(_BPF_LD_W_ABS, 0, 0, _SECCOMP_DATA_NR),
+    ]
+    for nr in nrs:
+        ins.append(_SockFilter(_BPF_JMP_JEQ_K, 0, 1, nr))
+        ins.append(_SockFilter(_BPF_RET_K, 0, 0, eperm))
+    ins.append(_SockFilter(_BPF_RET_K, 0, 0, _SECCOMP_RET_ALLOW))
+    arr = (_SockFilter * len(ins))(*ins)
+    prog = _SockFprog(len(ins), arr)
+    return (arr, prog), ctypes.addressof(prog)
+
+
+_LIBC_PRCTL = _bind_prctl()
+_SECCOMP_KEEP, _SECCOMP_PROG_ADDR = _build_key_seccomp()
 
 
 class SandboxUnavailableError(RuntimeError):
@@ -524,45 +622,57 @@ def _keyctl_search_is_live() -> bool:
     return True
 
 
+def _block_key_syscalls() -> int:
+    """Install a keyctl/add_key/request_key EPERM filter. 0 or errno. No raise."""
+    prctl = _LIBC_PRCTL
+    addr = _SECCOMP_PROG_ADDR
+    if prctl is None or not addr:
+        return errno.ENOSYS
+    try:
+        ctypes.set_errno(0)
+        rc = int(prctl(_PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0))
+        if rc < 0:
+            return ctypes.get_errno() or errno.EPERM
+        rc = int(prctl(_PR_SET_SECCOMP, _SECCOMP_MODE_FILTER, addr, 0, 0))
+        if rc < 0:
+            return ctypes.get_errno() or errno.EPERM
+    except Exception:
+        return errno.EPERM
+    return 0
+
+
 def _join_fresh_session_keyring() -> None:
-    """Install an empty session keyring in this process (preexec child).
+    """Empty ``@s``, then block key syscalls so ``@u``/``@us`` cannot be read.
 
     ``bwrap --new-session`` is POSIX ``setsid``: it does not isolate the
     kernel session keyring ``@s``. User/pid/ipc namespaces do not either.
-    A Git filter running as the mapped UID can ``KEYCTL_READ`` operator
-    keys inherited on ``@s`` (Kerberos ``KEYRING:`` ccaches) and write
-    them to captured git output (Security Review Medium on 4b92706f).
-    ``KEYCTL_JOIN_SESSION_KEYRING`` with a NULL name replaces ``@s`` for
-    this process and its descendants. Measured: parent user key is visible
-    in a child until this join; after join + ``setsid``, search returns
-    ENOKEY.
+    JOIN_SESSION_KEYRING replaces ``@s`` only; ``@u``/``@us`` stay
+    searchable (Security Review Medium on 35d48bf7). Measured: a user
+    key remains KEYCTL_SEARCH-able after join, and SEARCH dest=``@s``
+    links it into the new session. Clearing ``@u`` would mutate the
+    observer. After join, seccomp returns EPERM for keyctl/add_key/
+    request_key.
 
-    Must not ``CDLL`` / ``uname`` / ``raise`` here: CPython runs this after
-    ``fork`` and before ``exec``. A raise becomes a missing start sentinel
-    and skips every observation turn (Bugbot Mediums on b8302b77). Join
-    failure is ignorable only when SEARCH is also syscall-dead
-    (EPERM/ENOSYS). ``EACCES``/``ENOTSUP``/``ENOMEM`` on JOIN or SEARCH
-    leave ``@s`` readable — ``os._exit`` (Bugbot Mediums on 73928f52 and
-    f540ce92).
+    Must not ``CDLL`` / ``uname`` / ``raise`` here.
     """
     ret, err = _keyctl_join_raw()
-    if ret >= 0:
+    join_ok = ret >= 0
+    sc = _block_key_syscalls()
+    if sc == 0:
         return
+    if join_ok:
+        os._exit(1)
     if err in _KEYCTL_BLOCKED or not _keyctl_search_is_live():
         return
     os._exit(1)
 
 
 def _probe_join_errno() -> int:
-    """Join in a throwaway child so the observer's own ``@s`` is not replaced.
+    """Join+seccomp in a throwaway child so the observer's ``@s`` is not replaced.
 
-    Returns 0 on success, ``EPERM``/``ENOSYS`` when keyctl is dead (degrade),
-    another errno when join failed but SEARCH is still live (fail-closed).
-
-    Probe ``SIGSYS`` (seccomp kill) is blocked-keyctl, not ``EINVAL`` skip.
-    ``waitpid`` is bounded; a stuck child is SIGKILL'd and treated as
-    blocked so the observer timeout is not bypassed (Bugbot Medium on
-    73928f52).
+    Returns 0 when the child can block key syscalls (jail may start),
+    ``EPERM``/``ENOSYS`` when keyctl is dead (degrade), another errno
+    when keys would remain readable (fail-closed).
     """
     if _LIBC_SYSCALL is None or _SYS_KEYCTL_NR is None:
         return errno.ENOSYS
@@ -571,12 +681,17 @@ def _probe_join_errno() -> int:
     except OSError as exc:
         return exc.errno or errno.EAGAIN
     if pid == 0:
-        ret, err = _keyctl_join_raw()
-        if ret >= 0:
+        _keyctl_join_raw()
+        sc = _block_key_syscalls()
+        if sc == 0:
             os._exit(0)
-        if err in _KEYCTL_BLOCKED or not _keyctl_search_is_live():
-            os._exit(errno.EPERM if err not in _KEYCTL_BLOCKED else min(err, 127))
-        os._exit(min(err or errno.EINVAL, 127))
+        if not _keyctl_search_is_live():
+            os._exit(errno.EPERM)
+        # SEARCH still live: @u/@s readable. A blocked errno here would
+        # degrade the jail onto inherited keys (ENOSYS seccomp after a
+        # successful join looks like "keyctl dead" to the parent).
+        fail = sc if sc not in _KEYCTL_BLOCKED else errno.EINVAL
+        os._exit(min(fail or errno.EINVAL, 127))
     deadline = time.monotonic() + _PROBE_WAIT_S
     status = 0
     reaped = False
