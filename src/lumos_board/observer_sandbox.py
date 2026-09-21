@@ -51,10 +51,12 @@ _BLOCKED_ENV_KEYS = frozenset(
 _MAX_PROCESSES = 64
 _MAX_OUTPUT_BYTES = 1024 * 1024
 _MAX_ADDRESS_SPACE_BYTES = 1024 * 1024 * 1024
-# Sandbox'ın tek yazılabilir yüzeyi /tmp tmpfs'idir. `fsize` DOSYA başına,
-# `RLIMIT_AS` süreç adres alanına bakar; tmpfs sayfaları ikisine de sayılmaz.
-# Sınırsız tmpfs, 1MiB'lik çok dosyayla host RAM'ini şişirmeye açıktı.
+# Writable tmpfs surfaces (/tmp and /dev, including /dev/shm). `fsize` is
+# per-file; `RLIMIT_AS` does not count tmpfs pages. Uncapped tmpfs let a
+# filter fill host RAM with many 1MiB files (Security Review Medium on
+# 0ed05a33 for /dev; Bugbot Medium on d2afc6c6 for /tmp).
 _TMPFS_BYTES = 64 * 1024 * 1024
+_DEV_NODES = ("null", "zero", "full", "urandom", "random")
 _OUTPUT_LIMIT_EXIT_CODE = 125
 _OUTPUT_LIMIT_MARKER = b"\n[observer sandbox output limit reached]\n"
 
@@ -123,12 +125,49 @@ def _bind_ro_args(host: Path, guest: str | None = None) -> list[str]:
     return ["--ro-bind", str(host), target]
 
 
+def _size_capped_tmpfs(dest: str) -> list[str]:
+    return ["--size", str(_TMPFS_BYTES), "--tmpfs", dest]
+
+
+def _dev_jail_args() -> list[str]:
+    """Capped ``/dev`` plus the device nodes git needs; no host ``/dev/tty``.
+
+    ``--dev /dev`` is a writable tmpfs at kernel default size (~half RAM),
+    including ``/dev/shm``. Overlaying only ``/dev/shm`` still leaves
+    ``/dev/<other>`` uncapped, so ``--dev`` is replaced with a size-capped
+    tmpfs and explicit ``--dev-bind`` of host nodes. ``/dev/tty`` is omitted
+    on purpose (Security Review Medium on 2d56ed6 + 0ed05a33).
+    """
+    args = _size_capped_tmpfs("/dev")
+    args += ["--dir", "/dev/shm"]
+    for name in _DEV_NODES:
+        host = Path("/dev") / name
+        if host.exists():
+            args += ["--dev-bind", str(host), f"/dev/{name}"]
+    args += [
+        "--symlink",
+        "/proc/self/fd",
+        "/dev/fd",
+        "--symlink",
+        "/proc/self/fd/0",
+        "/dev/stdin",
+        "--symlink",
+        "/proc/self/fd/1",
+        "/dev/stdout",
+        "--symlink",
+        "/proc/self/fd/2",
+        "/dev/stderr",
+    ]
+    return args
+
+
 def _bwrap_isolation_prefix() -> list[str]:
     """Shared jail flags: no net, new session, no inherited TTY.
 
-    ``--dev /dev`` is required for git (``/dev/null``, urandom). Combined with
-    ``--new-session`` and ``stdin=DEVNULL`` so a repo-controlled filter cannot
-    steal the operator controlling TTY (Security Review Medium on 2d56ed6).
+    Device nodes git needs (``/dev/null``, urandom) come from ``_dev_jail_args``.
+    Combined with ``--new-session`` and ``stdin=DEVNULL`` so a repo-controlled
+    filter cannot steal the operator controlling TTY (Security Review Medium
+    on 2d56ed6).
     """
     return [
         _bwrap_path(),
@@ -137,12 +176,8 @@ def _bwrap_isolation_prefix() -> list[str]:
         "--unshare-all",
         "--proc",
         "/proc",
-        "--dev",
-        "/dev",
-        "--size",
-        str(_TMPFS_BYTES),
-        "--tmpfs",
-        "/tmp",
+        *_dev_jail_args(),
+        *_size_capped_tmpfs("/tmp"),
         "--dir",
         "/tmp/lumos-observer-home",
         "--cap-drop",

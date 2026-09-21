@@ -482,10 +482,18 @@ def test_bwrap_launcher_uses_resolved_absolute_host_path(
 
     prefix = _bwrap_isolation_prefix()
     assert prefix[0] == "/opt/bubblewrap/bin/bwrap"
-    size_at = prefix.index("--size")
-    assert prefix[size_at + 1] == str(_TMPFS_BYTES)
-    assert prefix[size_at + 2] == "--tmpfs"
-    assert prefix[size_at + 3] == "/tmp"
+    assert "--dev" not in prefix
+    tmpfs_targets: list[str] = []
+    for i, part in enumerate(prefix):
+        if part == "--size":
+            assert prefix[i + 1] == str(_TMPFS_BYTES)
+            assert prefix[i + 2] == "--tmpfs"
+            tmpfs_targets.append(prefix[i + 3])
+    assert tmpfs_targets == ["/dev", "/tmp"]
+    assert "--dev-bind" in prefix
+    bind_at = prefix.index("--dev-bind")
+    assert prefix[bind_at + 1].startswith("/dev/")
+    assert "/dev/tty" not in prefix
 
 
 def test_setup_failure_without_sentinel_is_unavailable(
@@ -679,6 +687,37 @@ def test_tmpfs_is_size_capped(tmp_path: Path) -> None:
     proc = _run_bwrap_limited(cmd, timeout=60, start_sentinel=sentinel)
     written = int(proc.stdout.decode().strip() or "0")
     assert 0 < written < attempts, f"tmpfs sınırsız görünüyor: {written}/{attempts}"
+
+
+@needs_bwrap
+def test_dev_shm_is_size_capped(tmp_path: Path) -> None:
+    """Security Review Medium on 0ed05a33 — /dev/shm is not an uncapped tmpfs."""
+    from lumos_board.observer_sandbox import (
+        _TMPFS_BYTES,
+        _bwrap_isolation_prefix,
+        _run_bwrap_limited,
+        _with_start_sentinel,
+    )
+
+    attempts = (_TMPFS_BYTES // (1024 * 1024)) + 6
+    code = (
+        "n = 0\n"
+        "try:\n"
+        f"  for i in range({attempts}):\n"
+        "    open(f'/dev/shm/f{i}', 'wb').write(b'x' * (1024 * 1024 - 4096)); n += 1\n"
+        "except OSError:\n"
+        "  pass\n"
+        "print(n)\n"
+    )
+    payload, sentinel = _with_start_sentinel([_probe_interpreter(), "-c", code])
+    cmd = _bwrap_isolation_prefix()
+    for host in ("/usr", "/bin", "/lib", "/lib64"):
+        if Path(host).exists():
+            cmd += ["--ro-bind", host, host]
+    cmd += ["--clearenv"] + payload
+    proc = _run_bwrap_limited(cmd, timeout=60, start_sentinel=sentinel)
+    written = int(proc.stdout.decode().strip() or "0")
+    assert 0 < written < attempts, f"/dev/shm sınırsız görünüyor: {written}/{attempts}"
 
 
 @needs_bwrap
