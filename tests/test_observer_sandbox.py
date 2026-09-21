@@ -112,6 +112,15 @@ def test_non_utf8_git_output_does_not_crash(repo: Path, monkeypatch: pytest.Monk
             raise AssertionError("run_git_sandboxed must not use text=True")
         if kwargs.get("stdin") is not subprocess.DEVNULL:
             raise AssertionError("run_git_sandboxed must pass stdin=DEVNULL")
+        # Başlamış bir sandbox'ı simüle et: gerçek koşumda nonce'u jail
+        # içindeki sarmalayıcı basar; sahte koşum onu komuttan çıkarır.
+        command = args[0] if args else kwargs["args"]
+        sentinel = next(
+            part.split()[1]
+            for part in command
+            if isinstance(part, str) and part.startswith("echo lumos-sandbox-start-")
+        )
+        kwargs["stderr"].write(sentinel.encode("ascii") + b"\n")
         kwargs["stdout"].write(b"ok-\xff-binary\n")
         kwargs["stderr"].write(b"warn-\xfe\n")
         return subprocess.CompletedProcess(
@@ -574,3 +583,73 @@ def test_read_status_works_for_in_root_repo(repo: Path) -> None:
         allowed_roots=[repo],
     )
     assert result.returncode == 0
+
+
+@needs_bwrap
+def test_tmpfs_is_size_capped(tmp_path: Path) -> None:
+    """
+    §3.2 — tmpfs sandbox'ın tek yazılabilir yüzeyidir ve TOPLAMI sınırlıdır.
+    `fsize` dosya başınadır, `RLIMIT_AS` tmpfs sayfalarını saymaz; sınırsız
+    tmpfs 1MiB'lik çok dosyayla host RAM'ini şişirmeye açıktı.
+    """
+    from lumos_board.observer_sandbox import (
+        _TMPFS_BYTES,
+        _bwrap_isolation_prefix,
+        _run_bwrap_limited,
+        _with_start_sentinel,
+    )
+
+    attempts = (_TMPFS_BYTES // (1024 * 1024)) + 6
+    code = (
+        "import sys\n"
+        "n = 0\n"
+        "try:\n"
+        f"  for i in range({attempts}):\n"
+        "    open(f'/tmp/f{i}', 'wb').write(b'x' * (1024 * 1024 - 4096)); n += 1\n"
+        "except OSError:\n"
+        "  pass\n"
+        "print(n)\n"
+    )
+    payload, sentinel = _with_start_sentinel([_probe_interpreter(), "-c", code])
+    cmd = _bwrap_isolation_prefix()
+    for host in ("/usr", "/bin", "/lib", "/lib64"):
+        if Path(host).exists():
+            cmd += ["--ro-bind", host, host]
+    cmd += ["--clearenv"] + payload
+    proc = _run_bwrap_limited(cmd, timeout=60, start_sentinel=sentinel)
+    written = int(proc.stdout.decode().strip() or "0")
+    assert 0 < written < attempts, f"tmpfs sınırsız görünüyor: {written}/{attempts}"
+
+
+@needs_bwrap
+def test_setup_failure_is_unavailable_but_git_error_is_a_result(repo: Path) -> None:
+    """
+    Kurulum hatası git hatası DEĞİLDİR: bwrap jail'i kuramazsa (bozuk bind,
+    userns reddi) sonuç `SandboxUnavailableError` olmalı — sıfır-dışı çıkışlı
+    sahte bir git sonucu değil. Gerçek git hatası ise normal sonuç kalır.
+    `--info-fd` bu ayrımı veremiyor (bind hatasında bile info yazılıyor);
+    ayrım başlangıç sentineliyle yapılır ve sentinel çağırana sızmaz.
+    """
+    from lumos_board.observer_sandbox import (
+        _bwrap_isolation_prefix,
+        _run_bwrap_limited,
+        _with_start_sentinel,
+    )
+
+    payload, sentinel = _with_start_sentinel(["/bin/true"])
+    cmd = _bwrap_isolation_prefix() + [
+        "--ro-bind", "/nonexistent-lumos-test-path", "/x",
+        "--ro-bind", "/usr", "/usr",
+        "--ro-bind", "/bin", "/bin",
+    ] + payload
+    with pytest.raises(SandboxUnavailableError, match="failed to start"):
+        _run_bwrap_limited(cmd, timeout=15, start_sentinel=sentinel)
+
+    result = run_git_sandboxed(
+        ["rev-parse", "no-such-ref-xyz"], cwd=repo, allowed_roots=[repo]
+    )
+    assert result.returncode != 0  # git hatası: istisna değil, sonuç
+    assert "lumos-sandbox-start" not in result.stderr
+    ok = run_git_sandboxed(["status", "--porcelain"], cwd=repo, allowed_roots=[repo])
+    assert ok.returncode == 0
+    assert "lumos-sandbox-start" not in ok.stderr

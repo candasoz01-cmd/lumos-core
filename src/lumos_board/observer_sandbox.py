@@ -51,6 +51,10 @@ _BLOCKED_ENV_KEYS = frozenset(
 _MAX_PROCESSES = 64
 _MAX_OUTPUT_BYTES = 1024 * 1024
 _MAX_ADDRESS_SPACE_BYTES = 1024 * 1024 * 1024
+# Sandbox'ın tek yazılabilir yüzeyi /tmp tmpfs'idir. `fsize` DOSYA başına,
+# `RLIMIT_AS` süreç adres alanına bakar; tmpfs sayfaları ikisine de sayılmaz.
+# Sınırsız tmpfs, 1MiB'lik çok dosyayla host RAM'ini şişirmeye açıktı.
+_TMPFS_BYTES = 64 * 1024 * 1024
 _OUTPUT_LIMIT_EXIT_CODE = 125
 _OUTPUT_LIMIT_MARKER = b"\n[observer sandbox output limit reached]\n"
 
@@ -135,6 +139,8 @@ def _bwrap_isolation_prefix() -> list[str]:
         "/proc",
         "--dev",
         "/dev",
+        "--size",
+        str(_TMPFS_BYTES),
         "--tmpfs",
         "/tmp",
         "--dir",
@@ -201,8 +207,30 @@ def _bounded_file_bytes(handle) -> tuple[bytes, bool]:  # type: ignore[no-untype
     return handle.read(_MAX_OUTPUT_BYTES), size >= _MAX_OUTPUT_BYTES
 
 
+def _with_start_sentinel(payload: Sequence[str]) -> tuple[list[str], bytes]:
+    """Payload'ı, jail kurulduktan sonra stderr'e nonce basan sarmalayıcıya al.
+
+    Kurulum hatası git hatası DEĞİLDİR: bwrap exec olup jail'i kuramadan
+    çökerse (bind hatası, userns reddi) sıfır-dışı çıkış normal bir git
+    sonucu gibi dönüyordu ve sözleşmenin "sandbox kurulamadı → tur atlanır"
+    semantiği kayboluyordu. bwrap'ın `--info-fd`'si bu ayrımı VEREMEZ —
+    ölçüldü: bind hatasında bile info verisi yazılıyor (fd, child henüz
+    kurulumu bitirmeden doldu). Tek güvenilir işaret payload'ın kendisinin
+    başlamasıdır: jail içinde, komuttan hemen önce, çağrı başına rastgele
+    bir nonce stderr'e basılır. Nonce görülmediyse sandbox hiç başlamamıştır.
+    Düşman kod nonce'u ancak payload BAŞLADIKTAN sonra görebilir; kurulum
+    başarısızsa hiç çalışmaz, taklit edemez.
+    """
+    nonce = f"lumos-sandbox-start-{os.urandom(12).hex()}"
+    wrapped = ["/bin/sh", "-c", f'echo {nonce} >&2; exec "$@"', "sh", *payload]
+    return wrapped, (nonce + "\n").encode("ascii")
+
+
 def _run_bwrap_limited(
-    command: Sequence[str], *, timeout: float
+    command: Sequence[str],
+    *,
+    timeout: float,
+    start_sentinel: bytes | None = None,
 ) -> subprocess.CompletedProcess[bytes]:
     """Run bwrap without pipe-backed, unbounded capture buffers."""
     limited_command = _resource_limited_command(command, timeout=timeout)
@@ -225,6 +253,15 @@ def _run_bwrap_limited(
         raise SandboxUnavailableError(f"sandbox failed to exec: {exc}") from exc
     except subprocess.TimeoutExpired as exc:
         raise SandboxUnavailableError(f"sandbox process timed out: {exc}") from exc
+
+    if start_sentinel is not None:
+        if start_sentinel not in stderr:
+            detail = stderr.decode("utf-8", "replace").strip()[:300]
+            raise SandboxUnavailableError(
+                f"sandbox failed to start: {detail or proc.returncode}"
+            )
+        # Sentinel iç mekanizmadır; çağırana git'in kendi stderr'i döner.
+        stderr = stderr.replace(start_sentinel, b"", 1)
 
     if stdout_limited or stderr_limited:
         stderr = (
@@ -309,11 +346,12 @@ def run_git_sandboxed(
     for k, v in env.items():
         bwrap_cmd += ["--setenv", k, v]
 
-    bwrap_cmd += [str(git_path), *args]
+    payload, sentinel = _with_start_sentinel([str(git_path), *args])
+    bwrap_cmd += payload
 
     # Bytes + replace: non-UTF-8 git output must not UnicodeDecodeError out
     # of the observation turn (Bugbot Medium on cde9103).
-    proc = _run_bwrap_limited(bwrap_cmd, timeout=timeout)
+    proc = _run_bwrap_limited(bwrap_cmd, timeout=timeout, start_sentinel=sentinel)
 
     return SandboxGitResult(
         returncode=proc.returncode,
@@ -340,8 +378,9 @@ def probe_sandbox_env(
     env = scrub_env_for_sandbox(host_env)
     for k, v in env.items():
         bwrap_cmd += ["--setenv", k, v]
-    bwrap_cmd += ["/usr/bin/env", "-0"]
-    proc = _run_bwrap_limited(bwrap_cmd, timeout=15)
+    payload, sentinel = _with_start_sentinel(["/usr/bin/env", "-0"])
+    bwrap_cmd += payload
+    proc = _run_bwrap_limited(bwrap_cmd, timeout=15, start_sentinel=sentinel)
     if proc.returncode != 0:
         raise SandboxUnavailableError(
             f"env probe failed: {proc.stderr!r}"
