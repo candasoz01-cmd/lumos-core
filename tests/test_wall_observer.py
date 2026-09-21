@@ -14,6 +14,7 @@ Testlerin taşıdığı iddialar:
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 from datetime import datetime, timedelta, timezone
@@ -712,23 +713,10 @@ def _write_bad_gitfile(approved: Path) -> Path:
     return stub
 
 
-def test_in_root_clean_filter_still_executes_documented_residual_risk(tmp_path: Path) -> None:
-    """
-    ┌─ BİLİNÇLİ KALICI RİSK KAYDI — düzeltme DEĞİL ────────────────────────┐
-    │ Jail gözlemciyi kök DIŞINA çıkmaktan alıkoyar; kök İÇİNDEKİ düşman   │
-    │ bir depoya karşı koruma sağlamaz.                                     │
-    │                                                                       │
-    │ Değişmiş takipli dosyayı tespit etmenin her yolu içerik hash'lemeyi   │
-    │ gerektirir, bu da deponun `filter.<ad>.clean` sürücüsünü çalıştırır.  │
-    │ Sürücü adını saldırgan seçtiği için `-c` ile joker kapatılamaz.        │
-    │                                                                       │
-    │ Bu test bugünkü GERÇEĞİ sabitler ki kimse "sertleştirme bunu da       │
-    │ kapatıyor" varsaymasın. Karşılığı işletimseldir: gözlemci izlediği    │
-    │ ajanlardan fazla yetkiyle koşturulmaz.                                │
-    │                                                                       │
-    │ Bir gün gerçekten kapatılırsa bu test kırılır ve GÜNCELLENMELİDİR.    │
-    └───────────────────────────────────────────────────────────────────────┘
-    """
+@pytest.mark.parametrize("driver", ["evil", "Odd.Name-42"])
+@pytest.mark.parametrize("filter_kind", ["clean", "process"])
+def test_in_root_filters_never_execute(tmp_path: Path, driver: str, filter_kind: str) -> None:
+    """Gerçek repo-local sürücü gözlemci sürecinde çalışmamalı."""
     approved = tmp_path / "approved"
     approved.mkdir()
     repo = approved / "agent_wt"
@@ -737,7 +725,7 @@ def test_in_root_clean_filter_still_executes_documented_residual_risk(tmp_path: 
     _git(repo, "config", "user.email", "t@e.invalid")
     _git(repo, "config", "user.name", "t")
     (repo / "data.bin").write_text("v1\n", encoding="utf-8")
-    (repo / ".gitattributes").write_text("data.bin filter=evil\n", encoding="utf-8")
+    (repo / ".gitattributes").write_text(f"data.bin filter={driver}\n", encoding="utf-8")
     _git(repo, "add", "-A")
     _git(repo, "commit", "-qm", "base")
 
@@ -745,16 +733,17 @@ def test_in_root_clean_filter_still_executes_documented_residual_risk(tmp_path: 
     payload = tmp_path / "filter.sh"
     payload.write_text(f"#!/bin/sh\ntouch {marker}\ncat\n", encoding="utf-8")
     payload.chmod(0o755)
-    _git(repo, "config", "filter.evil.clean", str(payload))
+    _git(repo, "config", f"filter.{driver}.{filter_kind}", str(payload))
+    _git(repo, "config", f"filter.{driver}.required", "true")
     (repo / "data.bin").write_text("v2\n", encoding="utf-8")
 
-    touched_paths(repo, allowed_roots=[approved], base_ref="HEAD")
+    assert "data.bin" in touched_paths(repo, allowed_roots=[approved], base_ref="HEAD")
+    assert not marker.exists()
 
-    assert marker.exists(), (
-        "Kök içindeki clean filter bugün ÇALIŞIYOR. Bu test o gerçeği kaydeder; "
-        "artık çalışmıyorsa risk kapanmış demektir — testi ve modül başlığındaki "
-        "'KALICI RİSK' bölümünü güncelleyin."
-    )
+    store = _store(tmp_path)
+    _claim(store, worktree=str(repo))
+    observe(store.store_dir, allowed_roots=[approved], now=NOW)
+    assert not marker.exists()
 
 
 def test_commondir_pointing_outside_the_root_is_refused(tmp_path: Path) -> None:
@@ -915,3 +904,126 @@ def test_observer_never_reaches_the_claim_store_api() -> None:
         if isinstance(node, (ast.Import, ast.ImportFrom)):
             used.extend((a.name, node.lineno) for a in node.names if a.name in forbidden)
     assert used == [], f"gözlemci claim store API'sine dokunuyor: {used}"
+
+
+@pytest.mark.parametrize("relative", [False, True])
+def test_nested_alternates_cannot_bounce_outside(tmp_path: Path, relative: bool) -> None:
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    outside, head, prev = _repo_with_two_commits(tmp_path, "secret", "SECRET_OUTSIDE.txt")
+    victim = _repo_with_dirty_file(approved, "victim", "ok.txt")
+    bounce = approved / "bounce"
+    (bounce / "info").mkdir(parents=True)
+    (bounce / "info" / "alternates").write_text(str(outside / ".git" / "objects") + "\n")
+    objects = victim / ".git" / "objects"
+    (objects / "info" / "alternates").write_text("../../../bounce\n" if relative else str(bounce) + "\n")
+    (victim / ".git" / "HEAD").write_text(head + "\n")
+    # Kontrol: aynı fixture gerçekten Git'e yabancı ağacı okutabiliyor.
+    leaked = subprocess.run(["git", "diff", "--name-only", f"{prev}...HEAD"],
+                            cwd=victim, capture_output=True, text=True, check=True).stdout
+    assert "SECRET_OUTSIDE.txt" in leaked
+    assert pin_repository(victim, [approved]) == (None, REASON_OBJECTS_OUTSIDE)
+    assert touched_paths(victim, allowed_roots=[approved], base_ref=prev) == ()
+    store = _store(tmp_path)
+    claim = _claim(store, worktree=str(victim))
+    run = observe(store.store_dir, allowed_roots=[approved], base_ref=prev, now=NOW)
+    assert any(REASON_OBJECTS_OUTSIDE in s and claim.claim_id in s for s in run.skipped)
+    assert "SECRET_OUTSIDE" not in str(run.observations)
+
+
+@pytest.mark.parametrize("child", ["pack", "ab", "info", "info/alternates", "ab/object"])
+def test_object_store_child_symlinks_are_refused(tmp_path: Path, child: str) -> None:
+    approved = tmp_path / "approved"
+    repo = _repo_with_dirty_file(approved, "repo", "ok.txt")
+    external = tmp_path / "external"
+    external.mkdir()
+    target = repo / ".git" / "objects" / child
+    target.parent.mkdir(exist_ok=True)
+    if target.exists():
+        target.rename(target.with_name(target.name + "-saved"))
+    target.symlink_to(external, target_is_directory=True)
+    assert pin_repository(repo, [approved]) == (None, REASON_OBJECTS_OUTSIDE)
+    assert touched_paths(repo, allowed_roots=[approved]) == ()
+
+
+def test_safe_nested_alternates_and_cycle_remain_usable(tmp_path: Path) -> None:
+    source, head, prev = _repo_with_two_commits(tmp_path, "source", "allowed.txt")
+    repo = _repo_with_dirty_file(tmp_path, "victim", "ok.txt")
+    objects = repo / ".git" / "objects"
+    bounce = tmp_path / "bounce"
+    (bounce / "info").mkdir(parents=True)
+    (objects / "info" / "alternates").write_text(str(bounce) + "\n")
+    source_objects = source / ".git" / "objects"
+    (bounce / "info" / "alternates").write_text(str(source_objects) + "\n")
+    (source_objects / "info" / "alternates").write_text(str(objects) + "\n")
+    (repo / ".git" / "HEAD").write_text(head + "\n")
+    assert pin_repository(repo, [tmp_path])[0] == repo / ".git"
+    assert "allowed.txt" in touched_paths(repo, allowed_roots=[tmp_path], base_ref=prev)
+
+
+@pytest.mark.parametrize("alternate", ['"/quoted/path"', "/missing/store"])
+def test_unverifiable_alternates_fail_closed(git_repo: Path, alternate: str) -> None:
+    (git_repo / ".git" / "objects" / "info" / "alternates").write_text(alternate + "\n")
+    assert pin_repository(git_repo, [git_repo.parent]) == (None, REASON_OBJECTS_OUTSIDE)
+
+
+def test_tracked_deletion_is_observed(git_repo: Path) -> None:
+    (git_repo / "src" / "base.py").rename(git_repo / "moved.py")
+    assert {"src/base.py", "moved.py"} <= set(touched_paths(
+        git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD"))
+
+
+def test_worktree_symlink_reads_link_not_target(git_repo: Path) -> None:
+    link = git_repo / "link"
+    link.symlink_to("missing-target")
+    _git(git_repo, "add", "link")
+    _git(git_repo, "commit", "-qm", "symlink")
+    assert touched_paths(git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD") == ()
+    link.rename(git_repo / "old-link")
+    link.symlink_to("different-target")
+    assert "link" in touched_paths(git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD")
+
+
+@pytest.mark.parametrize("replacement", ["symlink", "fifo", "directory"])
+def test_tracked_file_type_changes_do_not_follow_or_block(git_repo: Path, replacement: str) -> None:
+    target = git_repo / "src" / "base.py"
+    target.rename(git_repo / "original.py")
+    if replacement == "symlink":
+        target.symlink_to("../original.py")
+    elif replacement == "fifo":
+        os.mkfifo(target)
+    else:
+        target.mkdir()
+    assert "src/base.py" in touched_paths(git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD")
+
+
+def test_filter_from_include_and_info_attributes_never_runs(git_repo: Path, tmp_path: Path) -> None:
+    marker = tmp_path / "FILTER_RAN"
+    config = tmp_path / "included.config"
+    config.write_text(f'[filter "injected"]\nclean = "touch {marker}; cat"\n')
+    _git(git_repo, "config", "include.path", str(config))
+    (git_repo / ".git" / "info" / "attributes").write_text("* filter=injected\n")
+    (git_repo / "src" / "base.py").write_text("changed\n")
+    assert "src/base.py" in touched_paths(git_repo, allowed_roots=[tmp_path], base_ref="HEAD")
+    assert not marker.exists()
+
+
+def test_raw_comparison_conservatively_reports_normalized_content(git_repo: Path) -> None:
+    # Güvenilmeyen dönüşüm çalıştırılmaz; ham fark kaybolmamalı.
+    (git_repo / "src" / "base.py").write_bytes(b"x = 1\r\n")
+    _git(git_repo, "config", "core.autocrlf", "true")
+    assert "src/base.py" in touched_paths(git_repo, allowed_roots=[git_repo.parent], base_ref="HEAD")
+
+
+@pytest.mark.parametrize("separator", ["\v", "\r", "\f"])
+def test_alternate_path_control_characters_are_not_line_separators(
+    git_repo: Path, tmp_path: Path, separator: str
+) -> None:
+    objects = git_repo / ".git" / "objects"
+    (objects / "safe").mkdir()
+    (objects / "bounce").mkdir()
+    outside = tmp_path / "outside-store"
+    outside.mkdir()
+    (objects / f"safe{separator}bounce").symlink_to(outside, target_is_directory=True)
+    (objects / "info" / "alternates").write_bytes(f"safe{separator}bounce\n".encode())
+    assert pin_repository(git_repo, [git_repo]) == (None, REASON_OBJECTS_OUTSIDE)

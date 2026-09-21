@@ -21,32 +21,19 @@ Güven modeli (sözleşme §1): tespit yalnız türetilmiş kaynaklara dayanır.
 `agent_status_*.json` ve claim'in kendi `status` alanı **beyandır**; bu
 modül onları tespit dayanağı olarak kullanmaz.
 
-KALICI RİSK — gözlemci bir yetki sınırı DEĞİLDİR
-------------------------------------------------
-Jail, gözlemcinin **kök dışına** çıkmasını engeller. Kök **içindeki** düşman
-bir depoya karşı koruma sağlamaz ve sağlayamaz.
-
-Değişmiş takipli dosyaları tespit etmenin her yolu (`status --porcelain`,
-`ls-files -m`, `diff HEAD`) git'in dosya içeriğini hash'lemesini gerektirir;
-bu da deponun `.gitattributes` ile atadığı `filter.<ad>.clean` sürücüsünü
-çalıştırır. Bu sürücüler `-c` ile joker olarak kapatılamaz — sürücü adı
-saldırgan tarafından seçilir. Ölçüldü: tam sertleştirmeyle bile çalışıyor.
-(Yalnız `ls-files -o` ve commit↔commit diff içerik hash'lemez.)
-
-Gözlemcinin çalışması için `allowed_roots`'un ajanların **yazabildiği**
-worktree'leri içermesi zorunlu olduğundan, kök içindeki bir claim sahibi
-gözlemcinin sürecinde kod çalıştırabilir (confused deputy).
-
-Bunun karşılığı koddan değil işletimden gelir: **gözlemci, izlediği
-ajanlardan daha fazla yetkiyle koşturulmamalıdır.** Ayrı ve düşük yetkili
-bir kimlik altında çalıştırılmalı; operatör kimlik bilgilerine, yazma
-haklarına veya ağ erişimine sahip bir bağlamda koşturulmamalıdır.
+Çalışma ağacı içerikleri Git filtrelerinden geçirilmez; index'teki blob
+kimliğiyle ham içerik karşılaştırılır. Filtre/CRLF dönüşümü kullanan dosyalar
+bu yüzden ihtiyatlı biçimde değişmiş sayılabilir. Bu gözlemci bir işletim
+sistemi sandbox'ı değildir; eşzamanlı depo mutasyonlarına karşı izolasyon
+sağlamaz ve izlediği ajanlardan fazla yetkiyle çalıştırılmamalıdır.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import stat
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -254,12 +241,8 @@ def inspect_decision(
     return None, REASON_OUTSIDE
 
 
-# Çalıştırma kabiliyeti olan git config anahtarları. Bu liste **derinlik
-# savunmasıdır, sınır değildir** — git'in repo-local config'i tamamen yok
-# sayan desteklenen bir kipi yok ve textconv/filter sürücüleri joker ile
-# kapatılamaz. Asıl sınır `resolve_inspectable_worktree` jail'idir; buradaki
-# override'lar jail içindeki bir deponun bile gözlemciyi çalıştırmasını
-# zorlaştırır.
+# Derinlik savunması. Çalışma ağacını hash'leyen Git komutları kullanılmaz:
+# status/diff-files/ls-files -m repo-local clean/process filtrelerini çalıştırır.
 _GIT_EXEC_CONFIG_OVERRIDES = (
     "core.fsmonitor=",
     "core.hooksPath=/dev/null",
@@ -387,34 +370,47 @@ def pin_repository(worktree: Path, allowed_roots: Sequence[Path | str]) -> tuple
 
 
 def _object_store_inside(gitdir: Path, inside) -> bool:
-    """`objects` dizini ve `objects/info/alternates` hedefleri kök içinde mi."""
+    """Tüm alternate store'ları denetle; alt symlink/özel dosyaları reddet."""
     objects = gitdir / "objects"
-    if objects.exists():
-        try:
-            resolved_objects = objects.resolve(strict=True)
-        except (OSError, RuntimeError, ValueError):
-            return False
-        if not inside(resolved_objects):
-            return False
-        alternates = resolved_objects / "info" / "alternates"
-        if alternates.is_file():
-            try:
-                lines = alternates.read_text(encoding="utf-8", errors="replace").splitlines()
-            except (OSError, RuntimeError, ValueError):
+    # Linked worktree'nin nesneleri yalnız commondir altında bulunabilir.
+    if not objects.exists() and not objects.is_symlink():
+        return True
+    pending = [objects]
+    seen: set[Path] = set()
+    try:
+        while pending:
+            store = pending.pop().resolve(strict=True)
+            if not inside(store) or not store.is_dir():
                 return False
-            for line in lines:
-                entry = line.strip()
-                if not entry or entry.startswith("#"):
-                    continue
-                try:
+            if store in seen:
+                continue
+            if len(seen) >= 64:
+                return False
+            seen.add(store)
+            # pack, loose-object fanout, info ve dosya symlink'leri de sınırdır.
+            # Symlink izlemeyerek döngüleri ve dışarıdan veri okumayı önle.
+            directories = [store]
+            while directories:
+                directory = directories.pop()
+                for child in directory.iterdir():
+                    mode = child.lstat().st_mode
+                    if stat.S_ISDIR(mode):
+                        directories.append(child)
+                    elif not stat.S_ISREG(mode):
+                        return False
+            alternates = store / "info" / "alternates"
+            if alternates.exists():
+                for entry in alternates.read_bytes().decode("utf-8").split("\n"):
+                    if not entry:
+                        continue
+                    # Git C-quoted yolları destekler; burada yorumlamak yerine
+                    # fail-closed reddet. '#' ve boşluklar gerçek yol karakteridir.
+                    if entry.startswith('"'):
+                        return False
                     candidate = Path(entry)
-                    if not candidate.is_absolute():
-                        candidate = resolved_objects / candidate
-                    resolved_alt = candidate.resolve(strict=True)
-                except (OSError, RuntimeError, ValueError):
-                    return False
-                if not inside(resolved_alt):
-                    return False
+                    pending.append(candidate if candidate.is_absolute() else store / candidate)
+    except (OSError, RuntimeError, ValueError):
+        return False
     return True
 
 
@@ -461,44 +457,75 @@ def _git_diff_paths(worktree: Path, base_ref: str, *, gitdir: Path) -> set[str]:
     return {chunk for chunk in out.split("\0") if chunk}
 
 
+def _raw_worktree_blob(worktree: Path, path: str, oid: str) -> tuple[str, str] | None:
+    """Ham blob hash'i; parent symlink, FIFO ve Git filtreleri takip edilmez."""
+    parts = PurePosixPath(path).parts
+    if not parts or PurePosixPath(path).is_absolute() or ".." in parts:
+        return None
+    directory = None
+    try:
+        directory = os.open(worktree, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        for part in parts[:-1]:
+            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                            dir_fd=directory)
+            os.close(directory)
+            directory = child
+        mode = os.stat(parts[-1], dir_fd=directory, follow_symlinks=False).st_mode
+        if stat.S_ISLNK(mode):
+            data = os.fsencode(os.readlink(parts[-1], dir_fd=directory))
+            digest = hashlib.new("sha256" if len(oid) == 64 else "sha1")
+            digest.update(f"blob {len(data)}\0".encode())
+            digest.update(data)
+        else:
+            if not stat.S_ISREG(mode):
+                return None
+            fd = os.open(parts[-1], os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,
+                         dir_fd=directory)
+            with os.fdopen(fd, "rb") as stream:
+                metadata = os.fstat(stream.fileno())
+                if not stat.S_ISREG(metadata.st_mode):
+                    return None
+                mode = metadata.st_mode
+                digest = hashlib.new("sha256" if len(oid) == 64 else "sha1")
+                digest.update(f"blob {metadata.st_size}\0".encode())
+                for chunk in iter(lambda: stream.read(65536), b""):
+                    digest.update(chunk)
+        git_mode = "120000" if stat.S_ISLNK(mode) else ("100755" if mode & stat.S_IXUSR else "100644")
+        return digest.hexdigest(), git_mode
+    except (OSError, ValueError):
+        return None
+    finally:
+        if directory is not None:
+            os.close(directory)
+
+
 def _git_status_paths(worktree: Path, *, gitdir: Path) -> set[str]:
+    """Index/staged/untracked yolları oku; status'un clean filter'ını çalıştırma.
+
+    Ham hash karşılaştırması dönüşümlü dosyalarda muhafazakârdır; repo-local
+    clean/process sürücüleri hiçbir aşamada çalıştırılmaz. Rename'in iki ucu
+    staged diff'te --no-renames ile ayrı yollar olarak korunur.
     """
-    Commit'lenmemiş çalışma ağacı durumu.
-
-    `--porcelain -z` kullanılır ve kolonlar SABİT konumdan okunur:
-    ilk iki karakter durum (`XY`), üçüncü boşluk, yol dördüncü karakterden
-    başlar. Satırı `strip()`leyip sonra `[3:]` almak unstaged satırlarda
-    (` M path` — baştaki boşluk anlamlıdır) kolonları kaydırır ve yolun ilk
-    iki karakterini yer; hayalet yol üretir, kapsam içi dosyayı kapsam dışı
-    gösterir. Tam da bu katmanın görmek için var olduğu durumdur.
-
-    `-z` ayrıca rename'i (`R`) iki ayrı NUL kaydı olarak verir — yeni yol,
-    sonra eski yol — yani kırılgan `" -> "` ayrıştırmasına gerek kalmaz;
-    ve `-z` kipinde git yolları tırnaklamaz/kaçışlamaz.
-    """
-    out = _run_git(worktree, ["status", "--porcelain", "-z"], gitdir=gitdir)
-    if out is None:
-        return set()
-
     paths: set[str] = set()
-    parts = out.split("\0")
-    index = 0
-    while index < len(parts):
-        entry = parts[index]
-        index += 1
+    for args in (
+        ["diff", "--cached", "--name-only", "--no-renames", "--no-ext-diff", "--no-textconv", "-z"],
+        ["ls-files", "--others", "--exclude-standard", "-z"],
+    ):
+        out = _run_git(worktree, args, gitdir=gitdir)
+        if out is not None:
+            paths.update(chunk for chunk in out.split("\0") if chunk)
+    entries = _run_git(worktree, ["ls-files", "--stage", "-z"], gitdir=gitdir)
+    for entry in (entries or "").split("\0"):
         if not entry:
             continue
-        if len(entry) < 4:
-            continue
-        status = entry[:2]
-        path = entry[3:]
-        if path:
+        metadata, path = entry.split("\t", 1)
+        mode, oid, stage = metadata.split()
+        if stage != "0":
             paths.add(path)
-        # Rename/copy: hemen ardından ESKİ yol ayrı bir kayıt olarak gelir.
-        if "R" in status or "C" in status:
-            if index < len(parts) and parts[index]:
-                paths.add(parts[index])
-            index += 1
+        elif mode != "160000":  # gitlink içerikleri ayrı depoya aittir.
+            actual = _raw_worktree_blob(worktree, path, oid)
+            if actual != (oid, mode):
+                paths.add(path)
     return paths
 
 
