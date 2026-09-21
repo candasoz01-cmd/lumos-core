@@ -478,7 +478,67 @@ def test_bwrap_launcher_uses_resolved_absolute_host_path(
         return real_which(name)
 
     monkeypatch.setattr("lumos_board.observer_sandbox.shutil.which", _which)
-    assert _bwrap_isolation_prefix()[0] == "/opt/bubblewrap/bin/bwrap"
+    from lumos_board.observer_sandbox import _TMPFS_BYTES
+
+    prefix = _bwrap_isolation_prefix()
+    assert prefix[0] == "/opt/bubblewrap/bin/bwrap"
+    size_at = prefix.index("--size")
+    assert prefix[size_at + 1] == str(_TMPFS_BYTES)
+    assert prefix[size_at + 2] == "--tmpfs"
+    assert prefix[size_at + 3] == "/tmp"
+
+
+def test_setup_failure_without_sentinel_is_unavailable(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Launcher setup fail (no start nonce) is SandboxUnavailableError, not git."""
+    real_which = __import__("shutil").which
+
+    def _which(name: str):
+        if name == "bwrap":
+            return real_which("bwrap") or "/usr/bin/bwrap"
+        return real_which(name)
+
+    monkeypatch.setattr("lumos_board.observer_sandbox.shutil.which", _which)
+
+    def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
+        kwargs["stderr"].write(b"bwrap: Can't bind mount /nonexistent\n")
+        return subprocess.CompletedProcess(args=args[0], returncode=1)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+    with pytest.raises(SandboxUnavailableError, match="failed to start"):
+        run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
+
+
+def test_git_child_failure_with_sentinel_is_result(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Git nonzero after the start nonce remains SandboxGitResult; nonce is stripped."""
+    real_which = __import__("shutil").which
+
+    def _which(name: str):
+        if name == "bwrap":
+            return real_which("bwrap") or "/usr/bin/bwrap"
+        return real_which(name)
+
+    monkeypatch.setattr("lumos_board.observer_sandbox.shutil.which", _which)
+
+    def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
+        command = args[0] if args else kwargs["args"]
+        sentinel = next(
+            part.split()[1]
+            for part in command
+            if isinstance(part, str) and part.startswith("echo lumos-sandbox-start-")
+        )
+        kwargs["stderr"].write(sentinel.encode("ascii") + b"\n")
+        kwargs["stderr"].write(b"fatal: not a git repository\n")
+        return subprocess.CompletedProcess(args=command, returncode=128)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+    result = run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
+    assert result.returncode == 128
+    assert "not a git repository" in result.stderr
+    assert "lumos-sandbox-start" not in result.stderr
 
 
 @needs_bwrap
