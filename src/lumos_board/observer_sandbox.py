@@ -415,8 +415,12 @@ def _pidns_reaper_command(command: Sequence[str]) -> list[str]:
     direct child. ``bwrap --new-session`` plus a double-fork/setsid filter
     then survives and piles up (Bugbot High on 1e792a13). A user+pid
     namespace with ``--kill-child`` ties the tree to the launcher pid:
-    PDEATHSIG + pid-ns teardown reap setsid daemons. Used only on the
-    cgroup-degrade path; cgroup.kill already covers the v2 path.
+    PDEATHSIG + pid-ns teardown reap setsid daemons. ``--mount-proc`` is
+    required: without it ``getpid()`` is the inner pid while ``/proc`` is
+    still the host, so bwrap writes ``/proc/<inner>/uid_map`` onto the
+    wrong host task and setup dies before the start sentinel (Bugbot High
+    on 10f0b570). Used only on the cgroup-degrade path; cgroup.kill already
+    covers the v2 path.
     """
     unshare = shutil.which("unshare")
     if not unshare:
@@ -432,6 +436,7 @@ def _pidns_reaper_command(command: Sequence[str]) -> list[str]:
         "--pid",
         "--fork",
         "--kill-child",
+        "--mount-proc",
         "--",
         *command,
     ]

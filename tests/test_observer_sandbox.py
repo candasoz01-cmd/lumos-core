@@ -522,6 +522,7 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
         elif Path(cmd[0]).name == "unshare":
             assert "--kill-child" in cmd
             assert "--pid" in cmd
+            assert "--mount-proc" in cmd
             assert not any(
                 "cgroup.procs" in part for part in cmd if isinstance(part, str)
             )
@@ -592,8 +593,35 @@ def test_pidns_reaper_command_is_dash_safe() -> None:
     assert Path(cmd[0]).name == "unshare"
     assert "--kill-child" in cmd
     assert "--pid" in cmd
+    assert "--mount-proc" in cmd
     assert "--" in cmd
     assert not re.search(r">&\d{2,}", " ".join(cmd))
+
+
+def test_pidns_reaper_procfs_matches_inner_pid() -> None:
+    """Bugbot High on 10f0b570: without --mount-proc, /proc/<inner-pid> is
+    a different host task (measured: pid 1 → tini). bwrap then writes the
+    wrong uid_map and the jail never starts."""
+    from lumos_board.observer_sandbox import _pidns_reaper_command
+
+    if shutil.which("unshare") is None:
+        pytest.skip("unshare required")
+    code = (
+        "import os, pathlib, sys\n"
+        "pid = os.getpid()\n"
+        "self_comm = pathlib.Path('/proc/self/comm').read_text().strip()\n"
+        "by_pid = pathlib.Path(f'/proc/{pid}/comm').read_text().strip()\n"
+        "print(pid, self_comm, by_pid)\n"
+        "sys.exit(0 if self_comm == by_pid else 2)\n"
+    )
+    cmd = _pidns_reaper_command([sys.executable, "-c", code])
+    proc = subprocess.run(cmd, capture_output=True, timeout=5, check=False, text=True)
+    if proc.returncode not in (0, 2):
+        pytest.skip(f"unshare pid ns unavailable: {proc.stderr[:200]!r}")
+    assert proc.returncode == 0, proc.stdout
+    parts = proc.stdout.split()
+    assert len(parts) >= 3
+    assert parts[1] == parts[2]
 
 
 def test_pidns_reaper_reaps_setsid_daemon() -> None:
