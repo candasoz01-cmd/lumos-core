@@ -840,6 +840,82 @@ def test_user_keyring_not_searchable_after_preexec() -> None:
     assert parts[3] == "1"  # EPERM on @s
 
 
+def test_key_seccomp_filter_denies_x32_syscall_bit() -> None:
+    """Bugbot Medium on 5989489a: x32 keeps AUDIT_ARCH_X86_64, sets bit 30."""
+    from lumos_board.observer_sandbox import (
+        _BPF_JMP_JSET_K,
+        _SECCOMP_KEEP,
+        _X32_SYSCALL_BIT,
+    )
+
+    keep = _SECCOMP_KEEP
+    assert keep is not None
+    arr, _prog = keep
+    assert any(
+        ins.code == _BPF_JMP_JSET_K and ins.k == _X32_SYSCALL_BIT for ins in arr
+    )
+
+
+def test_x32_keyctl_not_readable_after_preexec() -> None:
+    """x32 keyctl must not SEARCH @u after join+seccomp."""
+    import ctypes
+
+    from lumos_board.observer_sandbox import (
+        _SYS_KEYCTL,
+        _X32_SYSCALL_BIT,
+        _join_fresh_session_keyring,
+    )
+
+    nr = _SYS_KEYCTL.get(os.uname().machine)
+    if nr is None:
+        pytest.skip(f"keyctl unsupported on {os.uname().machine}")
+    libc = ctypes.CDLL(None, use_errno=True)
+    libc.syscall.restype = ctypes.c_long
+    SYS_add_key = {"x86_64": 248, "aarch64": 217}.get(os.uname().machine)
+    if SYS_add_key is None:
+        pytest.skip("add_key syscall unknown")
+    desc = f"lumos-obs-x32-{os.urandom(6).hex()}"
+    ctypes.set_errno(0)
+    added = libc.syscall(
+        ctypes.c_long(SYS_add_key),
+        b"user",
+        desc.encode("ascii"),
+        b"sekrit",
+        ctypes.c_long(6),
+        ctypes.c_long(-4),
+    )
+    if added < 0:
+        pytest.skip(f"add_key @u failed errno={ctypes.get_errno()}")
+
+    code = (
+        "import ctypes, os, sys\n"
+        f"desc = {desc!r}.encode()\n"
+        f"nr = {nr}\n"
+        f"x32 = {nr | _X32_SYSCALL_BIT}\n"
+        "libc = ctypes.CDLL(None, use_errno=True)\n"
+        "libc.syscall.restype = ctypes.c_long\n"
+        "def search(n):\n"
+        "    ctypes.set_errno(0)\n"
+        "    ret = int(libc.syscall(ctypes.c_long(n), 10, ctypes.c_long(-4), b'user', desc, 0))\n"
+        "    return ret, ctypes.get_errno()\n"
+        "native, x32r = search(nr), search(x32)\n"
+        "print(native[0], native[1], x32r[0], x32r[1])\n"
+        "sys.exit(0 if native[0] < 0 and x32r[0] < 0 else 3)\n"
+    )
+    hidden = subprocess.run(
+        [sys.executable, "-c", code],
+        capture_output=True,
+        text=True,
+        timeout=5,
+        check=False,
+        preexec_fn=_join_fresh_session_keyring,
+    )
+    assert hidden.returncode == 0, hidden.stdout
+    parts = hidden.stdout.split()
+    assert parts[1] == "1"  # native keyctl EPERM
+    assert parts[3] == "1"  # x32 bit caught by JSET, not kernel ENOSYS
+
+
 def test_join_keyring_preexec_does_not_cdll_or_raise(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

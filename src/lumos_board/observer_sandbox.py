@@ -107,9 +107,14 @@ _SECCOMP_RET_ALLOW = 0x7FFF0000
 _SECCOMP_RET_ERRNO = 0x00050000
 _BPF_LD_W_ABS = 0x20
 _BPF_JMP_JEQ_K = 0x15
+_BPF_JMP_JSET_K = 0x45
 _BPF_RET_K = 0x06
 _SECCOMP_DATA_NR = 0
 _SECCOMP_DATA_ARCH = 4
+# linux/asm/unistd.h __X32_SYSCALL_BIT. x32 keeps AUDIT_ARCH_X86_64 and
+# sets this bit on the number, so 64-bit keyctl/add_key/request_key
+# JEQ misses (Bugbot Medium on 5989489a).
+_X32_SYSCALL_BIT = 0x40000000
 # linux/audit.h AUDIT_ARCH_* for native 64-bit. Wrong-arch syscalls
 # (i386 int 0x80 keyctl=288) would miss the native nr and stay allowed.
 _AUDIT_ARCH = {
@@ -206,6 +211,10 @@ def _build_key_seccomp() -> tuple[object | None, int]:
         _SockFilter(_BPF_JMP_JEQ_K, 1, 0, audit_arch),
         _SockFilter(_BPF_RET_K, 0, 0, eperm),
         _SockFilter(_BPF_LD_W_ABS, 0, 0, _SECCOMP_DATA_NR),
+        # x32: same arch, nr | 0x40000000. Deny the whole x32 surface
+        # so keyctl cannot skip the 64-bit JEQ (Bugbot Medium on 5989489a).
+        _SockFilter(_BPF_JMP_JSET_K, 0, 1, _X32_SYSCALL_BIT),
+        _SockFilter(_BPF_RET_K, 0, 0, eperm),
     ]
     for nr in nrs:
         ins.append(_SockFilter(_BPF_JMP_JEQ_K, 0, 1, nr))
@@ -651,7 +660,7 @@ def _join_fresh_session_keyring() -> None:
     key remains KEYCTL_SEARCH-able after join, and SEARCH dest=``@s``
     links it into the new session. Clearing ``@u`` would mutate the
     observer. After join, seccomp returns EPERM for keyctl/add_key/
-    request_key.
+    request_key, including x32 (``nr | 0x40000000``) and wrong-arch.
 
     Must not ``CDLL`` / ``uname`` / ``raise`` here.
     """
