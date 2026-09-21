@@ -114,6 +114,11 @@ def _repo_relative(paths: Iterable[str]) -> tuple[str, ...]:
         text = str(raw or "").strip().replace("\\", "/")
         if not text:
             continue
+        # Kayıt sınırı: git'ten `surrogateescape` ile kayıpsız gelen bozuk
+        # baytlar burada görünür U+FFFD'ye maskelenir. İçeride ham hâli
+        # gerekiyordu (dosya açma, hash karşılaştırma); günceye ise geçerli
+        # UTF-8 dışında hiçbir şey yazılmaz — json.dumps surrogate'ta patlar.
+        text = text.encode("utf-8", "surrogateescape").decode("utf-8", "replace")
         path = PurePosixPath(text)
         if path.is_absolute() or ".." in path.parts:
             continue
@@ -471,9 +476,13 @@ def _run_git(worktree: Path, args: Sequence[str], *, gitdir: Path) -> str | None
     # `-z` çıktısı ham bayttır: dosya adı UTF-8 olmak zorunda değildir.
     # `text=True` strict decode kullanır ve kök içindeki TEK bozuk dosya adı
     # UnicodeDecodeError ile bütün gözlem turunu düşürürdü — gözlenen tarafın
-    # gözlemciyi kapatabildiği bir fail-open. NUL ayraç geçerli kaldığı için
-    # replace yalnız bozuk adı maskeler; yol yine kaydedilir, tur yaşar.
-    return proc.stdout.decode("utf-8", errors="replace")
+    # gözlemciyi kapatabildiği bir fail-open. `surrogateescape` baytları
+    # KAYIPSIZ taşır: `_raw_worktree_blob` gerçek dosyayı açıp hash'ini
+    # karşılaştırabilir, temiz dosya temiz kalır. `replace` burada yanlıştı:
+    # ad U+FFFD'ye dönünce dosya açılamıyor ve temiz commit'lenmiş dosya
+    # sonsuza dek "değişmiş" görünüyordu. Maskeleme kayıt sınırında yapılır
+    # (`_repo_relative`); günceye surrogate'lı geçersiz UTF-8 yazılmaz.
+    return proc.stdout.decode("utf-8", errors="surrogateescape")
 
 
 def _git_diff_paths(worktree: Path, base_ref: str, *, gitdir: Path) -> set[str]:

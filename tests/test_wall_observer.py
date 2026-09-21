@@ -1135,3 +1135,35 @@ def test_unexpected_inspection_error_is_a_skip_not_an_abort(
         broken.claim_id in s and "inspection_error:RuntimeError" in s for s in run.skipped
     )
     assert any(o.claim_id == healthy.claim_id for o in run.observations)
+
+
+def test_clean_tracked_non_utf8_name_stays_clean(tmp_path: Path) -> None:
+    """
+    Bozuk adı U+FFFD'ye çevirip dosyayı o adla aramak, temiz commit'lenmiş
+    dosyayı sonsuza dek "değişmiş" gösterirdi (kalıcı sahte OUT_OF_SCOPE /
+    SILENT_DRIFT). Baytlar içeride kayıpsız taşınır: temiz dosya temiz kalır,
+    gerçekten değişince maskeli adıyla raporlanır.
+    """
+    approved = tmp_path / "approved"
+    approved.mkdir()
+    repo = approved / "repo"
+    repo.mkdir()
+    _git(approved, "init", "-q", "-b", "main", str(repo))
+    _git(repo, "config", "user.email", "t@e.invalid")
+    _git(repo, "config", "user.name", "t")
+    bad_name = os.path.join(os.fsencode(repo), b"bad\xffname.txt")
+    with open(bad_name, "wb") as handle:
+        handle.write(b"v1\n")
+    (repo / "ok.txt").write_text("v1\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-qm", "base")
+    (repo / "ok.txt").write_text("v2\n", encoding="utf-8")
+
+    found = touched_paths(repo, allowed_roots=[approved], base_ref="HEAD")
+    assert "ok.txt" in found
+    assert not any("�" in p for p in found)  # temiz bozuk-adlı dosya raporlanmaz
+
+    with open(bad_name, "wb") as handle:
+        handle.write(b"v2\n")
+    found = touched_paths(repo, allowed_roots=[approved], base_ref="HEAD")
+    assert any("�" in p for p in found)  # gerçek değişiklik maskeli adla görünür
