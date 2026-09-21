@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import re
 import shutil
+import signal
 import socket
 import stat
 import subprocess
@@ -518,6 +519,12 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
         # geçerli; TTY/stdin invariantı her iki path'te de aynıdır.
         if Path(cmd[0]).name == "sh":
             assert any("cgroup.procs" in part for part in cmd if isinstance(part, str))
+        elif Path(cmd[0]).name == "unshare":
+            assert "--kill-child" in cmd
+            assert "--pid" in cmd
+            assert not any(
+                "cgroup.procs" in part for part in cmd if isinstance(part, str)
+            )
         else:
             assert Path(cmd[0]).name == "prlimit"
             assert not any(
@@ -573,6 +580,71 @@ def test_cgroup_enter_wrapper_is_dash_safe() -> None:
     assert "$1" in _CGROUP_ENTER_SCRIPT
     assert not re.search(r">&\d{2,}", _CGROUP_ENTER_SCRIPT)
     assert not re.search(r"\$\d{2,}", _CGROUP_ENTER_SCRIPT)
+
+
+def test_pidns_reaper_command_is_dash_safe() -> None:
+    from lumos_board.observer_sandbox import _pidns_reaper_command
+
+    cmd = _pidns_reaper_command(["prlimit", "--", "bwrap"])
+    if shutil.which("unshare") is None:
+        assert cmd[0] == "prlimit"
+        return
+    assert Path(cmd[0]).name == "unshare"
+    assert "--kill-child" in cmd
+    assert "--pid" in cmd
+    assert "--" in cmd
+    assert not re.search(r">&\d{2,}", " ".join(cmd))
+
+
+def test_pidns_reaper_reaps_setsid_daemon() -> None:
+    """Bugbot High on 1e792a13: timeout without cgroup left setsid children."""
+    from lumos_board.observer_sandbox import _pidns_reaper_command
+
+    if shutil.which("unshare") is None:
+        pytest.skip("unshare required")
+    probe = _pidns_reaper_command(["/bin/true"])
+    probed = subprocess.run(probe, capture_output=True, timeout=5, check=False)
+    if probed.returncode != 0:
+        pytest.skip(f"unshare pid ns unavailable: {probed.stderr[:200]!r}")
+
+    token = f"lumos-pidns-{os.getpid()}-{os.urandom(4).hex()}"
+    inner = (
+        "import os,time\n"
+        "os.fork()==0 and (os.setsid() or time.sleep(30) or os._exit(0))\n"
+        "time.sleep(30)\n"
+        f"# {token}\n"
+    )
+    cmd = _pidns_reaper_command([sys.executable, "-c", inner])
+    proc = subprocess.Popen(cmd)
+    try:
+        time.sleep(0.4)
+
+        def _hits() -> list[int]:
+            found: list[int] = []
+            needle = token.encode("ascii")
+            for entry in Path("/proc").glob("[0-9]*"):
+                try:
+                    cmdline = (entry / "cmdline").read_bytes()
+                except OSError:
+                    continue
+                if needle in cmdline and entry.name != str(os.getpid()):
+                    found.append(int(entry.name))
+            return found
+
+        before = _hits()
+        assert before, "setsid daemon never appeared"
+        os.kill(proc.pid, signal.SIGKILL)
+        proc.wait(timeout=2)
+        time.sleep(0.4)
+        after = _hits()
+        assert after == [], after
+    finally:
+        if proc.poll() is None:
+            try:
+                os.kill(proc.pid, signal.SIGKILL)
+            except OSError:
+                pass
+            proc.wait(timeout=2)
 
 
 def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(

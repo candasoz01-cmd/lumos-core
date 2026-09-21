@@ -408,6 +408,35 @@ def _into_cgroup_command(cgroup: Path, command: Sequence[str]) -> list[str]:
     ]
 
 
+def _pidns_reaper_command(command: Sequence[str]) -> list[str]:
+    """Wrap ``command`` so SIGKILL of the launcher reaps the whole jail tree.
+
+    Without a memory cgroup, ``subprocess.run(timeout=)`` only SIGKILLs the
+    direct child. ``bwrap --new-session`` plus a double-fork/setsid filter
+    then survives and piles up (Bugbot High on 1e792a13). A user+pid
+    namespace with ``--kill-child`` ties the tree to the launcher pid:
+    PDEATHSIG + pid-ns teardown reap setsid daemons. Used only on the
+    cgroup-degrade path; cgroup.kill already covers the v2 path.
+    """
+    unshare = shutil.which("unshare")
+    if not unshare:
+        _LOG.warning(
+            "observer sandbox: unshare missing; timeout cannot reap jail "
+            "tree without a memory cgroup"
+        )
+        return list(command)
+    return [
+        unshare,
+        "--user",
+        "--map-root-user",
+        "--pid",
+        "--fork",
+        "--kill-child",
+        "--",
+        *command,
+    ]
+
+
 def _resource_limited_command(command: Sequence[str], *, timeout: float) -> list[str]:
     """Wrap the sandbox launcher in host-enforced *per-process* rlimits.
 
@@ -513,6 +542,11 @@ def _run_bwrap_limited(
             # cgroup'a taşımadan, yalnız per-process rlimit'lerle koş.
             if cgroup is not None:
                 limited_command = _into_cgroup_command(cgroup, limited_command)
+            else:
+                # Degrade path has no cgroup.kill. Pid-ns reaper makes a
+                # wall-clock timeout (SIGKILL of this launcher) reap the
+                # jail, including --new-session / setsid descendants.
+                limited_command = _pidns_reaper_command(limited_command)
             timed_out = False
             try:
                 with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
