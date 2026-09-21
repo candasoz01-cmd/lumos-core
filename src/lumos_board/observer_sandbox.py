@@ -13,7 +13,8 @@ import os
 import shutil
 import subprocess
 import tempfile
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -50,15 +51,25 @@ _BLOCKED_ENV_KEYS = frozenset(
 
 _MAX_PROCESSES = 64
 _MAX_OUTPUT_BYTES = 1024 * 1024
+# Per-process secondary cap. Linux applies RLIMIT_AS per task, so this
+# alone does not bound the jail tree (Security Review Medium on 6aef3d3f).
 _MAX_ADDRESS_SPACE_BYTES = 1024 * 1024 * 1024
+# Tree-wide anonymous+tmpfs+cache budget via cgroup v2 memory.max.
+_MAX_TREE_MEMORY_BYTES = 1024 * 1024 * 1024
 # Writable tmpfs surfaces (/tmp and /dev, including /dev/shm). `fsize` is
 # per-file; `RLIMIT_AS` does not count tmpfs pages. Uncapped tmpfs let a
 # filter fill host RAM with many 1MiB files (Security Review Medium on
 # 0ed05a33 for /dev; Bugbot Medium on d2afc6c6 for /tmp).
 _TMPFS_BYTES = 64 * 1024 * 1024
 _DEV_NODES = ("null", "zero", "full", "urandom", "random")
+_TIMEOUT_EXIT_CODE = 124
+_TIMEOUT_MARKER = b"\n[observer sandbox timed out]\n"
 _OUTPUT_LIMIT_EXIT_CODE = 125
 _OUTPUT_LIMIT_MARKER = b"\n[observer sandbox output limit reached]\n"
+# Host-side only: move the launcher pid into the sandbox memory cgroup
+# before exec. Dash-safe ($1, no multi-digit fd). Must not read stdin —
+# fd 0 is the start-sentinel pipe for the inner wrapper.
+_CGROUP_ENTER_SCRIPT = 'printf "%s\\n" $$ > "$1/cgroup.procs" && shift && exec "$@"'
 
 
 class SandboxUnavailableError(RuntimeError):
@@ -227,8 +238,132 @@ def _current_uid_task_count() -> int:
     return total
 
 
+def _current_cgroup_path() -> Path:
+    """Return this process's cgroup v2 directory under ``/sys/fs/cgroup``."""
+    try:
+        raw = Path("/proc/self/cgroup").read_text(encoding="utf-8")
+    except OSError as exc:
+        raise SandboxUnavailableError(f"cannot read /proc/self/cgroup: {exc}") from exc
+    rel = None
+    for line in raw.splitlines():
+        if line.startswith("0::"):
+            rel = line[3:]
+            break
+    if rel is None:
+        lines = [line for line in raw.splitlines() if line.strip()]
+        if not lines:
+            raise SandboxUnavailableError("empty /proc/self/cgroup")
+        rel = lines[-1].split(":")[-1]
+    if not rel.startswith("/"):
+        rel = "/" + rel
+    return Path("/sys/fs/cgroup") / rel.lstrip("/")
+
+
+def _memory_cgroup_insert_parent() -> Path:
+    """Writable ancestor whose ``cgroup.subtree_control`` already lists memory.
+
+    Children of that directory receive ``memory.max``. Enabling ``+memory`` on
+    a populated cgroup is EBUSY, and a child of our own leaf would not get
+    the controller, so we create a *sibling* of the observer cgroup.
+    """
+    current = _current_cgroup_path()
+    node: Path | None = current
+    while node is not None:
+        subtree = node / "cgroup.subtree_control"
+        try:
+            writable = node.is_dir() and os.access(node, os.W_OK)
+            controllers = (
+                subtree.read_text(encoding="utf-8").split() if subtree.exists() else []
+            )
+        except OSError:
+            writable = False
+            controllers = []
+        if writable and "memory" in controllers:
+            return node
+        if node == Path("/sys/fs/cgroup"):
+            break
+        parent = node.parent
+        if parent == node:
+            break
+        node = parent
+    raise SandboxUnavailableError(
+        "no delegated cgroup memory controller for sandbox tree RAM cap"
+    )
+
+
+def _destroy_memory_cgroup(cg: Path) -> None:
+    kill = cg / "cgroup.kill"
+    if kill.exists():
+        try:
+            kill.write_text("1")
+        except OSError:
+            pass
+    try:
+        cg.rmdir()
+    except OSError:
+        pass
+
+
+@contextmanager
+def _sandbox_memory_cgroup(
+    *, limit_bytes: int | None = None
+) -> Iterator[Path]:
+    """Create a sibling cgroup with ``memory.max`` = tree budget; fail closed."""
+    parent = _memory_cgroup_insert_parent()
+    name = f"lumos-obs-{os.getpid()}-{os.urandom(6).hex()}"
+    cg = parent / name
+    try:
+        cg.mkdir(mode=0o700)
+    except OSError as exc:
+        raise SandboxUnavailableError(
+            f"cannot create sandbox memory cgroup: {exc}"
+        ) from exc
+    try:
+        budget = _MAX_TREE_MEMORY_BYTES if limit_bytes is None else limit_bytes
+        try:
+            (cg / "memory.max").write_text(str(budget), encoding="utf-8")
+        except OSError as exc:
+            raise SandboxUnavailableError(
+                f"cannot set cgroup memory.max: {exc}"
+            ) from exc
+        swap = cg / "memory.swap.max"
+        if swap.exists():
+            try:
+                swap.write_text("0", encoding="utf-8")
+            except OSError as exc:
+                raise SandboxUnavailableError(
+                    f"cannot set cgroup memory.swap.max: {exc}"
+                ) from exc
+        oom = cg / "memory.oom.group"
+        if oom.exists():
+            try:
+                oom.write_text("1", encoding="utf-8")
+            except OSError:
+                pass
+        yield cg
+    finally:
+        _destroy_memory_cgroup(cg)
+
+
+def _into_cgroup_command(cgroup: Path, command: Sequence[str]) -> list[str]:
+    """Host wrapper: move this pid into ``cgroup`` then exec ``command``."""
+    return [
+        "/bin/sh",
+        "-c",
+        _CGROUP_ENTER_SCRIPT,
+        "lumos-cgroup",
+        str(cgroup),
+        *command,
+    ]
+
+
 def _resource_limited_command(command: Sequence[str], *, timeout: float) -> list[str]:
-    """Wrap the sandbox launcher in host-enforced process resource limits."""
+    """Wrap the sandbox launcher in host-enforced *per-process* rlimits.
+
+    Tree-wide RAM is ``cgroup memory.max`` (``_sandbox_memory_cgroup``), not
+    ``RLIMIT_AS``: the latter is per task and ``nproc`` extra forks can still
+    sum to tens of GiB (Security Review Medium on 6aef3d3f).
+    """
     prlimit = shutil.which("prlimit")
     if not prlimit:
         raise SandboxUnavailableError("prlimit not found on host PATH")
@@ -305,71 +440,119 @@ def _run_bwrap_limited(
     timeout: float,
     start_sentinel: bytes | None = None,
 ) -> subprocess.CompletedProcess[bytes]:
-    """Run bwrap without pipe-backed, unbounded capture buffers."""
-    limited_command = _resource_limited_command(command, timeout=timeout)
+    """Run bwrap without pipe-backed, unbounded capture buffers.
+
+    Wall-clock timeout after the start nonce is a *git-side* hang, not a
+    setup failure: ``SandboxUnavailableError`` skips the observation turn,
+    which a hostile ``sleep`` would use to suppress every run (Security
+    Review Medium on 6aef3d3f). Missing nonce + timeout still means the
+    jail never started.
+    """
     # Sentinel kanalı: yazma ucu çocuğa stdin olarak gider, sarmalayıcı onu
     # payload'dan önce kapatır (_with_start_sentinel). Payload'a hiçbir zaman
-    # boru fd'si ulaşmaz; boruya yazılmış nonce ise silinemez.
+    # boru fd'si ulaşmaz; boruya yazılmış nonce ise silinemez. Cgroup
+    # sarmalayıcısı stdout/stderr/stdin'i exec ile korur; stdin'i okumaz.
     sentinel_read = sentinel_write = -1
     if start_sentinel is not None:
         sentinel_read, sentinel_write = os.pipe()
     try:
-        try:
-            with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
-                proc = subprocess.run(
-                    limited_command,
-                    stdin=sentinel_write if start_sentinel is not None else subprocess.DEVNULL,
-                    stdout=stdout_file,
-                    stderr=stderr_file,
-                    text=False,
-                    timeout=timeout,
-                    check=False,
-                    close_fds=True,
-                    env=scrub_env_for_sandbox(),
-                )
-                stdout, stdout_limited = _bounded_file_bytes(stdout_file)
-                stderr, stderr_limited = _bounded_file_bytes(stderr_file)
-        except OSError as exc:
-            raise SandboxUnavailableError(f"sandbox failed to exec: {exc}") from exc
-        except subprocess.TimeoutExpired as exc:
-            raise SandboxUnavailableError(f"sandbox process timed out: {exc}") from exc
-        finally:
-            if sentinel_write != -1:
-                os.close(sentinel_write)
-
-        if start_sentinel is not None:
-            os.set_blocking(sentinel_read, False)
+        limited_command = _resource_limited_command(command, timeout=timeout)
+        with _sandbox_memory_cgroup() as cgroup:
+            limited_command = _into_cgroup_command(cgroup, limited_command)
+            timed_out = False
             try:
-                # Nonce sarmalayıcının İLK yazmasıdır; başka meşru yazar yok.
-                seen = os.read(sentinel_read, 4096)
-            except BlockingIOError:
-                seen = b""
-            if not seen.startswith(start_sentinel):
-                detail = stderr.decode("utf-8", "replace").strip()[:300]
+                with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:
+                    try:
+                        proc = subprocess.run(
+                            limited_command,
+                            stdin=(
+                                sentinel_write
+                                if start_sentinel is not None
+                                else subprocess.DEVNULL
+                            ),
+                            stdout=stdout_file,
+                            stderr=stderr_file,
+                            text=False,
+                            timeout=timeout,
+                            check=False,
+                            close_fds=True,
+                            env=scrub_env_for_sandbox(),
+                        )
+                    except OSError as exc:
+                        raise SandboxUnavailableError(
+                            f"sandbox failed to exec: {exc}"
+                        ) from exc
+                    except subprocess.TimeoutExpired:
+                        timed_out = True
+                        proc = subprocess.CompletedProcess(
+                            args=limited_command,
+                            returncode=_TIMEOUT_EXIT_CODE,
+                            stdout=b"",
+                            stderr=b"",
+                        )
+                    stdout, stdout_limited = _bounded_file_bytes(stdout_file)
+                    stderr, stderr_limited = _bounded_file_bytes(stderr_file)
+            finally:
+                if sentinel_write != -1:
+                    os.close(sentinel_write)
+                    sentinel_write = -1
+
+            if start_sentinel is not None:
+                os.set_blocking(sentinel_read, False)
+                try:
+                    # Nonce sarmalayıcının İLK yazmasıdır; başka meşru yazar yok.
+                    seen = os.read(sentinel_read, 4096)
+                except BlockingIOError:
+                    seen = b""
+                if not seen.startswith(start_sentinel):
+                    detail = stderr.decode("utf-8", "replace").strip()[:300]
+                    if timed_out:
+                        raise SandboxUnavailableError(
+                            "sandbox failed to start: timed out before start sentinel"
+                            + (f": {detail}" if detail else "")
+                        )
+                    raise SandboxUnavailableError(
+                        f"sandbox failed to start: {detail or proc.returncode}"
+                    )
+            elif timed_out:
                 raise SandboxUnavailableError(
-                    f"sandbox failed to start: {detail or proc.returncode}"
+                    "sandbox process timed out before start sentinel"
                 )
+
+            if timed_out:
+                stderr = (
+                    stderr[: max(0, _MAX_OUTPUT_BYTES - len(_TIMEOUT_MARKER))]
+                    + _TIMEOUT_MARKER
+                )
+                return subprocess.CompletedProcess(
+                    args=proc.args,
+                    returncode=_TIMEOUT_EXIT_CODE,
+                    stdout=stdout,
+                    stderr=stderr,
+                )
+
+            if stdout_limited or stderr_limited:
+                stderr = (
+                    stderr[: _MAX_OUTPUT_BYTES - len(_OUTPUT_LIMIT_MARKER)]
+                    + _OUTPUT_LIMIT_MARKER
+                )
+                return subprocess.CompletedProcess(
+                    args=proc.args,
+                    returncode=proc.returncode or _OUTPUT_LIMIT_EXIT_CODE,
+                    stdout=stdout,
+                    stderr=stderr,
+                )
+            return subprocess.CompletedProcess(
+                args=proc.args,
+                returncode=proc.returncode,
+                stdout=stdout,
+                stderr=stderr,
+            )
     finally:
+        if sentinel_write != -1:
+            os.close(sentinel_write)
         if sentinel_read != -1:
             os.close(sentinel_read)
-
-    if stdout_limited or stderr_limited:
-        stderr = (
-            stderr[: _MAX_OUTPUT_BYTES - len(_OUTPUT_LIMIT_MARKER)]
-            + _OUTPUT_LIMIT_MARKER
-        )
-        return subprocess.CompletedProcess(
-            args=proc.args,
-            returncode=proc.returncode or _OUTPUT_LIMIT_EXIT_CODE,
-            stdout=stdout,
-            stderr=stderr,
-        )
-    return subprocess.CompletedProcess(
-        args=proc.args,
-        returncode=proc.returncode,
-        stdout=stdout,
-        stderr=stderr,
-    )
 
 
 def _run_bwrap_payload(

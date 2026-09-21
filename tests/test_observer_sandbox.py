@@ -7,6 +7,7 @@ scrub and launcher construction still run so CI without bwrap is not silent.
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import socket
 import stat
@@ -14,6 +15,7 @@ import subprocess
 import sys
 import threading
 from collections.abc import Sequence
+from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
@@ -42,6 +44,44 @@ def _write_start_sentinel(command: Sequence[str], stdin_fd: object) -> None:
             os.write(stdin_fd, (nonce + "\n").encode("ascii"))
             return
     raise AssertionError("start sentinel missing from sandbox command")
+
+
+def _stub_launcher(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Path:
+    """Unit-test seam: pretend bwrap exists; dummy cgroup (no host cgroup needed)."""
+    real_which = shutil.which
+
+    def _which(name: str):
+        if name == "bwrap":
+            return real_which("bwrap") or "/usr/bin/bwrap"
+        return real_which(name)
+
+    monkeypatch.setattr("lumos_board.observer_sandbox.shutil.which", _which)
+    cg = tmp_path / "lumos-obs-stub"
+    cg.mkdir()
+    (cg / "cgroup.procs").touch()
+
+    @contextmanager
+    def _fake_cg(**_kwargs):  # type: ignore[no-untyped-def]
+        yield cg
+
+    monkeypatch.setattr("lumos_board.observer_sandbox._sandbox_memory_cgroup", _fake_cg)
+    return cg
+
+
+def _cgroup_memory_delegated() -> bool:
+    try:
+        from lumos_board.observer_sandbox import _memory_cgroup_insert_parent
+
+        _memory_cgroup_insert_parent()
+        return True
+    except (OSError, SandboxUnavailableError):
+        return False
+
+
+needs_cgroup = pytest.mark.skipif(
+    not _cgroup_memory_delegated(),
+    reason="delegated cgroup v2 memory controller required",
+)
 
 
 def _git(cwd: Path, *args: str) -> None:
@@ -471,7 +511,9 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
     probe_sandbox_env(allowed_roots=[repo], host_env=os.environ.copy())
     assert len(seen) >= 2
     for cmd, stdin, stdin_is_pipe in seen:
-        assert cmd and Path(cmd[0]).name == "prlimit"
+        assert cmd and Path(cmd[0]).name == "sh"
+        assert any("cgroup.procs" in part for part in cmd if isinstance(part, str))
+        assert any(Path(part).name == "prlimit" for part in cmd)
         nproc = next(part for part in cmd if part.startswith("--nproc="))
         soft, hard = nproc.removeprefix("--nproc=").split(":")
         assert int(soft) == int(hard)
@@ -482,18 +524,21 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
         assert "--new-session" in cmd
         assert "--unshare-all" in cmd
         # stdin bir boru — asla operatör TTY'si veya miras host stdin'i değil;
-        # payload tarafında sarmalayıcı /dev/null'a çevirir.
+        # payload tarafında sarmalayıcı /dev/null'a çevirir. Cgroup
+        # sarmalayıcısı stdin'i okumaz; exec ile iç sarmalayıcıya taşır.
         assert stdin_is_pipe, f"stdin {stdin!r} is not the sentinel pipe"
-        wrapper = next(part for part in cmd if isinstance(part, str) and "exec" in part)
-        assert "exec </dev/null" in wrapper
+        wrapper = next(
+            part
+            for part in cmd
+            if isinstance(part, str) and "exec </dev/null" in part
+        )
+        assert ">&0;" in wrapper
 
 
 def test_start_sentinel_wrapper_is_dash_safe() -> None:
     """Sarmalayıcı yalnız TEK haneli fd (0) kullanır — dash `Bad fd number`
     riskini taşıyan çok haneli redirection içeremez (6108e84/ac642ca dersleri:
     numaralı sentinel fd, fd tablosu doluyken sandbox'ı kalıcı düşürüyordu)."""
-    import re
-
     from lumos_board.observer_sandbox import _with_start_sentinel
 
     wrapped, needle = _with_start_sentinel(["/bin/true"])
@@ -502,6 +547,22 @@ def test_start_sentinel_wrapper_is_dash_safe() -> None:
     assert "exec </dev/null;" in script
     assert not re.search(r">&\d{2,}", script), script
     assert needle.startswith(b"lumos-sandbox-start-")
+
+
+def test_cgroup_enter_wrapper_is_dash_safe() -> None:
+    """Cgroup enter script must not use multi-digit fd redirects (same dash trap)."""
+    from lumos_board.observer_sandbox import (
+        _CGROUP_ENTER_SCRIPT,
+        _into_cgroup_command,
+    )
+
+    cmd = _into_cgroup_command(Path("/sys/fs/cgroup/x"), ["prlimit", "--", "bwrap"])
+    assert cmd[0] == "/bin/sh"
+    assert cmd[2] == _CGROUP_ENTER_SCRIPT
+    assert "cgroup.procs" in _CGROUP_ENTER_SCRIPT
+    assert "$1" in _CGROUP_ENTER_SCRIPT
+    assert not re.search(r">&\d{2,}", _CGROUP_ENTER_SCRIPT)
+    assert not re.search(r"\$\d{2,}", _CGROUP_ENTER_SCRIPT)
 
 
 def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(
@@ -548,17 +609,10 @@ def test_bwrap_launcher_uses_resolved_absolute_host_path(
 
 
 def test_setup_failure_without_sentinel_is_unavailable(
-    repo: Path, monkeypatch: pytest.MonkeyPatch
+    repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Launcher setup fail (no start nonce) is SandboxUnavailableError, not git."""
-    real_which = __import__("shutil").which
-
-    def _which(name: str):
-        if name == "bwrap":
-            return real_which("bwrap") or "/usr/bin/bwrap"
-        return real_which(name)
-
-    monkeypatch.setattr("lumos_board.observer_sandbox.shutil.which", _which)
+    _stub_launcher(monkeypatch, tmp_path)
 
     def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
         kwargs["stderr"].write(b"bwrap: Can't bind mount /nonexistent\n")
@@ -570,21 +624,16 @@ def test_setup_failure_without_sentinel_is_unavailable(
 
 
 def test_git_child_failure_with_sentinel_is_result(
-    repo: Path, monkeypatch: pytest.MonkeyPatch
+    repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Git nonzero after the start nonce remains SandboxGitResult; nonce never
     reaches the caller-visible stderr (it travels on the stdin pipe)."""
-    real_which = __import__("shutil").which
-
-    def _which(name: str):
-        if name == "bwrap":
-            return real_which("bwrap") or "/usr/bin/bwrap"
-        return real_which(name)
-
-    monkeypatch.setattr("lumos_board.observer_sandbox.shutil.which", _which)
+    cg = _stub_launcher(monkeypatch, tmp_path)
+    seen_cmd: list[list[str]] = []
 
     def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
-        command = args[0] if args else kwargs["args"]
+        command = list(args[0] if args else kwargs["args"])
+        seen_cmd.append(command)
         _write_start_sentinel(command, kwargs.get("stdin"))
         kwargs["stderr"].write(b"fatal: not a git repository\n")
         return subprocess.CompletedProcess(args=command, returncode=128)
@@ -594,20 +643,16 @@ def test_git_child_failure_with_sentinel_is_result(
     assert result.returncode == 128
     assert "not a git repository" in result.stderr
     assert "lumos-sandbox-start" not in result.stderr
+    assert seen_cmd
+    assert any("cgroup.procs" in part for part in seen_cmd[0] if isinstance(part, str))
+    assert str(cg) in seen_cmd[0]
 
 
 def test_stderr_truncate_does_not_skip_started_sandbox(
-    repo: Path, monkeypatch: pytest.MonkeyPatch
+    repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     """Bugbot Medium on b56d6c90: wiping stderr must not look like setup fail."""
-    real_which = __import__("shutil").which
-
-    def _which(name: str):
-        if name == "bwrap":
-            return real_which("bwrap") or "/usr/bin/bwrap"
-        return real_which(name)
-
-    monkeypatch.setattr("lumos_board.observer_sandbox.shutil.which", _which)
+    _stub_launcher(monkeypatch, tmp_path)
 
     def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
         command = args[0] if args else kwargs["args"]
@@ -620,6 +665,43 @@ def test_stderr_truncate_does_not_skip_started_sandbox(
     monkeypatch.setattr(subprocess, "run", _fake_run)
     result = run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
     assert result.returncode == 0
+
+
+def test_timeout_after_start_sentinel_is_result(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Security Review Medium on 6aef3d3f: sleep after nonce must not skip."""
+    _stub_launcher(monkeypatch, tmp_path)
+
+    def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
+        command = args[0] if args else kwargs["args"]
+        _write_start_sentinel(command, kwargs.get("stdin"))
+        kwargs["stderr"].write(b"filter still running\n")
+        raise subprocess.TimeoutExpired(command, 0.05)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+    result = run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
+    assert result.returncode == 124
+    assert "timed out" in result.stderr
+    assert "lumos-sandbox-start" not in result.stderr
+
+
+def test_timeout_before_start_sentinel_is_unavailable(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Timeout with no nonce is still a setup failure (jail never started)."""
+    _stub_launcher(monkeypatch, tmp_path)
+
+    def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
+        command = args[0] if args else kwargs["args"]
+        kwargs["stderr"].write(b"bwrap: unshare failed\n")
+        raise subprocess.TimeoutExpired(command, 0.05)
+
+    monkeypatch.setattr(subprocess, "run", _fake_run)
+    with pytest.raises(
+        SandboxUnavailableError, match="timed out before start sentinel"
+    ):
+        run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
 @needs_bwrap
@@ -853,3 +935,64 @@ def test_dev_root_is_readonly_but_device_nodes_still_write(tmp_path: Path) -> No
     )
     proc = _bwrap_probe([_probe_interpreter(), "-c", code], timeout=30)
     assert proc.stdout.decode().split() == ["False", "True", "True"]
+
+
+@needs_cgroup
+def test_memory_cgroup_sets_tree_budget() -> None:
+    """Sibling cgroup receives memory.max = tree budget and swap.max = 0."""
+    from lumos_board.observer_sandbox import (
+        _MAX_TREE_MEMORY_BYTES,
+        _sandbox_memory_cgroup,
+    )
+
+    with _sandbox_memory_cgroup() as cg:
+        assert (cg / "memory.max").read_text(encoding="utf-8").strip() == str(
+            _MAX_TREE_MEMORY_BYTES
+        )
+        swap = cg / "memory.swap.max"
+        if swap.exists():
+            assert swap.read_text(encoding="utf-8").strip() == "0"
+        assert cg.is_dir()
+    assert not cg.exists()
+
+
+@needs_cgroup
+def test_memory_cgroup_bounds_forked_anonymous_pages() -> None:
+    """Security Review Medium on 6aef3d3f: RLIMIT_AS is per-process; tree RAM
+    is cgroup memory.max. Eight children touching 20MiB each must not all
+    survive a 32MiB tree cap (they would under a 1GiB per-task RLIMIT_AS)."""
+    from lumos_board.observer_sandbox import (
+        _into_cgroup_command,
+        _sandbox_memory_cgroup,
+    )
+
+    alloc = (
+        "import os, sys\n"
+        "def hog():\n"
+        "    buf = bytearray(20 * 1024 * 1024)\n"
+        "    for i in range(0, len(buf), 4096):\n"
+        "        buf[i] = 1\n"
+        "    __import__('time').sleep(2)\n"
+        "    os._exit(0)\n"
+        "kids = []\n"
+        "for _ in range(8):\n"
+        "    pid = os.fork()\n"
+        "    if pid == 0:\n"
+        "        hog()\n"
+        "    kids.append(pid)\n"
+        "alive = 0\n"
+        "for pid in kids:\n"
+        "    w = os.waitpid(pid, 0)[1]\n"
+        "    if os.WIFEXITED(w) and os.WEXITSTATUS(w) == 0:\n"
+        "        alive += 1\n"
+        "print(alive)\n"
+        "sys.exit(0 if alive == 0 else 1)\n"
+    )
+    with _sandbox_memory_cgroup(limit_bytes=32 * 1024 * 1024) as cg:
+        cmd = _into_cgroup_command(cg, [sys.executable, "-c", alloc])
+        proc = subprocess.run(cmd, capture_output=True, timeout=10, check=False)
+    # Tree is OOM-killed (SIGKILL / nonzero) rather than all eight hogs exiting 0.
+    assert proc.returncode != 0
+    if proc.stdout:
+        alive = proc.stdout.decode().strip().splitlines()[-1]
+        assert alive != "8"
