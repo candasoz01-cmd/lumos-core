@@ -1,0 +1,267 @@
+name: observer-sandbox cgroup-v2 probe
+
+# DOĞRULAMA görevi (yeni bulgu değil): src/lumos_board/observer_sandbox.py
+# içindeki cgroup-v2 tree-RAM enforcement yolunu (memory.max + swap.max=0)
+# gerçek koşumla kanıtlar. main'e / PR #840'a DOKUNMAZ; ayrı daldır.
+#
+# Neden ayrı workflow: bu yol yalnız delege cgroup-v2 memory controller olan
+# bir Linux host'ta test edilebilir. Standart GitHub-hosted runner bunu
+# unprivileged kullanıcıya KENDILIĞINDEN vermez; bu workflow önce varsayılan
+# durumu ÖLÇER (A adımı), sonra sudo ile GERÇEK bir cgroup-v2 delege subtree
+# kurup (B adımı) modülün gerçek kod yolunu o subtree içinde koşturur.
+#
+# Yalnız bu probe dalında ve elle tetiklemede koşar; başka dal/PR'ı etkilemez.
+on:
+  push:
+    branches: [ claude/observer-sandbox-cgroup-probe ]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  cgroup-probe:
+    # ubuntu-22.04: unprivileged user namespaces açık (bwrap --unshare-user
+    # çalışır). 24.04 AppArmor kernel.apparmor_restrict_unprivileged_userns=1
+    # ile bwrap'i kırardı.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install bubblewrap
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+          bwrap --version
+
+      # ---------------------------------------------------------------
+      # A) RAW PROBE — varsayılan runner durumu (hiçbir ayrıcalık kurulumu yok).
+      #    Bu adım JOB'U BAŞARISIZ ETMEZ (set +e): amaç, standart GitHub-hosted
+      #    runner'ın cgroup-v2 memory delegation'ı UNPRIVILEGED kullanıcıya
+      #    verip vermediğini olduğu gibi kaydetmektir.
+      # ---------------------------------------------------------------
+      - name: A) Raw environment probe (default runner, unprivileged)
+        run: |
+          set +e
+          echo "=== whoami / id ==="; id
+          echo "=== /sys/fs/cgroup fstype (cgroup2fs beklenir) ==="
+          stat -fc %T /sys/fs/cgroup
+          echo "=== root cgroup.controllers (memory beklenir) ==="
+          cat /sys/fs/cgroup/cgroup.controllers
+          echo "=== root cgroup.subtree_control ==="
+          cat /sys/fs/cgroup/cgroup.subtree_control
+          echo "=== /proc/self/cgroup ==="
+          cat /proc/self/cgroup
+          echo "=== swap durumu (spill kanıtı için) ==="
+          swapon --show || true
+          cat /proc/swaps || true
+          echo "=== unprivileged userns izinli mi ==="
+          cat /proc/sys/kernel/unprivileged_userns_clone 2>/dev/null || echo "(sysctl yok)"
+          echo "=== bwrap yolu ==="; command -v bwrap
+          echo "=== Modülün delegasyon kontrolü (VARSAYILAN, sudo YOK) ==="
+          export PYTHONPATH="$PWD/src"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          from lumos_board.observer_sandbox import (
+              _current_cgroup_path, _memory_cgroup_insert_parent, SandboxUnavailableError,
+          )
+          cur = _current_cgroup_path()
+          print("current cgroup path:", cur)
+          print("current cgroup writable by me (W_OK):", os.access(cur, os.W_OK))
+          try:
+              parent = _memory_cgroup_insert_parent()
+              print("RAW_DELEGATION: PRESENT ->", parent)
+          except SandboxUnavailableError as exc:
+              print("RAW_DELEGATION: ABSENT ->", exc)
+          PY
+          echo "=== A) raw probe bitti (job'u etkilemez) ==="
+
+      # ---------------------------------------------------------------
+      # B) DELEGE cgroup-v2 subtree kur + 3 needs_cgroup testini SKIP'siz koş
+      #    + 1 GiB gerçek-bwrap OOM repro'su. HEPSİ TEK SHELL'DE: shell kendini
+      #    delege 'leaf' cgroup'una taşır, böylece pytest/repro çocukları da
+      #    delege subtree'nin içindedir ve modülün gerçek kod yolu
+      #    (_memory_cgroup_insert_parent) delege parent'ı bulur.
+      #    Bu adım set -euo pipefail ile FAIL-CLOSED: test SKIP/FAIL olursa job kırılır.
+      # ---------------------------------------------------------------
+      - name: B) Delegated cgroup-v2 setup + 3 needs_cgroup tests (no SKIP) + 1GiB bwrap OOM repro
+        run: |
+          set -euo pipefail
+          CG=/sys/fs/cgroup
+          ME="$(id -un):$(id -gn)"
+
+          echo "=== B1) Delege subtree kurulumu (sudo) ==="
+          # Root'ta memory controller'ı çocuklara dağıt (yoksa ekle). systemd
+          # hostlarda genelde zaten vardır; additive ve standarttır.
+          if ! grep -qw memory "$CG/cgroup.subtree_control"; then
+            echo "+memory" | sudo tee "$CG/cgroup.subtree_control"
+          fi
+          grep -qw memory "$CG/cgroup.subtree_control" \
+            || { echo "root subtree_control'e memory eklenemedi"; exit 1; }
+
+          # Delege kök: lumos-deleg. +memory'yi ITS subtree_control'e yaz
+          # (çocukları leaf ve lumos-obs-* memory controller'ı alsın), sonra
+          # tüm delege ağacı unprivileged 'runner' kullanıcısına chown edilir.
+          sudo mkdir -p "$CG/lumos-deleg"
+          echo "+memory" | sudo tee "$CG/lumos-deleg/cgroup.subtree_control"
+          sudo mkdir -p "$CG/lumos-deleg/leaf"
+          # cgroup-v2 delegation = ilgili arayüz dosyalarının chown'u
+          sudo chown -R "$ME" "$CG/lumos-deleg"
+
+          echo "=== B2) Bu shell'i (ve çocuklarını) delege leaf'e taşı ==="
+          echo $$ | sudo tee "$CG/lumos-deleg/leaf/cgroup.procs"
+          echo "current /proc/self/cgroup (0::/lumos-deleg/leaf beklenir):"
+          cat /proc/self/cgroup
+
+          echo "=== B3) Delegasyon artık modül için GÖRÜNÜR mü (sudo YOK, runner) ==="
+          export PYTHONPATH="$PWD/src"
+          python3 - <<'PY'
+          from lumos_board.observer_sandbox import _memory_cgroup_insert_parent
+          parent = _memory_cgroup_insert_parent()
+          print("DELEGATED_PARENT_NOW:", parent)
+          assert str(parent).endswith("/lumos-deleg"), parent
+          print("OK: modül delege parent'ı buldu")
+          PY
+
+          echo "=== B4) 3 needs_cgroup testi + tam dosya (SKIP değil PASS olmalı) ==="
+          set +e
+          KANDO_MOCK=1 python3 -m pytest tests/test_observer_sandbox.py -v -rs \
+            -k "memory_cgroup or reaps_live_sleeper" 2>&1 | tee "$RUNNER_TEMP/pytest_kfilter.txt"
+          KRC=${PIPESTATUS[0]}
+          set -e
+          echo "pytest (-k) exit: $KRC"
+          # Üç guard'lı test AÇIKÇA PASSED olmalı; SKIP tolere edilmez.
+          for t in test_memory_cgroup_sets_tree_budget \
+                   test_memory_cgroup_bounds_forked_anonymous_pages \
+                   test_destroy_memory_cgroup_reaps_live_sleeper; do
+            if grep -qE "::$t .*SKIPPED|SKIPPED.*$t" "$RUNNER_TEMP/pytest_kfilter.txt"; then
+              echo "HATA: $t SKIP oldu — delegasyon çalışmıyor"; exit 1
+            fi
+            if ! grep -qE "::$t PASSED" "$RUNNER_TEMP/pytest_kfilter.txt"; then
+              echo "HATA: $t PASSED değil"; grep -E "$t" "$RUNNER_TEMP/pytest_kfilter.txt" || true; exit 1
+            fi
+            echo "OK PASSED (SKIP değil): $t"
+          done
+          [ "$KRC" -eq 0 ] || { echo "pytest -k seçimi kırmızı"; exit 1; }
+
+          echo "=== B4b) Tam observer_sandbox dosyası (bwrap tests dahil) ==="
+          KANDO_MOCK=1 python3 -m pytest tests/test_observer_sandbox.py -rs 2>&1 \
+            | tee "$RUNNER_TEMP/pytest_full.txt"
+
+          echo "=== B5) 1 GiB GERÇEK-BWRAP tree-RAM enforcement repro'su ==="
+          # Modülün GERÇEK fonksiyonlarıyla: _try_create_memory_cgroup(1GiB) ->
+          # memory.max=1GiB + swap.max=0; gerçek bwrap izolasyon prefix'i altında
+          # ~1.5 GiB anonim RAM doldurmaya çalışan payload, cap'te OOM-kill
+          # edilmeli; swap.max=0 nedeniyle swap'a taşmamalı. before/after
+          # memory.events (oom_kill), dönüş kodu ve memory.peak ölçülür.
+          python3 - <<'PY'
+          import os, subprocess, sys
+          from pathlib import Path
+          sys.path.insert(0, os.path.join(os.getcwd(), "src"))
+          from lumos_board.observer_sandbox import (
+              _bwrap_isolation_prefix, _host_bind_roots, _into_cgroup_command,
+              _try_create_memory_cgroup, _destroy_memory_cgroup,
+              _memory_cgroup_insert_parent, scrub_env_for_sandbox,
+              _MAX_TREE_MEMORY_BYTES,
+          )
+
+          def oom_kill(evtext):
+              for line in evtext.splitlines():
+                  if line.startswith("oom_kill "):
+                      return int(line.split()[1])
+              return 0
+
+          parent = _memory_cgroup_insert_parent()
+          print("delegated parent:", parent)
+
+          cg = _try_create_memory_cgroup(_MAX_TREE_MEMORY_BYTES)  # 1 GiB, gerçek kod
+          assert cg is not None, "delegasyon kayboldu (_try_create_memory_cgroup None)"
+          try:
+              mm = (cg / "memory.max").read_text(encoding="utf-8").strip()
+              sw_path = cg / "memory.swap.max"
+              sw = sw_path.read_text(encoding="utf-8").strip() if sw_path.exists() else "(absent)"
+              print("memory.max =", mm, "(=", _MAX_TREE_MEMORY_BYTES, "beklenir)")
+              print("memory.swap.max =", sw, "(0 beklenir)")
+              assert mm == str(_MAX_TREE_MEMORY_BYTES), "memory.max 1GiB değil"
+              if sw != "(absent)":
+                  assert sw == "0", "swap.max 0 değil"
+
+              hog = (
+                  "import sys\n"
+                  "chunks = []\n"
+                  "step = 64 * 1024 * 1024\n"
+                  "total = 0\n"
+                  "target = 1536 * 1024 * 1024\n"  # 1.5 GiB > 1 GiB cap
+                  "while total < target:\n"
+                  "    c = bytearray(step)\n"
+                  "    for i in range(0, len(c), 4096):\n"
+                  "        c[i] = 1\n"
+                  "    chunks.append(c)\n"
+                  "    total += step\n"
+                  "    sys.stderr.write('touched %d MiB\\n' % (total // 1024 // 1024))\n"
+                  "    sys.stderr.flush()\n"
+                  "sys.stdout.write('NO_OOM_ALLOCATED_%d\\n' % total)\n"
+              )
+
+              jail = Path(os.environ.get("RUNNER_TEMP", "/tmp")) / "lumos-jailroot"
+              jail.mkdir(parents=True, exist_ok=True)
+              prefix = _bwrap_isolation_prefix() + _host_bind_roots([jail])
+              prefix += ["--chdir", "/tmp", "--clearenv"]
+              for k, v in scrub_env_for_sandbox().items():
+                  prefix += ["--setenv", k, v]
+              payload = [*prefix, "/usr/bin/python3", "-c", hog]
+              cmd = _into_cgroup_command(cg, payload)
+
+              ev_before = (cg / "memory.events").read_text(encoding="utf-8")
+              print("=== memory.events BEFORE ===\n" + ev_before.strip())
+              proc = subprocess.run(cmd, capture_output=True, timeout=180)
+              ev_after = (cg / "memory.events").read_text(encoding="utf-8")
+              peak_path = cg / "memory.peak"
+              peak = peak_path.read_text(encoding="utf-8").strip() if peak_path.exists() else "(absent)"
+
+              print("=== REPRO ÖLÇÜM ===")
+              print("return code:", proc.returncode,
+                    "(137 = SIGKILL/OOM beklenir; 0 = ihlal)")
+              print("stderr tail:", proc.stderr.decode("utf-8", "replace")[-500:])
+              print("stdout:", proc.stdout.decode("utf-8", "replace")[-200:])
+              print("=== memory.events AFTER ===\n" + ev_after.strip())
+              print("memory.peak =", peak, "cap =", _MAX_TREE_MEMORY_BYTES)
+
+              ob, oa = oom_kill(ev_before), oom_kill(ev_after)
+              print("oom_kill before/after:", ob, "->", oa)
+
+              assert proc.returncode != 0, \
+                  "payload OOM-kill EDILMEDI — enforcement başarısız (cap aşıldı)"
+              assert b"NO_OOM_ALLOCATED" not in proc.stdout, \
+                  "payload 1.5GiB'ı tamamladı — cap uygulanmadı"
+              assert oa > ob, "memory.events.oom_kill artmadı"
+              if peak.isdigit():
+                  assert int(peak) <= _MAX_TREE_MEMORY_BYTES + 4096, \
+                      "peak 1GiB cap'i aştı — cap sızdırıyor"
+              print("REPRO_OK: gerçek bwrap payload 1GiB cgroup cap'inde OOM-kill "
+                    "edildi; swap.max=0 (swap spill yok).")
+          finally:
+              _destroy_memory_cgroup(cg)
+          PY
+          echo "=== B) TÜM DOĞRULAMA BAŞARILI ==="
+
+      - name: Cleanup delegated cgroup (best-effort)
+        if: always()
+        run: |
+          sudo rmdir /sys/fs/cgroup/lumos-deleg/leaf 2>/dev/null || true
+          for d in /sys/fs/cgroup/lumos-deleg/lumos-obs-* /sys/fs/cgroup/lumos-deleg/lumos-reap-*; do
+            [ -d "$d" ] && { echo 1 | sudo tee "$d/cgroup.kill" 2>/dev/null || true; sudo rmdir "$d" 2>/dev/null || true; }
+          done
+          sudo rmdir /sys/fs/cgroup/lumos-deleg 2>/dev/null || true
+          echo "cleanup done"
