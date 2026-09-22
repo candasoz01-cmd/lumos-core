@@ -15,17 +15,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install deps + bubblewrap
+      - name: Install deps + bubblewrap (system python — jail /usr bind'inde görünür)
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          # setup-python KULLANILMAZ: tool-cache yorumlayıcısı jail'e bind'li
+          # değil; _bwrap_probe testleri sys.executable'ı jail içinde exec eder.
+          sudo /usr/bin/python3 -m pip install --break-system-packages -q -r requirements.txt
           sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap
-          bwrap --version
+          bwrap --version; /usr/bin/python3 --version
 
       - name: Host cgroup evidence (pure cgroup2 + delegated memory)
         run: |
@@ -40,7 +36,7 @@ jobs:
 
       - name: Direct memory.max / swap.max probe (root, real cgroup-v2)
         run: |
-          sudo env "PYTHONPATH=$PYTHONPATH" KANDO_MOCK=1 "$(which python)" - <<'EOF'
+          sudo env "PYTHONPATH=$PYTHONPATH" KANDO_MOCK=1 /usr/bin/python3 - <<'EOF'
           from lumos_board.observer_sandbox import (
               _MAX_TREE_MEMORY_BYTES,
               _memory_cgroup_insert_parent,
@@ -61,10 +57,10 @@ jobs:
 
       - name: needs_cgroup enforcement tests (root, real OOM-kill path)
         run: |
-          sudo env "PYTHONPATH=$PYTHONPATH" KANDO_MOCK=1 "$(which python)" -m pytest -v \
+          sudo env "PYTHONPATH=$PYTHONPATH" KANDO_MOCK=1 /usr/bin/python3 -m pytest -v \
             tests/test_observer_sandbox.py -k "memory_cgroup or reaps_live_sleeper" -rs
 
       - name: Full observer suite (root, real bwrap + real cgroup-v2)
         run: |
-          sudo env "PYTHONPATH=$PYTHONPATH" KANDO_MOCK=1 "$(which python)" -m pytest -q \
+          sudo env "PYTHONPATH=$PYTHONPATH" KANDO_MOCK=1 /usr/bin/python3 -m pytest -q \
             tests/test_observer_sandbox.py -rs
