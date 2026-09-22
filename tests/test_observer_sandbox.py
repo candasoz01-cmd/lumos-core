@@ -543,7 +543,21 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
         assert "bwrap" in [Path(part).name for part in cmd]
         assert "--new-session" in cmd
         assert "--unshare-all" in cmd
+        assert "--unshare-user" in cmd
         assert "--disable-userns" in cmd
+        assert cmd.index("--unshare-user") < cmd.index("--disable-userns")
+        remounts = [
+            cmd[i + 1] for i, part in enumerate(cmd) if part == "--remount-ro"
+        ]
+        assert "/dev" in remounts
+        assert "/" in remounts
+        root_ro = next(
+            i
+            for i, part in enumerate(cmd)
+            if part == "--remount-ro" and cmd[i + 1] == "/"
+        )
+        assert "--ro-bind" in cmd
+        assert cmd.index("--ro-bind") < root_ro
         # stdin bir boru — asla operatör TTY'si veya miras host stdin'i değil;
         # payload tarafında sarmalayıcı /dev/null'a çevirir. Cgroup
         # sarmalayıcısı stdin'i okumaz; exec ile iç sarmalayıcıya taşır.
@@ -1276,16 +1290,19 @@ def test_bwrap_launcher_uses_resolved_absolute_host_path(
     prefix = _bwrap_isolation_prefix()
     assert prefix[0] == "/opt/bubblewrap/bin/bwrap"
     assert "--dev" not in prefix
+    assert "--unshare-user" in prefix
     assert "--disable-userns" in prefix
-    assert prefix.index("--unshare-all") < prefix.index("--disable-userns")
+    assert prefix.index("--unshare-all") < prefix.index("--unshare-user")
+    assert prefix.index("--unshare-user") < prefix.index("--disable-userns")
     tmpfs_targets: list[str] = []
     for i, part in enumerate(prefix):
         if part == "--size":
             assert prefix[i + 1] == str(_TMPFS_BYTES)
             assert prefix[i + 2] == "--tmpfs"
             tmpfs_targets.append(prefix[i + 3])
-    # Her yazılabilir tmpfs tavanlıdır; shm kendi mount'udur, /dev ro kalır.
-    assert tmpfs_targets == ["/dev", "/dev/shm", "/tmp"]
+    # Her tmpfs tavanlıdır; kök sonra payload'da remount-ro olur.
+    # shm kendi mount'udur, /dev ro kalır.
+    assert tmpfs_targets == ["/", "/dev", "/dev/shm", "/tmp"]
     assert "--dev-bind" in prefix
     bind_at = prefix.index("--dev-bind")
     assert prefix[bind_at + 1].startswith("/dev/")
@@ -1334,6 +1351,20 @@ def test_git_child_failure_with_sentinel_is_result(
     assert seen_cmd
     assert any("cgroup.procs" in part for part in seen_cmd[0] if isinstance(part, str))
     assert str(cg) in seen_cmd[0]
+    assert "--unshare-user" in seen_cmd[0]
+    assert seen_cmd[0].index("--unshare-user") < seen_cmd[0].index("--disable-userns")
+    remounts = [
+        seen_cmd[0][i + 1]
+        for i, part in enumerate(seen_cmd[0])
+        if part == "--remount-ro"
+    ]
+    assert "/" in remounts
+    root_ro = next(
+        i
+        for i, part in enumerate(seen_cmd[0])
+        if part == "--remount-ro" and seen_cmd[0][i + 1] == "/"
+    )
+    assert seen_cmd[0].index("--ro-bind") < root_ro
 
 
 def test_stderr_truncate_does_not_skip_started_sandbox(
@@ -1623,6 +1654,35 @@ def test_dev_root_is_readonly_but_device_nodes_still_write(tmp_path: Path) -> No
     )
     proc = _bwrap_probe([_probe_interpreter(), "-c", code], timeout=30)
     assert proc.stdout.decode().split() == ["False", "True", "True"]
+
+
+@needs_bwrap
+def test_jail_root_is_size_capped_and_readonly(tmp_path: Path) -> None:
+    """Security Review Medium on c4fea56 — default root tmpfs is ~half RAM
+    and writable. Size-cap it and remount-ro after binds so /evil cannot
+    bypass the /tmp and /dev/shm caps. /tmp stays a nested writable mount.
+    """
+    from lumos_board.observer_sandbox import _TMPFS_BYTES
+
+    code = (
+        "import os\n"
+        "try:\n"
+        "  open('/evil', 'wb').write(b'x'); root_write = True\n"
+        "except OSError:\n"
+        "  root_write = False\n"
+        "try:\n"
+        "  open('/tmp/ok', 'wb').write(b'x'); tmp_write = True\n"
+        "except OSError:\n"
+        "  tmp_write = False\n"
+        "st = os.statvfs('/')\n"
+        "root_bytes = st.f_blocks * st.f_frsize\n"
+        "print(root_write, tmp_write, root_bytes)\n"
+    )
+    proc = _bwrap_probe([_probe_interpreter(), "-c", code], timeout=30)
+    parts = proc.stdout.decode().split()
+    assert parts[0] == "False", proc.stdout
+    assert parts[1] == "True", proc.stdout
+    assert int(parts[2]) <= _TMPFS_BYTES
 
 
 @needs_cgroup

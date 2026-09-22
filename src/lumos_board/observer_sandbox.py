@@ -63,10 +63,13 @@ _MAX_OUTPUT_BYTES = 1024 * 1024
 _MAX_ADDRESS_SPACE_BYTES = 1024 * 1024 * 1024
 # Tree-wide anonymous+tmpfs+cache budget via cgroup v2 memory.max.
 _MAX_TREE_MEMORY_BYTES = 1024 * 1024 * 1024
-# Writable tmpfs surfaces (/tmp and /dev, including /dev/shm). `fsize` is
-# per-file; `RLIMIT_AS` does not count tmpfs pages. Uncapped tmpfs let a
-# filter fill host RAM with many 1MiB files (Security Review Medium on
-# 0ed05a33 for /dev; Bugbot Medium on d2afc6c6 for /tmp).
+# Writable tmpfs surfaces (/tmp and /dev, including /dev/shm). The jail
+# root is also a tmpfs (kernel default ~half RAM) and is size-capped
+# then remounted read-only after binds. `fsize` is per-file; `RLIMIT_AS`
+# does not count tmpfs pages. Uncapped tmpfs let a filter fill host RAM
+# with many 1MiB files (Security Review Medium on 0ed05a33 for /dev;
+# Bugbot Medium on d2afc6c6 for /tmp; Security Review Medium on c4fea56
+# for the root tmpfs).
 _TMPFS_BYTES = 64 * 1024 * 1024
 _DEV_NODES = ("null", "zero", "full", "urandom", "random")
 _TIMEOUT_EXIT_CODE = 124
@@ -351,13 +354,25 @@ def _bwrap_isolation_prefix() -> list[str]:
     ``unshare -Um`` (Bugbot Medium on ff356baa). ``RLIMIT_AS`` does not
     count tmpfs pages. This flag stays on *bwrap*, not the host preexec
     seccomp — that filter runs before the degrade ``unshare --user`` wrapper.
+
+    bwrap 0.9.0 treats ``--unshare-all`` as ``--unshare-user-try``.
+    ``--disable-userns`` requires a real ``--unshare-user`` or setup dies
+    with ``--disable-userns requires --unshare-user`` and every observation
+    turn skip-closes (Security Review HIGH on c4fea56).
+
+    The default jail root is an uncapped writable tmpfs (~half RAM).
+    Size-cap it here; ``_run_bwrap_payload`` remounts ``/`` read-only
+    after host binds so writes cannot land beside ``/tmp`` (Security
+    Review Medium on c4fea56).
     """
     return [
         _bwrap_path(),
         "--die-with-parent",
         "--new-session",
         "--unshare-all",
+        "--unshare-user",
         "--disable-userns",
+        *_size_capped_tmpfs("/"),
         "--proc",
         "/proc",
         *_dev_jail_args(),
@@ -981,10 +996,16 @@ def _run_bwrap_payload(
     *,
     timeout: float,
 ) -> subprocess.CompletedProcess[bytes]:
-    """Run ``payload`` inside ``bwrap_prefix`` with the start-sentinel wrapper."""
+    """Run ``payload`` inside ``bwrap_prefix`` with the start-sentinel wrapper.
+
+    ``--remount-ro /`` is appended after the caller's binds so the
+    size-capped root tmpfs cannot be used as a third writable RAM sink
+    (Security Review Medium on c4fea56). Nested mounts (``/tmp``,
+    ``/dev/shm``, ro-binds) keep their own flags.
+    """
     wrapped, sentinel = _with_start_sentinel(payload)
     return _run_bwrap_limited(
-        [*bwrap_prefix, *wrapped],
+        [*bwrap_prefix, "--remount-ro", "/", *wrapped],
         timeout=timeout,
         start_sentinel=sentinel,
     )
