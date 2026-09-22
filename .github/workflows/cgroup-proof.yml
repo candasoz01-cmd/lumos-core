@@ -19,7 +19,9 @@ jobs:
         run: |
           # setup-python KULLANILMAZ: tool-cache yorumlayıcısı jail'e bind'li
           # değil; _bwrap_probe testleri sys.executable'ı jail içinde exec eder.
-          sudo /usr/bin/python3 -m pip install --break-system-packages -q -r requirements.txt
+          # --ignore-installed: Debian'ın RECORD'suz kurduğu paketleri (örn.
+          # typing_extensions) kaldırmaya çalışma; /usr/local'e üstüne kur.
+          sudo /usr/bin/python3 -m pip install --break-system-packages --ignore-installed -q -r requirements.txt
           sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap
           bwrap --version; /usr/bin/python3 --version
 
