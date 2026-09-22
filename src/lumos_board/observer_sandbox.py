@@ -147,7 +147,10 @@ def _bind_keyctl_syscall() -> tuple[int | None, object | None]:
         fn = libc.syscall
         fn.restype = ctypes.c_long
         return nr, fn
-    except OSError:
+    except (OSError, AttributeError):
+        # Non-Linux (e.g. macOS) has no ``syscall`` symbol; resolving the
+        # attribute raises ``AttributeError``. Let the module import and
+        # return ``None`` so the sandbox reports unavailable off Linux.
         return None, None
 
 
@@ -183,7 +186,10 @@ def _bind_prctl() -> object | None:
             ctypes.c_ulong,
         ]
         return fn
-    except OSError:
+    except (OSError, AttributeError):
+        # Non-Linux (e.g. macOS) has no ``prctl`` symbol; resolving the
+        # attribute raises ``AttributeError``. Let the module import and
+        # return ``None`` so the sandbox reports unavailable off Linux.
         return None
 
 
