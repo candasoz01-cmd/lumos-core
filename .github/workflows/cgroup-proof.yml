@@ -1,0 +1,70 @@
+# KA-840-CGV — cgroup-v2 memory.max/swap.max GERÇEK-enforcement kanıtı.
+# #840'ın açık kanıt sınırını kapatmak için tek amaçlı doğrulama koşumu:
+# ubuntu-latest VM'i saf cgroup2'dir; job root (sudo) koştuğunda
+# _memory_cgroup_insert_parent yazılabilir +memory ancestor'ı bulur ve
+# needs_cgroup testleri SKIP yerine gerçekten koşar. Merge kapısı değildir.
+name: cgroup-v2 enforcement proof
+
+on:
+  push:
+    branches: [ "claude/quirky-maxwell-dh2qnp" ]
+
+jobs:
+  cgroup-proof:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps + bubblewrap
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          sudo apt-get update -qq && sudo apt-get install -y -qq bubblewrap
+          bwrap --version
+
+      - name: Host cgroup evidence (pure cgroup2 + delegated memory)
+        run: |
+          echo "fs type:"; stat -fc %T /sys/fs/cgroup
+          echo "self cgroup:"; cat /proc/self/cgroup
+          echo "root controllers:"; cat /sys/fs/cgroup/cgroup.controllers
+          echo "root subtree_control:"; cat /sys/fs/cgroup/cgroup.subtree_control
+
+      - name: Set PYTHONPATH
+        run: |
+          echo "PYTHONPATH=$(pwd)/src:$(pwd)/packages/kando_runtime/src:$(pwd)/packages/kando_bridge/src" >> $GITHUB_ENV
+
+      - name: Direct memory.max / swap.max probe (root, real cgroup-v2)
+        run: |
+          sudo env "PYTHONPATH=$PYTHONPATH" KANDO_MOCK=1 "$(which python)" - <<'EOF'
+          from lumos_board.observer_sandbox import (
+              _MAX_TREE_MEMORY_BYTES,
+              _memory_cgroup_insert_parent,
+              _sandbox_memory_cgroup,
+          )
+          parent = _memory_cgroup_insert_parent()
+          print("delegated parent:", parent)
+          with _sandbox_memory_cgroup() as cg:
+              assert cg is not None, "cgroup degrade oldu — kanıt üretilemedi"
+              print("cgroup dir:", cg)
+              mm = (cg / "memory.max").read_text().strip()
+              print("memory.max =", mm)
+              assert mm == str(_MAX_TREE_MEMORY_BYTES), mm
+              sw = cg / "memory.swap.max"
+              print("memory.swap.max =", sw.read_text().strip() if sw.exists() else "ABSENT")
+          print("PROBE-OK: memory.max kernel'e gercekten yazildi")
+          EOF
+
+      - name: needs_cgroup enforcement tests (root, real OOM-kill path)
+        run: |
+          sudo env "PYTHONPATH=$PYTHONPATH" KANDO_MOCK=1 "$(which python)" -m pytest -v \
+            tests/test_observer_sandbox.py -k "memory_cgroup or reaps_live_sleeper" -rs
+
+      - name: Full observer suite (root, real bwrap + real cgroup-v2)
+        run: |
+          sudo env "PYTHONPATH=$PYTHONPATH" KANDO_MOCK=1 "$(which python)" -m pytest -q \
+            tests/test_observer_sandbox.py -rs
