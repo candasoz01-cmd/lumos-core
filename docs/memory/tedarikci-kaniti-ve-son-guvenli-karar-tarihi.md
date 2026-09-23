@@ -122,6 +122,98 @@ asıl işlevi bu sessiz kilitlenmeyi erken göstermektir.
 
 ---
 
+## Ek — dış inceleme çıkarımları (2026-09-23)
+
+**Kaynak:** DigiCert Quantum Central ürün tanıtımı (Temmuz 2026) ve World Quantum
+Readiness Day 2026 «From Blueprint to Build» içeriği üzerine yapılan **salt okuma**
+incelemesi. Hesap açılmadı, deneme başlatılmadı, form gönderilmedi.
+
+**Kanıt düzeyi (kendi PR-060 kuralımız bu nota da uygulanır):** ürünün *var olduğu ve
+hangi başlıkları kapsadığı* ikincil kaynaklarla teyitli; *nasıl çalıştığı* (tarama
+yöntemi, skor formülü) **doğrulanmadı** — birincil ürün dokümanına erişilemedi. Aşağıdaki
+maddeler bir ürünün kopyası değil, kendi kaydımızda **eksik bulduğumuz alanlardır**
+(PR-007: benzer genel işlev tek başına kopya sayılmaz).
+
+### 1. Tedarikçi PQC değerlendirme alanları
+
+Çıkarım 1'deki kanıt alanlarına **ek**; yalnız tedarikçi kriptografi veya güvenlik
+hizmeti verdiğinde doldurulur.
+
+| Alan | Anlamı |
+|------|--------|
+| `vendor_pqc_roadmap` | Tedarikçinin PQC geçiş planı ve algoritma destek takvimi |
+| `hybrid_mode_support` | Klasik + PQC hibrit modun destekleniyor olup olmadığı |
+| `fips_140_3_scope` | FIPS 140-3 doğrulamasının **kapsamı** (hangi modül, hangi sürüm) |
+| `firmware_upgradeable` | Cihaz/ürün sahada kripto güncellemesi alabiliyor mu |
+| `cbom_available` | Tedarikçi kriptografik malzeme listesi (CBOM) veriyor mu |
+
+Bu alanlar da Çıkarım 1'e tabidir: doldurulmuş olması doğrulandığı anlamına gelmez;
+kanıt yoksa `doğrulanmamış beyan` kalır. `fips_140_3_scope` özellikle kapsam alanıdır —
+geçerli bir doğrulamanın kullanılan modülü kapsamaması sessiz boşluktur.
+
+### 2. Bulguya bağlanabilecek operasyon alanları
+
+Mevcut bulgu kaydımız (`evidenced_findings`) bulguyu **işe** çevirmiyor: sahibi, bileti
+ve tarihi yok. İleride eklenmesi değerlendirilecek alanlar:
+
+| Alan | Anlamı |
+|------|--------|
+| `owner` | Bulgunun sahibi (kişi veya rol) |
+| `change_request` | Bağlı değişiklik kaydı / bilet referansı |
+| `target_date` | Hedeflenen tamamlanma tarihi |
+| `last_safe_decision_date` | Çıkarım 2'deki son güvenli karar tarihi |
+
+`target_date` ile `last_safe_decision_date` **ayrı alanlardır**; biri hedef, diğeri
+kararın sıkışmadan verilebileceği en geç andır.
+
+### 3. Dış düzenleyici / uyum tarihine bağlama
+
+Uygun olduğunda bir bulgu, dış bir düzenleyici veya uyum tarihine **referansla**
+bağlanabilmeli (opsiyonel alan; her bulguda gerekmez). Amaç, iç hedef tarih ile dış
+zorunluluğu ayırmak ve Çıkarım 2'yi dış tarihin üzerine kurabilmek.
+
+Belirli bir rejim, tarih veya yargı alanı bu nota **sabitlenmez** — düzenlemeler
+değişir, bağlayıcılığı ülke ve sektöre göre farklıdır ve Lumos hukuki danışmanlık
+vermez. Referansın kendisi de Çıkarım 1'e tabidir: kaynağı ve son doğrulama tarihi
+taşınır.
+
+### 4. Standart formatta dışa aktarılabilir kanıt (değerlendirilecek)
+
+Kanıt kaydının ileride **CBOM veya benzeri standart bir formatta** dışa aktarılabilmesi
+değerlendirilecektir. Gerekçe: üçüncü tarafa kanıt verme anı geldiğinde kendimize özgü
+şema karşı tarafta okunmaz. Bu bir karar değil, açık bir değerlendirme maddesidir;
+format seçimi, kapsam ve gizlilik sınırı ayrı karar ister.
+
+### 5. Ürün ilkeleri (bu notun bağlayıcı özeti)
+
+| # | İlke |
+|---|------|
+| 1 | **Tek hazırlık skoru yerine kanıta bağlı bulgular önceliklidir.** Skor üretilirse bile bulguların yerine geçmez; bir yüzde, hangi iddianın doğrulanmadığını gizler. |
+| 2 | **Doğrulanmamış tedarikçi beyanı ayrı gösterilir** — silinmez, doğrulanmış kanıtla aynı görsel ağırlığı da almaz (PR-060). |
+| 3 | **Son güvenli karar tarihi, resmî son tarihten ayrı korunur** (PR-061); biri diğerinin yerine geçmez. |
+
+### 6. DigiCert Quantum Central ücretsiz denemesi — başlatılmayacak
+
+**Karar:** Bu aşamada ücretsiz deneme **başlatılmayacak**. Hesap açılmadı.
+
+**Gerekçe (kısa):** Ürünün asıl değeri bilinmeyen geniş bir kripto envanterini
+keşfetmektir; Lumos'un envanteri dar ve zaten dosya-satır kanıtıyla kayıtlıdır
+([`lumos-quantum-readiness-checklist.md`](../analysis/lumos-quantum-readiness-checklist.md)),
+ayrıca yönetilen bir sertifika/PKI filosu yoktur. Buna karşılık deneme, tedarikçi
+ilişkisi ve kendi kripto duruşumuzun envanterinin dış platforma taşınması anlamına gelir
+— kazanımı küçük, sınırı hassastır. Öğrenilmek istenen alan listesi ve format bilgisi
+hesap açmadan elde edilebilir.
+
+**Yeniden değerlendirme koşulu:** gerçek tedarikçi envanteri olan kurumsal yüzey
+açıldığında, üçüncü tarafa standart formatta kanıt istendiğinde veya kendi
+sertifika/TLS yüzeyimiz envantere dahil edildiğinde — o zaman da değerlendirilecek olan
+deneme değil, **format uyumudur**.
+
+**Sınır:** Bu ek yalnız dokümantasyondur. Kod, şema, panel, test veya entegrasyon
+üretilmedi; yeni ADR/OD açılmadı; ticari aksiyon alınmadı.
+
+---
+
 ## İlişkili belgeler
 
 - [`docs/product-rules.md`](../product-rules.md) — PR-060, PR-061
@@ -134,4 +226,4 @@ asıl işlevi bu sessiz kilitlenmeyi erken göstermektir.
 
 ---
 
-Son güncelleme: 2026-09-23 (ilk kayıt — iki çıkarım; uygulama yok)
+Son güncelleme: 2026-09-23 (ek — tedarikçi PQC alanları, operasyon alanları, düzenleyici tarih bağlama, CBOM değerlendirmesi, ürün ilkeleri, deneme başlatılmama kararı)
