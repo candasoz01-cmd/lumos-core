@@ -6,6 +6,12 @@
 > merge edilmemiş uzak dalları. Yerel `main` origin'in 15 commit gerisindedir; tüm "main"
 > iddiaları `origin/main`'e göredir. Bulgular hızla bayatlar; kullanmadan önce yeniden doğrulanmalıdır.
 
+> **Tazeleme (2026-09-23):** Harita `lumos-core` `origin/main` @ `adcd505` karşısında yeniden
+> doğrulandı. İki değişiklik kaydedildi: **(1)** katman 5'in sandbox kodu `#840` ile main'e indi,
+> **(2)** canonical teknik borç kaydından TD-25…TD-32 düşmüş ve iki numara yeniden kullanılmıştır
+> (çapraz bulgu 7). Tazeleme yalnız durum tespitidir; TD kayıtlarının geri taşınması ve
+> numaralandırması bu belgenin işi **değildir** — ayrı iş: `candasoz01-cmd/lumos-core#882`.
+
 ## Durum sözlüğü
 
 | Etiket | Anlam |
@@ -28,7 +34,7 @@ Bir katmanda birden çok etiket olabilir: karar durumu ve uygulama durumu her za
 | 2 | Görev sahipliği | **VAR** (kayıtlı kusurla) | `task_claim.py` main'de, 28 testli, sahada canlı kullanılmış; `list_claims()` salt-okuma değil (kusur kayıtlı, düzeltme dalda) |
 | 3 | Yetki | **KISMİ** | ADR-031 grant motoru kodlu + testli (opt-in); ADR-027 tek-yazıcı Accepted/uygulanmadı; `granted_by` aktör doğrulaması dalda, main'de `None` |
 | 4 | Onay | **KISMİ** | Dört ayrı katmanda dağınık çalışan parçalar (ADR-028, Decision Gate, confirmation_policy, v2 durumları); tek onay omurgası yok; Decision Queue görünümü yazılmadı |
-| 5 | Çalıştırma | **KARAR VAR** / KOD DALDA | Bilinçli tasarım: Wall kaydeder, yürütmez (`gates.py`). Observer sandbox ADR-033 Accepted main'de; sandbox kodu dalda; ölçüm probe'u main'de |
+| 5 | Çalıştırma | **VAR** (sandbox) + KARAR VAR | Bilinçli tasarım: Wall kaydeder, yürütmez (`gates.py`). Observer sandbox ADR-033 Accepted; **sandbox kodu 2026-09-22'de main'e indi** (`#840`); ölçüm probe'u main'de |
 | 6 | Gözlem | **KISMİ** / KOD DALDA | Durum raporlama (agent-status v1+v2 okuyucu) main'de; gözlem sözleşmesi main'de; `wall_observer.py` bilinçli merge dışı (#832) |
 | 7 | Güvenlik sınırı | **KISMİ** | Sır maskeleme + sızıntı guard'ı + fail-closed sürüm reddi main'de; sandbox env-blocklist dalda; "gözlemci yetki sınırı DEĞİLDİR" uyarısı kayıtlı |
 | 8 | Audit / Kanıt | **KISMİ** | Append-only audit (claim+gateway) ve SHA-bağlı attestation main'de; fail-closed audit-IO ve attestation log sertleştirmeleri dalda |
@@ -48,7 +54,7 @@ Bir katmanda birden çok etiket olabilir: karar durumu ve uygulama durumu her za
 ### 2. Görev sahipliği — işi kim aldı?
 - **Uygulama (main):** `src/lumos_board/task_claim.py` (935 sat.) — atomik claim/lease (`flock` + atomic rename), TTL/heartbeat, QUEUED kuyruk + otomatik promotion, HMAC-SHA256 imzalı manuel override, append-only audit. CLI: `src/lumos_board/claim_cli.py`; `AGENTS.md` bunu zorunlu iş akışı yapar.
 - **Test:** `tests/test_lumos_board_task_claim.py` (764 sat., 28 test). TD-04 kapanış kanıtı: gerçek çok-ajanlı kullanım. Canlı veri: `Lumos/.lumos/board/claims.json` + `claim_events.jsonl` (son olay 2026-09-13).
-- **Kayıtlı kusur:** `list_claims()` gerçekte salt-okuma değil — `_locked_state()` çıkışta state + audit yazar, exclusive lock tutar (`task_claim.py:629-652`; #832'de keşfedildi). Düzeltme `origin/cursor/claim-list-readonly` dalında (+96 sat. test), merge edilmedi.
+- **Kayıtlı kusur:** `list_claims()` gerçekte salt-okuma değil — `_locked_state()` çıkışta state + audit yazar, exclusive lock tutar (`task_claim.py:629-652`; #832'de keşfedildi). Düzeltme `origin/cursor/claim-list-readonly` dalında (+96 sat. test): `candasoz01-cmd/lumos-core#833` · OPEN (draft) · `ec7f3df2080b2f38b941422df45cc74e3d69cd17` · GitHub API · 2026-09-23. Kusur `origin/main` @ `adcd505`'te hâlâ canlıdır (`task_claim.py:629-652`).
 - **Sözleşme:** `docs/contracts/task-claim-v1.md` (13 normatif kural).
 
 ### 3. Yetki — ne yapabilir?
@@ -69,7 +75,8 @@ Dört ayrı yerde, birbirine referanslı ama tek omurga yok:
 - **Bilinçli tasarım kararı:** Wall v0 eylem yürütmez; Decision Gate kayıt katmanıdır (subprocess yok, merge/deploy tetiklenmez). Bu bir eksik değil, kayıtlı sınırdır.
 - **Karar (main):** ADR-033 observer sandbox — Accepted 2026-09-05; "runtime sandbox yok" durumunu ve motor kararını (A=sandbox) kaydeder; #832 head'i merge adayı değildir der. `docs/contracts/agent-wall-observer-sandbox-v0.md` (v0.1'de ölçümle motor kararı).
 - **Uygulama (main):** yalnız ölçüm aracı — `scripts/wall_sandbox_capability_probe.py` (392 sat., fail-closed kanıt; PR #838) + `tests/test_agent_wall_observer_sandbox_contract.py` (12 test).
-- **Dalda:** `src/lumos_board/observer_sandbox.py` (351 sat., bubblewrap, credential env-blocklist: `SSH_/AWS_/GH_/OPENAI_/ANTHROPIC_...`) + 545 sat. test — `origin/codex/agent-wall-sandbox-mvp-20260910`, merge edilmedi.
+- **Uygulama (main, 2026-09-22):** `src/lumos_board/observer_sandbox.py` (1118 sat., bubblewrap, credential env-blocklist: `SSH_/AWS_/GH_/OPENAI_/ANTHROPIC_...`, cgroup-v2 enforcement, seccomp keyring kapatma) + `tests/test_observer_sandbox.py` (1909 sat.) — `candasoz01-cmd/lumos-core#840` · MERGED · `adcd505` · GitHub API · 2026-09-23. 2026-09-14 envanterinde "dalda bekliyor" olarak kayıtlıydı; artık ürün gerçeğidir.
+- **Açık dilim:** modül macOS'ta import edilemiyordu (`ctypes` `AttributeError`); düzeltme `candasoz01-cmd/lumos-core#881` · OPEN · `6041a2b5350ee054e0100d1d4dcd95ca93088492` · GitHub API · 2026-09-23. Linux davranışını değiştirmez.
 
 ### 6. Gözlem — ne oluyor, kim bekliyor?
 - **Karar (main):** `docs/contracts/agent-wall-observation-v1.md` (PR #831) — S1 OUT_OF_SCOPE/FOREIGN_SCOPE, S2 SILENT_DRIFT, S3 STALE_CLAIM; beyan vs türetilmiş sinyal ayrımı; çıktı `.lumos/logs/wall_observations.jsonl`. Belge, uygulamanın ayrı dilim olduğunu açıkça yazar.
@@ -98,7 +105,7 @@ Dört ayrı yerde, birbirine referanslı ama tek omurga yok:
 - **Uygulama (main, çağrılmıyor):** `src/lumos_board/coordination_gateway.py` (541 sat., 14 test) — tek-okuyucu kapısı: ajanlar kullanıcıya doğrudan konuşmaz, olay yazar; token-backed reader lease özetler. **Hiçbir production yolu çağırmıyor** (TD-04 notu) → kod var, ürün gerçeği yok.
 - **Uygulama (Lumos repo main):** `.lumos/wall/lumos_wall.py` + `index.html` — salt-okunur operatör paneli (stdlib, port 8321); M1 frozen şema `agent-session-status m1/1.0.0`.
 - **Dalda:** `src/lumos_board/wall.py` (303 sat., `WallState` WORKING/WAITING/BLOCKED/NEEDS_DECISION, salt-okunur CLI özeti) — #807, TD-31 ADR numara çakışması yüzünden bloke (`ADR-025` iki ayrı belgeye verilmiş).
-- **EKSİK:** HTTP Wall okuma ucu hiç yazılmadı. `docs/contracts/wall-surface-portability-v1.md` (main, PR #836) bunu tanımlar ("Wall tek mantıksal yüzeydir, sözleşmesi HTTP API'dir"; adaptörlere dosya erişimi/`lumos_board` import'u/subprocess yasak) ve araç adaptörlerinden önce yazılmasını şart koşar; ADR'si de yok (TD-31/TD-32 kayıtsızlığı nedeniyle).
+- **EKSİK:** HTTP Wall okuma ucu hiç yazılmadı. `docs/contracts/wall-surface-portability-v1.md` (main, PR #836) bunu tanımlar ("Wall tek mantıksal yüzeydir, sözleşmesi HTTP API'dir"; adaptörlere dosya erişimi/`lumos_board` import'u/subprocess yasak) ve araç adaptörlerinden önce yazılmasını şart koşar; ADR'si de yok (TD-31/TD-32 blokajı; 2026-09-23 itibarıyla bu iki TD kaydının kendisi de main'de yok — çapraz bulgu 7).
 
 ### 11. Kurtarma / Geri alma — yanlış gidince ne olur?
 - **Noktasal parçalar (main):** gateway stale-reader takeover + audit-rollback izi; task_claim HMAC imzalı manuel override (`OVERRIDDEN` durumu); session_store INVALID izolasyonu (Lumos repo).
@@ -112,8 +119,10 @@ Dört ayrı yerde, birbirine referanslı ama tek omurga yok:
 2. **Doküman–kod drift'i (doğrulanmış):** `docs/contracts/agent-status-v2.md` origin/main'de hâlâ "Kod yazılmadı / Kod karşılığı: Yok" der; oysa v2 okuyucu kodu ve türeme testleri PR #804 ile main'dedir (#803 dokümanı #804 koddan önce merge olmuş, sonra güncellenmemiş). Sözleşmenin kendi kuralı: ayrışmada kod esas alınır, doküman güncellenir.
 3. **Yerel çalışma kopyaları geride:** yerel `main` origin'in 15 commit gerisinde; bu envanter sırasında bir keşif hattı bu yüzden ADR-033'ü "main'de yok" sanmıştı. Tüm Wall değerlendirmeleri `origin/main`'e karşı yapılmalı.
 4. **Repo/dizin adlandırması:** `work_2026/Lumos` dizini `lumos-ios` remote'una bakar; kanonik `candasoz01-cmd/Lumos` `work_2026/Lumos-main` dizinindedir. Canlı Board verisi (`.lumos/board/`, son olay 2026-09-13) lumos-ios dizininde durmaktadır.
-5. **Merge blokajlarının ikisi de süreçsel:** TD-31/TD-32 ADR numara çakışması (#807 görünürlük dilimi bunun arkasında); içerik reddi değil.
-6. **Dalda bekleyen güvenlik/gözlem kütlesi:** `wall_observer.py` (833+917 sat.), `observer_sandbox.py` (351+545 sat.), claim-list-readonly düzeltmesi, f7/f8/f9 sertleştirmeleri, OD-064 rol ilkesi — toplamda ~3.500 satır kod+test dört+ dalda ürün gerçeği olmadan duruyor; bir kısmı (observer) ADR-033 gereği **bilinçli** dışarıda.
+5. **Merge blokajlarının ikisi de süreçsel:** TD-31/TD-32 ADR numara çakışması (#807 görünürlük dilimi bunun arkasında); içerik reddi değil. **Tazeleme (2026-09-23):** bu iki kaydın kendisi de artık `origin/main`'de yoktur (çapraz bulgu 7) — yani blokajın gerekçesi canonical kayıttan düşmüş, blokaj sürmektedir.
+6. **Dalda bekleyen güvenlik/gözlem kütlesi:** `wall_observer.py` (833+917 sat.), claim-list-readonly düzeltmesi (`#833`), f7/f8/f9 sertleştirmeleri, OD-064 rol ilkesi (`#841`), WebMCP dilimleri (`#834`/`#835`) — hâlâ dalda, ürün gerçeği değil; bir kısmı (observer) ADR-033 gereği **bilinçli** dışarıda. **Tazeleme (2026-09-23):** `observer_sandbox.py` bu kütleden çıktı (`#840` merge edildi, katman 5).
+
+7. **Canonical teknik borç kaydı delinmiş (doğrulanmış, yeni):** `docs/TECHNICAL_DEBT.md` AGENTS.md'ye göre canonical kaynaktır. `ed9ca2f` (2026-09-04, `origin/main`'in doğrulanmış atası — `git merge-base --is-ancestor` ile teyitli) **TD-01…TD-32** içeriyordu; bugünkü `origin/main` @ `adcd505` **TD-01…TD-26** içeriyor. Düşüren commit `73d6f58` (2026-09-11, *"revert(devpost): restore submitted state except approved security fixes"*). Ardından **TD-25 ve TD-26 numaraları başka konulara yeniden atanmıştır** (bugün TD-25 = ADR-033 Account Activity Correlation, TD-26 = `run_lumos_gate` unknown-risk kapısı), yani aynı kimlik iki farklı borcu işaret etmektedir. Üç somut sonuç: **(a)** `#807`'nin merge-blocker gerekçesi (TD-31) canonical kayıtta yok; **(b)** `#834`/`#835` artık var olmayan TD-27/TD-28 satırlarını düzenledikleri için `mergeable_state: dirty` ve doğrudan merge edilemiyor — ikisi de salt doküman değil, `main`'de karşılığı sıfır olan kod + test taşıyor; **(c)** ölçülmüş bilinçli sınırlar (eski TD-25 replay ayrışması, eski TD-29 duvar-saati sınırı) kayıtsız kaldı. Geri taşıma ve numara tahsisi ayrı iştir: `candasoz01-cmd/lumos-core#882`.
 
 ## Haritadan okunan gerçek boşluklar (EKSİK sınıfı)
 
