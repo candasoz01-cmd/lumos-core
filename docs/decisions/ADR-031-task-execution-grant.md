@@ -10,7 +10,7 @@
 | Alan | Değer |
 |------|-------|
 | Karar durumu | **Accepted (2026-08-21)** — kurucu, chat kararı |
-| Uygulama durumu | Kernel (üç parça) + opt-in `lumos_gate_execute`; varsayılan kapalı; diğer yüzeyler TD-20 |
+| Uygulama durumu | Kernel (üç parça) + opt-in `lumos_gate_execute`; varsayılan kapalı; diğer yüzeyler TD-41 (2026-09-23'e kadar TD-20) |
 | Tarih | 2026-08-21 |
 | Üst ilişki | [ADR-012](ADR-012-lumos-security-codex.md) C1; [ADR-010](ADR-010-guard-policy-trust-terminology.md); CU4 confirmation; `approval_token`; [ADR-024](ADR-024-lumos-identity-multi-subject-model.md) K4 **uygulanmaz** |
 | Sözleşme | [`task-execution-grant-v1.md`](../contracts/task-execution-grant-v1.md) |
@@ -77,7 +77,7 @@ adımda değil**, yalnız mevcut riskli işlem kapılarında (CU4 / `approval_to
 
 `LUMOS_TASK_EXECUTION_GRANT_ENABLED` — varsayılan kapalı (CU4 DL-C18).
 Mint/registry/ledger env’den bağımsız çalışır; **executor’a geçiş** env
-açıkken zorunludur. Varsayılan-on TD-20.
+açıkken zorunludur. Varsayılan-on TD-41 (2026-09-23'e kadar TD-20).
 
 ## Kabul ölçütü (bu dilim)
 
