@@ -29,6 +29,7 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **ürün 
 | PR-004 | İç katmanlar dışarıdan komut veya veri **doğrudan kabul etmez**; akış Lumos geçidinden geçer. | **aktif kural** |
 | PR-005 | Son kullanıcı yüzeyinde **sağlayıcı/model adı** (OpenAI, Claude, Gemini, DeepSeek, Kimi/Moonshot vb.), `session_id`, `instance_id`, worktree yolu, heartbeat, PR/merge kapısı ve iç ajan koordinasyonu **görünmez**. Kullanıcıya model seçtiren arayüz yapılmaz. Bu ayrıntılar yalnız iç operatör yüzeyine (Lumos Agent Wall) açıktır. ([ADR-019](decisions/ADR-019-product-surface-separation-modelregistry.md)) | **aktif kural** |
 | PR-006 | Kullanıcı GitHub, iOS, Drive veya başka bir **platform ajanıyla doğrudan konuşmaz**. İsteği Lumos sohbetine anlatır; Lumos niyeti ve hedef repo/kapsamı belirler, mevcut Board claim + AGENTS.md iş paketi ile ilgili ajana iletir; ajanın diff/test kanıtını kendi sohbetinden sunar. Riskli yazma, silme, paylaşma, gönderme, merge, deploy ve yayınlama mevcut insan-onayı kapılarından geçer (CU4, `profiles.py`, ADR-027). Yeni yönlendirme, kimlik veya onay sistemi kurulmaz. | **aktif kural** |
+| PR-007 | Lumos **Apple'a özel bir ürün değildir**; iOS, Lumos'un çalıştığı platformlardan yalnızca biridir. Apple'da veya başka bir platform sağlayıcısında **benzer genel işlevlerin bulunması, tek başına** Lumos özelliğinin kopya olduğu ya da özellik çakışması taşıdığı anlamına **gelmez**. Değerlendirme; Lumos'un **bağımsız ürün amacı, platformlar arası kullanım alanı, kullanıcı akışı, tasarım, isimlendirme ve uygulama biçimi** üzerinden yapılır. | **aktif kural** |
 
 ---
 
@@ -136,4 +137,4 @@ Aşağıdaki maddeler CI veya public sınır nedeniyle ertelendi veya taşındı
 
 ---
 
-Son güncelleme: 2026-09-23 (PR-060, PR-061 — kurumsal yönetişim/risk gelecek özellik notu)
+Son güncelleme: 2026-09-23 (PR-007 — platform bağımsızlığı ve benzer işlev değerlendirmesi; PR-060, PR-061 kurumsal yönetişim/risk notu)
