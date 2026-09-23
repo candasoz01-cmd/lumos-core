@@ -1,4 +1,4 @@
-# Tedarikçi kanıtı ve son güvenli karar tarihi — gelecek özellik notu (OD-064)
+# Tedarikçi kanıtı ve son güvenli karar tarihi — gelecek özellik notu (OD-065)
 
 > **Durum:** `ürün notu / gelecek özellik` — iki ilke çıkarımı kayda alındı; **karar onayı ve uygulama yok** (`implementation-pending`). Bu belge kod değişikliği değildir; kod, şema, panel, alan veya test üretilmedi.
 >
@@ -218,7 +218,7 @@ deneme değil, **format uyumudur**.
 
 - [`docs/product-rules.md`](../product-rules.md) — PR-060, PR-061
 - [`docs/decision-log.md`](../decision-log.md) — DL-F09
-- [`open-decisions-needs-review.md`](open-decisions-needs-review.md) — OD-064
+- [`open-decisions-needs-review.md`](open-decisions-needs-review.md) — OD-065
 - [`docs/decisions/ADR-013-lumos-quantum-security-readiness.md`](../decisions/ADR-013-lumos-quantum-security-readiness.md) — hazırlık iddiası ≠ uygulama ayrımı; aynı ayrımın tedarikçi tarafı
 - [`docs/decisions/ADR-017-regulated-service-entity-boundaries.md`](../decisions/ADR-017-regulated-service-entity-boundaries.md) — düzenlemeye tabi alanlarda kanıt ve yetki sınırı
 - [`commercial-approval-model-decision.md`](commercial-approval-model-decision.md) — ticari aksiyonlarda insan onayı
