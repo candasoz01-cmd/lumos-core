@@ -159,6 +159,7 @@ const title = "Canlı ses — Lumos";
         };
         const applyMode = () => {
           const pushMode = mode === "push";
+          if (!pushMode) audio.muted = false;
           autoModeButton.setAttribute("aria-pressed", String(!pushMode));
           pushModeButton.setAttribute("aria-pressed", String(pushMode));
           pushToTalkButton.hidden = !pushMode || pc?.connectionState !== "connected";
