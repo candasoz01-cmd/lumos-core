@@ -101,6 +101,17 @@ uydurma/yanlış yoldur; katalogda yoktur.
 
 ---
 
+## Kurumsal yönetişim ve risk (gelecek özellik notu)
+
+Henüz ürün yüzeyi yoktur; ileride kurumsal yönetişim / risk motoru açılırsa giriş ilkesi olarak geçerlidir. Detay: [`docs/memory/tedarikci-kaniti-ve-son-guvenli-karar-tarihi.md`](memory/tedarikci-kaniti-ve-son-guvenli-karar-tarihi.md).
+
+| # | Madde | Statü |
+|---|--------|--------|
+| PR-060 | Tedarikçi veya servis sağlayıcının «destekliyoruz / hazırız / uyumluyuz» beyanı **tek başına yeterli kabul edilmez**. Lumos, mümkün olduğunda iddiayı **doğrulanabilir kanıt, sertifika, kapsam ve güncel durumla birlikte** gösterir; kanıtı olmayan iddia silinmez, **`doğrulanmamış beyan`** olarak görünür ve tek başına riski kapalı saymaz. | **gelecek özellik notu** |
+| PR-061 | Risk ve uyum takibinde yalnız resmî son tarih değil, **son güvenli karar tarihi** de tutulur. Bu tarih; entegrasyon, test, doğrulama, değişiklik yönetimi ve **alternatif tedarikçiye geçiş** süreleri resmî son tarihten düşülerek belirlenir; tahmindir, kesin hüküm değildir ve süreler değişince gerekçesiyle yeniden hesaplanır. | **gelecek özellik notu** |
+
+---
+
 ## CI / kapsam dışı bırakılan ürün maddeleri
 
 Aşağıdaki maddeler CI veya public sınır nedeniyle ertelendi veya taşındı; **kaybolmaz**.
@@ -121,7 +132,8 @@ Aşağıdaki maddeler CI veya public sınır nedeniyle ertelendi veya taşındı
 - `docs/contracts/task-claim-v1.md` — Board claim (repo, kapsam, sahip)
 - `docs/contracts/single-reader-gateway-v1.md` — ajanlar kullanıcıya doğrudan rapor vermez
 - `docs/decisions/ADR-008-agent-network-boundary.md` — yatay AI→AI komut yok
+- `docs/memory/tedarikci-kaniti-ve-son-guvenli-karar-tarihi.md` — tedarikçi kanıtı ve son güvenli karar tarihi (PR-060, PR-061)
 
 ---
 
-Son güncelleme: 2026-09-11
+Son güncelleme: 2026-09-23 (PR-060, PR-061 — kurumsal yönetişim/risk gelecek özellik notu)
