@@ -30,6 +30,7 @@ Taşıma süreci ve durum tanımları: [`chatgpt-saved-memories-migration.md`](.
 | 3 | Lumos, kullanıcı ile dış dünya arasında **güvenli geçit ve orkestratör** olarak konumlanır. | Taşındı |
 | 4 | İç katmanlar dışarıdan komut veya veri **doğrudan kabul etmez**; akış Lumos geçidinden geçer. | Taşındı |
 | 5 | Kullanıcı platform ajanıyla (GitHub / iOS / Drive) **doğrudan konuşmaz**; Lumos mevcut claim + iş paketi ile iletir, kanıtı kendi sohbetinden sunar. `ios-logo` repo `candasoz01-cmd/Lumos`; donmuş AppIcon kapsamları `brand/ios-export/Assets.xcassets/AppIcon.appiconset` ve `ios/LumosApp/Assets.xcassets/AppIcon.appiconset`. Üretim girdisi `brand/source/logo001.png`, yedek `web/static/brand/logo001.png`. Hedef işaret `ui/public/chat-lumos-mark.svg` henüz üreticiye bağlı değil. apple-touch web’dir; launch ayrı anahtar. | PR-006 — [`docs/product-rules.md`](../product-rules.md) |
+| 6 | Lumos **Apple'a özel değildir**; iOS yalnızca çalıştığı platformlardan biridir. Apple veya başka bir platform sağlayıcısında benzer genel işlevlerin bulunması, tek başına kopya veya özellik çakışması sayılmaz; değerlendirme bağımsız ürün amacı, platformlar arası kullanım alanı, kullanıcı akışı, tasarım, isimlendirme ve uygulama biçimi üzerinden yapılır. | PR-007 — [`docs/product-rules.md`](../product-rules.md) |
 
 ---
 
@@ -122,4 +123,4 @@ Aşağıya henüz sınıflandırılmamış veya yeni kopyalanan maddeleri yapı�
 
 ---
 
-*Son güncelleme: 2026-06-17*
+*Son güncelleme: 2026-09-23 (PR-007 — platform bağımsızlığı ve benzer işlev değerlendirmesi)*
