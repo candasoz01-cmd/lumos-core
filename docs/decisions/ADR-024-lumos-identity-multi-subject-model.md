@@ -249,7 +249,7 @@ K1'e beşinci satır, K5'e N8/N9 olarak işlendi. Dikkat: bu, S1'de reddedilen
 
 1. ✅ S1/S2/S2b/S3 cevaplandı ve belgeye işlendi; kurucu eklemesi S4 (Lumos öznesi) modele girdi.
 2. ✅ Karar durumu Accepted'a çekildi; ADR-016'ya karşılıklı referans notu düşüldü ve "Lumos ID = kullanıcı kimliği" cümlesi düzeltildi.
-3. ✅ Agent-kimliği ve Lumos-öznesi boşlukları `docs/TECHNICAL_DEBT.md` → **TD-16** olarak kayda geçti (TD-14 `lumos-dosya-akisi-analiz.md`'de panel trash/upload borcuna rezerve).
+3. ✅ Agent-kimliği ve Lumos-öznesi boşlukları `docs/TECHNICAL_DEBT.md` → **TD-16** olarak kayda geçti (TD-14 `lumos-dosya-akisi-analiz.md`'de panel trash/upload borcuna rezerve edilmişti — **bu rezervasyon 2026-09-23 itibarıyla geçersizdir**: borç `d16eee04`'te doğrulandı ve mevcut değil, TD numarası açılmadı; bkz. o belgenin §8 düzeltme notu ve `candasoz01-cmd/lumos-core#882`).
 
 Üçü tamamlandı: **model kilitlendi (2026-08-17)**. Uygulama (şema, depolama,
 kripto, migration, protokol seçimi) bundan sonra bile **otomatik başlamaz** —

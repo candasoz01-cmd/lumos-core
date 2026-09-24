@@ -1,3 +1,4 @@
+import { stripUnsupportedChatMarkup } from "./chat_visible_markup.js";
 import { openSession, readCookie, sessionLumosId } from "./lumos_session.js";
 
 export const HOSTED_MODEL = "gemini-2.5-flash";
@@ -353,18 +354,18 @@ export function buildOpenAIRequest(body, context = null) {
 
 export function openAIReply(payload) {
   if (!Array.isArray(payload?.output)) return "";
-  return payload.output
-    .flatMap((item) => (Array.isArray(item?.content) ? item.content : []))
-    .map((part) => (part?.type === "output_text" && typeof part.text === "string" ? part.text : ""))
-    .join("")
-    .trim();
+  return stripUnsupportedChatMarkup(
+    payload.output
+      .flatMap((item) => (Array.isArray(item?.content) ? item.content : []))
+      .map((part) => (part?.type === "output_text" && typeof part.text === "string" ? part.text : ""))
+      .join(""),
+  ).trim();
 }
 
 export function geminiReply(payload) {
   const parts = payload?.candidates?.[0]?.content?.parts;
   if (!Array.isArray(parts)) return "";
-  return parts
-    .map((part) => (typeof part?.text === "string" ? part.text : ""))
-    .join("")
-    .trim();
+  return stripUnsupportedChatMarkup(
+    parts.map((part) => (typeof part?.text === "string" ? part.text : "")).join(""),
+  ).trim();
 }

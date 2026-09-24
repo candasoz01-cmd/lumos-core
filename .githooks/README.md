@@ -9,6 +9,13 @@ Her `git commit` öncesi:
 
 Başarısızlıkta commit oluşturulmaz. **Bypass:** `git commit --no-verify`
 
+## `pre-push`
+
+Her `git push` öncesi yayın kapısı koşar: `python3 ops/publication_gate/gate.py`.
+Public remote'a giden içerik push anında yayımlanmış olur; bu kanca son yerel
+bariyerdir. `--no-verify`, kancasız klon veya API push'u bunu atlayabilir —
+detay ve kalan risk: `docs/PUBLICATION_GATE.md`.
+
 ## Kurulum (repo kökünde, tek komut)
 
 ```bash

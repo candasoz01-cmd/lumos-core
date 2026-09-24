@@ -7,7 +7,7 @@
 | Kapsam | Panel/dashboard kartlarının sağlık **durumu**: beş literal, freshness, backend→durum türetme, semantik UI eşlemesi |
 | Kod karşılığı | `bridge.llm` mapper + tek kart (`src/dashboard_health/`, `ui/src/lib/dashboard-health/bridge-llm.js`). Grant: [`src/dashboard_health/responsibility.json`](../../src/dashboard_health/responsibility.json) |
 | Kaynak gerçeği | Sözleşme ile kod ayrışırsa **kod esastır**; ayrışma borç sayılır ([agent-status-v1](agent-status-v1.md) ile aynı kural) |
-| Faz | FAZ-1 · Panel. Yeni sayfa / vitrin / TD-13 bağlama / TD-14 yok |
+| Faz | FAZ-1 · Panel. Yeni sayfa / vitrin / TD-13 bağlama / TD-14 / TD-40 yok |
 | Merge kapısı | **İnsan onayı zorunlu.** Çekirdek davranış/semantik; docs-only olması ADR-028 standing hattına sokmaz |
 | Canonical | `#770` (`#768` folded). Kilit: TTL **provisional**, ölçülmeyen **yeşil olmaz**, **tek olay kaynağı** |
 
@@ -45,7 +45,7 @@ elle yazılmış yol haritası etiketleri. Freshness kavramı hiç yok.
 - Push/WebSocket/SSE ile gerçek zamanlı sağlık yok; v1 poll tabanlı.
 - Geçmişe dönük sağlık grafiği, uptime yüzdesi, alarm/bildirim yok.
 - Yeni sağlık ucu **tasarlanmaz**; v1 yalnız var olan uçlardan türetir.
-- TD-13 CSS/hero bağlanmaz. TD-14 (first-audio / port) bu işe karışmaz.
+- TD-13 CSS/hero bağlanmaz. TD-14 (first-audio) ve TD-40 (port çakışması) bu işe karışmaz. İkisi 2026-09-23'e kadar aynı `TD-14` kimliğini paylaşıyordu.
 - UI makyajı yok; §5 yalnız semantik eşlemedir, tasarım turu değildir.
 
 ## 1. Durum sözlüğü — beş literal

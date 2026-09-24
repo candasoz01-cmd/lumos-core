@@ -24,6 +24,12 @@ REASON_CONFIRMATION_EXPIRED = "confirmation_expired"
 REASON_SCOPE_MISMATCH = "scope_mismatch"
 REASON_CONFIRMATION_DISABLED = "confirmation_disabled"
 
+# CU4 grant actor — server-side surfaces only. Never copied from client body or disk.
+GRANTED_BY_PANEL = "panel_confirm"
+GRANTED_BY_CLI = "cli_confirm"
+GRANTED_BY_BRIDGE = "bridge_approve"
+TRUSTED_GRANTED_BY = frozenset({GRANTED_BY_PANEL, GRANTED_BY_CLI, GRANTED_BY_BRIDGE})
+
 SCHEMA_VERSION = "lumos.confirmation.v1"
 PENDING_CONFIRMATIONS_DIR = "pending_confirmations"
 DEFAULT_TTL_SECONDS = 900
@@ -353,7 +359,12 @@ def ensure_cli_mutation_confirmation(
     )
     if not result.allowed:
         return result
-    if consume_confirmation(cid, scope_hash, base_dir=base):
+    if consume_confirmation(
+        cid,
+        scope_hash,
+        base_dir=base,
+        granted_by=GRANTED_BY_CLI,
+    ):
         return ConfirmationResult(True, "")
     return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
 
@@ -389,7 +400,12 @@ def ensure_panel_mutation_confirmation(
     )
     if not result.allowed:
         return result
-    if consume_confirmation(confirmation_id, scope_hash, base_dir=base):
+    if consume_confirmation(
+        confirmation_id,
+        scope_hash,
+        base_dir=base,
+        granted_by=GRANTED_BY_PANEL,
+    ):
         return ConfirmationResult(True, "")
     return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
 
@@ -421,13 +437,23 @@ def ensure_delete_permanent_confirmation(
         )
         if not result.allowed:
             return result
-        if consume_confirmation(confirmation_id, scope_hash, base_dir=base):
+        if consume_confirmation(
+            confirmation_id,
+            scope_hash,
+            base_dir=base,
+            granted_by=GRANTED_BY_PANEL,
+        ):
             return ConfirmationResult(True, "")
         return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
 
     if legacy_confirm:
         pending = request_confirmation(DELETE_PERMANENT_ACTION, scope, base_dir=base)
-        if consume_confirmation(pending.confirmation_id, scope_hash, base_dir=base):
+        if consume_confirmation(
+            pending.confirmation_id,
+            scope_hash,
+            base_dir=base,
+            granted_by=GRANTED_BY_PANEL,
+        ):
             return ConfirmationResult(True, "")
         return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
 
@@ -573,7 +599,12 @@ def consume_bridge_confirmation(
     if fields is None:
         return False
     confirmation_id, scope_hash, _action_key = fields
-    return consume_confirmation(confirmation_id, scope_hash, base_dir=base_dir)
+    return consume_confirmation(
+        confirmation_id,
+        scope_hash,
+        base_dir=base_dir,
+        granted_by=GRANTED_BY_BRIDGE,
+    )
 
 
 def bridge_approve_validate_legacy_pending(
@@ -598,8 +629,17 @@ def consume_confirmation(
     scope_hash: str,
     *,
     base_dir: Path | str | None = None,
+    granted_by: str | None = None,
 ) -> bool:
-    """Tek kullanımlık grant tüketimi; scope_hash eşleşmezse False."""
+    """Tek kullanımlık grant tüketimi; scope_hash eşleşmezse False.
+
+    ``granted_by`` must be a trusted server-side actor
+    (``panel_confirm`` / ``cli_confirm`` / ``bridge_approve``). Client body
+    and on-disk ``granted_by`` are ignored. Missing or unknown actor → False.
+    """
+    actor = str(granted_by or "").strip()
+    if actor not in TRUSTED_GRANTED_BY:
+        return False
     if not confirmation_id.strip():
         return False
     base = Path(base_dir).resolve() if base_dir is not None else lumos_base_dir()
@@ -618,5 +658,7 @@ def consume_confirmation(
             return False
     grant["consumed"] = True
     grant["consumed_at"] = _now_iso()
+    grant["granted_by"] = actor
+    grant["granted_at"] = grant["consumed_at"]
     _write_grant(path, grant)
     return True

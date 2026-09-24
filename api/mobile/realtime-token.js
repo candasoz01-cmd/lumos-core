@@ -5,6 +5,7 @@ import {
 import { sessionLumosId } from "../_lib/lumos_session.js";
 
 export const REALTIME_MODEL = "gpt-realtime-2.1";
+export const REALTIME_TRANSCRIPTION_MODEL = "gpt-live-transcribe";
 const WINDOW_MS = 60_000;
 const MAX_SESSIONS_PER_WINDOW = 6;
 const sessionWindows = new Map();
@@ -172,8 +173,9 @@ export default async function handler(req, res) {
           audio: {
             input: {
               transcription: {
-                model: "gpt-4o-mini-transcribe",
-                language: "tr",
+                model: REALTIME_TRANSCRIPTION_MODEL,
+                languages: ["tr"],
+                delay: "low",
               },
               turn_detection: {
                 type: "semantic_vad",

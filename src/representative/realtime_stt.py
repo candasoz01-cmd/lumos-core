@@ -46,7 +46,7 @@ class RealtimeSTTStream:
         self,
         language: str | None,
         prompt: str | None = None,
-        model: str = "gpt-4o-mini-transcribe",
+        model: str = "gpt-live-transcribe",
         # Primitive default stays 600 ms for local experiments. Meet consecutive
         # mode passes MEET_VAD_SILENCE_MS (1100) from bot_rig — 600 ms was
         # answering mid-sentence in overlapping meeting speech.
@@ -70,9 +70,13 @@ class RealtimeSTTStream:
         verilirse sağlayıcı karşı tarafın İngilizcesini de Türkçe sanıp
         uydurulmuş metin üretiyordu. None → sağlayıcının kendi tespiti.
         """
-        config: dict = {"model": self._model, "prompt": self._prompt or ""}
+        config: dict = {
+            "model": self._model,
+            "prompt": self._prompt or "",
+            "delay": "low",
+        }
         if self._language is not None:
-            config["language"] = self._language
+            config["languages"] = [self._language]
         return config
 
     def start(self) -> None:

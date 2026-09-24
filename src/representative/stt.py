@@ -22,13 +22,7 @@ STT_NOT_CONFIGURED = "not_configured"
 STT_BAD_MODEL = "bad_model"
 STT_REAL_BLOCKED = "real_audio_blocked"
 STT_EU_BASE_REQUIRED = "eu_base_url_required"
-_STT_ALLOWED_MODELS = frozenset(
-    {
-        "whisper-1",
-        "gpt-4o-transcribe",
-        "gpt-4o-mini-transcribe",
-    }
-)
+_STT_ALLOWED_MODELS = frozenset({"gpt-transcribe"})
 _EU_STT_BASE_URL = "https://eu.api.openai.com/v1"
 
 
@@ -126,9 +120,15 @@ class OpenAICloudSTT:
             w.writeframes(pcm)
         buf.seek(0)
         buf.name = "utterance.wav"  # openai SDK dosya adından format çıkarır
-        result = client.audio.transcriptions.create(
-            model=self._model, file=buf, language=self._language, prompt=self._prompt
-        )
+        request: dict[str, object] = {
+            "model": self._model,
+            "file": buf,
+            "prompt": self._prompt,
+            "response_format": "json",
+        }
+        if self._language:
+            request["extra_body"] = {"languages": [self._language]}
+        result = client.audio.transcriptions.create(**request)
         return SttResult(text=result.text.strip(), language=self._language or "")
 
 
