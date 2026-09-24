@@ -238,3 +238,38 @@ gömülmez. Yeni sayfa STOP LIST'tedir; görsel dilim ayrı kurucu onayı ister.
 - Onay şeması için imza kökü, imza servisi veya GitHub CheckRun (minimal depo/CLI 2026-09-20 diliminde uygulandı)
 - Ajanlar arası komut ağı, auto-merge, auto-deploy
 - Son kullanıcı paneline claim/worktree sızdırma (PR-005 / ADR-019)
+
+
+## Kalıcı kanıt ve saklama — 2026-09-24
+
+Bu kural Duvar sınıfındadır: insan, ajan, otomasyon, yerel ve Cloud işleri için
+ortaktır. Ajan kuralı veya sağlayıcının 90 günlük VM saklama sözü yerine geçmez.
+
+- İç kurulumda koruma sürekli açık ve kilitlidir; kapatma düğmesi yoktur.
+- Kullanıcı kurulumunda **silinen içerik kopyalarını** saklama tercihi değişebilir.
+  Bu tercih küçük işlem izini kapatmaz ve mevcut arşivi silmez. Önceden
+  oluşturulan kayıtların saklama şartlarını geriye dönük kısaltmaz.
+- Varsayılan süresiz; asgari taban bir takvim yılıdır. Açık onay tabanı kaldıramaz,
+  sürenin dolması otomatik silme izni vermez. Silinme olayı kanıtının süresi olay
+  tarihinden başlar. Ciddiyet daha uzun süre gerektirebilir; kritik/belirsiz
+  sınıflar için onaylı süre tablosu henüz yoktur, silme kapalı kalır.
+- İşlem kimliği, aktör, yetki kaynağı, hedef, UTC zaman, önce/sonra kimlikleri,
+  kanıt hashleri, kalıcı alıcı ve doğrulanmış kurtarma durumu tutulur.
+  Bilinmeyen alan UNKNOWN kalır; "bulunamadı" silinme kanıtı değildir.
+- Sırlar ve gereksiz kişisel veriler alınmaz. Silinen içerik kopyası ile işlem
+  izi ayrı tutulur. Retention, geri alma yetkisi veya geri alma penceresi değildir.
+- Geçici ortamdan bağımsız alıcıda doğrulanmamış çalışma teslim/temizleme adımına
+  geçemez. İzinli temiz HEAD için `scripts/verified_handoff.py pack`, alıcıda
+  `receive`, teslim öncesi aynı HEAD'de `check` kullanılır. Commit izni yoksa
+  commit atılmaz; kaydedilmemiş değişiklikler ayrıca korunmadan teslim kapanmaz.
+- Arşiv: özel `candasoz01-cmd/lumos-wall-evidence`; önceki olaylar değiştirilmez,
+  düzeltme yeni olaydır. Kaynak çalışma kopyası ve özel arşiv ayrı tutulur.
+- Kod: `lumos_board.evidence_policy`, Git teslim aracının kullandığı ortak
+  politikadır. `deletion_blockers` yalnız önkoşul değerlendirir, silme yapmaz;
+  onayı mevcut insan-otorite kapısı doğrulamalıdır. Yeni onay/lease sistemi yoktur.
+
+**Uygulama sınırı:** Git teslimi ve ortak politika yerel testlidir. Bütün dış
+araç çağrılarını zorunlu olarak bu kapıya taşıyan yürütücü mevcut değildir.
+Command Wall kayıt/kuyruk katmanı eylem yürütmez. Ürün ekranı bağlantısı ve tüm
+mutasyon yollarında teknik zorlayıcı tamamlanmadan "sistem çapında aktif"
+raporlanmaz. Sağlayıcı snapshot'ını veya GitHub admin silmesini bu modül engellemez.
