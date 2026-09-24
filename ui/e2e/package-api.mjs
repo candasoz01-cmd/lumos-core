@@ -190,8 +190,22 @@ async function run() {
     await assertGorevlerListHasMark(page, "after-complete/done-filter", true);
 
     await openGorevlerTaskByMark(page, { expectAction: "delete" });
-    await page.click("#gorevler-detail-delete");
-    await page.waitForTimeout(300);
+    const [deleted] = await Promise.all([
+      page.waitForResponse(
+        (response) => response.url().endsWith("/tasks/delete") && response.request().method() === "POST",
+        { timeout: PACKAGE_FLOW_MS },
+      ),
+      page.click("#gorevler-detail-delete"),
+    ]);
+    if (!deleted.ok()) fail("after-delete/response", `HTTP ${deleted.status()}`);
+    await page.waitForFunction(
+      (mark) => {
+        const list = document.getElementById("gorevler-list");
+        return list && !list.innerText.includes(mark);
+      },
+      MARK,
+      { timeout: PACKAGE_FLOW_MS },
+    );
     await assertGorevlerListHasMark(page, "after-delete/list-all", false);
     await assertServerTaskState("after-delete/server", false);
 

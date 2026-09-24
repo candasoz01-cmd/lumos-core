@@ -139,3 +139,43 @@ def test_interrupted_preference_write_preserves_previous_policy(tmp_path, monkey
     assert len(list(directory.glob('*.pending'))) == 2
     assert set_capture(tmp_path, True).capture_deleted_content is True
     assert read_policy(tmp_path).capture_deleted_content is True
+
+
+@pytest.mark.parametrize('operation', ['move_to_trash', 'delete'])
+def test_engine_deletion_preserves_full_content_and_blocks_on_archive_failure(tmp_path, monkeypatch, operation):
+    import core.evidence_settings as settings
+    from task_engine.engine import TaskStore
+    monkeypatch.setenv('LUMOS_DEPLOYMENT_PROFILE', 'internal')
+    store = TaskStore(tmp_path)
+    task = store.create('Recover this', 'full original description', 'guvenli_yurut')
+    original = task.to_dict()
+    def remove():
+        if operation == 'delete':
+            return store.delete(task.task_id, user_initiated=True)
+        return store.move_to_trash(task.task_id)
+    with monkeypatch.context() as broken:
+        def fail(*args, **kwargs):
+            raise OSError('archive unavailable')
+        broken.setattr(settings, '_save', fail)
+        with pytest.raises(OSError):
+            remove()
+    assert store.get(task.task_id).to_dict() == original
+    assert TaskStore(tmp_path).get(task.task_id).to_dict() == original
+    assert remove() is True
+    archive = list((tmp_path / 'evidence_archive/deleted_content').glob('*.json'))
+    assert len(archive) == 1
+    assert json.loads(archive[0].read_text())['content']['payload'] == original
+
+
+@pytest.mark.parametrize('operation', ['move_to_trash', 'delete'])
+def test_engine_reads_workspace_capture_preference(tmp_path, monkeypatch, operation):
+    from task_engine.engine import TaskStore
+    monkeypatch.setenv('LUMOS_DEPLOYMENT_PROFILE', 'customer')
+    set_capture(tmp_path, False)
+    store = TaskStore(tmp_path / 'tasks')
+    task = store.create('Customer preference', 'content', 'guvenli_yurut')
+    if operation == 'delete':
+        assert store.delete(task.task_id, user_initiated=True)
+    else:
+        assert store.move_to_trash(task.task_id)
+    assert not list(tmp_path.rglob('deleted_content/*.json'))

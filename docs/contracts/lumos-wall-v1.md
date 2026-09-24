@@ -275,6 +275,8 @@ gelecekteki içerik kopyalarını kapatabilir. İstek gövdesi profil değiştir
 Tercih değişiklikleri ayrı, süresiz olay dosyalarıdır. Çöp kutusu yazıcısı,
 kaynak silinmeden önce `evidence_archive/deleted_content` altında bağımsız
 kopya yazar; geri alma kopyasının tüketilmesi bu arşivi silmez.
+Görev motorunun çöp ve doğrudan görev kaldırma yolları da tam içerik arşivini
+aynı çalışma alanı tercihiyle kullanır; arşiv hatasında aktif görev korunur.
 Arşiv için otomatik silici veya purge API'si yoktur. Eski çöp kayıtları
 kendiliğinden arşivlenmiş sayılmaz.
 

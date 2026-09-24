@@ -455,6 +455,7 @@ def save_trash_record_json(
     data: dict,
     *,
     is_sandbox_mode: bool = False,
+    evidence_base_dir: Path | str | None = None,
 ) -> Path:
     """Canonical ``trash/*.json`` kaydı için merkezi, overwrite etmeyen sink."""
     base = Path(base_dir).resolve()
@@ -476,7 +477,7 @@ def save_trash_record_json(
     # Failure stops deletion before its source is removed.
     from core.evidence_settings import archive_deleted_content
 
-    archive_deleted_content(base, data)
+    archive_deleted_content(evidence_base_dir if evidence_base_dir is not None else base, data)
     ensure_trash_dir(base, is_sandbox_mode=False)
     tmp = target.with_name(target.name + ".tmp")
     # Önceki süreç temp yazımı ile replace arasında durmuş olabilir. Final kayıt
