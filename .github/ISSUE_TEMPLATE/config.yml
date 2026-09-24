@@ -1,0 +1,17 @@
+# blank_issues_enabled: false forces every new issue through a template.
+# That is the point of the security notice below: with blank issues enabled,
+# a reporter can bypass it in one click.
+blank_issues_enabled: false
+
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/candasoz01-cmd/lumos-core/security/advisories/new
+    about: Do not open a public issue for a suspected vulnerability. Use private reporting.
+
+  - name: Setup and onboarding questions
+    url: https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/getting-started.md
+    about: Katman A vs Katman B setup, ports, ui/ vs panel/.
+
+  - name: Contributing guide
+    url: https://github.com/candasoz01-cmd/lumos-core/blob/main/CONTRIBUTING.md
+    about: Local checks, pull request expectations, and the merge gate.

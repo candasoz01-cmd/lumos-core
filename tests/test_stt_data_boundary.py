@@ -39,7 +39,7 @@ def test_stt_model_not_configured_no_chat_fallback() -> None:
 
 def test_stt_uses_openai_model_stt_not_chat_or_cyber() -> None:
     env = {
-        "OPENAI_MODEL_STT": "gpt-4o-mini-transcribe",
+        "OPENAI_MODEL_STT": "gpt-transcribe",
         "OPENAI_MODEL_CHAT": "gpt-4.1",
         "OPENAI_MODEL": "gpt-4.1-mini",
         "OPENAI_MODEL_CYBER": "gpt-5.6-cyber",
@@ -47,7 +47,7 @@ def test_stt_uses_openai_model_stt_not_chat_or_cyber() -> None:
     with patch.dict(os.environ, env, clear=False):
         model, err = resolve_openai_stt_model()
     assert err is None
-    assert model == "gpt-4o-mini-transcribe"
+    assert model == "gpt-transcribe"
 
 
 def test_stt_rejects_disallowed_model() -> None:
@@ -55,6 +55,13 @@ def test_stt_rejects_disallowed_model() -> None:
         model, err = resolve_openai_stt_model()
     assert model == "gpt-4.1-mini"
     assert err == STT_BAD_MODEL
+
+
+def test_stt_rejects_deprecated_models() -> None:
+    for deprecated in ("whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"):
+        model, err = resolve_openai_stt_model(deprecated)
+        assert model == deprecated
+        assert err == STT_BAD_MODEL
 
 
 def test_synthetic_batch_one_transcriptions_call_zero_chat_fallback() -> None:
@@ -67,7 +74,7 @@ def test_synthetic_batch_one_transcriptions_call_zero_chat_fallback() -> None:
         return resp
 
     env = {
-        "OPENAI_MODEL_STT": "whisper-1",
+        "OPENAI_MODEL_STT": "gpt-transcribe",
         "OPENAI_MODEL_CHAT": "gpt-4.1",
         "OPENAI_MODEL_CYBER": "gpt-5.6-cyber",
         "LUMOS_STT_RESIDENCY_WRITTEN": "",
@@ -80,7 +87,7 @@ def test_synthetic_batch_one_transcriptions_call_zero_chat_fallback() -> None:
             mock_cls.return_value = mock_client
             out = stt.transcribe(b"\x00\x00" * 160, sample_rate=16000)
     assert out.text == "sentetik"
-    assert calls == ["whisper-1"]
+    assert calls == ["gpt-transcribe"]
     assert "gpt-4.1" not in calls
     assert "gpt-5.6-cyber" not in calls
     mock_cls.assert_called_once()
@@ -89,7 +96,7 @@ def test_synthetic_batch_one_transcriptions_call_zero_chat_fallback() -> None:
 
 def test_real_audio_blocked_without_written_gate_zero_api_calls() -> None:
     env = {
-        "OPENAI_MODEL_STT": "gpt-4o-transcribe",
+        "OPENAI_MODEL_STT": "gpt-transcribe",
         "LUMOS_STT_RESIDENCY_WRITTEN": "",
         "OPENAI_STT_BASE_URL": "https://eu.api.openai.com/v1",
     }
@@ -107,7 +114,7 @@ def test_real_audio_blocked_without_written_gate_zero_api_calls() -> None:
 
 def test_real_audio_requires_eu_base_url() -> None:
     env = {
-        "OPENAI_MODEL_STT": "gpt-4o-mini-transcribe",
+        "OPENAI_MODEL_STT": "gpt-transcribe",
         "LUMOS_STT_RESIDENCY_WRITTEN": "1",
         "OPENAI_STT_BASE_URL": "https://api.openai.com/v1",
     }
@@ -124,27 +131,30 @@ def test_real_audio_requires_eu_base_url() -> None:
 
 
 def test_real_audio_eu_base_single_call_after_written_gate() -> None:
-    captured: dict[str, str] = {}
+    captured: dict[str, object] = {}
 
     def fake_create(*, model=None, file=None, **kwargs):
         captured["model"] = model
+        captured.update(kwargs)
         resp = MagicMock()
         resp.text = "eu"
         return resp
 
     env = {
-        "OPENAI_MODEL_STT": "gpt-4o-mini-transcribe",
+        "OPENAI_MODEL_STT": "gpt-transcribe",
         "LUMOS_STT_RESIDENCY_WRITTEN": "1",
         "OPENAI_STT_BASE_URL": "https://eu.api.openai.com/v1",
     }
     with patch.dict(os.environ, env, clear=False):
-        stt = OpenAICloudSTT(audio_source=STT_AUDIO_REAL)
+        stt = OpenAICloudSTT(language="tr", audio_source=STT_AUDIO_REAL)
         with patch("openai.OpenAI") as mock_cls:
             mock_client = MagicMock()
             mock_client.audio.transcriptions.create = fake_create
             mock_cls.return_value = mock_client
             out = stt.transcribe(b"\x00\x00" * 160, sample_rate=16000)
     assert out.text == "eu"
-    assert captured["model"] == "gpt-4o-mini-transcribe"
+    assert captured["model"] == "gpt-transcribe"
+    assert captured["extra_body"] == {"languages": ["tr"]}
+    assert captured["response_format"] == "json"
     mock_cls.assert_called_once()
     assert mock_cls.call_args.kwargs.get("base_url") == "https://eu.api.openai.com/v1"
