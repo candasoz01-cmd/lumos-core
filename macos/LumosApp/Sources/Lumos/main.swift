@@ -102,6 +102,7 @@ final class LumosAppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
     private var webView: WKWebView?
     private let navigationDelegate = LumosNavigationDelegate()
+    private let selectionTranslator = LumosSelectionTranslator()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let configuration = WKWebViewConfiguration()
@@ -137,6 +138,7 @@ final class LumosAppDelegate: NSObject, NSApplicationDelegate {
             preconditionFailure("Invalid LUMOS_APP_URL")
         }
         webView.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData))
+        selectionTranslator.start()
         NSApp.activate(ignoringOtherApps: true)
     }
 
