@@ -4,7 +4,8 @@ Evidence Continuity v1 — append-only journal for server-side task mutations.
 Schema: lumos.evidence_continuity.v1
 Path: {base_dir}/logs/evidence_continuity.jsonl
 
-Best-effort append; journal failure must not break main mutations.
+Append returns explicit status. Mutation callers enforce before-write persistence
+and preserve completion records through a separate durable fallback.
 """
 from __future__ import annotations
 

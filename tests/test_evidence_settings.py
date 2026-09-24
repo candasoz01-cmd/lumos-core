@@ -305,3 +305,48 @@ def test_bulk_archive_journal_does_not_identify_untouched_last_task(tmp_path, me
     assert all(r['mutation'] == 'archive' for r in bulk)
     assert all('entity_ref' not in r for r in bulk)
     assert first.archived and second.archived and not untouched.archived
+
+
+@pytest.mark.parametrize('caller', ['panel', 'engine'])
+@pytest.mark.parametrize('fallback_fails', [False, True])
+def test_completed_write_keeps_audit_or_reports_applied_but_unrecorded(tmp_path, monkeypatch, caller, fallback_fails):
+    import core.evidence_continuity as ec
+    import core.evidence_settings as settings
+    import panel_tasks_server as pts
+    from core.workspace_contract import save_task_store_json
+    monkeypatch.setenv('LUMOS_BASE_DIR', str(tmp_path))
+    monkeypatch.setenv('LUMOS_DEPLOYMENT_PROFILE', 'customer')
+    set_capture(tmp_path, False)
+    original = ec.append_evidence_event
+    def before_only(base, record, **kwargs):
+        if record['phase'] == 'after':
+            return {'appended': False}
+        return original(base, record, **kwargs)
+    monkeypatch.setattr(ec, 'append_evidence_event', before_only)
+    monkeypatch.setattr(pts, 'append_evidence_event', before_only)
+    if fallback_fails:
+        def fail(*a, **k):
+            raise OSError('archive full')
+        monkeypatch.setattr(settings, '_save', fail)
+    data = {'tasks': [{'task_id': 1, 'title': 'persisted'}]}
+    def write():
+        if caller == 'panel':
+            pts._write_doc(data, evidence={'operation': 'panel.task.create', 'mutation': 'create'})
+        else:
+            save_task_store_json(tmp_path / 'tasks', data, sandbox_mode=False)
+    if fallback_fails:
+        with pytest.raises(OSError, match='Mutation applied; completion evidence unavailable'):
+            write()
+    else:
+        write()
+    target = tmp_path / ('tasks.json' if caller == 'panel' else 'tasks/tasks.json')
+    assert json.loads(target.read_text()) == data
+    before = json.loads(ec.evidence_continuity_path(tmp_path).read_text().splitlines()[0])
+    fallback = list((tmp_path / 'evidence_archive/audit_fallback').glob('*.json'))
+    if not fallback_fails:
+        saved = json.loads(fallback[0].read_text())
+        assert saved['record']['correlation_id'] == before['correlation_id']
+        assert saved['record']['phase'] == 'after'
+        assert saved['retention']['kind'] == 'audit'
+    else:
+        assert not fallback

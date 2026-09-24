@@ -98,3 +98,16 @@ def archive_removed_file(base, source, *, operation):
     return archive_deleted_content(base, {
         **identity, "encoding": "base64", "data": base64.b64encode(raw).decode("ascii"),
     })
+
+
+def preserve_audit_fallback(base, record):
+    """Keep a completed write's result if its normal journal append failed."""
+    try:
+        return _save(base, 'audit_fallback', {
+            'record': record,
+            'reason': 'primary_journal_append_failed',
+            'retention': EvidencePolicy().record_terms(
+                datetime.now(timezone.utc), kind='audit', severity='unknown'),
+        })
+    except OSError as exc:
+        raise OSError('Mutation applied; completion evidence unavailable; do not blindly retry') from exc

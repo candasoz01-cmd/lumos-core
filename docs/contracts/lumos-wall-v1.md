@@ -301,3 +301,11 @@ kopyala → doğrula → fsync → kaynağı kaldır sırası kullanılır. Hata
 kaynak tutulur. Symlink kaydı bağlantıyı korur; dış hedefin arşivlendiği iddia
 edilmez. Sandbox canlı çekirdek kaynağını taşıyamaz; kanıtı sandbox'a yazılır.
 Bu kayıtlar bir temizleyici değildir; ayrı çöp denetçisi veya otomatik purge yoktur.
+
+Görev deposu yazımı işlem metadata'sı verilmeden de kayıt üretir; belirtilmemiş
+görev kimliği son satırdan tahmin edilmez. Yazma-sonrası günlük eklemesi
+başarısızsa aynı correlation_id taşıyan sonuç `evidence_archive/audit_fallback`
+altında kalıcı saklanır. İki kayıt yolu da başarısızsa çağrı, verinin yazıldığını
+ama tamamlanma kanıtının eksik kaldığını açık hata olarak döndürür; otomatik
+tekrar veya geri alma yapmaz. Fallback kayıtları mevcut journal sorgu ekranına
+birleştirilmiş değildir; bağımsız arşivden okunur.

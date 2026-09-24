@@ -365,20 +365,21 @@ def _write_doc(
             after_summary["events_appended"] = int(evidence["events_appended"])
         if evidence.get("trash_written") is not None:
             after_summary["trash_written"] = bool(evidence["trash_written"])
-        append_evidence_event(
-            base,
-            build_evidence_record(
-                correlation_id=corr_id,
-                source=SOURCE_PANEL_TASKS_SERVER,
-                store=STORE_PANEL_TASKS,
-                operation=str(evidence["operation"]),
-                phase=PHASE_AFTER,
-                outcome=OUTCOME_OK,
-                mutation=str(evidence["mutation"]),
-                entity_id=str(evidence["entity_id"]) if evidence.get("entity_id") else None,
-                payload_summary=after_summary or None,
-            ),
+        record = build_evidence_record(
+            correlation_id=corr_id,
+            source=SOURCE_PANEL_TASKS_SERVER,
+            store=STORE_PANEL_TASKS,
+            operation=str(evidence["operation"]),
+            phase=PHASE_AFTER,
+            outcome=OUTCOME_OK,
+            mutation=str(evidence["mutation"]),
+            entity_id=str(evidence["entity_id"]) if evidence.get("entity_id") else None,
+            payload_summary=after_summary or None,
         )
+        result = append_evidence_event(base, record)
+        if not result.get("appended"):
+            from core.evidence_settings import preserve_audit_fallback
+            preserve_audit_fallback(base, record)
 
 
 def _trash_dir() -> Path:

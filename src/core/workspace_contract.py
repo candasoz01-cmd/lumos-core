@@ -356,26 +356,25 @@ def save_task_store_json(
         summary: dict = {}
         if step_count is not None:
             summary["step_count"] = step_count
-        result = append_evidence_event(
-            journal_base,
-            build_evidence_record(
-                correlation_id=corr_id,
-                source=SOURCE_TASK_ENGINE,
-                store=STORE_TASK_ENGINE,
-                operation=OPERATION_ENGINE_TASK_MUTATION,
-                phase=phase,
-                outcome=outcome,
-                mutation=mutation,
-                entity_id=entity_str,
-                payload_summary=summary or None,
-                error=error,
-            ),
-            # Destination already resolves to the sandbox base above.
-            is_sandbox_mode=False,
+        record = build_evidence_record(
+            correlation_id=corr_id,
+            source=SOURCE_TASK_ENGINE,
+            store=STORE_TASK_ENGINE,
+            operation=OPERATION_ENGINE_TASK_MUTATION,
+            phase=phase,
+            outcome=outcome,
+            mutation=mutation,
+            entity_id=entity_str,
+            payload_summary=summary or None,
+            error=error,
         )
-
-        if phase == PHASE_BEFORE and not result.get("appended"):
-            raise OSError("Evidence journal unavailable; mutation blocked")
+        result = append_evidence_event(journal_base, record, is_sandbox_mode=False)
+        if not result.get("appended"):
+            if phase == PHASE_BEFORE:
+                raise OSError("Evidence journal unavailable; mutation blocked")
+            if phase == PHASE_AFTER:
+                from core.evidence_settings import preserve_audit_fallback
+                preserve_audit_fallback(journal_base, record)
 
     if sandbox_mode:
         live_base = Path(live_base_dir) if live_base_dir is not None else tasks_dir_path.parent
