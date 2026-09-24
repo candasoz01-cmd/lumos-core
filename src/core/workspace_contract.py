@@ -334,7 +334,10 @@ def save_task_store_json(
 
     tasks_dir_path = Path(tasks_dir)
     target_path = tasks_dir_path / "tasks.json"
-    journal_base = Path(live_base_dir) if live_base_dir is not None else tasks_dir_path.parent
+    journal_base = writing_base_dir(
+        live_base_dir if live_base_dir is not None else tasks_dir_path.parent,
+        sandbox_mode,
+    )
     evidence_enabled = correlation_id is not None or mutation is not None
     corr_id = correlation_id or (generate_correlation_id() if evidence_enabled else None)
     entity_str = str(entity_id) if entity_id is not None else None
@@ -363,7 +366,7 @@ def save_task_store_json(
         summary: dict = {}
         if step_count is not None:
             summary["step_count"] = step_count
-        append_evidence_event(
+        result = append_evidence_event(
             journal_base,
             build_evidence_record(
                 correlation_id=corr_id,
@@ -377,8 +380,12 @@ def save_task_store_json(
                 payload_summary=summary or None,
                 error=error,
             ),
-            is_sandbox_mode=sandbox_mode,
+            # Destination already resolves to the sandbox base above.
+            is_sandbox_mode=False,
         )
+
+        if phase == PHASE_BEFORE and not result.get("appended"):
+            raise OSError("Evidence journal unavailable; mutation blocked")
 
     if sandbox_mode:
         live_base = Path(live_base_dir) if live_base_dir is not None else tasks_dir_path.parent
@@ -465,6 +472,11 @@ def save_trash_record_json(
     if target.exists():
         raise FileExistsError(f"Trash kaydı zaten var: {target}")
 
+    # Durable optional archive is independent of the short-lived undo bin.
+    # Failure stops deletion before its source is removed.
+    from core.evidence_settings import archive_deleted_content
+
+    archive_deleted_content(base, data)
     ensure_trash_dir(base, is_sandbox_mode=False)
     tmp = target.with_name(target.name + ".tmp")
     # Önceki süreç temp yazımı ile replace arasında durmuş olabilir. Final kayıt

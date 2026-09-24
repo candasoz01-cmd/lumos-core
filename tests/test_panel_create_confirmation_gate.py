@@ -56,7 +56,7 @@ def _simulate_create(*, monkeypatch, tmp_path: Path, body: dict) -> bool:
     pts._write_doc(
         doc,
         evidence={
-            "operation": "panel_task_create",
+            "operation": pts.OPERATION_PANEL_TASK_CREATE,
             "mutation": "create",
             "entity_id": tid,
             "route": "POST /tasks",

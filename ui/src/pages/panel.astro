@@ -6451,6 +6451,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
                   Paylaşım, günlük veya veri saklama ile ilgili seçenekler birbirinden ayrılır; her biri net bir açıklamayla sunulur.
                 </p>
               </li>
+              <li class="medya-card" id="panel-retention-settings">
+                <h3>Silinen içeriklerin saklanması</h3>
+                <p>Arşivlenen içerikler en az bir yıl korunur; süre dolması otomatik silme başlatmaz. Kapatmak mevcut kayıtları silmez, yalnız yeni arşiv kopyalarını durdurur. İşlem kayıtları tutulmaya devam eder.</p>
+                <label id="panel-retention-control" hidden>
+                  <input id="panel-retention-capture" type="checkbox" disabled />
+                  Silinen içeriklerin yeni arşiv kopyalarını sakla
+                </label>
+                <p id="panel-retention-status" role="status">Saklama ayarı yükleniyor.</p>
+                <button id="panel-retention-retry" type="button" hidden>Yeniden dene</button>
+              </li>
               <li class="medya-card">
                 <h3 data-i18n="panel.modules.settings.c7Title">Varsayılanlar ve Kontrol</h3>
                 <p data-i18n="panel.modules.settings.c7Body">

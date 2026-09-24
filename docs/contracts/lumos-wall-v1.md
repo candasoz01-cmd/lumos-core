@@ -268,8 +268,23 @@ ortaktır. Ajan kuralı veya sağlayıcının 90 günlük VM saklama sözü yeri
   politikadır. `deletion_blockers` yalnız önkoşul değerlendirir, silme yapmaz;
   onayı mevcut insan-otorite kapısı doğrulamalıdır. Yeni onay/lease sistemi yoktur.
 
-**Uygulama sınırı:** Git teslimi ve ortak politika yerel testlidir. Bütün dış
-araç çağrılarını zorunlu olarak bu kapıya taşıyan yürütücü mevcut değildir.
-Command Wall kayıt/kuyruk katmanı eylem yürütmez. Ürün ekranı bağlantısı ve tüm
-mutasyon yollarında teknik zorlayıcı tamamlanmadan "sistem çapında aktif"
-raporlanmaz. Sağlayıcı snapshot'ını veya GitHub admin silmesini bu modül engellemez.
+**Geliştirici paneli:** Ayarlar → Silinen içeriklerin saklanması.
+`LUMOS_DEPLOYMENT_PROFILE` sunucu yapılandırmasıdır; varsayılan `internal`
+kilitlidir. Yalnız `customer` kurulumunda yetkili `/evidence/settings` isteği
+gelecekteki içerik kopyalarını kapatabilir. İstek gövdesi profil değiştiremez.
+Tercih değişiklikleri ayrı, süresiz olay dosyalarıdır. Çöp kutusu yazıcısı,
+kaynak silinmeden önce `evidence_archive/deleted_content` altında bağımsız
+kopya yazar; geri alma kopyasının tüketilmesi bu arşivi silmez.
+Arşiv için otomatik silici veya purge API'si yoktur. Eski çöp kayıtları
+kendiliğinden arşivlenmiş sayılmaz.
+
+**Ortak işlem izi:** `core.evidence_continuity` boyut bazlı eski kayıt silmez;
+eski döndürülmüş dosyalar korunur. Panel ve görev motorunun kanıtlı yazımları
+ön kayıt yazılamazsa durur. Son kayıt başarısızlığı, diğer çağrı yolları ve
+kanıt parametresi verilmemiş eski yazımlar ayrıca kapsam denetimi gerektirir.
+
+**Uygulama sınırı:** Yerel arşiv ve Git teslimi sağlayıcı snapshot'ını veya
+GitHub admin silmesini engellemez. Bütün dış araç çağrılarını zorunlu olarak
+saran çalışma zamanı geçidi ve otomatik bağımsız uzak arşivleme bu değişiklikte
+yoktur; bu nedenle “sistem çapında aktif” raporlanmaz. Kaynak commit bulunmadan
+metin karşılaştırması byte düzeyinde özgün commit doğrulaması sayılmaz.

@@ -9,8 +9,6 @@ if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from core.evidence_continuity import (  # noqa: E402
-    EVIDENCE_CONTINUITY_KEEP,
-    EVIDENCE_CONTINUITY_MAX_BYTES,
     EVIDENCE_RETENTION_POLICY_ID,
     OPERATION_PANEL_TASK_CREATE,
     OUTCOME_OK,
@@ -32,9 +30,10 @@ from core.log_rotation import append_jsonl_with_rotation  # noqa: E402
 def test_t1_evidence_retention_policy_constants():
     policy = evidence_retention_policy()
     assert policy["policy_id"] == EVIDENCE_RETENTION_POLICY_ID
-    assert policy["max_bytes_per_file"] == EVIDENCE_CONTINUITY_MAX_BYTES == 1_000_000
-    assert policy["rotated_files_kept"] == EVIDENCE_CONTINUITY_KEEP == 3
-    assert policy["max_file_slots"] == 4
+    assert policy["max_bytes_per_file"] is None
+    assert policy["rotated_files_kept"] == "all_existing"
+    assert policy["max_file_slots"] is None
+    assert policy["automatic_deletion"] is False
     assert policy["read_scope"] == "current_file_only"
 
 
@@ -58,8 +57,8 @@ def test_t2_append_uses_named_retention_constants(tmp_path, monkeypatch):
     )
     result = append_evidence_event(tmp_path, rec)
     assert result.get("appended") is True
-    assert result.get("rotated") is True
-    assert Path(str(path) + ".1").is_file()
+    assert result.get("rotated") is False
+    assert path.read_text(encoding="utf-8").startswith(chunk * 3)
 
 
 def test_t3_storage_summary_empty_journal(tmp_path):

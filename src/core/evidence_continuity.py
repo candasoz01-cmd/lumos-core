@@ -9,7 +9,10 @@ Best-effort append; journal failure must not break main mutations.
 from __future__ import annotations
 
 import json
+import os
+import fcntl
 import threading
+from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -18,7 +21,7 @@ from uuid import uuid4
 if TYPE_CHECKING:
     from core.guard_audit import GuardEvent
 
-from core.log_rotation import DEFAULT_KEEP, DEFAULT_MAX_BYTES, append_jsonl_with_rotation
+from core.log_rotation import DEFAULT_KEEP, DEFAULT_MAX_BYTES
 from core.workspace_contract import allow_write_to_core, logs_dir_path
 
 SCHEMA_V1 = "lumos.evidence_continuity.v1"
@@ -124,7 +127,7 @@ _MIRROR_CTX = threading.local()
 EVIDENCE_CONTINUITY_FILENAME = "evidence_continuity.jsonl"
 
 # EC2-09: evidence-specific retention (v1 — aliases log_rotation defaults; no config override)
-EVIDENCE_RETENTION_POLICY_ID = "lumos.evidence_continuity.retention.v1"
+EVIDENCE_RETENTION_POLICY_ID = "lumos.evidence_continuity.retention.v2"
 EVIDENCE_CONTINUITY_MAX_BYTES = DEFAULT_MAX_BYTES
 EVIDENCE_CONTINUITY_KEEP = DEFAULT_KEEP
 EVIDENCE_READ_SCOPE_CURRENT_ONLY = "current_file_only"
@@ -161,9 +164,12 @@ def evidence_retention_policy() -> dict[str, Any]:
     """Read-only v1 retention policy DTO (no config override)."""
     return {
         "policy_id": EVIDENCE_RETENTION_POLICY_ID,
-        "max_bytes_per_file": EVIDENCE_CONTINUITY_MAX_BYTES,
-        "rotated_files_kept": EVIDENCE_CONTINUITY_KEEP,
-        "max_file_slots": EVIDENCE_CONTINUITY_KEEP + 1,
+        "max_bytes_per_file": None,
+        "rotated_files_kept": "all_existing",
+        "max_file_slots": None,
+        "default_retention": "indefinite",
+        "automatic_deletion": False,
+        "minimum_retention_years": 1,
         "read_scope": EVIDENCE_READ_SCOPE_CURRENT_ONLY,
     }
 
@@ -625,24 +631,25 @@ def read_recent_evidence_events(
     if not path.is_file():
         return [], False
 
-    valid: list[dict[str, Any]] = []
+    valid = deque(maxlen=limit_n + 1)
     try:
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                rec = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if not isinstance(rec, dict) or validate_evidence_record(rec):
-                continue
-            valid.append(rec)
+        with path.open(encoding="utf-8") as stream:
+            for line in stream:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(rec, dict) or validate_evidence_record(rec):
+                    continue
+                valid.append(rec)
     except OSError:
         return [], False
 
     truncated = len(valid) > limit_n
-    tail = valid[-limit_n:]
+    tail = list(valid)[-limit_n:]
     tail.sort(key=lambda r: _parse_evidence_ts_ms(str(r.get("ts", ""))), reverse=True)
     return tail, truncated
 
@@ -786,13 +793,18 @@ def append_evidence_event(
         path = evidence_continuity_path(base_dir)
         if not allow_write_to_core(base_dir, path, is_sandbox_mode=is_sandbox_mode):
             return result
-        append_result = append_jsonl_with_rotation(
-            path,
-            record,
-            max_bytes=EVIDENCE_CONTINUITY_MAX_BYTES,
-            keep=EVIDENCE_CONTINUITY_KEEP,
-        )
-        result.update(append_result)
+        # Never rotate evidence through the bounded runtime-log ring: it deletes
+        # old segments. Keep legacy segments untouched; fsync each new record.
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as stream:
+            fcntl.flock(stream, fcntl.LOCK_EX)
+            try:
+                stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            finally:
+                fcntl.flock(stream, fcntl.LOCK_UN)
+        result.update(appended=True, rotated=False)
     except Exception:
         return result
     return result
