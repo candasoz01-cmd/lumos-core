@@ -339,7 +339,7 @@ def save_task_store_json(
         live_base_dir if live_base_dir is not None else tasks_dir_path.parent,
         sandbox_mode,
     )
-    mutation = mutation or "update"
+    mutation = mutation or "store_write"
     corr_id = correlation_id or generate_correlation_id()
     entity_str = str(entity_id) if entity_id is not None else None
     step_count = None
@@ -350,15 +350,6 @@ def save_task_store_json(
                 steps = item.get("steps")
                 if isinstance(steps, list):
                     step_count = len(steps)
-                break
-    elif isinstance(tasks_list, list) and mutation in ("create", "update", "archive", "delete"):
-        for item in reversed(tasks_list):
-            if isinstance(item, dict):
-                steps = item.get("steps")
-                if isinstance(steps, list):
-                    step_count = len(steps)
-                if entity_str is None and item.get("task_id") is not None:
-                    entity_str = str(item["task_id"])
                 break
 
     def _emit(phase: str, outcome: str, *, error: dict[str, str] | None = None) -> None:

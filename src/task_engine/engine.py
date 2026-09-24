@@ -420,7 +420,7 @@ class TaskStore:
                 t.archived_at = _now_iso()
                 count += 1
         if count:
-            self._save()
+            self._save(mutation="archive")
         return count
 
     def archive_simulations(self) -> int:
@@ -435,7 +435,7 @@ class TaskStore:
                 t.archived_at = _now_iso()
                 count += 1
         if count:
-            self._save()
+            self._save(mutation="archive")
         return count
 
     def list_non_archived(self) -> list[TaskRecord]:

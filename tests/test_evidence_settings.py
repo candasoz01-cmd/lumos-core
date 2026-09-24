@@ -262,7 +262,7 @@ def test_legacy_store_write_always_has_correlated_audit(tmp_path):
     assert len(records) == 2
     assert [r['phase'] for r in records] == ['before', 'after']
     assert records[0]['correlation_id'] == records[1]['correlation_id']
-    assert all(r['mutation'] == 'update' for r in records)
+    assert all(r['mutation'] == 'store_write' for r in records)
 
 
 def test_legacy_store_write_audit_failure_preserves_existing_bytes(tmp_path, monkeypatch):
@@ -276,3 +276,32 @@ def test_legacy_store_write_audit_failure_preserves_existing_bytes(tmp_path, mon
     with pytest.raises(OSError, match='mutation blocked'):
         save_task_store_json(target.parent, {'tasks': [{'task_id': 1}]}, sandbox_mode=False)
     assert target.read_bytes() == before
+
+
+@pytest.mark.parametrize('mutation', [None, 'archive', 'update'])
+def test_store_audit_never_guesses_last_task_identity(tmp_path, mutation):
+    from core.workspace_contract import save_task_store_json
+    from core.evidence_continuity import evidence_continuity_path
+    data = {'tasks': [{'task_id': 1, 'archived': True}, {'task_id': 99, 'archived': False}]}
+    save_task_store_json(tmp_path / 'tasks', data, sandbox_mode=False, mutation=mutation)
+    records = [json.loads(line) for line in evidence_continuity_path(tmp_path).read_text().splitlines()]
+    assert len(records) == 2
+    assert all('entity_ref' not in r for r in records)
+    assert all(r['mutation'] == (mutation or 'store_write') for r in records)
+
+
+@pytest.mark.parametrize('method,status', [('archive_completed', 'tamamlandi'), ('archive_simulations', 'simulasyon')])
+def test_bulk_archive_journal_does_not_identify_untouched_last_task(tmp_path, method, status):
+    from task_engine.engine import TaskStore
+    from core.evidence_continuity import evidence_continuity_path
+    store = TaskStore(tmp_path / 'tasks')
+    first = store.create('first', 'first', 'guvenli_yurut')
+    second = store.create('second', 'second', 'guvenli_yurut')
+    untouched = store.create('last', 'last', 'guvenli_yurut')
+    first.status = second.status = status
+    assert getattr(store, method)() == 2
+    records = [json.loads(line) for line in evidence_continuity_path(tmp_path).read_text().splitlines()]
+    bulk = records[-2:]
+    assert all(r['mutation'] == 'archive' for r in bulk)
+    assert all('entity_ref' not in r for r in bulk)
+    assert first.archived and second.archived and not untouched.archived
