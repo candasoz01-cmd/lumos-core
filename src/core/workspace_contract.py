@@ -27,6 +27,7 @@ CORE_STATE_PATH_NAMES = (
     "config.json",
     "logs",
     "trash",
+    "evidence_archive",
     "aliases.json",
     "notes.enc.json",
     "presence.json",
@@ -518,7 +519,7 @@ def move_to_trash(
 
     Dönüş: taşınan öğenin yeni path'i.
     """
-    import shutil
+    from core.trash_evidence import move_with_evidence
 
     source = Path(source_path).resolve()
     dest_base = writing_base_dir(base_dir, is_sandbox_mode)
@@ -531,12 +532,13 @@ def move_to_trash(
         raise CoreWriteForbidden(
             "Sandbox modunda canlı çekirdek trash path'ine yazma yasak",
         )
+    if not allow_write_to_core(base_dir, source, is_sandbox_mode=is_sandbox_mode):
+        raise CoreWriteForbidden("Sandbox cannot remove a live core source")
     ensure_trash_dir(base_dir, is_sandbox_mode=is_sandbox_mode)
     dest = dest_dir / source.name
     if dest.exists():
         raise FileExistsError(f"Trash hedefi zaten var: {dest}")
-    shutil.move(str(source), str(dest))
-    return dest
+    return move_with_evidence(dest_base, source, dest)
 
 
 def may_perform_permanent_delete(user_initiated: bool) -> bool:
@@ -581,7 +583,7 @@ def is_core_state_path(base_dir: Path | str, candidate_path: Path | str) -> bool
     if len(parts) == 2 and parts[0] == "tasks" and parts[1] == "tasks.json":
         return True
     # config/, logs/, trash/ altındaki her şey çekirdek state
-    if parts[0] in ("config", "logs", "trash"):
+    if parts[0] in ("config", "logs", "trash", "evidence_archive"):
         return True
     return False
 

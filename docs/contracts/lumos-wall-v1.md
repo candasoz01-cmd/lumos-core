@@ -294,3 +294,10 @@ GitHub admin silmesini engellemez. Bütün dış araç çağrılarını zorunlu 
 saran çalışma zamanı geçidi ve otomatik bağımsız uzak arşivleme bu değişiklikte
 yoktur; bu nedenle “sistem çapında aktif” raporlanmaz. Kaynak commit bulunmadan
 metin karşılaştırması byte düzeyinde özgün commit doğrulaması sayılmaz.
+
+Dosya/klasör `move_to_trash` yolu kaynak-hedef, ortak işlem kimliği ve içerik
+manifestini saklar. Aynı dosya sisteminde rename; farklı dosya sisteminde
+kopyala → doğrula → fsync → kaynağı kaldır sırası kullanılır. Hatalı kopyada
+kaynak tutulur. Symlink kaydı bağlantıyı korur; dış hedefin arşivlendiği iddia
+edilmez. Sandbox canlı çekirdek kaynağını taşıyamaz; kanıtı sandbox'a yazılır.
+Bu kayıtlar bir temizleyici değildir; ayrı çöp denetçisi veya otomatik purge yoktur.
