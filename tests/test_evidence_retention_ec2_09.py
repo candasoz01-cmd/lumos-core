@@ -34,7 +34,7 @@ def test_t1_evidence_retention_policy_constants():
     assert policy["rotated_files_kept"] == "all_existing"
     assert policy["max_file_slots"] is None
     assert policy["automatic_deletion"] is False
-    assert policy["read_scope"] == "current_file_only"
+    assert policy["read_scope"] == "current_rotated_and_fallback"
 
 
 def test_t2_append_uses_named_retention_constants(tmp_path, monkeypatch):
@@ -120,7 +120,7 @@ def test_t7_journal_record_schema_unchanged():
     assert validate_evidence_record(rec) == []
 
 
-def test_t8_read_recent_current_file_only_after_rotation(tmp_path):
+def test_t8_read_recent_includes_retained_rotation(tmp_path):
     path = evidence_continuity_path(tmp_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     old_rec = build_evidence_record(
@@ -154,4 +154,36 @@ def test_t8_read_recent_current_file_only_after_rotation(tmp_path):
         if isinstance(e, dict)
     ]
     assert "new-marker" in previews
-    assert "old-marker" not in previews
+    assert "old-marker" in previews
+
+
+def test_retained_sources_newest_window_and_fallback_without_current(tmp_path):
+    from core.evidence_settings import preserve_audit_fallback
+
+    def record(day):
+        rec = build_evidence_record(
+            correlation_id=generate_correlation_id(),
+            source=SOURCE_PANEL_TASKS_SERVER, store=STORE_PANEL_TASKS,
+            operation=OPERATION_PANEL_TASK_CREATE, phase=PHASE_AFTER,
+            outcome=OUTCOME_OK, entity_id=f"task-{day}",
+        )
+        rec['ts'] = f'2026-09-{day:02d}T12:00:00.000Z'
+        return rec
+
+    path = evidence_continuity_path(tmp_path)
+    path.parent.mkdir(parents=True)
+    # Historical slots beyond the old rotation limit remain discoverable.
+    rotated = Path(str(path) + '.99')
+    rotated.write_text('\n'.join(json.dumps(record(day)) for day in (23, 21)))
+    preserve_audit_fallback(tmp_path, record(24))
+    fallback = tmp_path / 'evidence_archive' / 'audit_fallback'
+    (fallback / 'broken.json').write_text('{')
+    (fallback / 'unfinished.pending').write_text(json.dumps({'record': record(25)}))
+    events, truncated = read_recent_evidence_events(tmp_path, limit=2)
+    assert [rec['ts'] for rec in events] == [record(24)['ts'], record(23)['ts']]
+    assert truncated is True
+    all_events, truncated = read_recent_evidence_events(tmp_path, limit=10)
+    assert len(all_events) == 3
+    assert truncated is False
+    assert rotated.exists()
+    assert evidence_journal_storage_summary(tmp_path)['file_count'] == 1

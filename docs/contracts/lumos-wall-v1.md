@@ -307,5 +307,7 @@ görev kimliği son satırdan tahmin edilmez. Yazma-sonrası günlük eklemesi
 başarısızsa aynı correlation_id taşıyan sonuç `evidence_archive/audit_fallback`
 altında kalıcı saklanır. İki kayıt yolu da başarısızsa çağrı, verinin yazıldığını
 ama tamamlanma kanıtının eksik kaldığını açık hata olarak döndürür; otomatik
-tekrar veya geri alma yapmaz. Fallback kayıtları mevcut journal sorgu ekranına
-birleştirilmiş değildir; bağımsız arşivden okunur.
+tekrar veya geri alma yapmaz. Mevcut günlük sorgusu güncel dosyayı, eldeki numaralı eski günlükleri ve
+tamamlanmış fallback kayıtlarını birlikte okur. Bellekte en yeni sınırlı pencere
+tutulur; sorgu filtreleri bu pencereye uygulanır, tüm geçmişte arama iddiası yoktur.
+Geçersiz kayıtlar ve yayımlanmamış pending dosyaları sonuçlara katılmaz; silinmez.

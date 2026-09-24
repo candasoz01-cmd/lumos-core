@@ -13,7 +13,7 @@ import json
 import os
 import fcntl
 import threading
-from collections import deque
+import heapq
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -131,7 +131,7 @@ EVIDENCE_CONTINUITY_FILENAME = "evidence_continuity.jsonl"
 EVIDENCE_RETENTION_POLICY_ID = "lumos.evidence_continuity.retention.v2"
 EVIDENCE_CONTINUITY_MAX_BYTES = DEFAULT_MAX_BYTES
 EVIDENCE_CONTINUITY_KEEP = DEFAULT_KEEP
-EVIDENCE_READ_SCOPE_CURRENT_ONLY = "current_file_only"
+EVIDENCE_READ_SCOPE_ARCHIVED = "current_rotated_and_fallback"
 
 # EC2-07: tasks.json events[] — UI projection metadata (v1; no migration)
 TASKS_JSON_EVENTS_PROJECTION_POLICY_ID = "lumos.tasks_json.events_projection.v1"
@@ -171,7 +171,7 @@ def evidence_retention_policy() -> dict[str, Any]:
         "default_retention": "indefinite",
         "automatic_deletion": False,
         "minimum_retention_years": 1,
-        "read_scope": EVIDENCE_READ_SCOPE_CURRENT_ONLY,
+        "read_scope": EVIDENCE_READ_SCOPE_ARCHIVED,
     }
 
 
@@ -204,9 +204,8 @@ def _evidence_journal_file_paths(base_dir: Path | str) -> list[Path]:
     paths: list[Path] = []
     if current.is_file():
         paths.append(current)
-    for n in range(1, EVIDENCE_CONTINUITY_KEEP + 1):
-        rotated = Path(str(current) + f".{n}")
-        if rotated.is_file():
+    for rotated in sorted(current.parent.glob(current.name + ".*")):
+        if rotated.name.removeprefix(current.name + ".").isdigit() and rotated.is_file():
             paths.append(rotated)
     return paths
 
@@ -619,7 +618,7 @@ def read_recent_evidence_events(
     limit: int = DEFAULT_READ_LIMIT,
 ) -> tuple[list[dict[str, Any]], bool]:
     """
-    Tail-read validated journal records, newest first.
+    Read validated current, rotated and fallback records, newest first.
     Returns (records, truncated) where truncated is True when more valid rows exist than limit.
     """
     try:
@@ -628,31 +627,39 @@ def read_recent_evidence_events(
         limit_n = DEFAULT_READ_LIMIT
     limit_n = max(1, min(limit_n, MAX_READ_LIMIT))
 
-    path = evidence_continuity_path(base_dir)
-    if not path.is_file():
-        return [], False
+    # Keep only the newest bounded window in memory across retained sources.
+    valid: list[tuple[float, int, dict[str, Any]]] = []
+    count = 0
 
-    valid = deque(maxlen=limit_n + 1)
-    try:
-        with path.open(encoding="utf-8") as stream:
-            for line in stream:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    rec = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                if not isinstance(rec, dict) or validate_evidence_record(rec):
-                    continue
-                valid.append(rec)
-    except OSError:
-        return [], False
+    def collect(rec: Any) -> None:
+        nonlocal count
+        if not isinstance(rec, dict) or validate_evidence_record(rec):
+            return
+        count += 1
+        item = (_parse_evidence_ts_ms(str(rec.get("ts", ""))), count, rec)
+        heapq.heappush(valid, item)
+        if len(valid) > limit_n:
+            heapq.heappop(valid)
 
-    truncated = len(valid) > limit_n
-    tail = list(valid)[-limit_n:]
-    tail.sort(key=lambda r: _parse_evidence_ts_ms(str(r.get("ts", ""))), reverse=True)
-    return tail, truncated
+    for path in reversed(_evidence_journal_file_paths(base_dir)):
+        try:
+            with path.open(encoding="utf-8") as stream:
+                for line in stream:
+                    try:
+                        collect(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
+        except (OSError, UnicodeError):
+            continue
+    fallback = Path(base_dir) / "evidence_archive" / "audit_fallback"
+    for path in sorted(fallback.glob("*.json")):
+        try:
+            envelope = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(envelope, dict):
+                collect(envelope.get("record"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            continue
+    return [item[2] for item in sorted(valid, reverse=True)], count > limit_n
 
 
 def project_evidence_for_ui(record: dict[str, Any]) -> dict[str, Any]:
