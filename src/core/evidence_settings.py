@@ -100,6 +100,12 @@ def archive_removed_file(base, source, *, operation):
     })
 
 
+class CompletionEvidenceError(OSError):
+    """Primary mutation succeeded; complete its remaining effects before reporting."""
+
+    mutation_applied = True
+
+
 def preserve_audit_fallback(base, record):
     """Keep a completed write's result if its normal journal append failed."""
     try:
@@ -110,4 +116,4 @@ def preserve_audit_fallback(base, record):
                 datetime.now(timezone.utc), kind='audit', severity='unknown'),
         })
     except OSError as exc:
-        raise OSError('Mutation applied; completion evidence unavailable; do not blindly retry') from exc
+        raise CompletionEvidenceError('Mutation applied; completion evidence unavailable; do not blindly retry') from exc

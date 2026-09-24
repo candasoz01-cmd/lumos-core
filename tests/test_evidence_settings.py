@@ -350,3 +350,57 @@ def test_completed_write_keeps_audit_or_reports_applied_but_unrecorded(tmp_path,
         assert saved['retention']['kind'] == 'audit'
     else:
         assert not fallback
+
+
+def test_engine_finishes_canonical_mirror_when_completion_evidence_fails(tmp_path, monkeypatch):
+    import core.evidence_continuity as ec
+    import core.evidence_settings as settings
+    from task_engine.engine import TaskStore
+    original = ec.append_evidence_event
+    monkeypatch.setattr(ec, 'append_evidence_event', lambda base, record, **kw:
+                        {'appended': False} if record['phase'] == 'after' else original(base, record, **kw))
+    def fail(*a, **k):
+        raise OSError('archive full')
+    monkeypatch.setattr(settings, '_save', fail)
+    store = TaskStore(tmp_path / 'tasks')
+    with pytest.raises(settings.CompletionEvidenceError) as error:
+        store.create('Mirror me', 'Mirror me', 'guvenli_yurut')
+    assert error.value.mutation_applied
+    assert TaskStore(tmp_path / 'tasks').get(1).title == 'Mirror me'
+    canonical = json.loads((tmp_path / 'tasks.json').read_text())
+    assert canonical['tasks'][0]['id'] == 'engine-1'
+    assert canonical['tasks'][0]['title'] == 'Mirror me'
+
+
+def test_panel_restore_finishes_trash_consumption_after_completion_evidence_failure(tmp_path, monkeypatch):
+    import core.evidence_settings as settings
+    import panel_tasks_server as pts
+    monkeypatch.setenv('LUMOS_BASE_DIR', str(tmp_path))
+    monkeypatch.setenv('LUMOS_DEPLOYMENT_PROFILE', 'internal')
+    monkeypatch.setenv('LUMOS_CONFIRMATION_ENABLED', 'false')
+    monkeypatch.setattr(pts, '_task_action_gate', lambda *a, **k: {'enabled': True})
+    monkeypatch.setattr(pts, '_enforce_panel_mutation_confirmation', lambda *a, **k: None)
+    monkeypatch.setattr(pts, '_is_sandbox_mode', lambda: False)
+    path = tmp_path / 'trash/legacy.json'
+    path.parent.mkdir()
+    path.write_text('{"id":"legacy","payload":{"id":"legacy","title":"Original"}}')
+    original = pts.append_evidence_event
+    monkeypatch.setattr(pts, 'append_evidence_event', lambda base, record, **kw:
+                        {'appended': False} if record['phase'] == 'after' else original(base, record, **kw))
+    save = settings._save
+    def fail_fallback(base, category, record):
+        if category == 'audit_fallback':
+            raise OSError('archive full')
+        return save(base, category, record)
+    monkeypatch.setattr(settings, '_save', fail_fallback)
+    handler = object.__new__(pts.Handler)
+    handler._read_json_body = lambda: {'id': 'legacy', 'confirm': True}
+    replies = []
+    monkeypatch.setattr(pts, '_send_json', lambda handler, code, body: replies.append((code, body)))
+    handler._post_restore()
+    assert replies[-1][0] == 500
+    assert replies[-1][1]['mutation_applied'] is True
+    assert replies[-1][1]['evidence_complete'] is False
+    assert not path.exists()
+    assert json.loads((tmp_path / 'tasks.json').read_text())['tasks'][0]['id'] == 'legacy'
+    assert len(list((tmp_path / 'evidence_archive/deleted_content').glob('*.json'))) == 1

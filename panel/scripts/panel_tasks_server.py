@@ -1640,6 +1640,8 @@ class Handler(BaseHTTPRequestHandler):
             "ts": now,
         }
         doc.setdefault("events", []).append(ev)
+        from core.evidence_settings import CompletionEvidenceError
+        completion_error = None
         try:
             _guard_core_write(tpath)
             from core.evidence_settings import archive_removed_file
@@ -1655,6 +1657,8 @@ class Handler(BaseHTTPRequestHandler):
                     "events_appended": 1,
                 },
             )
+        except CompletionEvidenceError as e:
+            completion_error = e
         except OSError as e:
             _send_json(self, 500, {"ok": False, "error": str(e)})
             return
@@ -1662,6 +1666,10 @@ class Handler(BaseHTTPRequestHandler):
             tpath.unlink()
         except OSError as e:
             _send_json(self, 500, {"ok": False, "error": str(e)})
+            return
+        if completion_error is not None:
+            _send_json(self, 500, {"ok": False, "mutation_applied": True,
+                                   "evidence_complete": False, "error": str(completion_error)})
             return
         _send_json(self, 200, {"ok": True, "task": task})
 

@@ -232,15 +232,22 @@ class TaskStore:
         by_id: dict[int, TaskRecord] = {t.task_id: t for t in self._tasks}
         self._tasks = sorted(by_id.values(), key=lambda x: x.task_id)
         data = {"tasks": [t.to_dict() for t in self._tasks], "next_id": self._next_id}
-        save_task_store_json(
-            tasks_dir=self.base_dir,
-            data=data,
-            sandbox_mode=self.sandbox_mode,
-            live_base_dir=self._live_base_dir,
-            mutation=mutation,
-            entity_id=entity_id,
-        )
+        from core.evidence_settings import CompletionEvidenceError
+        completion_error = None
+        try:
+            save_task_store_json(
+                tasks_dir=self.base_dir,
+                data=data,
+                sandbox_mode=self.sandbox_mode,
+                live_base_dir=self._live_base_dir,
+                mutation=mutation,
+                entity_id=entity_id,
+            )
+        except CompletionEvidenceError as exc:
+            completion_error = exc
         self._mirror_to_canonical(mutation=mutation, entity_id=entity_id)
+        if completion_error is not None:
+            raise completion_error
 
     def _mirror_to_canonical(self, *, mutation: str | None, entity_id: int | None) -> None:
         """TD-01 sözleşmesi: engine görevleri canonical panel listesine yansır.
