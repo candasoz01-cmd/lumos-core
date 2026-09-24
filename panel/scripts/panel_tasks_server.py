@@ -1640,6 +1640,9 @@ class Handler(BaseHTTPRequestHandler):
         }
         doc.setdefault("events", []).append(ev)
         try:
+            _guard_core_write(tpath)
+            from core.evidence_settings import archive_removed_file
+            archive_removed_file(lumos_base_dir(), tpath, operation="panel.task.restore")
             _write_doc(
                 doc,
                 evidence={
@@ -1731,6 +1734,8 @@ class Handler(BaseHTTPRequestHandler):
         # _write_doc guard'ı patlar ve kısmi mutasyon kalırdı.
         _guard_core_write(tpath)
         try:
+            from core.evidence_settings import archive_removed_file
+            archive_removed_file(lumos_base_dir(), tpath, operation="panel.task.delete_permanent")
             tpath.unlink()
         except OSError as e:
             _send_json(self, 500, {"ok": False, "error": str(e)})

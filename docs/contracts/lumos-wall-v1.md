@@ -278,7 +278,11 @@ kopya yazar; geri alma kopyasının tüketilmesi bu arşivi silmez.
 Görev motorunun çöp ve doğrudan görev kaldırma yolları da tam içerik arşivini
 aynı çalışma alanı tercihiyle kullanır; arşiv hatasında aktif görev korunur.
 Arşiv için otomatik silici veya purge API'si yoktur. Eski çöp kayıtları
-kendiliğinden arşivlenmiş sayılmaz.
+kendiliğinden arşivlenmiş sayılmaz. Panelde geri yükleme veya kalıcı kaldırma
+sırasında eski çöp dosyasının özgün baytları, özeti, kaynak yolu ve işlem adı
+kaldırmadan önce korunur; arşiv yazılamazsa kaynak dosya yerinde kalır.
+Sandbox arşivleri sandbox köküne yazılır; saklama tercihi canlı çalışma
+alanından yalnız okunur. Bu iki kök birbirinin yerine kullanılmaz.
 
 **Ortak işlem izi:** `core.evidence_continuity` boyut bazlı eski kayıt silmez;
 eski döndürülmüş dosyalar korunur. Panel ve görev motorunun kanıtlı yazımları

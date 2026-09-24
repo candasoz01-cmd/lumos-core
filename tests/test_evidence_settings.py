@@ -179,3 +179,76 @@ def test_engine_reads_workspace_capture_preference(tmp_path, monkeypatch, operat
     else:
         assert store.move_to_trash(task.task_id)
     assert not list(tmp_path.rglob('deleted_content/*.json'))
+
+
+@pytest.mark.parametrize('operation', ['move_to_trash', 'delete'])
+@pytest.mark.parametrize('capture', [True, False])
+@pytest.mark.parametrize('layout', ['implicit_tasks', 'explicit_live', 'custom'])
+def test_sandbox_archive_isolated_but_reads_live_preference(tmp_path, monkeypatch, operation, capture, layout):
+    from core.workspace_contract import CoreWriteForbidden
+    from task_engine.engine import TaskStore
+    monkeypatch.setenv('LUMOS_DEPLOYMENT_PROFILE', 'customer')
+    live = tmp_path / 'live'
+    if layout == 'implicit_tasks':
+        base, explicit = live / 'tasks', None
+    elif layout == 'explicit_live':
+        base, explicit = tmp_path / 'execution' / 'tasks', live
+    else:
+        base, explicit = live, None
+    set_capture(live, capture)
+    source = TaskStore(base)
+    task = source.create('Sandbox content', 'private sandbox payload', 'guvenli_yurut')
+    preference_bytes = {p.name: p.read_bytes() for p in (live / 'evidence_archive/preferences').glob('*.json')}
+    store = TaskStore(base, sandbox_mode=True, live_base_dir=explicit)
+    try:
+        if operation == 'delete':
+            store.delete(task.task_id, user_initiated=True)
+        else:
+            store.move_to_trash(task.task_id)
+    except CoreWriteForbidden:
+        # A live task store itself remains protected, including after the
+        # archive attempt. This path previously leaked before that rejection.
+        assert TaskStore(base).get(task.task_id) is not None
+    assert not (live / 'evidence_archive/deleted_content').exists()
+    copies = list((live / 'sandbox/evidence_archive/deleted_content').glob('*.json'))
+    assert len(copies) == (1 if capture else 0)
+    assert {p.name: p.read_bytes() for p in (live / 'evidence_archive/preferences').glob('*.json')} == preference_bytes
+
+
+@pytest.mark.parametrize('operation', ['restore', 'delete_permanent'])
+@pytest.mark.parametrize('archive_fails', [False, True])
+def test_panel_legacy_trash_bytes_preserved_before_removal(tmp_path, monkeypatch, operation, archive_fails):
+    import base64
+    import core.evidence_settings as settings
+    import panel_tasks_server as pts
+    monkeypatch.setenv('LUMOS_BASE_DIR', str(tmp_path))
+    monkeypatch.setenv('LUMOS_DEPLOYMENT_PROFILE', 'internal')
+    monkeypatch.setenv('LUMOS_CONFIRMATION_ENABLED', 'false')
+    monkeypatch.setattr(pts, '_task_action_gate', lambda *a, **k: {'enabled': True})
+    monkeypatch.setattr(pts, '_enforce_panel_mutation_confirmation', lambda *a, **k: None)
+    monkeypatch.setattr(pts, '_is_sandbox_mode', lambda: False)
+    path = tmp_path / 'trash/legacy.json'
+    path.parent.mkdir()
+    raw = b'{ "id": "legacy", "payload": {"id":"legacy", "title":"Original"}, "unknown_legacy_context": [1, 2, 3] }\n'
+    path.write_bytes(raw)
+    handler = object.__new__(pts.Handler)
+    handler._read_json_body = lambda: {'id': 'legacy', 'confirm': True}
+    replies = []
+    monkeypatch.setattr(pts, '_send_json', lambda handler, code, body: replies.append((code, body)))
+    if archive_fails:
+        def fail(*a, **k):
+            raise OSError('no archive storage')
+        monkeypatch.setattr(settings, '_save', fail)
+    getattr(handler, '_post_' + operation)()
+    if archive_fails:
+        assert replies[-1][0] == 500
+        assert path.read_bytes() == raw
+        assert not (tmp_path / 'tasks.json').exists()
+    else:
+        assert replies[-1][0] == 200
+        assert not path.exists()
+        copies = list((tmp_path / 'evidence_archive/deleted_content').glob('*.json'))
+        assert len(copies) == 1
+        content = json.loads(copies[0].read_text())['content']
+        assert base64.b64decode(content['data']) == raw
+        assert len(list((tmp_path / 'evidence_archive/removal_evidence').glob('*.json'))) == 1

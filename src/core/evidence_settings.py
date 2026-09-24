@@ -68,9 +68,33 @@ def set_capture(base, enabled):
     return policy
 
 
-def archive_deleted_content(base, record):
-    policy = read_policy(base)
+def archive_deleted_content(base, record, *, preference_base=None):
+    policy = read_policy(preference_base if preference_base is not None else base)
     terms = policy.record_terms(datetime.now(timezone.utc), kind="deleted_content", severity="unknown")
     if terms is None:
         return None
     return _save(base, "deleted_content", {"retention": terms, "content": record})
+
+
+
+def archive_removed_file(base, source, *, operation):
+    """Preserve exact legacy file bytes before its undo copy is consumed.
+
+    Audit metadata is mandatory; optional content capture follows the same
+    deployment preference as new trash records. No source is deleted here.
+    """
+    import base64
+    import hashlib
+
+    source = Path(source)
+    raw = source.read_bytes()
+    identity = {"source_path": str(source), "operation": operation,
+                "sha256": hashlib.sha256(raw).hexdigest(), "size": len(raw)}
+    policy = read_policy(base)
+    _save(base, "removal_evidence", {
+        **identity,
+        "retention": policy.record_terms(datetime.now(timezone.utc), kind="audit", severity="unknown"),
+    })
+    return archive_deleted_content(base, {
+        **identity, "encoding": "base64", "data": base64.b64encode(raw).decode("ascii"),
+    })

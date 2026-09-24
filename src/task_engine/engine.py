@@ -337,13 +337,14 @@ class TaskStore:
         self.update(task, mutation="archive")
         return True
 
-    def _archive_base(self) -> Path:
-        # Settings belong to the workspace, not its tasks/ sub-store.
+    def _archive_preference_base(self) -> Path:
+        # Read deployment preferences from the live workspace without writing it.
         if self._live_base_dir is not None:
-            return writing_base_dir(self._live_base_dir, self.sandbox_mode)
-        if self.base_dir.name == "tasks":
-            return self.base_dir.parent
-        return writing_base_dir(self.base_dir, self.sandbox_mode)
+            return self._live_base_dir
+        return self.base_dir.parent if self.base_dir.name == "tasks" else self.base_dir
+
+    def _archive_base(self) -> Path:
+        return writing_base_dir(self._archive_preference_base(), self.sandbox_mode)
 
     def move_to_trash(self, task_id: int) -> bool:
         """
@@ -377,7 +378,10 @@ class TaskStore:
             "deleted_at": deleted_at,
             "payload": payload,
         }
-        save_trash_record_json(dest_base, path, record, evidence_base_dir=self._archive_base())
+        save_trash_record_json(
+            dest_base, path, record, evidence_base_dir=self._archive_base(),
+            preference_base_dir=self._archive_preference_base(),
+        )
         self._tasks = [t for t in self._tasks if t.task_id != task_id]
         self._save(mutation="soft_delete", entity_id=task_id)
         return True
@@ -398,7 +402,7 @@ class TaskStore:
         archive_deleted_content(self._archive_base(), {
             "id": str(task_id), "operation": "engine.task.delete",
             "deleted_at": _now_iso(), "payload": task.to_dict(),
-        })
+        }, preference_base=self._archive_preference_base())
         self._tasks = [t for t in self._tasks if t.task_id != task_id]
         self._save(mutation="delete", entity_id=task_id)
         return True
