@@ -53,38 +53,47 @@ def move_with_evidence(base, source, destination):
         'retention': EvidencePolicy().record_terms(datetime.now(timezone.utc),
                                                    kind='audit', severity='unknown'),
     }
+    staging = Path(base) / 'evidence_archive' / 'trash_staging' / transaction['id'] / source.name
+    transaction['staging'] = str(staging)
     # Persist intent before the existing mover can remove anything.
     _save(base, 'trash_moves', {**transaction, 'phase': 'before'})
     copied = False
+    captured = destination
     try:
         os.rename(source, destination)
     except OSError as exc:
         if exc.errno != errno.EXDEV:
             raise
         # Across filesystems, keep the source until a durable copy is verified.
-        if source.is_dir() and not source.is_symlink():
-            shutil.copytree(source, destination, symlinks=True)
-        else:
-            shutil.copy2(source, destination, follow_symlinks=False)
+        staging.parent.mkdir(parents=True, mode=0o700)
+        captured = staging
+        try:
+            if source.is_dir() and not source.is_symlink():
+                shutil.copytree(source, captured, symlinks=True)
+            else:
+                shutil.copy2(source, captured, follow_symlinks=False)
+        except OSError:
+            _save(base, 'trash_moves', {**transaction, 'phase': 'copy_failed'})
+            raise
         copied = True
-    if manifest(destination) != snapshot or (copied and manifest(source) != snapshot):
+    if manifest(captured) != snapshot or (copied and manifest(source) != snapshot):
         _save(base, 'trash_moves', {**transaction, 'phase': 'verification_failed'})
         raise OSError('Trash destination content does not match captured source')
     if copied:
         for row in snapshot:
-            target = destination if row['path'] == '.' else destination / row['path']
+            target = captured if row['path'] == '.' else captured / row['path']
             if row['kind'] == 'file':
                 with target.open('rb') as stream:
                     os.fsync(stream.fileno())
         for row in reversed(snapshot):
             if row['kind'] == 'directory':
-                target = destination if row['path'] == '.' else destination / row['path']
+                target = captured if row['path'] == '.' else captured / row['path']
                 fd = os.open(target, os.O_RDONLY)
                 try:
                     os.fsync(fd)
                 finally:
                     os.close(fd)
-        fd = os.open(destination.parent, os.O_RDONLY)
+        fd = os.open(captured.parent, os.O_RDONLY)
         try:
             os.fsync(fd)
         finally:
@@ -92,6 +101,15 @@ def move_with_evidence(base, source, destination):
         if manifest(source) != snapshot:
             _save(base, 'trash_moves', {**transaction, 'phase': 'source_changed'})
             raise OSError('Trash source changed before removal')
+        # Only verified, durable content may appear as a completed trash item.
+        if os.path.lexists(destination):
+            raise FileExistsError(f'Trash target already exists: {destination}')
+        os.rename(captured, destination)
+        fd = os.open(destination.parent, os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
         if source.is_dir() and not source.is_symlink():
             shutil.rmtree(source)
         else:

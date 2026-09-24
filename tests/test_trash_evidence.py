@@ -46,8 +46,11 @@ def test_corrupt_move_is_never_reported_verified(tmp_path, monkeypatch):
     source.write_text('original')
     import errno
     import core.trash_evidence as te
-    def different_device(*a, **k):
-        raise OSError(errno.EXDEV, 'different device')
+    rename = te.os.rename
+    def different_device(src, dst, **kwargs):
+        if Path(src).parent == tmp_path:
+            raise OSError(errno.EXDEV, 'different device')
+        return rename(src, dst, **kwargs)
     def corrupt(src, dst, **kwargs):
         Path(dst).write_text('changed')
     monkeypatch.setattr(te.os, 'rename', different_device)
@@ -73,8 +76,11 @@ def test_sandbox_move_evidence_stays_in_sandbox(tmp_path):
 def test_cross_device_copy_verified_before_source_removal(tmp_path, monkeypatch):
     import errno
     import core.trash_evidence as te
-    def different_device(*a, **k):
-        raise OSError(errno.EXDEV, 'different device')
+    rename = te.os.rename
+    def different_device(src, dst, **kwargs):
+        if Path(src).parent == tmp_path:
+            raise OSError(errno.EXDEV, 'different device')
+        return rename(src, dst, **kwargs)
     monkeypatch.setattr(te.os, 'rename', different_device)
     source = tmp_path / 'source'
     source.mkdir()
@@ -94,3 +100,34 @@ def test_sandbox_cannot_move_live_core_source(tmp_path, relative):
     with pytest.raises(CoreWriteForbidden):
         move_to_trash(tmp_path, source, is_sandbox_mode=True)
     assert source.read_text() == 'live content'
+
+
+@pytest.mark.parametrize('failure', ['corrupt', 'exception'])
+def test_failed_copy_preserved_outside_trash_and_retry_succeeds(tmp_path, monkeypatch, failure):
+    import errno
+    import core.trash_evidence as te
+    source = tmp_path / 'source.txt'
+    source.write_text('original')
+    rename, copy = te.os.rename, shutil.copy2
+    def cross_device(src, dst, **kwargs):
+        if Path(src) == source:
+            raise OSError(errno.EXDEV, 'different device')
+        return rename(src, dst, **kwargs)
+    def failed_copy(src, dst, **kwargs):
+        Path(dst).write_text('partial')
+        if failure == 'exception':
+            raise OSError('copy interrupted')
+    monkeypatch.setattr(te.os, 'rename', cross_device)
+    monkeypatch.setattr(shutil, 'copy2', failed_copy)
+    base = tmp_path / 'workspace'
+    with pytest.raises(OSError):
+        move_to_trash(base, source)
+    assert source.read_text() == 'original'
+    assert not list((base / 'trash').iterdir())
+    pending = list((base / 'evidence_archive/trash_staging').glob('*/source.txt'))
+    assert len(pending) == 1 and pending[0].read_text() == 'partial'
+    monkeypatch.setattr(shutil, 'copy2', copy)
+    destination = move_to_trash(base, source)
+    assert destination.read_text() == 'original'
+    assert not source.exists()
+    assert pending[0].read_text() == 'partial'
