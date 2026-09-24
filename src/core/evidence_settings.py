@@ -39,11 +39,17 @@ def _save(base, category, record):
     directory.mkdir(parents=True, exist_ok=True, mode=0o700)
     name = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%f") + "-" + uuid4().hex + ".json"
     path = directory / name
-    with path.open("x", encoding="utf-8") as stream:
-        os.chmod(path, 0o600)
+    # An incomplete event is not a committed preference. Preserve its bytes
+    # under .pending for recovery; publish only after its contents are durable.
+    pending = path.with_suffix(".pending")
+    with pending.open("x", encoding="utf-8") as stream:
+        os.chmod(pending, 0o600)
         stream.write(json.dumps(record, ensure_ascii=False) + "\n")
         stream.flush()
         os.fsync(stream.fileno())
+    # Hard-link publication is atomic and refuses an existing destination.
+    # Keep the pending link as crash evidence; it shares the same inode.
+    os.link(pending, path)
     fd = os.open(directory, os.O_RDONLY)
     try:
         os.fsync(fd)

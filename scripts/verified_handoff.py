@@ -21,10 +21,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 from lumos_board.evidence_policy import EvidencePolicy  # noqa: E402
 
 
+def git_environment():
+    # A handoff must describe the requested repository, never an ambient one.
+    env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
+    env.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull)
+    return env
+
+
 def git(repo, *args):
     return subprocess.check_output(
         ['git', '-c', 'core.hooksPath=/dev/null', '-C', str(repo), *args],
-        stderr=subprocess.PIPE,
+        stderr=subprocess.PIPE, env=git_environment(),
     ).decode().strip()
 
 
@@ -88,7 +95,7 @@ def restore(package, target):
     if digest(bundle) != manifest['bundle_sha256']:
         raise ValueError('HASH_MISMATCH')
     subprocess.run(['git', '-c', 'core.hooksPath=/dev/null', 'clone', '--bare',
-                    str(bundle), str(target)], check=True, capture_output=True)
+                    str(bundle), str(target)], check=True, capture_output=True, env=git_environment())
     git(target, 'fsck', '--full', '--strict')
     if (git(target, 'rev-parse', 'HEAD'), git(target, 'rev-parse', 'HEAD^{tree}')) != (
             manifest['head'], manifest['tree']):

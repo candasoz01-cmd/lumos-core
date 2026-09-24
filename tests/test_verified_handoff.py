@@ -82,3 +82,12 @@ def test_changed_manifest_blocks(repo, tmp_path):
         f.write(' ')
     with pytest.raises(ValueError, match='MANIFEST_CHANGED'):
         handoff.check(repo, archive)
+
+
+@pytest.mark.parametrize('variable', ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR', 'GIT_OBJECT_DIRECTORY', 'GIT_CONFIG_COUNT'])
+def test_ambient_git_environment_cannot_redirect_handoff(repo, tmp_path, monkeypatch, variable):
+    expected = run(repo, 'rev-parse', 'HEAD').decode().strip()
+    monkeypatch.setenv(variable, '1' if variable == 'GIT_CONFIG_COUNT' else str(tmp_path / 'not-the-source'))
+    package, archive = delivered(repo, tmp_path)
+    assert json.loads((package / 'manifest.json').read_text())['head'] == expected
+    assert handoff.check(repo, archive)['head'] == expected

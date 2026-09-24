@@ -119,3 +119,23 @@ def test_settings_real_http_auth_lock_and_origin(tmp_path, monkeypatch, profile)
         server.shutdown()
         server.server_close()
         thread.join()
+
+
+
+def test_interrupted_preference_write_preserves_previous_policy(tmp_path, monkeypatch):
+    import core.evidence_settings as settings
+    monkeypatch.setenv('LUMOS_DEPLOYMENT_PROFILE', 'customer')
+    set_capture(tmp_path, False)
+    directory = tmp_path / 'evidence_archive/preferences'
+    previous = {p.name: p.read_bytes() for p in directory.glob('*.json')}
+    with monkeypatch.context() as crash:
+        def fail_sync(fd):
+            raise OSError('simulated storage interruption')
+        crash.setattr(settings.os, 'fsync', fail_sync)
+        with pytest.raises(OSError):
+            set_capture(tmp_path, True)
+    assert read_policy(tmp_path).capture_deleted_content is False
+    assert {p.name: p.read_bytes() for p in directory.glob('*.json')} == previous
+    assert len(list(directory.glob('*.pending'))) == 2
+    assert set_capture(tmp_path, True).capture_deleted_content is True
+    assert read_policy(tmp_path).capture_deleted_content is True
