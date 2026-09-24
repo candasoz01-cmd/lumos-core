@@ -252,3 +252,27 @@ def test_panel_legacy_trash_bytes_preserved_before_removal(tmp_path, monkeypatch
         content = json.loads(copies[0].read_text())['content']
         assert base64.b64decode(content['data']) == raw
         assert len(list((tmp_path / 'evidence_archive/removal_evidence').glob('*.json'))) == 1
+
+
+def test_legacy_store_write_always_has_correlated_audit(tmp_path):
+    from core.workspace_contract import save_task_store_json
+    from core.evidence_continuity import evidence_continuity_path
+    save_task_store_json(tmp_path / 'tasks', {'tasks': []}, sandbox_mode=False)
+    records = [json.loads(line) for line in evidence_continuity_path(tmp_path).read_text().splitlines()]
+    assert len(records) == 2
+    assert [r['phase'] for r in records] == ['before', 'after']
+    assert records[0]['correlation_id'] == records[1]['correlation_id']
+    assert all(r['mutation'] == 'update' for r in records)
+
+
+def test_legacy_store_write_audit_failure_preserves_existing_bytes(tmp_path, monkeypatch):
+    import core.evidence_continuity as ec
+    from core.workspace_contract import save_task_store_json
+    target = tmp_path / 'tasks/tasks.json'
+    target.parent.mkdir()
+    target.write_bytes(b'{"tasks": [], "custom": "preserve me"}\n')
+    before = target.read_bytes()
+    monkeypatch.setattr(ec, 'append_evidence_event', lambda *a, **k: {'appended': False})
+    with pytest.raises(OSError, match='mutation blocked'):
+        save_task_store_json(target.parent, {'tasks': [{'task_id': 1}]}, sandbox_mode=False)
+    assert target.read_bytes() == before

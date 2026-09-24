@@ -317,7 +317,7 @@ def save_task_store_json(
       allow_write_to_core(live_base_dir or tasks_dir.parent, target_path, is_sandbox_mode=True)
       canlı çekirdek state path'ine yazmayı reddeder.
     - sandbox_mode=False varsayılan davranışı korur; guard devre dışı.
-    - correlation_id + mutation verilirse evidence continuity journal (best-effort).
+    - Her yazım evidence continuity kaydı üretir; önce-kaydı başarısızsa yazım engellenir.
     """
     from core.evidence_continuity import (  # yerel import: döngüsel import önleme
         OPERATION_ENGINE_TASK_MUTATION,
@@ -339,8 +339,8 @@ def save_task_store_json(
         live_base_dir if live_base_dir is not None else tasks_dir_path.parent,
         sandbox_mode,
     )
-    evidence_enabled = correlation_id is not None or mutation is not None
-    corr_id = correlation_id or (generate_correlation_id() if evidence_enabled else None)
+    mutation = mutation or "update"
+    corr_id = correlation_id or generate_correlation_id()
     entity_str = str(entity_id) if entity_id is not None else None
     step_count = None
     tasks_list = data.get("tasks")
@@ -362,8 +362,6 @@ def save_task_store_json(
                 break
 
     def _emit(phase: str, outcome: str, *, error: dict[str, str] | None = None) -> None:
-        if not evidence_enabled or corr_id is None or not mutation:
-            return
         summary: dict = {}
         if step_count is not None:
             summary["step_count"] = step_count
