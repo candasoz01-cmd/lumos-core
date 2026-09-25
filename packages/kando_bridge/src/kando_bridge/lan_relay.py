@@ -314,7 +314,10 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   <div id="status">—</div>
   <div id="error-banner" role="alert"></div>
   <div id="token-setup" class="token-box hidden">
-    <input id="token-input" type="text" placeholder="Relay token / eşleştirme token" autocomplete="off">
+    <input id="pair-code-input" type="text" inputmode="text" autocapitalize="characters"
+      maxlength="6" placeholder="PC ekranındaki kod / Code shown on the PC" autocomplete="one-time-code">
+    <button type="button" id="pair-code-send">Eşleştir / Pair</button>
+    <input id="token-input" type="text" placeholder="veya relay token / or relay token" autocomplete="off">
     <button type="button" id="token-save">Kaydet / Save</button>
   </div>
 </header>
@@ -366,6 +369,28 @@ else if (!relayToken) showTokenSetup(true);
 
 document.getElementById("token-save").addEventListener("click", () => {
   saveToken(document.getElementById("token-input").value);
+});
+
+document.getElementById("pair-code-send").addEventListener("click", async () => {
+  const code = document.getElementById("pair-code-input").value.trim().toUpperCase();
+  if (!code) return;
+  showError("");
+  try {
+    const res = await fetch("/relay/pair", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ pairing_code: code, mobile_device_id: "iphone-web" }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.relay_token) throw new Error(data.message_tr || data.error || "pair_failed");
+    document.getElementById("pair-code-input").value = "";
+    if (data.tls_fingerprint_sha256) {
+      setStatus("Eşleşti — PC parmak izi / paired — PC fingerprint: " + data.tls_fingerprint_sha256.slice(0, 16));
+    }
+    saveToken(data.relay_token);
+  } catch (e) {
+    showError("Eşleşme hatası / Pairing error: " + e.message);
+  }
 });
 
 function esc(s) {
@@ -553,7 +578,7 @@ async function poll() {
     root.replaceChildren();
     if (!items.length) {
       if (countdownTimer) { clearInterval(countdownTimer); countdownTimer = null; }
-      root.innerHTML = '<div class="empty"><strong>Bekleyen istek yok</strong><br>No pending requests<br><span style="font-size:0.8125rem">PC'de yeni bir işlem gelince burada görünür</span></div>';
+      root.innerHTML = '<div class="empty"><strong>Bekleyen istek yok</strong><br>No pending requests<br><span style="font-size:0.8125rem">PC&#39;de yeni bir işlem gelince burada görünür</span></div>';
       setStatus("Hazır / Ready");
     } else {
       const focus = items[0];

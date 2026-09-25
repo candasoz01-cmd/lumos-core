@@ -731,3 +731,30 @@ def test_sliding_window_limiter() -> None:
     assert not lim.allow("a", now=2)
     assert lim.allow("b", now=2)
     assert lim.allow("a", now=11)
+
+
+def test_mobile_web_ui_can_pair_with_code_and_send_tasks() -> None:
+    """Geçici yüzey (iPhone Safari) CLI'sız eşleşebilir ve görev gönderebilir."""
+    from kando_bridge.lan_relay import build_mobile_ui_html
+
+    html = build_mobile_ui_html()
+    assert 'id="pair-code-input"' in html
+    assert '"/relay/pair"' in html
+    assert '"/relay/task"' in html
+    assert "location.hash" in html
+    assert "history.replaceState" in html
+    assert "approval_token" not in html
+
+
+def test_mobile_web_ui_script_parses(tmp_path: Path) -> None:
+    """Regresyon: tek tırnaklı dizedeki "PC'de" tüm betiği bozuyordu (sayfa hiç çalışmıyordu)."""
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node yok — JS sözdizimi kontrolü yapılamıyor")
+    from kando_bridge.lan_relay import build_mobile_ui_html
+
+    script = build_mobile_ui_html().split("<script>", 1)[1].split("</script>", 1)[0]
+    js = tmp_path / "mobile_ui.js"
+    js.write_text(script, encoding="utf-8")
+    result = subprocess.run([node, "--check", str(js)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
