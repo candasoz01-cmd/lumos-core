@@ -1140,8 +1140,28 @@ const {
         return s;
       }
 
+      function altFromChatMarkupAttrs(attrs) {
+        const match = /\balt\s*=\s*(?:"([^"]*)"|'([^']*)'|&quot;([^&]*)&quot;|\{\s*"([^"]*)"\s*\}|\{\s*'([^']*)'\s*\})/i.exec(
+          attrs || "",
+        );
+        if (!match) return "";
+        return match[1] || match[2] || match[3] || match[4] || match[5] || "";
+      }
+
+      function stripUnsupportedChatMarkup(text) {
+        if (text == null) return "";
+        return String(text).replace(
+          /(?:<|&lt;)TextReference\b([\s\S]*?)(?:\s*\/\s*(?:>|&gt;)|(?:>|&gt;)([\s\S]*?)(?:<\/|&lt;\/)TextReference\s*(?:>|&gt;))/gi,
+          function (_full, attrs, body) {
+            const alt = altFromChatMarkupAttrs(attrs);
+            const inner = body != null ? String(body).trim() : "";
+            return alt || inner;
+          },
+        );
+      }
+
       function panelUserVisibleText(text) {
-        return stripPanelTechnicalLeak(maskBridgeSensitive(text));
+        return stripPanelTechnicalLeak(maskBridgeSensitive(stripUnsupportedChatMarkup(text)));
       }
 
       const PANEL_PROD_ERROR_KINDS = [
@@ -1690,6 +1710,36 @@ const {
         if (token) headers["X-Kando-Token"] = token;
         return headers;
       }
+
+      async function loadRetentionSettings(update) {
+        const control = document.getElementById("panel-retention-control");
+        const input = document.getElementById("panel-retention-capture");
+        const status = document.getElementById("panel-retention-status");
+        const retry = document.getElementById("panel-retention-retry");
+        if (!input || !control || !status || !retry) return;
+        input.disabled = true;
+        retry.hidden = true;
+        try {
+          const response = await fetch(resolveGorevlerTasksApiBase() + "/evidence/settings", {
+            method: update ? "POST" : "GET",
+            headers: panelTasksAuthHeaders(update ? { "Content-Type": "application/json" } : {}),
+            ...(update ? { body: JSON.stringify({ capture_deleted_content: input.checked }) } : {}),
+          });
+          const settings = await response.json();
+          if (!response.ok || settings.ok !== true || typeof settings.capture_deleted_content !== "boolean" || typeof settings.toggle_visible !== "boolean") throw new Error("unavailable");
+          input.checked = settings.capture_deleted_content;
+          control.hidden = !settings.toggle_visible;
+          input.disabled = !settings.toggle_visible;
+          status.textContent = !settings.toggle_visible ? "Bu kurulumda saklama her zaman açıktır." : settings.capture_deleted_content ? "Yeni arşiv kopyaları saklanıyor." : "Yeni arşiv kopyaları kapalı. Mevcut kayıtlar korunuyor.";
+        } catch (_) {
+          control.hidden = true;
+          retry.hidden = false;
+          status.textContent = "Saklama ayarı doğrulanamadı. Yeniden deneyin.";
+        }
+      }
+      document.getElementById("panel-retention-capture")?.addEventListener("change", () => loadRetentionSettings(true));
+      document.getElementById("panel-retention-retry")?.addEventListener("click", () => loadRetentionSettings(false));
+      loadRetentionSettings(false);
 
       function isLoopbackHostname(host) {
         const h = String(host || "")
@@ -4741,7 +4791,7 @@ const {
           } else if (kind === "error") {
             body.textContent = panelUserVisibleText(text);
           } else {
-            body.textContent = text;
+            body.textContent = stripUnsupportedChatMarkup(text);
           }
           if (meta && typeof meta === "object") {
             if (typeof meta.refreshBody === "function") {
@@ -4983,7 +5033,7 @@ const {
           const trimmed = plainText && String(plainText).trim();
           if (trimmed) {
             const textEl = document.createElement("div");
-            textEl.textContent = trimmed;
+            textEl.textContent = stripUnsupportedChatMarkup(trimmed);
             body.appendChild(textEl);
           }
           if (imageDataUrl) {
@@ -5130,7 +5180,7 @@ const {
           } else if (wrap.classList.contains("chat-msg--error")) {
             body.textContent = panelUserVisibleText(text);
           } else {
-            body.textContent = text;
+            body.textContent = stripUnsupportedChatMarkup(text);
           }
         }
 

@@ -2,7 +2,8 @@
 
 # STT veri sınırı v1
 
-Durum: **Accepted (2026-08-19)** — kurucu kararı; OpenAI resmî dokümantasyonuyla doğrulandı.
+Durum: **Accepted (2026-08-19); model geçişi 2026-09-14** — kurucu kararı;
+OpenAI resmî dokümantasyonuyla doğrulandı.
 Kod izni: sentetik / hassas olmayan test sesi ile batch iskelet. Gerçek Meet sesi
 açılış kapısı yazılı kapanmadan **yok**.
 
@@ -21,8 +22,7 @@ STT VERİ SINIRI (gerçek Meet sesi için önkoşul)
      Not: %10 bölgesel işleme ek ücreti kabul edilir.
   5. Ham ses log/artifact olarak kalıcı saklanmaz. (Endpoint zaten
      application state ve abuse log tutmuyor — dokümantasyonla doğrulandı.)
-  6. Model: OPENAI_MODEL_STT (whisper-1 / gpt-4o-transcribe /
-     gpt-4o-mini-transcribe). Sohbet/cyber modelinden ayrı.
+  6. Model: OPENAI_MODEL_STT (gpt-transcribe). Sohbet/cyber modelinden ayrı.
 
   AÇILIŞ KAPISI: Avrupa veri yerleşimi + MAM/ZDR onayı organizasyonda
   YAZILI doğrulanana kadar yalnız sentetik/hassas olmayan test sesi.
@@ -60,3 +60,13 @@ sunan iki bölgeden biridir; Meet sesi için doğru seçimdir.
 | Realtime STT | Bu sözleşmenin Meet-sesi kapsamı **dışı**. |
 
 Realtime, sohbet ve cyber modelleri bu sözleşmeyi karşılamaz.
+
+## Model geçişi (2026-09-14)
+
+OpenAI'nin resmî geçiş rehberine göre tamamlanmış/batch ses için hedef
+`gpt-transcribe`, sürekli canlı transkripsiyon için `gpt-live-transcribe`dır.
+Batch endpoint değişmez; yeni modelde tekil `language` yerine `languages`
+dizisi kullanılır. Bu güncelleme veri yerleşimi, katılımcı onayı veya MAM/ZDR
+açılış kapılarından hiçbirini gevşetmez.
+
+Kaynak: https://developers.openai.com/cookbook/examples/migrating_from_whisper_to_gpt_transcribe

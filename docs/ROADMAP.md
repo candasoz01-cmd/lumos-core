@@ -135,6 +135,25 @@ yetkisi vermez.
 
 Normatif karar ve kabul kapıları: [ADR-021](decisions/ADR-021-robotics-sovereignty-layer-v0-1.md).
 
+### Dar istisna — Account Activity Correlation (güvenlik kanıtı)
+
+2026-09-04 kullanıcı kararıyla **Account Activity Correlation / Security
+Evidence Correlation** için yalnız yerel, gizliliği koruyan çekirdek STOP
+LIST'ten dar kapsamlı olarak istisna tutulmuştur. Bu kayıt activity
+tracking, yeni sayfa, mail ürünü veya otomatik hesap eylemi yetkisi vermez.
+
+İstisna sınırları:
+
+- üçüncü taraf güvenlik uyarısını kayıtlı cihaz/oturum kanıtıyla eşleştirme;
+- minimal metadata (servis, zaman, cihaz kimliği, oturum türü, ağ sınıfı);
+- raw browser history, parola, içerik ve düz metin IP **yok**;
+- cihaz etiketi kimlik değildir; kayıt `device_id` + anahtar parmak izine bağlıdır;
+- kesin hüküm yok (`owner_match` / `likely_owner` / `unknown` / `suspicious`);
+- mail uyarısı şifre değiştirme veya oturum kapatmaya **çevrilmez**;
+- yeni sayfa, yeni entegrasyon, tarayıcı sniffing veya çoklu cihaz senkronu **yok**.
+
+Normatif karar ve kabul kapıları: [ADR-033](decisions/ADR-033-account-activity-correlation.md).
+
 ## FAZ-1 sonrası provider stratejisi
 
 Bu kayıt yalnız FAZ-1 tamamlandıktan sonra değerlendirilecek yönü tanımlar;
@@ -177,8 +196,13 @@ kullanıcı ürünü **değildir**. Lumos ile aynı motoru (AI Runtime / Router)
 kullanır, ayrı bir motor kurmaz.
 
 - **Karar durumu:** sınır tanımı kabul edildi (2026-08-08, ADR-019).
-- **Uygulama durumu:** yeni operatör arayüzü veya orchestration kodu
-  **yazılmadı**. Bugünkü kapsam `src/lumos_board/` CLI ile sınırlıdır.
+  **Duvar v1 hukuku yürürlükte (2026-09-19 kurucu onayı):**
+  [ADR-032](decisions/ADR-032-lumos-wall-v1.md) (Accepted) /
+  [`lumos-wall-v1`](contracts/lumos-wall-v1.md). Paralel claim yok; kapı
+  mevcut `src/lumos_board/claim_cli.py`.
+- **Uygulama durumu:** görsel operatör arayüzü **yazılmadı**. Bugünkü kapsam
+  `src/lumos_board/` CLI + v1 sözleşme. Ekran ayrı onay ister; iş mantığı
+  UI'ya gömülmez.
 - **Decision Queue / Human Action Queue (2026-08-24):** mevcut Agent Wall
   başlığının alt kavramı — paralel ajan işlerinde insan onayı bekleyen
   karar noktalarını görünür kılmak. Ayrı ROADMAP maddesi veya

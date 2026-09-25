@@ -1,0 +1,11 @@
+# Yayın kapısı güven çekirdeği. Bu dosya tek başına zorlayıcı DEĞİLDİR:
+# branch protection'da "Require review from Code Owners" açılmadıkça yalnız
+# bilgilendiricidir (ayar listesi: docs/PUBLICATION_GATE.md § Dürüst sınırlar).
+/config/publication/ @candasoz01-cmd
+/ops/publication_gate/ @candasoz01-cmd
+/.githooks/ @candasoz01-cmd
+/vercel.json @candasoz01-cmd
+/.github/ @candasoz01-cmd
+/tests/test_publication_gate.py @candasoz01-cmd
+/tests/test_public_pages_no_private_embed.py @candasoz01-cmd
+/AGENTS.md @candasoz01-cmd

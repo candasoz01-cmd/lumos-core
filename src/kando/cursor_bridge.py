@@ -3,6 +3,8 @@ Kando görev akışından Cursor bridge dosyaları + paket üretimi.
 """
 from __future__ import annotations
 
+from core.bridge_evidence import BridgeEvidenceError, preserve_bridge_views
+
 import copy
 import difflib
 import hashlib
@@ -1330,6 +1332,8 @@ def persist_bridge_after_brain(
         from kando.cursor_executor import run_after_bridge
 
         run_after_bridge(base, exe)
+    except BridgeEvidenceError:
+        raise
     except Exception:
         pass
     return _last_bridge_packets
@@ -3053,6 +3057,7 @@ def persist_cursor_bridge(
     d.mkdir(parents=True, exist_ok=True)
     p_exec = d / "last_execution.json"
     p_res = d / "last_result.json"
+    preserve_bridge_views(lumos_base, (p_exec, p_res))
     p_exec.write_text(json.dumps(execution.to_json_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
     p_res.write_text(json.dumps(result.to_json_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
     return p_exec, p_res
@@ -3122,6 +3127,8 @@ def _write_minimal_bridge_files(
         from kando.cursor_executor import run_after_bridge
 
         run_after_bridge(base, exe)
+    except BridgeEvidenceError:
+        raise
     except Exception:
         pass
     return p_exec, p_res, exe, res_pkt
@@ -3171,11 +3178,14 @@ def _write_emergency_bridge_files(
     try:
         p_exec, p_res = persist_cursor_bridge(base, exe, res_pkt)
         return p_exec, p_res, exe, res_pkt
+    except BridgeEvidenceError:
+        raise
     except Exception:
         d = base / "cursor_bridge"
         d.mkdir(parents=True, exist_ok=True)
         p_exec = d / "last_execution.json"
         p_res = d / "last_result.json"
+        preserve_bridge_views(base, (p_exec, p_res))
         p_exec.write_text(
             json.dumps(exe.to_json_dict(), ensure_ascii=False, indent=2),
             encoding="utf-8",
@@ -3241,6 +3251,8 @@ def run_brain_and_persist_bridge(
                 dry_run=dry_run,
             )
             pkt = pop_last_bridge_packets()
+        except BridgeEvidenceError:
+            raise
         except Exception:
             pkt = None
 
@@ -3256,6 +3268,8 @@ def run_brain_and_persist_bridge(
                 dry_run=dry_run,
             )
             pkt = (p_exec, p_res, exe, res_pkt)
+        except BridgeEvidenceError:
+            raise
         except Exception:
             pkt = None
 

@@ -4,12 +4,16 @@ Evidence Continuity v1 — append-only journal for server-side task mutations.
 Schema: lumos.evidence_continuity.v1
 Path: {base_dir}/logs/evidence_continuity.jsonl
 
-Best-effort append; journal failure must not break main mutations.
+Append returns explicit status. Mutation callers enforce before-write persistence
+and preserve completion records through a separate durable fallback.
 """
 from __future__ import annotations
 
 import json
+import os
+import fcntl
 import threading
+import heapq
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -18,7 +22,7 @@ from uuid import uuid4
 if TYPE_CHECKING:
     from core.guard_audit import GuardEvent
 
-from core.log_rotation import DEFAULT_KEEP, DEFAULT_MAX_BYTES, append_jsonl_with_rotation
+from core.log_rotation import DEFAULT_KEEP, DEFAULT_MAX_BYTES
 from core.workspace_contract import allow_write_to_core, logs_dir_path
 
 SCHEMA_V1 = "lumos.evidence_continuity.v1"
@@ -124,10 +128,10 @@ _MIRROR_CTX = threading.local()
 EVIDENCE_CONTINUITY_FILENAME = "evidence_continuity.jsonl"
 
 # EC2-09: evidence-specific retention (v1 — aliases log_rotation defaults; no config override)
-EVIDENCE_RETENTION_POLICY_ID = "lumos.evidence_continuity.retention.v1"
+EVIDENCE_RETENTION_POLICY_ID = "lumos.evidence_continuity.retention.v2"
 EVIDENCE_CONTINUITY_MAX_BYTES = DEFAULT_MAX_BYTES
 EVIDENCE_CONTINUITY_KEEP = DEFAULT_KEEP
-EVIDENCE_READ_SCOPE_CURRENT_ONLY = "current_file_only"
+EVIDENCE_READ_SCOPE_ARCHIVED = "current_rotated_and_fallback"
 
 # EC2-07: tasks.json events[] — UI projection metadata (v1; no migration)
 TASKS_JSON_EVENTS_PROJECTION_POLICY_ID = "lumos.tasks_json.events_projection.v1"
@@ -161,10 +165,13 @@ def evidence_retention_policy() -> dict[str, Any]:
     """Read-only v1 retention policy DTO (no config override)."""
     return {
         "policy_id": EVIDENCE_RETENTION_POLICY_ID,
-        "max_bytes_per_file": EVIDENCE_CONTINUITY_MAX_BYTES,
-        "rotated_files_kept": EVIDENCE_CONTINUITY_KEEP,
-        "max_file_slots": EVIDENCE_CONTINUITY_KEEP + 1,
-        "read_scope": EVIDENCE_READ_SCOPE_CURRENT_ONLY,
+        "max_bytes_per_file": None,
+        "rotated_files_kept": "all_existing",
+        "max_file_slots": None,
+        "default_retention": "indefinite",
+        "automatic_deletion": False,
+        "minimum_retention_years": 1,
+        "read_scope": EVIDENCE_READ_SCOPE_ARCHIVED,
     }
 
 
@@ -197,9 +204,8 @@ def _evidence_journal_file_paths(base_dir: Path | str) -> list[Path]:
     paths: list[Path] = []
     if current.is_file():
         paths.append(current)
-    for n in range(1, EVIDENCE_CONTINUITY_KEEP + 1):
-        rotated = Path(str(current) + f".{n}")
-        if rotated.is_file():
+    for rotated in sorted(current.parent.glob(current.name + ".*")):
+        if rotated.name.removeprefix(current.name + ".").isdigit() and rotated.is_file():
             paths.append(rotated)
     return paths
 
@@ -612,7 +618,7 @@ def read_recent_evidence_events(
     limit: int = DEFAULT_READ_LIMIT,
 ) -> tuple[list[dict[str, Any]], bool]:
     """
-    Tail-read validated journal records, newest first.
+    Read validated current, rotated and fallback records, newest first.
     Returns (records, truncated) where truncated is True when more valid rows exist than limit.
     """
     try:
@@ -621,30 +627,39 @@ def read_recent_evidence_events(
         limit_n = DEFAULT_READ_LIMIT
     limit_n = max(1, min(limit_n, MAX_READ_LIMIT))
 
-    path = evidence_continuity_path(base_dir)
-    if not path.is_file():
-        return [], False
+    # Keep only the newest bounded window in memory across retained sources.
+    valid: list[tuple[float, int, dict[str, Any]]] = []
+    count = 0
 
-    valid: list[dict[str, Any]] = []
-    try:
-        for line in path.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                rec = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if not isinstance(rec, dict) or validate_evidence_record(rec):
-                continue
-            valid.append(rec)
-    except OSError:
-        return [], False
+    def collect(rec: Any) -> None:
+        nonlocal count
+        if not isinstance(rec, dict) or validate_evidence_record(rec):
+            return
+        count += 1
+        item = (_parse_evidence_ts_ms(str(rec.get("ts", ""))), count, rec)
+        heapq.heappush(valid, item)
+        if len(valid) > limit_n:
+            heapq.heappop(valid)
 
-    truncated = len(valid) > limit_n
-    tail = valid[-limit_n:]
-    tail.sort(key=lambda r: _parse_evidence_ts_ms(str(r.get("ts", ""))), reverse=True)
-    return tail, truncated
+    for path in reversed(_evidence_journal_file_paths(base_dir)):
+        try:
+            with path.open(encoding="utf-8") as stream:
+                for line in stream:
+                    try:
+                        collect(json.loads(line))
+                    except json.JSONDecodeError:
+                        continue
+        except (OSError, UnicodeError):
+            continue
+    fallback = Path(base_dir) / "evidence_archive" / "audit_fallback"
+    for path in sorted(fallback.glob("*.json")):
+        try:
+            envelope = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(envelope, dict):
+                collect(envelope.get("record"))
+        except (OSError, UnicodeError, json.JSONDecodeError):
+            continue
+    return [item[2] for item in sorted(valid, reverse=True)], count > limit_n
 
 
 def project_evidence_for_ui(record: dict[str, Any]) -> dict[str, Any]:
@@ -786,13 +801,18 @@ def append_evidence_event(
         path = evidence_continuity_path(base_dir)
         if not allow_write_to_core(base_dir, path, is_sandbox_mode=is_sandbox_mode):
             return result
-        append_result = append_jsonl_with_rotation(
-            path,
-            record,
-            max_bytes=EVIDENCE_CONTINUITY_MAX_BYTES,
-            keep=EVIDENCE_CONTINUITY_KEEP,
-        )
-        result.update(append_result)
+        # Never rotate evidence through the bounded runtime-log ring: it deletes
+        # old segments. Keep legacy segments untouched; fsync each new record.
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("a", encoding="utf-8") as stream:
+            fcntl.flock(stream, fcntl.LOCK_EX)
+            try:
+                stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+            finally:
+                fcntl.flock(stream, fcntl.LOCK_UN)
+        result.update(appended=True, rotated=False)
     except Exception:
         return result
     return result

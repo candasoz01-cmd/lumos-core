@@ -28,6 +28,25 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **ürün 
 | PR-003 | Lumos, kullanıcı ile dış dünya arasında **güvenli geçit ve orkestratör** olarak çalışır. | **aktif kural** |
 | PR-004 | İç katmanlar dışarıdan komut veya veri **doğrudan kabul etmez**; akış Lumos geçidinden geçer. | **aktif kural** |
 | PR-005 | Son kullanıcı yüzeyinde **sağlayıcı/model adı** (OpenAI, Claude, Gemini, DeepSeek, Kimi/Moonshot vb.), `session_id`, `instance_id`, worktree yolu, heartbeat, PR/merge kapısı ve iç ajan koordinasyonu **görünmez**. Kullanıcıya model seçtiren arayüz yapılmaz. Bu ayrıntılar yalnız iç operatör yüzeyine (Lumos Agent Wall) açıktır. ([ADR-019](decisions/ADR-019-product-surface-separation-modelregistry.md)) | **aktif kural** |
+| PR-006 | Kullanıcı GitHub, iOS, Drive veya başka bir **platform ajanıyla doğrudan konuşmaz**. İsteği Lumos sohbetine anlatır; Lumos niyeti ve hedef repo/kapsamı belirler, mevcut Board claim + AGENTS.md iş paketi ile ilgili ajana iletir; ajanın diff/test kanıtını kendi sohbetinden sunar. Riskli yazma, silme, paylaşma, gönderme, merge, deploy ve yayınlama mevcut insan-onayı kapılarından geçer (CU4, `profiles.py`, ADR-027). Yeni yönlendirme, kimlik veya onay sistemi kurulmaz. | **aktif kural** |
+| PR-007 | Lumos **Apple'a özel bir ürün değildir**; iOS, Lumos'un çalıştığı platformlardan yalnızca biridir. Apple'da veya başka bir platform sağlayıcısında **benzer genel işlevlerin bulunması, tek başına** Lumos özelliğinin kopya olduğu ya da özellik çakışması taşıdığı anlamına **gelmez**. Değerlendirme; Lumos'un **bağımsız ürün amacı, platformlar arası kullanım alanı, kullanıcı akışı, tasarım, isimlendirme ve uygulama biçimi** üzerinden yapılır. | **aktif kural** |
+
+---
+
+## Platform ajan yönlendirmesi (PR-006)
+
+Kullanıcı yüzü Lumos sohbetidir. Platform ajanı (iOS/GitHub/Drive) Local arkasındaki icracıdır; kullanıcıya ayrı bir sohbet açmaz.
+
+| Anahtar | Repo | Kapsam | Risk | Kanıt dönüşü |
+|---------|------|--------|------|----------------|
+| `ios-logo` | `candasoz01-cmd/Lumos` | Donmuş AppIcon kapsamları (yazma): `brand/ios-export/Assets.xcassets/AppIcon.appiconset`, `ios/LumosApp/Assets.xcassets/AppIcon.appiconset`. Mevcut üretim girdisi: `brand/source/logo001.png`. Yedek: `web/static/brand/logo001.png`. Hedef işaret lumos-core `ui/public/chat-lumos-mark.svg` — mevcut üretici henüz tüketmiyor; çalışan bağlantı değildir. apple-touch web’dir (`ui` `rel=apple-touch-icon`); launch bu zarfta yok — ayrı platform anahtarı. | `write_local` (mevcut CU4) | `INFORMATION` + `user_relevant=true` — `RESULT` kullanıcı rotası açılmaz |
+
+Kod karşılığı: `src/core/platform_task_envelope.py` (#868, 2026-09-20
+kurucu onayıyla merge) — donmuş deterministik katalog, checkout/parser'sız;
+eşleşmeyen cümle **STOP**. ADR-004 router ve ADR-008 Agent Network değildir.
+Chat bağlama (`api/bridge/chat.js`) hâlâ yoktur ve ayrı karar ister.
+`Resources/Assets.xcassets/...` ve `ios/Assets.xcassets/AppIcon.appiconset`
+uydurma/yanlış yoldur; katalogda yoktur.
 
 ---
 
@@ -83,6 +102,17 @@ Bu dosya, sohbet/bellek kaybına karşı repo içinde kalıcı tutulan **ürün 
 
 ---
 
+## Kurumsal yönetişim ve risk (gelecek özellik notu)
+
+Henüz ürün yüzeyi yoktur; ileride kurumsal yönetişim / risk motoru açılırsa giriş ilkesi olarak geçerlidir. Detay: [`docs/memory/tedarikci-kaniti-ve-son-guvenli-karar-tarihi.md`](memory/tedarikci-kaniti-ve-son-guvenli-karar-tarihi.md).
+
+| # | Madde | Statü |
+|---|--------|--------|
+| PR-060 | Tedarikçi veya servis sağlayıcının «destekliyoruz / hazırız / uyumluyuz» beyanı **tek başına yeterli kabul edilmez**. Lumos, mümkün olduğunda iddiayı **doğrulanabilir kanıt, sertifika, kapsam ve güncel durumla birlikte** gösterir; kanıtı olmayan iddia silinmez, **`doğrulanmamış beyan`** olarak görünür ve tek başına riski kapalı saymaz. | **gelecek özellik notu** |
+| PR-061 | Risk ve uyum takibinde yalnız resmî son tarih değil, **son güvenli karar tarihi** de tutulur. Bu tarih; entegrasyon, test, doğrulama, değişiklik yönetimi ve **alternatif tedarikçiye geçiş** süreleri resmî son tarihten düşülerek belirlenir; tahmindir, kesin hüküm değildir ve süreler değişince gerekçesiyle yeniden hesaplanır. | **gelecek özellik notu** |
+
+---
+
 ## CI / kapsam dışı bırakılan ürün maddeleri
 
 Aşağıdaki maddeler CI veya public sınır nedeniyle ertelendi veya taşındı; **kaybolmaz**.
@@ -100,7 +130,11 @@ Aşağıdaki maddeler CI veya public sınır nedeniyle ertelendi veya taşındı
 - `docs/security-architecture.md` — gizli bilgi ve kasa ilkeleri
 - `docs/project-map.md` — dizin ve runtime haritası
 - `docs/decision-log.md` — karar ve erteleme günlüğü
+- `docs/contracts/task-claim-v1.md` — Board claim (repo, kapsam, sahip)
+- `docs/contracts/single-reader-gateway-v1.md` — ajanlar kullanıcıya doğrudan rapor vermez
+- `docs/decisions/ADR-008-agent-network-boundary.md` — yatay AI→AI komut yok
+- `docs/memory/tedarikci-kaniti-ve-son-guvenli-karar-tarihi.md` — tedarikçi kanıtı ve son güvenli karar tarihi (PR-060, PR-061)
 
 ---
 
-Son güncelleme: 2026-06-17
+Son güncelleme: 2026-09-23 (PR-007 — platform bağımsızlığı ve benzer işlev değerlendirmesi; PR-060, PR-061 kurumsal yönetişim/risk notu)

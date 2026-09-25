@@ -15,6 +15,7 @@ from core.workspace_contract import (
     ensure_trash_dir,
     may_perform_permanent_delete,
     save_task_store_json,
+    save_trash_record_json,
     trash_path,
     writing_base_dir,
 )
@@ -231,15 +232,22 @@ class TaskStore:
         by_id: dict[int, TaskRecord] = {t.task_id: t for t in self._tasks}
         self._tasks = sorted(by_id.values(), key=lambda x: x.task_id)
         data = {"tasks": [t.to_dict() for t in self._tasks], "next_id": self._next_id}
-        save_task_store_json(
-            tasks_dir=self.base_dir,
-            data=data,
-            sandbox_mode=self.sandbox_mode,
-            live_base_dir=self._live_base_dir,
-            mutation=mutation,
-            entity_id=entity_id,
-        )
+        from core.evidence_settings import CompletionEvidenceError
+        completion_error = None
+        try:
+            save_task_store_json(
+                tasks_dir=self.base_dir,
+                data=data,
+                sandbox_mode=self.sandbox_mode,
+                live_base_dir=self._live_base_dir,
+                mutation=mutation,
+                entity_id=entity_id,
+            )
+        except CompletionEvidenceError as exc:
+            completion_error = exc
         self._mirror_to_canonical(mutation=mutation, entity_id=entity_id)
+        if completion_error is not None:
+            raise completion_error
 
     def _mirror_to_canonical(self, *, mutation: str | None, entity_id: int | None) -> None:
         """TD-01 sözleşmesi: engine görevleri canonical panel listesine yansır.
@@ -336,6 +344,15 @@ class TaskStore:
         self.update(task, mutation="archive")
         return True
 
+    def _archive_preference_base(self) -> Path:
+        # Read deployment preferences from the live workspace without writing it.
+        if self._live_base_dir is not None:
+            return self._live_base_dir
+        return self.base_dir.parent if self.base_dir.name == "tasks" else self.base_dir
+
+    def _archive_base(self) -> Path:
+        return writing_base_dir(self._archive_preference_base(), self.sandbox_mode)
+
     def move_to_trash(self, task_id: int) -> bool:
         """
         Soft delete: görevi trash/ altına yazar ve tasks.json'dan çıkarır.
@@ -368,10 +385,10 @@ class TaskStore:
             "deleted_at": deleted_at,
             "payload": payload,
         }
-        tmp = path.parent / (path.name + ".tmp")
-        body = json.dumps(record, ensure_ascii=False, indent=2) + "\n"
-        tmp.write_text(body, encoding="utf-8")
-        tmp.replace(path)
+        save_trash_record_json(
+            dest_base, path, record, evidence_base_dir=self._archive_base(),
+            preference_base_dir=self._archive_preference_base(),
+        )
         self._tasks = [t for t in self._tasks if t.task_id != task_id]
         self._save(mutation="soft_delete", entity_id=task_id)
         return True
@@ -380,14 +397,20 @@ class TaskStore:
         """
         Tek görevi kalıcı olarak sil (yalnızca kullanıcı kaynaklı komut ile).
         user_initiated=False ise hiçbir değişiklik yapılmaz (kalıcı silme yasağı guard’ı).
-        Bu işlem geri döndürülemez; JSON'dan da çıkar.
+        Aktif JSON kaydından çıkar; ortak saklama politikası içerik arşivini korur.
         """
         if not may_perform_permanent_delete(user_initiated):
             return False
-        before = len(self._tasks)
-        self._tasks = [t for t in self._tasks if t.task_id != task_id]
-        if len(self._tasks) == before:
+        task = self.get(task_id)
+        if task is None:
             return False
+        from core.evidence_settings import archive_deleted_content
+
+        archive_deleted_content(self._archive_base(), {
+            "id": str(task_id), "operation": "engine.task.delete",
+            "deleted_at": _now_iso(), "payload": task.to_dict(),
+        }, preference_base=self._archive_preference_base())
+        self._tasks = [t for t in self._tasks if t.task_id != task_id]
         self._save(mutation="delete", entity_id=task_id)
         return True
 
@@ -404,7 +427,7 @@ class TaskStore:
                 t.archived_at = _now_iso()
                 count += 1
         if count:
-            self._save()
+            self._save(mutation="archive")
         return count
 
     def archive_simulations(self) -> int:
@@ -419,7 +442,7 @@ class TaskStore:
                 t.archived_at = _now_iso()
                 count += 1
         if count:
-            self._save()
+            self._save(mutation="archive")
         return count
 
     def list_non_archived(self) -> list[TaskRecord]:

@@ -317,7 +317,7 @@ def _write_doc(
             before_summary["route"] = evidence["route"]
         if evidence.get("title_preview"):
             before_summary["title_preview"] = evidence["title_preview"]
-        append_evidence_event(
+        before_result = append_evidence_event(
             base,
             build_evidence_record(
                 correlation_id=corr_id,
@@ -331,6 +331,8 @@ def _write_doc(
                 payload_summary=before_summary or None,
             ),
         )
+        if not before_result.get("appended"):
+            raise OSError("Evidence journal unavailable; mutation blocked")
     try:
         p.parent.mkdir(parents=True, exist_ok=True)
         tmp = p.with_suffix(".json.tmp")
@@ -363,20 +365,21 @@ def _write_doc(
             after_summary["events_appended"] = int(evidence["events_appended"])
         if evidence.get("trash_written") is not None:
             after_summary["trash_written"] = bool(evidence["trash_written"])
-        append_evidence_event(
-            base,
-            build_evidence_record(
-                correlation_id=corr_id,
-                source=SOURCE_PANEL_TASKS_SERVER,
-                store=STORE_PANEL_TASKS,
-                operation=str(evidence["operation"]),
-                phase=PHASE_AFTER,
-                outcome=OUTCOME_OK,
-                mutation=str(evidence["mutation"]),
-                entity_id=str(evidence["entity_id"]) if evidence.get("entity_id") else None,
-                payload_summary=after_summary or None,
-            ),
+        record = build_evidence_record(
+            correlation_id=corr_id,
+            source=SOURCE_PANEL_TASKS_SERVER,
+            store=STORE_PANEL_TASKS,
+            operation=str(evidence["operation"]),
+            phase=PHASE_AFTER,
+            outcome=OUTCOME_OK,
+            mutation=str(evidence["mutation"]),
+            entity_id=str(evidence["entity_id"]) if evidence.get("entity_id") else None,
+            payload_summary=after_summary or None,
         )
+        result = append_evidence_event(base, record)
+        if not result.get("appended"):
+            from core.evidence_settings import preserve_audit_fallback
+            preserve_audit_fallback(base, record)
 
 
 def _trash_dir() -> Path:
@@ -868,6 +871,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _options_path_allowed(self, p: str) -> bool:
         if p in (
+            "/evidence/settings",
             "/tasks.json",
             "/tasks",
             "/tasks/trash",
@@ -1054,6 +1058,27 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(data)
         return True
 
+    def _evidence_settings(self, update=False):
+        from core.evidence_settings import read_policy, set_capture
+
+        try:
+            if update:
+                body = self._read_json_body()
+                if not isinstance(body, dict) or set(body) != {"capture_deleted_content"}:
+                    _send_json(self, 400, {"ok": False, "error": "invalid_settings"})
+                    return
+                if _is_sandbox_mode():
+                    raise CoreWriteForbidden("Sandbox cannot change retention preferences")
+                _guard_core_write(lumos_base_dir() / "evidence_archive")
+                policy = set_capture(lumos_base_dir(), body["capture_deleted_content"])
+            else:
+                policy = read_policy(lumos_base_dir())
+            _send_json(self, 200, {"ok": True, **policy.view()})
+        except ValueError:
+            _send_json(self, 409, {"ok": False, "error": "retention_setting_locked_or_invalid"})
+        except OSError:
+            _send_json(self, 503, {"ok": False, "error": "retention_storage_unavailable"})
+
     def do_GET(self) -> None:
         if not self._origin_allowed():
             self._reject_origin()
@@ -1080,6 +1105,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         if p == "/tasks/trash":
             self._get_tasks_trash()
+            return
+        if p == "/evidence/settings":
+            self._evidence_settings()
             return
         if p == "/evidence/recent":
             self._get_evidence_recent()
@@ -1191,6 +1219,9 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             p = self._parse_path()
+            if p == "/evidence/settings":
+                self._evidence_settings(update=True)
+                return
             if p == "/open-folder":
                 self._post_open_folder()
                 return
@@ -1609,7 +1640,12 @@ class Handler(BaseHTTPRequestHandler):
             "ts": now,
         }
         doc.setdefault("events", []).append(ev)
+        from core.evidence_settings import CompletionEvidenceError
+        completion_error = None
         try:
+            _guard_core_write(tpath)
+            from core.evidence_settings import archive_removed_file
+            archive_removed_file(lumos_base_dir(), tpath, operation="panel.task.restore")
             _write_doc(
                 doc,
                 evidence={
@@ -1621,6 +1657,8 @@ class Handler(BaseHTTPRequestHandler):
                     "events_appended": 1,
                 },
             )
+        except CompletionEvidenceError as e:
+            completion_error = e
         except OSError as e:
             _send_json(self, 500, {"ok": False, "error": str(e)})
             return
@@ -1628,6 +1666,10 @@ class Handler(BaseHTTPRequestHandler):
             tpath.unlink()
         except OSError as e:
             _send_json(self, 500, {"ok": False, "error": str(e)})
+            return
+        if completion_error is not None:
+            _send_json(self, 500, {"ok": False, "mutation_applied": True,
+                                   "evidence_complete": False, "error": str(completion_error)})
             return
         _send_json(self, 200, {"ok": True, "task": task})
 
@@ -1701,6 +1743,8 @@ class Handler(BaseHTTPRequestHandler):
         # _write_doc guard'ı patlar ve kısmi mutasyon kalırdı.
         _guard_core_write(tpath)
         try:
+            from core.evidence_settings import archive_removed_file
+            archive_removed_file(lumos_base_dir(), tpath, operation="panel.task.delete_permanent")
             tpath.unlink()
         except OSError as e:
             _send_json(self, 500, {"ok": False, "error": str(e)})

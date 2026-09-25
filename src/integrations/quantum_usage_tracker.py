@@ -70,7 +70,7 @@ def propose_quantum_mode_change(*, base_dir: Path | None = None) -> dict[str, An
 def apply_quantum_mode_change(
     mode: QuantumUsageMode,
     *,
-    user_approved: bool = True,
+    user_approved: bool = False,
     base_dir: Path | None = None,
 ):
     return apply_mode_change(
