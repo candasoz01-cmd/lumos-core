@@ -164,6 +164,13 @@ Not: passphrase diske yazılmaz (`panel_tasks_server.py` 1126). Onay beklerken `
 
 **Teknik borç kaydı önerisi:** Yukarıdaki (1) ve (2) için `TECHNICAL_DEBT.md`'ye **yeni** bir satır eklenmesi önerilir: **TD-14** — "panel trash yazımı merkezi sink'i atlıyor + panel upload handler eksik". (Numara notu: TD-12 ve TD-13 bu analizden sonra başka işlere verildi, bu yüzden sıradaki boş numara TD-14'tür.) **Bu PR TD-02'ye dokunmaz** ve register'ı bu analiz fazında değiştirmez; kayıt, kullanıcı onayıyla ayrı bir adımda açılabilir.
 
+> **Düzeltme (2026-09-23, `d16eee04`):** Yukarıdaki TD-14 rezervasyonu **geçersizdir ve TD numarası açılmamıştır.** Her iki iddia da bugünkü `main`'de doğrulandı ve karşılığı yok:
+> **(1)** Panel `.lumos` yazımları artık merkezi guard'dan geçiyor — `panel/scripts/panel_tasks_server.py` `core.workspace_contract`'tan `allow_write_to_core` / `CoreWriteForbidden` / `save_trash_record_json` import ediyor; `_guard_core_write()` (`:121`) çağrı yerleri `:308`, `:480`, `:1702`; trash kaydı `save_trash_record_json` ile yazılıyor (`:493`).
+> **(2)** Panel upload yüzeyi ölü değil — gerçek handler var: `packages/kando_bridge/src/kando_bridge/panel_upload.py`, `server.py:2618-2619`'da `/panel/upload` canonical ucuna bağlı.
+> Eski rezervasyon tek başına aktif teknik borç sayılmaz. `TD-14` kimliği first-audio gecikmesi kaydında kaldı; port çakışması `TD-40` oldu (`candasoz01-cmd/lumos-core#882`).
+>
+> **Kalan gözlem (borç kaydı DEĞİL, karar bekliyor):** `panel_tasks_server.py:1301` `consent.json`'ı `_guard_core_write()` çağırmadan doğrudan `write_text` ile yazıyor; diğer `.lumos` yazımları guard'dan geçiyor. Dar bir tutarsızlık, rezerve edilen borcun konusu değil.
+
 ---
 
 ## 9. Tür

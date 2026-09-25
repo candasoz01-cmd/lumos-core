@@ -67,7 +67,7 @@ Sınıflandırma deny’de `unclassified`; "saldırgan" yazılmaz.
 
 ## Bu dilimin dışı
 
-- Varsayılan-on ve kalan execute yüzeyleri (TD-20)
+- Varsayılan-on ve kalan execute yüzeyleri (TD-41; 2026-09-23'e kadar TD-20)
 - ADR-024 AuthorityGrant
 - CU4 / `approval_token` yerine geçme
 - Dağıtık/WORM ledger
