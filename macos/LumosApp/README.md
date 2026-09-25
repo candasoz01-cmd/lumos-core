@@ -48,20 +48,24 @@ derlemede macOS izni geçersiz sayabilir; listede Lumos’u kapatıp yeniden aç
   geliştirme) ana çerçevesine izin verilir; macOS gizlilik izni ayrıca sorulur.
   Yayın imzası (hardened runtime) için `com.apple.security.device.audio-input` ve
   `com.apple.security.device.camera` entitlement'ları vardır.
-- **Dosya seçici:** Artı › Fotoğraf seç, Artı › Kamera, ses dosyası ve Dosyalar,
-  `<input type="file">` kullanır; kabuk bunları macOS dosya seçicisiyle açar.
-  Not: panelde masaüstü için kamerayla fotoğraf **çekme** özelliği yoktur (canlı
-  önizleme var, kare yakalama yok); Mac'te Artı › Kamera, masaüstü Safari'deki gibi
-  dosya seçiciyi açar.
+- **Kamera:** Artı › Kamera gerçek Mac kamerasını açar (canlı önizleme +
+  **Fotoğraf çek**, Vazgeç / Esc). Panel `capture` öznitelikli fotoğraf girişini
+  tıklar; iOS bunu kamerayla karşılar, macOS WebKit dosya seçici açardı. Kabuk bu
+  tıklamayı yakalar, çekilen JPEG'i aynı girişe dosya olarak verir; panelin mevcut
+  fotoğraf yolu sohbete ekler. İlk kullanımda macOS kamera izni sorulur.
+- **Dosya seçici:** Artı › Fotoğraf seç, ses dosyası ve Dosyalar (`capture`
+  olmayan `<input type="file">`) macOS dosya seçicisiyle açılır.
 - **Masaüstü işareti:** kabuk her sayfada `data-lumos-app="true"` koyar; panel bununla
   tam modda kalır (işaret yalnız `?source=desktop` sorgusuna bağlıyken giriş dönüşü
   gibi gezinmelerde kayboluyor, panel "Sınırlı mod"a düşüyordu).
 - **Tanı günlüğü:** JS hataları, `getUserMedia` sonucu, MediaRecorder biçim desteği,
-  `/api/bridge/transcribe` ve `/api/auth/session` HTTP durumları ve mikrofon/kamera
-  ipucu metinleri birleşik log'a yazılır (ses, metin, token yazılmaz):
+  `/api/bridge/transcribe` ve `/api/auth/session` HTTP durumu + yanıttaki `error`
+  kodu, kamera olayları ve mikrofon/kamera ipucu metinleri birleşik log'a yazılır
+  (ses, metin, token yazılmaz). Hatalar `error` düzeyindedir, sonradan da okunur:
 
   ```bash
-  log stream --level info --predicate 'subsystem == "com.welockai.Lumos"'
+  log stream --level info --predicate 'subsystem == "com.welockai.Lumos"'   # canlı
+  log show --last 1h --predicate 'subsystem == "com.welockai.Lumos"'        # geriye dönük
   ```
 
 ## Yerel build ve imza
@@ -87,7 +91,7 @@ ilgili log satırını not edin.
 | 1b | Girişi yarıda iptal et | Panel olduğu yerde kalır; log: `cancelled by user` |
 | 2 | **Alt mikrofon** → konuş → durdur | Kayıt başlar (ipucu "kaydediliyor"), sonra metin yazma alanına gelir; log: `media.getUserMedia.ok audio`, `http /api/bridge/transcribe 200` |
 | 3 | **Artı › Ses kaydı** → konuş → durdur → **Metne çevir** | Kayıt oynatılır; metin önizlemesi gelir; log: `http /api/bridge/transcribe 200` |
-| 4 | **Artı › Kamera** | macOS dosya seçici açılır (masaüstünde kamera çekimi yok, yukarıdaki not) |
+| 4 | **Artı › Kamera** → **Fotoğraf çek** | Dosya seçici **açılmaz**; kamera önizlemesi açılır (ilk seferde macOS kamera izni), çekilen fotoğraf sohbet önizlemesine gelir; log: `camera.request`, `camera.captured`. Vazgeç / Esc pencereyi kapatır, kamera ışığı söner |
 | 5 | **Artı › Fotoğraf seç** | macOS dosya seçici açılır; seçilen görsel önizlemeye gelir; log: `file chooser closed selected=1` |
 | 6 | Safari'de İngilizce paragraf seç → ⌃⌥⌘T | Kaynak + Türkçe çeviri; "Kopyala" sonrası ⌘V çeviriyi yapıştırır (Erişilebilirlik izni yoksa önce açıklama görünür) |
 | 7 | Panoya başka metin kopyala → Google Docs'ta metin seç → ⌃⌥⌘T → sonra ⌘V | Çeviri gelir; ⌘V **önceki** pano içeriğini yapıştırır |
@@ -96,8 +100,18 @@ ilgili log satırını not edin.
 | 10 | Kısayolu değiştir, uygulamayı kapat-aç | Eski kısayol çalışmaz, yeni kısayol çalışır ve korunur |
 | 11 | Zayıf bağ | `otool -l dist/Lumos.app/Contents/MacOS/Lumos \| grep -A2 LC_LOAD_WEAK_DYLIB` içinde `Translation.framework`; macOS 15 öncesinde uygulama açılır, çeviri penceresi "Lumos çevirisi için macOS 15 veya üzeri gerekir." der, çökmez |
 
-2 veya 3 başarısızsa log'daki `http /api/bridge/transcribe <kod>` belirleyicidir:
-`401` oturum/köprü yetkisi, `502` köprüye ulaşılamadı, `503` motor/köprü yapılandırması.
+2 veya 3 başarısızsa log'daki `http /api/bridge/transcribe <durum> <error>` satırı
+kök nedeni söyler; panel motor kapalı durumu dışında hepsini aynı "Metne çeviri
+tamamlanamadı" ile gösterir (motor kapalıysa "motoru henüz bağlı değil" der):
+
+| Log | Anlamı | Kim düzeltir |
+|-----|--------|--------------|
+| `503 bridge_proxy_unconfigured` | Üretimde `BRIDGE_UPSTREAM_URL` yok — hosted panelin STT yolu hiç bağlı değil | Vercel env (sahip) — `docs/vercel-bridge-proxy-setup.md` |
+| `503 bridge_proxy_auth_unconfigured` / `…secret_unconfigured` | Proxy yetki/secret env'i yok | Vercel env (sahip) |
+| `401 bridge_proxy_unauthorized` | Oturumun Lumos ID'si `LUMOS_BRIDGE_ALLOWED_LUMOS_IDS` içinde değil (ya da oturum yok) | Vercel env (sahip) |
+| `502 bridge_upstream_unreachable` | Tünel veya PC köprüsü kapalı | PC'de köprü + tünel |
+| `503 transcribe_engine_unavailable` | Köprüde STT kapalı (`KANDO_STT_ENABLED=1` + faster-whisper) | PC köprü ortamı |
+| `200` ama metin yok | Konuşma algılanmadı / motor boş döndü | Kayıt/motor |
 
 Derleme (Xcode 16+ / macOS 15 SDK):
 

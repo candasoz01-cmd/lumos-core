@@ -245,6 +245,11 @@ final class LumosWebDiagnostics: NSObject, WKScriptMessageHandler {
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
         ))
+        controller.addUserScript(WKUserScript(
+            source: LumosCameraCapture.script,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        ))
     }
 
     func userContentController(
@@ -254,7 +259,24 @@ final class LumosWebDiagnostics: NSObject, WKScriptMessageHandler {
         guard let body = message.body as? [String: Any] else { return }
         let kind = String(String(describing: body["kind"] ?? "").prefix(64))
         let detail = String(String(describing: body["detail"] ?? "").prefix(300))
-        LumosLog.web.info("\(kind, privacy: .public) \(detail, privacy: .public)")
+        if Self.isFailure(kind: kind, detail: detail) {
+            // error düzeyi kalıcıdır: `log show --last 1h --predicate 'subsystem == "com.welockai.Lumos"'`
+            LumosLog.web.error("\(kind, privacy: .public) \(detail, privacy: .public)")
+        } else {
+            LumosLog.web.info("\(kind, privacy: .public) \(detail, privacy: .public)")
+        }
+    }
+
+    /// `http <yol> <durum> [hata_kodu]` ≥ 400, JS hataları, kamera/medya hataları.
+    static func isFailure(kind: String, detail: String) -> Bool {
+        if kind.hasPrefix("js.") || kind.hasSuffix(".fail") || kind.hasSuffix(".error")
+            || kind.hasSuffix(".missing") {
+            return true
+        }
+        guard kind == "http" else { return false }
+        let parts = detail.split(separator: " ")
+        guard parts.count >= 2, let status = Int(parts[1]) else { return false }
+        return status >= 400
     }
 
     static let script = """
@@ -309,7 +331,16 @@ final class LumosWebDiagnostics: NSObject, WKScriptMessageHandler {
           if (/\\/api\\/(bridge\\/transcribe|auth\\/session)/.test(url)) {
             const path = url.replace(/[?#].*$/, "");
             pending.then(
-              (res) => post("http", path + " " + res.status),
+              (res) => {
+                if (res.ok || typeof res.clone !== "function") {
+                  post("http", path + " " + res.status);
+                  return;
+                }
+                res.clone().json().then(
+                  (data) => post("http", path + " " + res.status + " " + String((data && data.error) || "-").slice(0, 64)),
+                  () => post("http", path + " " + res.status + " -"),
+                );
+              },
               (err) => post("http.fail", path + " " + (err && err.name)),
             );
           }
@@ -327,6 +358,187 @@ final class LumosWebDiagnostics: NSObject, WKScriptMessageHandler {
       document.addEventListener("DOMContentLoaded", () => {
         ["panel-voice-hint", "panel-audio-record-hint", "panel-camera-hint"].forEach(watchHint);
       });
+    })();
+    """
+}
+
+/// Artı › Kamera: panel `capture` öznitelikli fotoğraf girişini tıklar. iOS
+/// WebKit bunu kamerayla karşılar; macOS WebKit yok sayıp dosya seçici açar.
+/// Kabuk bu tıklamayı yakalar, gerçek Mac kamerasını (getUserMedia, macOS kamera
+/// izni) önizleme + "Fotoğraf çek" ile açar ve çekilen JPEG'i **aynı girişe**
+/// dosya olarak verip `change` tetikler — panelin mevcut fotoğraf yolu
+/// (`bindCameraPhotoFromFile`) sohbete ekler. `capture` olmayan girişler
+/// (Artı › Fotoğraf seç, Dosyalar) dokunulmadan macOS dosya seçicisine gider.
+enum LumosCameraCapture {
+    static let script = """
+    (() => {
+      if (window.__lumosMacCamera) return;
+      window.__lumosMacCamera = true;
+      const post = (kind, detail) => {
+        try {
+          window.webkit.messageHandlers.lumosDiag.postMessage({
+            kind: String(kind),
+            detail: String(detail == null ? "" : detail).slice(0, 300),
+          });
+        } catch (_) {}
+      };
+      const wantsCamera = (el) =>
+        el instanceof HTMLInputElement &&
+        el.type === "file" &&
+        el.hasAttribute("capture") &&
+        /image/i.test(el.accept || "image/*");
+      let open = false;
+
+      function stamp() {
+        const d = new Date();
+        const p = (n) => String(n).padStart(2, "0");
+        return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + "-" + p(d.getHours()) + p(d.getMinutes()) + p(d.getSeconds());
+      }
+
+      function deliver(input, file) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        input.files = dt.files;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+
+      function openCamera(input) {
+        if (open) return;
+        open = true;
+        let stream = null;
+        const previousFocus = document.activeElement;
+        const root = document.createElement("div");
+        root.setAttribute("role", "dialog");
+        root.setAttribute("aria-modal", "true");
+        root.setAttribute("aria-label", "Kamera");
+        root.dataset.lumosCamera = "open";
+        root.style.cssText =
+          "position:fixed;inset:0;z-index:2147483647;display:grid;place-items:center;" +
+          "background:rgba(3,7,20,0.86);font-family:-apple-system,BlinkMacSystemFont,sans-serif;color:#e8edf4";
+        const card = document.createElement("div");
+        card.style.cssText =
+          "width:min(720px,calc(100vw - 32px));background:#0a0e14;border:1px solid #1f2a37;" +
+          "border-radius:16px;padding:16px;display:grid;gap:12px";
+        const video = document.createElement("video");
+        video.autoplay = true;
+        video.muted = true;
+        video.playsInline = true;
+        video.setAttribute("playsinline", "");
+        video.style.cssText = "width:100%;aspect-ratio:16/9;max-height:60vh;object-fit:cover;background:#000;border-radius:12px;transform:scaleX(-1)";
+        const status = document.createElement("p");
+        status.setAttribute("role", "status");
+        status.style.cssText = "margin:0;font-size:14px;color:#9aa8b8;min-height:1.2em";
+        status.textContent = "Kamera açılıyor…";
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;gap:10px;justify-content:flex-end";
+        const cancel = document.createElement("button");
+        cancel.type = "button";
+        cancel.textContent = "Vazgeç";
+        cancel.dataset.lumosCameraAction = "cancel";
+        cancel.style.cssText =
+          "padding:10px 16px;border-radius:10px;border:1px solid #334155;background:transparent;color:#e8edf4;font-size:15px;cursor:pointer";
+        const shoot = document.createElement("button");
+        shoot.type = "button";
+        shoot.textContent = "Fotoğraf çek";
+        shoot.disabled = true;
+        shoot.dataset.lumosCameraAction = "shoot";
+        shoot.style.cssText =
+          "padding:10px 18px;border-radius:10px;border:none;background:#38ceff;color:#030714;font-weight:700;font-size:15px;cursor:pointer";
+        row.append(cancel, shoot);
+        card.append(video, status, row);
+        root.append(card);
+        document.body.append(root);
+
+        function close(reason) {
+          if (stream) stream.getTracks().forEach((t) => t.stop());
+          stream = null;
+          root.remove();
+          document.removeEventListener("keydown", onKey, true);
+          open = false;
+          post("camera.close", reason);
+          if (previousFocus && typeof previousFocus.focus === "function") previousFocus.focus();
+        }
+        function onKey(e) {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            close("escape");
+          }
+        }
+        document.addEventListener("keydown", onKey, true);
+        cancel.addEventListener("click", () => close("cancel"));
+
+        shoot.addEventListener("click", () => {
+          const w = video.videoWidth;
+          const h = video.videoHeight;
+          if (!w || !h) {
+            status.textContent = "Görüntü henüz hazır değil, tekrar deneyin.";
+            return;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext("2d").drawImage(video, 0, 0, w, h);
+          shoot.disabled = true;
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                status.textContent = "Fotoğraf oluşturulamadı.";
+                shoot.disabled = false;
+                post("camera.error", "toBlob_failed");
+                return;
+              }
+              const file = new File([blob], "Lumos-Kamera-" + stamp() + ".jpg", { type: "image/jpeg" });
+              post("camera.captured", w + "x" + h + " " + blob.size);
+              close("captured");
+              deliver(input, file);
+            },
+            "image/jpeg",
+            0.92,
+          );
+        });
+
+        const md = navigator.mediaDevices;
+        if (!md || typeof md.getUserMedia !== "function") {
+          status.textContent = "Bu cihazda kamera kullanılamıyor.";
+          post("camera.error", "getUserMedia_missing");
+          return;
+        }
+        md.getUserMedia({ video: { width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }).then(
+          (s) => {
+            if (!open) {
+              s.getTracks().forEach((t) => t.stop());
+              return;
+            }
+            stream = s;
+            video.srcObject = s;
+            status.textContent = "";
+            shoot.disabled = false;
+            shoot.focus();
+          },
+          (err) => {
+            const name = (err && err.name) || "Error";
+            status.textContent =
+              name === "NotAllowedError"
+                ? "Kamera izni verilmedi. Sistem Ayarları › Gizlilik ve Güvenlik › Kamera › Lumos."
+                : "Kamera açılamadı (" + name + ").";
+            post("camera.error", name + ": " + ((err && err.message) || ""));
+          },
+        );
+      }
+
+      document.addEventListener(
+        "click",
+        (e) => {
+          const el = e.target;
+          if (!wantsCamera(el)) return;
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          post("camera.request", "capture=" + el.getAttribute("capture"));
+          openCamera(el);
+        },
+        true,
+      );
     })();
     """
 }

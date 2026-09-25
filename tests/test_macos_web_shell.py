@@ -31,15 +31,24 @@ def _shell() -> str:
     return _read(SOURCES / "LumosWebShell.swift")
 
 
-def _diag_script() -> str:
+def _swift_js(anchor: str) -> str:
     """Swift çok satırlı dizesindeki JS'i JS olarak geri üretir."""
     shell = _shell()
-    start = shell.index('static let script = """') + len('static let script = """')
+    start = shell.index(anchor)
+    start = shell.index('static let script = """', start) + len('static let script = """')
     end = shell.index('"""', start)
     body = shell[start:end]
     lines = body.splitlines()
     indent = min(len(ln) - len(ln.lstrip()) for ln in lines if ln.strip())
     return "\n".join(ln[indent:] for ln in lines).replace("\\\\", "\\")
+
+
+def _diag_script() -> str:
+    return _swift_js("final class LumosWebDiagnostics")
+
+
+def _camera_script() -> str:
+    return _swift_js("enum LumosCameraCapture")
 
 
 # --- dosya seçici ve medya izni ---
@@ -170,7 +179,11 @@ Object.defineProperty(globalThis, "navigator", {
   writable: true,
 });
 global.MediaRecorder = { isTypeSupported: (t) => t === "audio/mp4" };
-global.fetch = async () => ({ status: 401 });
+global.fetch = async (url) => ({
+  status: String(url).includes("transcribe") ? 503 : 401,
+  ok: false,
+  clone: () => ({ json: async () => ({ error: "bridge_proxy_unconfigured", text: "gizli transkript" }) }),
+});
 require(process.argv[2]);
 (async () => {
   const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -195,10 +208,11 @@ require(process.argv[2]);
     by_kind = {p["kind"]: p["detail"] for p in out["posts"]}
     assert by_kind["media.getUserMedia.ok"] == "audio"
     assert "audio/mp4=true" in by_kind["media.recorder.support"]
-    assert by_kind["http"] == "/api/bridge/transcribe 401"
+    assert by_kind["http"] == "/api/bridge/transcribe 503 bridge_proxy_unconfigured"
     assert by_kind["js.error"] == "boom @https://x/a.js:7"
     raw = json.dumps(out["posts"])
     assert "secret-should-not-leak" not in raw
+    assert "gizli transkript" not in raw  # yanıttan yalnız `error` kodu alınır
     assert "/api/bridge/task" not in raw  # yalnız izlenen uçlar
 
 
@@ -238,3 +252,43 @@ def test_record_preview_transcript_filename_follows_recorder_mime() -> None:
     fn = runtime[runtime.index("function audioRecordingFilenameForMime(") :]
     fn = fn[: fn.index("\n      }\n")]
     assert 'return "recording.mp4"' in fn and 'return "recording.webm"' in fn
+
+
+def test_diag_failures_are_logged_at_persisted_error_level() -> None:
+    shell = _shell()
+    assert "LumosLog.web.error(" in shell
+    fn = shell[shell.index("static func isFailure(") :]
+    fn = fn[: fn.index("\n    }\n")]
+    assert 'kind.hasPrefix("js.")' in fn and "status >= 400" in fn
+
+
+# --- kamera: gerçek kamera, dosya seçici değil ---
+
+
+def test_camera_capture_intercepts_capture_inputs_only() -> None:
+    js = _camera_script()
+    assert 'el.hasAttribute("capture")' in js
+    assert "e.preventDefault();" in js
+    assert "getUserMedia({ video:" in js
+    assert 'new File([blob], "Lumos-Kamera-"' in js
+    assert 'input.dispatchEvent(new Event("change", { bubbles: true }))' in js
+    assert "getTracks().forEach((t) => t.stop())" in js
+    # Swift dizesine kaçışsız gömülür.
+    assert "\\" not in js
+    shell = _shell()
+    assert "source: LumosCameraCapture.script" in shell
+    # Panel sözleşmesi: Kamera `capture` koyar, Fotoğraf seç kaldırır; change → files[0].
+    runtime = _read(ROOT / "ui" / "src" / "components" / "panel" / "PanelRuntime.astro")
+    assert 'cameraPhotoInput.setAttribute("capture", "environment");' in runtime
+    assert 'cameraPhotoInput.removeAttribute("capture");' in runtime
+    assert "cameraPhotoInput.files && cameraPhotoInput.files[0]" in runtime
+    readme = _read(APP_DIR / "README.md")
+    assert "dosya seçiciyi açar" not in readme.split("## Web kabuğu")[1].split("## Yerel build")[0]
+
+
+def test_camera_script_parses(tmp_path: Path) -> None:
+    node = _node()
+    js = tmp_path / "camera.js"
+    js.write_text(_camera_script(), encoding="utf-8")
+    result = subprocess.run([node, "--check", str(js)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
