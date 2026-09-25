@@ -18,6 +18,8 @@ Safe, non-destructive: no external side effects, no destructive actions.
 """
 from __future__ import annotations
 
+from core.bridge_evidence import BridgeEvidenceError
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -213,6 +215,8 @@ def run(
             general_approval=general_approval,
             lumos_base=lumos_base,
         )
+    except BridgeEvidenceError:
+        raise
     except Exception:
         pass
 
