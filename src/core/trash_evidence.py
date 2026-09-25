@@ -59,8 +59,10 @@ def move_with_evidence(base, source, destination):
     _save(base, 'trash_moves', {**transaction, 'phase': 'before'})
     copied = False
     captured = destination
+    destination_published = False
     try:
         os.rename(source, destination)
+        destination_published = True
     except OSError as exc:
         if exc.errno != errno.EXDEV:
             raise
@@ -106,6 +108,7 @@ def move_with_evidence(base, source, destination):
             if os.path.lexists(destination):
                 raise FileExistsError(f'Trash target already exists: {destination}')
             os.rename(captured, destination)
+            destination_published = True
             fd = os.open(destination.parent, os.O_RDONLY)
             try:
                 os.fsync(fd)
@@ -123,7 +126,7 @@ def move_with_evidence(base, source, destination):
                 os.close(fd)
         _save(base, 'trash_moves', {**transaction, 'phase': 'move_verified'})
     except OSError as exc:
-        if not copied or not os.path.lexists(source):
+        if destination_published:
             error = CompletionEvidenceError(
                 f'Trash move applied; completion verification unavailable; '
                 f'do not blindly retry; destination: {destination}'

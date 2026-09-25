@@ -171,3 +171,42 @@ def test_rename_completion_failure_reports_applied_destination(tmp_path, monkeyp
     intent = json.loads(next((base / 'evidence_archive/trash_moves').glob('*.json')).read_text())
     assert intent['id'] == result.value.transaction_id
     assert intent['destination'] == str(result.value.destination)
+
+
+@pytest.mark.parametrize('failure', ['destination_fsync', 'source_unlink'])
+def test_cross_device_published_destination_reports_partial_completion(tmp_path, monkeypatch, failure):
+    import errno
+    import core.trash_evidence as te
+    from core.evidence_settings import CompletionEvidenceError
+    source = tmp_path / 'source.txt'
+    source.write_bytes(b'preserve both copies')
+    base = tmp_path / 'workspace'
+    destination = base / 'trash/source.txt'
+    rename, fsync, unlink = te.os.rename, te.os.fsync, Path.unlink
+
+    def cross_device(src, dst):
+        if Path(src) == source:
+            raise OSError(errno.EXDEV, 'cross device')
+        return rename(src, dst)
+
+    def fail_fsync(fd):
+        if failure == 'destination_fsync' and destination.exists():
+            raise OSError('destination parent fsync failed')
+        return fsync(fd)
+
+    def fail_unlink(path, *args, **kwargs):
+        if failure == 'source_unlink' and path == source:
+            raise OSError('source removal failed')
+        return unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(te.os, 'rename', cross_device)
+    monkeypatch.setattr(te.os, 'fsync', fail_fsync)
+    monkeypatch.setattr(Path, 'unlink', fail_unlink)
+    with pytest.raises(CompletionEvidenceError, match='do not blindly retry') as error:
+        move_to_trash(base, source)
+    assert error.value.mutation_applied is True
+    assert error.value.destination == destination
+    assert destination.read_bytes() == source.read_bytes() == b'preserve both copies'
+    records = [json.loads(p.read_text()) for p in (base / 'evidence_archive/trash_moves').glob('*.json')]
+    assert all(r['id'] == error.value.transaction_id for r in records)
+    assert not any(r['phase'] == 'move_verified' for r in records)
