@@ -41,7 +41,7 @@ PartnerU kalanları · sertifikalar · sunumlar. Ürünü bekler.
 | --- | --- | --- |
 | v0.4 | Kimlik + Chat | Fiilen bugünkü durum |
 | v0.5 | Dosya + Görev sistemi | **Tamam** — Dosya kabul 2026-08-12; Görev panel canlı (önceki kanıt) |
-| v0.6 | Mobil temel | **Sıradaki** — TestFlight (Apple hesap) |
+| v0.6 | Mobil temel | **Sıradaki** — mobilde görev + onay + kontrollü icra zinciri ([2026-09-25 tanımı](#v06-mobil--asgari-sürüm-tanımı-2026-09-25)) · TestFlight (Apple hesap) |
 | v1.0 | İlk genel sürüm (FAZ 1 tamam) | Bekliyor (v0.6 sonrası) |
 
 ### v0.5 Dosya — kabul kaydı (2026-08-12)
@@ -53,6 +53,19 @@ PartnerU kalanları · sertifikalar · sunumlar. Ürünü bekler.
 | Uç | `GET /panel` 200 · `>Yükle<` · `fetch(UPLOAD_URL` · upload HEAD/GET/POST **401** |
 | PR omurga | lumos-core #659 route · #661 panel wire · #660 UX |
 | Bilinçli dışı | Sandbox redirect, trash sink derinliği, yeni upload UI — Faz 1 kapısı değil |
+
+### v0.6 Mobil — asgari sürüm tanımı (2026-09-25)
+
+| Alan | Değer |
+| --- | --- |
+| Karar | Kurucu kararı (2026-09-25). Telefondaki Lumos'un ilk gerçek sürümü şu zinciri çalıştırır: **kullanıcı söyler → Lumos görevi anlar → gerekiyorsa izin/onay ister → yetkisi kadar işi yapar → ne yaptığını kanıtıyla geri getirir.** |
+| Kabul kapısı | Görev + onay + kontrollü icra zinciri mobilde uçtan uca, gerçek iPhone'da çalışır. Bu zincir çalışmadan "Lumos iOS hazır" denmez; v0.6 **Tamam** sayılmaz. |
+| Önceki kararı düzeltir | 2026-09-23 iOS ↔ Panel parite audit'inden çıkan A1–A5 (web araması, kamera/foto akışı, hafıza + hub ekranı, mobil oturum doğrulaması, iPhone model listesi) ilk aktivasyon paketi **değildir**, altyapı hazırlığıdır. Web, kamera ve hafıza bu zincirin üstüne gelir. |
+| Bugünkü durum (kanıt) | iOS sohbet, görsel, canlı ses ve hafıza kullanır; görev, onay ve icra yapmaz. Görev API loopback'te (`panel/scripts/panel_tasks_server.py`, `127.0.0.1:8766`); köprü yalnız localhost kabul eder (`packages/kando_bridge/src/kando_bridge/server.py` `_check_loopback`); `api/mobile/workspace-hub.js` her kartta `operations_enabled: false`, `approvals: []`. |
+| Eksik halka | Telefonun ulaşabildiği, kimliği doğrulanmış görev + onay + icra kanalı — [`lumos-mobile-approval-mvp-plan.md`](analysis/lumos-mobile-approval-mvp-plan.md) §1. |
+| Sınır | Yeni orkestrasyon katmanı açılmaz ([STOP LIST](#stop-list)); mevcut görev motoru, onay sözleşmesi (`lumos.pc_remote_pending_approval.v1`) ve politika kapıları yeniden kullanılır. Tasarım koddan önce ayrı ADR ve kurucu onayı ister. |
+| Repo sınırı | Sunucu tarafı `lumos-core`; iOS istemcisi private `lumos-ios`. |
+| İlke | Telefona eksik bir sohbet kopyası değil, Lumos konur. |
 
 ## Durum haritası (2026-08-12 — kanıta dayalı)
 
