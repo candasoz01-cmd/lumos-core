@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
-from core.evidence_settings import _save
+from core.evidence_settings import CompletionEvidenceError, _save
 from lumos_board.evidence_policy import EvidencePolicy
 
 
@@ -76,49 +76,60 @@ def move_with_evidence(base, source, destination):
             _save(base, 'trash_moves', {**transaction, 'phase': 'copy_failed'})
             raise
         copied = True
-    if manifest(captured) != snapshot or (copied and manifest(source) != snapshot):
-        _save(base, 'trash_moves', {**transaction, 'phase': 'verification_failed'})
-        raise OSError('Trash destination content does not match captured source')
-    if copied:
-        for row in snapshot:
-            target = captured if row['path'] == '.' else captured / row['path']
-            if row['kind'] == 'file':
-                with target.open('rb') as stream:
-                    os.fsync(stream.fileno())
-        for row in reversed(snapshot):
-            if row['kind'] == 'directory':
+    try:
+        if manifest(captured) != snapshot or (copied and manifest(source) != snapshot):
+            _save(base, 'trash_moves', {**transaction, 'phase': 'verification_failed'})
+            raise OSError('Trash destination content does not match captured source')
+        if copied:
+            for row in snapshot:
                 target = captured if row['path'] == '.' else captured / row['path']
-                fd = os.open(target, os.O_RDONLY)
-                try:
-                    os.fsync(fd)
-                finally:
-                    os.close(fd)
-        fd = os.open(captured.parent, os.O_RDONLY)
-        try:
-            os.fsync(fd)
-        finally:
-            os.close(fd)
-        if manifest(source) != snapshot:
-            _save(base, 'trash_moves', {**transaction, 'phase': 'source_changed'})
-            raise OSError('Trash source changed before removal')
-        # Only verified, durable content may appear as a completed trash item.
-        if os.path.lexists(destination):
-            raise FileExistsError(f'Trash target already exists: {destination}')
-        os.rename(captured, destination)
-        fd = os.open(destination.parent, os.O_RDONLY)
-        try:
-            os.fsync(fd)
-        finally:
-            os.close(fd)
-        if source.is_dir() and not source.is_symlink():
-            shutil.rmtree(source)
-        else:
-            source.unlink()
-    for parent in {source.parent, destination.parent}:
-        fd = os.open(parent, os.O_RDONLY)
-        try:
-            os.fsync(fd)
-        finally:
-            os.close(fd)
-    _save(base, 'trash_moves', {**transaction, 'phase': 'move_verified'})
+                if row['kind'] == 'file':
+                    with target.open('rb') as stream:
+                        os.fsync(stream.fileno())
+            for row in reversed(snapshot):
+                if row['kind'] == 'directory':
+                    target = captured if row['path'] == '.' else captured / row['path']
+                    fd = os.open(target, os.O_RDONLY)
+                    try:
+                        os.fsync(fd)
+                    finally:
+                        os.close(fd)
+            fd = os.open(captured.parent, os.O_RDONLY)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            if manifest(source) != snapshot:
+                _save(base, 'trash_moves', {**transaction, 'phase': 'source_changed'})
+                raise OSError('Trash source changed before removal')
+            # Only verified, durable content may appear as a completed trash item.
+            if os.path.lexists(destination):
+                raise FileExistsError(f'Trash target already exists: {destination}')
+            os.rename(captured, destination)
+            fd = os.open(destination.parent, os.O_RDONLY)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+            if source.is_dir() and not source.is_symlink():
+                shutil.rmtree(source)
+            else:
+                source.unlink()
+        for parent in {source.parent, destination.parent}:
+            fd = os.open(parent, os.O_RDONLY)
+            try:
+                os.fsync(fd)
+            finally:
+                os.close(fd)
+        _save(base, 'trash_moves', {**transaction, 'phase': 'move_verified'})
+    except OSError as exc:
+        if not copied or not os.path.lexists(source):
+            error = CompletionEvidenceError(
+                f'Trash move applied; completion verification unavailable; '
+                f'do not blindly retry; destination: {destination}'
+            )
+            error.destination = destination
+            error.transaction_id = transaction['id']
+            raise error from exc
+        raise
     return destination

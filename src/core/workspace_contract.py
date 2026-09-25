@@ -336,7 +336,9 @@ def save_task_store_json(
     tasks_dir_path = Path(tasks_dir)
     target_path = tasks_dir_path / "tasks.json"
     journal_base = writing_base_dir(
-        live_base_dir if live_base_dir is not None else tasks_dir_path.parent,
+        live_base_dir if live_base_dir is not None else (
+            tasks_dir_path.parent if tasks_dir_path.name == "tasks" else tasks_dir_path
+        ),
         sandbox_mode,
     )
     mutation = mutation or "store_write"

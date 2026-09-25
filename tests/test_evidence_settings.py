@@ -404,3 +404,23 @@ def test_panel_restore_finishes_trash_consumption_after_completion_evidence_fail
     assert not path.exists()
     assert json.loads((tmp_path / 'tasks.json').read_text())['tasks'][0]['id'] == 'legacy'
     assert len(list((tmp_path / 'evidence_archive/deleted_content').glob('*.json'))) == 1
+
+
+@pytest.mark.parametrize('layout', ['workspace', 'tasks', 'explicit'])
+def test_sandbox_task_journal_matches_archive_workspace(tmp_path, layout):
+    from core.workspace_contract import save_task_store_json
+    base = tmp_path / 'workspace'
+    tasks = base if layout == 'workspace' else base / 'tasks'
+    if layout == 'explicit':
+        tasks = tmp_path / 'isolated'
+    tasks.mkdir(parents=True)
+    from core.workspace_contract import CoreWriteForbidden
+    if layout == 'tasks':
+        with pytest.raises(CoreWriteForbidden):
+            save_task_store_json(tasks, {'tasks': []}, sandbox_mode=True)
+    else:
+        save_task_store_json(tasks, {'tasks': []}, sandbox_mode=True,
+                             live_base_dir=base if layout == 'explicit' else None)
+    assert (base / 'sandbox/logs/evidence_continuity.jsonl').is_file()
+    assert not (tmp_path / 'sandbox').exists()
+    assert not (base / 'logs').exists()

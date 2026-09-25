@@ -131,3 +131,43 @@ def test_failed_copy_preserved_outside_trash_and_retry_succeeds(tmp_path, monkey
     assert destination.read_text() == 'original'
     assert not source.exists()
     assert pending[0].read_text() == 'partial'
+
+
+@pytest.mark.parametrize('failure', ['final_record', 'parent_fsync', 'verification'])
+def test_rename_completion_failure_reports_applied_destination(tmp_path, monkeypatch, failure):
+    import core.trash_evidence as te
+    from core.evidence_settings import CompletionEvidenceError
+    source = tmp_path / 'source.txt'
+    source.write_bytes(b'original bytes')
+    base = tmp_path / 'workspace'
+    save, fsync, capture = te._save, te.os.fsync, te.manifest
+
+    def failing_save(base, kind, record):
+        if record['phase'] == 'move_verified':
+            raise OSError('completion journal unavailable')
+        return save(base, kind, record)
+
+    def failing_fsync(fd):
+        if not source.exists():
+            raise OSError('parent fsync unavailable')
+        return fsync(fd)
+
+    def failing_capture(path):
+        if Path(path) != source:
+            raise OSError('verification unavailable')
+        return capture(path)
+
+    if failure == 'final_record':
+        monkeypatch.setattr(te, '_save', failing_save)
+    elif failure == 'parent_fsync':
+        monkeypatch.setattr(te.os, 'fsync', failing_fsync)
+    else:
+        monkeypatch.setattr(te, 'manifest', failing_capture)
+    with pytest.raises(CompletionEvidenceError, match='do not blindly retry') as result:
+        move_to_trash(base, source)
+    assert result.value.mutation_applied is True
+    assert result.value.destination.read_bytes() == b'original bytes'
+    assert not source.exists()
+    intent = json.loads(next((base / 'evidence_archive/trash_moves').glob('*.json')).read_text())
+    assert intent['id'] == result.value.transaction_id
+    assert intent['destination'] == str(result.value.destination)
