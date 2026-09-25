@@ -86,3 +86,46 @@ def test_brain_propagates_archive_error_after_execution(tmp_path, monkeypatch):
     with pytest.raises(BridgeEvidenceError):
         run('görevi analiz et', store, tmp_path / 'tasks', PROFILE_GUVENLI_YURUT, True)
     assert len(store.list_all()) == 1
+
+
+def test_executor_summary_retains_exact_previous_content(tmp_path):
+    from kando.cursor_executor import run_after_bridge
+    folder = tmp_path / 'cursor_bridge'
+    folder.mkdir()
+    target = folder / 'last_cursor_executor.json'
+    old = b'{ "legacy": [1, 2], "unknown": true }\n'
+    target.write_bytes(old)
+    run_after_bridge(tmp_path, SimpleNamespace(execution_mode='task', constraints={}))
+    copies = list((tmp_path / 'evidence_archive/deleted_content').glob('*.json'))
+    assert len(copies) == 1
+    assert base64.b64decode(json.loads(copies[0].read_text())['content']['data']) == old
+    assert json.loads(target.read_text())['execution_mode'] == 'task'
+
+
+def test_executor_summary_archive_failure_keeps_previous_content(tmp_path, monkeypatch):
+    from kando.cursor_executor import run_after_bridge
+    import core.evidence_settings as settings
+    folder = tmp_path / 'cursor_bridge'
+    folder.mkdir()
+    target = folder / 'last_cursor_executor.json'
+    target.write_bytes(b'previous summary')
+    def fail(*args, **kwargs):
+        raise OSError('archive unavailable')
+    monkeypatch.setattr(settings, '_save', fail)
+    with pytest.raises(BridgeEvidenceError):
+        run_after_bridge(tmp_path, SimpleNamespace(execution_mode='patch', constraints={}))
+    assert target.read_bytes() == b'previous summary'
+
+
+def test_brain_propagates_executor_summary_archive_error(tmp_path, monkeypatch):
+    from core.brain import run
+    from task_engine import TaskStore, PROFILE_GUVENLI_YURUT
+    import kando.cursor_executor as executor
+    monkeypatch.setenv('LUMOS_BASE_DIR', str(tmp_path))
+    def fail(*args, **kwargs):
+        raise BridgeEvidenceError('summary archive unavailable; do not replay')
+    monkeypatch.setattr(executor, 'run_after_bridge', fail)
+    store = TaskStore(tmp_path / 'tasks')
+    with pytest.raises(BridgeEvidenceError, match='summary archive'):
+        run('görevi analiz et', store, tmp_path / 'tasks', PROFILE_GUVENLI_YURUT, True)
+    assert len(store.list_all()) == 1

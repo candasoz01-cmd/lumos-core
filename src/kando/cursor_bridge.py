@@ -1332,6 +1332,8 @@ def persist_bridge_after_brain(
         from kando.cursor_executor import run_after_bridge
 
         run_after_bridge(base, exe)
+    except BridgeEvidenceError:
+        raise
     except Exception:
         pass
     return _last_bridge_packets
@@ -3125,6 +3127,8 @@ def _write_minimal_bridge_files(
         from kando.cursor_executor import run_after_bridge
 
         run_after_bridge(base, exe)
+    except BridgeEvidenceError:
+        raise
     except Exception:
         pass
     return p_exec, p_res, exe, res_pkt
