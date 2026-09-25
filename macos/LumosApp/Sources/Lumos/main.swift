@@ -5,7 +5,29 @@ private let defaultLumosURL = "https://welockai.com/panel?source=desktop"
 
 @MainActor
 final class LumosNavigationDelegate: NSObject, WKNavigationDelegate, WKUIDelegate {
-    private let allowedHosts = Set(["welockai.com", "www.welockai.com", "127.0.0.1", "localhost"])
+    private let origin: LumosAppOrigin
+    private let allowedHosts: Set<String>
+    private let onGoogleSignIn: @MainActor () -> Void
+
+    init(origin: LumosAppOrigin, onGoogleSignIn: @escaping @MainActor () -> Void) {
+        self.origin = origin
+        self.allowedHosts = LumosTrust.allowedHosts(for: origin)
+        self.onGoogleSignIn = onGoogleSignIn
+    }
+
+    /// Panelin "Google ile Giriş" bağlantısı (`/auth/google/start`) ya da Google'ın
+    /// kendi sayfası. Dış tarayıcıda biten giriş oturumu uygulamaya geri getiremez;
+    /// akış ASWebAuthenticationSession'a (mobil OAuth sözleşmesi) alınır.
+    private func isGoogleSignIn(_ url: URL) -> Bool {
+        let host = (url.host ?? "").lowercased()
+        if host == "accounts.google.com" { return true }
+        guard allowedHosts.contains(host) else { return false }
+        guard url.path == "/auth/google/start" || url.path == "/api/auth/google/start" else {
+            return false
+        }
+        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        return !query.contains { $0.name == "mobile" && $0.value == "1" }
+    }
 
     func webView(
         _ webView: WKWebView,
@@ -17,7 +39,13 @@ final class LumosNavigationDelegate: NSObject, WKNavigationDelegate, WKUIDelegat
             return
         }
 
-        if url.scheme == "file" || allowedHosts.contains(url.host ?? "") {
+        if isGoogleSignIn(url) {
+            decisionHandler(.cancel)
+            onGoogleSignIn()
+            return
+        }
+
+        if url.scheme == "file" || allowedHosts.contains((url.host ?? "").lowercased()) {
             decisionHandler(.allow)
             return
         }
@@ -33,11 +61,18 @@ final class LumosNavigationDelegate: NSObject, WKNavigationDelegate, WKUIDelegat
         windowFeatures: WKWindowFeatures
     ) -> WKWebView? {
         if let url = navigationAction.request.url {
+            if isGoogleSignIn(url) {
+                onGoogleSignIn()
+                return nil
+            }
             NSWorkspace.shared.open(url)
         }
         return nil
     }
 
+    /// Mikrofon/kamera: yalnız güvenilen kökenin ana çerçevesine izin; macOS TCC
+    /// izni (Info.plist kullanım açıklamaları) yine ayrıca sorulur. `.prompt`
+    /// her kayıtta ikinci bir WebKit onayı açıyordu.
     func webView(
         _ webView: WKWebView,
         requestMediaCapturePermissionFor origin: WKSecurityOrigin,
@@ -45,7 +80,33 @@ final class LumosNavigationDelegate: NSObject, WKNavigationDelegate, WKUIDelegat
         type: WKMediaCaptureType,
         decisionHandler: @escaping @MainActor (WKPermissionDecision) -> Void
     ) {
-        decisionHandler(.prompt)
+        let trusted = frame.isMainFrame
+            && LumosTrust.isTrusted(scheme: origin.`protocol`, host: origin.host, origin: self.origin)
+        LumosLog.media.info(
+            "capture request type=\(type.rawValue, privacy: .public) host=\(origin.host, privacy: .public) decision=\(trusted ? "grant" : "deny", privacy: .public)"
+        )
+        decisionHandler(trusted ? .grant : .deny)
+    }
+
+    /// `<input type="file">` (Artı › Fotoğraf seç / Kamera / Ses dosyası, Dosyalar).
+    /// macOS WKWebView bu metot olmadan dosya seçici açmaz; tıklama sessizce boşa gider.
+    @objc(webView:runOpenPanelWithParameters:initiatedByFrame:completionHandler:)
+    func webView(
+        _ webView: WKWebView,
+        runOpenPanelWith parameters: WKOpenPanelParameters,
+        initiatedByFrame frame: WKFrameInfo,
+        completionHandler: @escaping @MainActor ([URL]?) -> Void
+    ) {
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = true
+        panel.canChooseDirectories = parameters.allowsDirectories
+        panel.allowsMultipleSelection = parameters.allowsMultipleSelection
+        panel.resolvesAliases = true
+        LumosLog.web.info("file chooser opened multiple=\(parameters.allowsMultipleSelection, privacy: .public)")
+        // Kapanışsız modal: WebKit seçimi completionHandler ile bekler.
+        let urls = panel.runModal() == .OK ? panel.urls : nil
+        LumosLog.web.info("file chooser closed selected=\(urls?.count ?? 0, privacy: .public)")
+        completionHandler(urls)
     }
 
     func webView(
@@ -66,7 +127,7 @@ final class LumosNavigationDelegate: NSObject, WKNavigationDelegate, WKUIDelegat
 
     private func showConnectionError(in webView: WKWebView) {
         let target = webView.url?.absoluteString
-            ?? ProcessInfo.processInfo.environment["LUMOS_APP_URL"]
+            ?? origin.panelURL?.absoluteString
             ?? defaultLumosURL
         let safeTarget = target
             .replacingOccurrences(of: "&", with: "&amp;")
@@ -101,18 +162,34 @@ final class LumosNavigationDelegate: NSObject, WKNavigationDelegate, WKUIDelegat
 final class LumosAppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
     private var webView: WKWebView?
-    private let navigationDelegate = LumosNavigationDelegate()
+    private var navigationDelegate: LumosNavigationDelegate?
+    private var googleSignIn: LumosGoogleSignIn?
+    private let webDiagnostics = LumosWebDiagnostics()
     private let selectionTranslator = LumosSelectionTranslator()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let rawURL = ProcessInfo.processInfo.environment["LUMOS_APP_URL"] ?? defaultLumosURL
+        guard let url = URL(string: rawURL), let origin = LumosAppOrigin(url: url) else {
+            preconditionFailure("Invalid LUMOS_APP_URL")
+        }
+
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .default()
         configuration.preferences.isElementFullscreenEnabled = true
         configuration.applicationNameForUserAgent = "LumosMac/1.0"
+        webDiagnostics.install(on: configuration.userContentController)
+
+        let googleSignIn = LumosGoogleSignIn(origin: origin)
+        let navigationDelegate = LumosNavigationDelegate(origin: origin) { [weak googleSignIn] in
+            googleSignIn?.start()
+        }
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = navigationDelegate
         webView.uiDelegate = navigationDelegate
+        googleSignIn.attach(webView: webView)
+        self.googleSignIn = googleSignIn
+        self.navigationDelegate = navigationDelegate
         webView.allowsMagnification = false
 
         let window = NSWindow(
@@ -133,10 +210,6 @@ final class LumosAppDelegate: NSObject, NSApplicationDelegate {
         self.window = window
         self.webView = webView
 
-        let rawURL = ProcessInfo.processInfo.environment["LUMOS_APP_URL"] ?? defaultLumosURL
-        guard let url = URL(string: rawURL) else {
-            preconditionFailure("Invalid LUMOS_APP_URL")
-        }
         webView.load(URLRequest(url: url, cachePolicy: .reloadRevalidatingCacheData))
         selectionTranslator.start()
         NSApp.activate(ignoringOtherApps: true)

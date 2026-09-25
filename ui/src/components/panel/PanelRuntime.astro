@@ -725,6 +725,13 @@ const {
       }
 
       /** Kayıt önizlemesi / Dosyalar kartı için ortak Metne çevir UI. */
+      function audioRecordingFilenameForMime(mime) {
+        const type = String(mime || "").toLowerCase();
+        if (type.includes("mp4") || type.includes("aac") || type.includes("m4a")) return "recording.mp4";
+        if (type.includes("ogg")) return "recording.ogg";
+        return "recording.webm";
+      }
+
       function wireStandaloneAudioTranscriptUi(container, getBlob, options) {
         if (!container) return;
         const opts = options && typeof options === "object" ? options : {};
@@ -734,6 +741,7 @@ const {
         const privacyClass = opts.privacyClass || "chat-audio-transcript-privacy";
         const filename = opts.filename || "recording.webm";
         const mime = opts.mime || "audio/webm";
+        const filenameFromBlob = opts.filenameFromBlob === true;
         const source = opts.source || "preview";
         const includeAddToChat = opts.includeAddToChat !== false;
 
@@ -888,10 +896,14 @@ const {
           showStatus(() => panelT("panel.modules.chat.transcript.busyMsg"), { showMusicWarn: false });
           try {
             const blobMime = blob.type || mime;
+            // WebKit (Safari / Lumos Mac) MediaRecorder çoğunlukla audio/mp4 üretir; köprü
+            // geçici dosya uzantısını addan aldığı için ad gerçek türle aynı olmalı
+            // (alt mikrofon yolu voiceCaptureFilename ile zaten böyle yapıyor).
+            const sendName = filenameFromBlob ? audioRecordingFilenameForMime(blobMime) : filename;
             const result = await requestLocalTranscription(
               blob,
               source,
-              filename,
+              sendName,
               blobMime,
             );
             if (result.ok && result.text) {
@@ -6856,6 +6868,7 @@ const {
             source: "record-preview",
             filename: "recording.webm",
             mime: "audio/webm",
+            filenameFromBlob: true,
           });
         }
 

@@ -24,13 +24,45 @@ for size in 16 32 128 256 512; do
 done
 iconutil -c icns "${ICONSET}" -o "${OUTPUT}/Contents/Resources/Lumos.icns"
 
+# Translation.framework macOS 14.0–14.3'te yok; güçlü bağlıysa uygulama bu
+# sürümlerde açılmaz. Package.swift zayıf bağlar; burada kanıtlanır.
+if ! otool -l "${OUTPUT}/Contents/MacOS/Lumos" | grep -A2 "cmd LC_LOAD_WEAK_DYLIB" \
+  | grep -q "Translation.framework"; then
+  echo "HATA: Translation.framework zayıf bağlı değil (LC_LOAD_WEAK_DYLIB yok)" >&2
+  exit 1
+fi
+if otool -l "${OUTPUT}/Contents/MacOS/Lumos" | grep -A2 "cmd LC_LOAD_DYLIB" \
+  | grep -q "Translation"; then
+  echo "HATA: Translation (veya SwiftUI overlay'i) güçlü bağlı; macOS 14.0–14.3'te açılmaz" >&2
+  exit 1
+fi
+
+ENTITLEMENTS="${APP_DIR}/Lumos.entitlements"
 if [[ "${SIGNING_IDENTITY}" == "-" ]]; then
-  codesign --force --deep --entitlements "${APP_DIR}/Lumos.entitlements" \
+  # Ad-hoc (yerel test / CI) imza: `com.apple.developer.associated-domains`
+  # kısıtlı bir entitlement'tır, provisioning profile ister; profilsiz imzada
+  # macOS uygulamayı açılışta öldürür. Yerel build'de çıkarılır; yayın imzasında
+  # (aşağıdaki dal) applinks:welockai.com aynen korunur.
+  ADHOC_ENTITLEMENTS="${APP_DIR}/.build/Lumos.adhoc.entitlements"
+  cp "${ENTITLEMENTS}" "${ADHOC_ENTITLEMENTS}"
+  /usr/libexec/PlistBuddy -c "Delete :com.apple.developer.associated-domains" \
+    "${ADHOC_ENTITLEMENTS}" >/dev/null 2>&1 || true
+  codesign --force --deep --entitlements "${ADHOC_ENTITLEMENTS}" \
     --sign - "${OUTPUT}" >/dev/null
+  if codesign -d --entitlements - --xml "${OUTPUT}" 2>/dev/null \
+    | grep -q "com.apple.developer.associated-domains"; then
+    echo "HATA: ad-hoc imzada associated-domains kaldı; uygulama açılmaz" >&2
+    exit 1
+  fi
 else
   codesign --force --deep --options runtime --timestamp \
-    --entitlements "${APP_DIR}/Lumos.entitlements" \
+    --entitlements "${ENTITLEMENTS}" \
     --sign "${SIGNING_IDENTITY}" "${OUTPUT}" >/dev/null
+  if ! codesign -d --entitlements - --xml "${OUTPUT}" 2>/dev/null \
+    | grep -q "applinks:welockai.com"; then
+    echo "HATA: yayın imzasında applinks:welockai.com yok" >&2
+    exit 1
+  fi
 fi
 codesign --verify --deep --strict "${OUTPUT}"
 echo "Lumos.app hazır: ${OUTPUT}"
