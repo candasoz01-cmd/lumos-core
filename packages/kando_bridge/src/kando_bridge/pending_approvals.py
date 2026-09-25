@@ -10,6 +10,8 @@ import json
 import os
 import secrets
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Literal
@@ -326,6 +328,72 @@ def consume_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]
     return record
 
 
+_EXCL_LOCK_TIMEOUT_SECONDS = 5.0
+_EXCL_LOCK_STALE_SECONDS = 30.0
+_EXCL_LOCK_POLL_SECONDS = 0.01
+
+
+class ApprovalLockTimeout(Exception):
+    """Sidecar kilidi zamanında alınamadı — tüketim fail-closed reddedilir."""
+
+
+def _import_fcntl() -> Any:
+    try:
+        import fcntl  # Unix-only
+    except ImportError:
+        return None
+    return fcntl
+
+
+@contextmanager
+def _exclusive_sidecar_lock(lock_path: Path) -> Iterator[None]:
+    """``<name>.json.lock`` üzerinde süreçler arası dışlayıcı kilit.
+
+    Unix'te ``fcntl.flock``; ``fcntl`` yoksa (Windows) ``O_CREAT | O_EXCL`` ile
+    atomik oluşturulan kilit dosyası. Kilit ``timeout`` içinde alınamazsa
+    :class:`ApprovalLockTimeout` — çağıran kilitsiz yürütmeye **düşmez**.
+    """
+    fcntl = _import_fcntl()
+    if fcntl is not None:
+        with lock_path.open("a", encoding="utf-8") as lock_fh:
+            fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock_fh.fileno(), fcntl.LOCK_UN)
+        return
+
+    excl_path = lock_path.with_name(f"{lock_path.name}.excl")
+    deadline = time.monotonic() + _EXCL_LOCK_TIMEOUT_SECONDS
+    while True:
+        try:
+            fd = os.open(str(excl_path), os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            break
+        except FileExistsError:
+            try:
+                age = time.time() - excl_path.stat().st_mtime
+            except OSError:
+                age = 0.0
+            if age > _EXCL_LOCK_STALE_SECONDS:
+                # Çökmüş bir sürecin bıraktığı kilit; kaldırıp yeniden dene.
+                try:
+                    excl_path.unlink()
+                except OSError:
+                    pass
+                continue
+            if time.monotonic() >= deadline:
+                raise ApprovalLockTimeout(str(excl_path)) from None
+            time.sleep(_EXCL_LOCK_POLL_SECONDS)
+    try:
+        os.close(fd)
+        yield
+    finally:
+        try:
+            excl_path.unlink()
+        except OSError:
+            pass
+
+
 def try_consume_approval_token(
     repo_root: Path,
     approval_id: str,
@@ -334,14 +402,14 @@ def try_consume_approval_token(
     """
     Validate approved token and mark ``used=True`` before stub execute (replay guard).
 
-    Re-reads disk under an exclusive lock when available (Unix) to reduce TOCTOU races.
-    Kilit, JSON dosyasının kendisinde değil sabit bir ``<name>.json.lock`` sidecar
-    dosyasında tutulur: kayıt ``os.replace`` ile atomik yenilendiğinden inode değişir,
-    JSON üzerindeki flock ikinci okuyucuyu serileştiremezdi.
+    Diski dışlayıcı kilit altında yeniden okur (TOCTOU). Kilit, JSON dosyasının
+    kendisinde değil sabit bir ``<name>.json.lock`` sidecar dosyasında tutulur:
+    kayıt ``os.replace`` ile atomik yenilendiğinden inode değişir, JSON üzerindeki
+    flock ikinci okuyucuyu serileştiremezdi.
 
-    Windows: ``fcntl`` is unavailable — falls back to validate + write without an
-    exclusive lock. Concurrent double-execute is possible on Windows until a
-    cross-platform lock (e.g. ``msvcrt.locking``) is added.
+    Unix: ``fcntl.flock``. ``fcntl`` yoksa (Windows) ``O_EXCL`` kilit dosyası;
+    kilit alınamazsa ``approval_lock_timeout`` ile reddedilir — kilitsiz
+    doğrula+yaz yoluna düşülmez.
     """
     tok = (token or "").strip()
     aid = (approval_id or "").strip()
@@ -358,36 +426,22 @@ def try_consume_approval_token(
     if not is_pc_remote_pending(_record):
         return False, "not_pc_remote_pending", None
 
+    lock_path = path.with_name(f"{path.name}.lock")
     try:
-        import fcntl  # Unix-only; CI runs on Linux
-    except ImportError:
-        fcntl = None  # type: ignore[assignment]
-
-    if fcntl is not None:
-        lock_path = path.with_name(f"{path.name}.lock")
-        with lock_path.open("a", encoding="utf-8") as lock_fh:
-            fcntl.flock(lock_fh.fileno(), fcntl.LOCK_EX)
-            try:
-                fresh = _load_json_path(path)
-                if fresh is None:
-                    return False, "approval_not_found", None
-                mark_expired_if_needed(path, fresh)
-                ok, reason, _ = _validate_record_for_execute(fresh, tok)
-                if not ok:
-                    return False, reason, None
-                fresh["used"] = True
-                fresh["consumed_at"] = _iso(_utc_now())
-                _atomic_write_json(path, fresh)
-                return True, "", fresh
-            finally:
-                fcntl.flock(lock_fh.fileno(), fcntl.LOCK_UN)
-
-    ok, reason, record = validate_approval_token(repo_root, aid, tok)
-    if not ok or record is None:
-        return False, reason, None
-    if bool(record.get("used")):
-        return False, "approval_already_used", None
-    return True, "", consume_pending_record(path, record)
+        with _exclusive_sidecar_lock(lock_path):
+            fresh = _load_json_path(path)
+            if fresh is None:
+                return False, "approval_not_found", None
+            mark_expired_if_needed(path, fresh)
+            ok, reason, _ = _validate_record_for_execute(fresh, tok)
+            if not ok:
+                return False, reason, None
+            fresh["used"] = True
+            fresh["consumed_at"] = _iso(_utc_now())
+            _atomic_write_json(path, fresh)
+            return True, "", fresh
+    except ApprovalLockTimeout:
+        return False, "approval_lock_timeout", None
 
 
 def _validate_record_for_execute(

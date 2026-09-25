@@ -63,8 +63,9 @@ PartnerU kalanları · sertifikalar · sunumlar. Ürünü bekler.
 | Önceki kararı düzeltir | 2026-09-23 iOS ↔ Panel parite audit'inden çıkan A1–A5 (web araması, kamera/foto akışı, hafıza + hub ekranı, mobil oturum doğrulaması, iPhone model listesi) ilk aktivasyon paketi **değildir**, altyapı hazırlığıdır. Web, kamera ve hafıza bu zincirin üstüne gelir. |
 | Bugünkü durum (kanıt) | iOS sohbet, görsel, canlı ses ve hafıza kullanır; görev, onay ve icra yapmaz. Görev API loopback'te (`panel/scripts/panel_tasks_server.py`, `127.0.0.1:8766`); köprü yalnız localhost kabul eder (`packages/kando_bridge/src/kando_bridge/server.py` `_check_loopback`); `api/mobile/workspace-hub.js` her kartta `operations_enabled: false`, `approvals: []`. |
 | Eksik halka | Telefonun ulaşabildiği, kimliği doğrulanmış görev + onay + icra kanalı — [`lumos-mobile-approval-mvp-plan.md`](analysis/lumos-mobile-approval-mvp-plan.md) §1. |
-| Sınır | Yeni orkestrasyon katmanı açılmaz ([STOP LIST](#stop-list)); mevcut görev motoru, onay sözleşmesi (`lumos.pc_remote_pending_approval.v1`) ve politika kapıları yeniden kullanılır. Tasarım koddan önce ayrı ADR ve kurucu onayı ister. |
+| Sınır | Yeni orkestrasyon katmanı açılmaz ([STOP LIST](#stop-list)); mevcut görev motoru, onay sözleşmesi (`lumos.pc_remote_pending_approval.v1`) ve politika kapıları yeniden kullanılır. Mevcut sözleşmeyle devam edilir; ADR yalnız mevcut sözleşmelerin cevaplamadığı yeni bir yetki/mimari kararı çıkarsa gerekir. |
 | Repo sınırı | Sunucu tarafı `lumos-core`; iOS istemcisi private `lumos-ios`. |
+| Taşıma (2026-09-25) | Kurucu kararı: v0.6 önce **aynı Wi-Fi / yerel ağ** üzerinden mevcut RB-06 LAN relay ile kapanır. İnternet üzerinden uzaktan icra ayrı kapıdır; belgelenmiş erteleme ([`device-pairing-strategy.md`](analysis/device-pairing-strategy.md) P9) sürer. |
 | İlke | Telefona eksik bir sohbet kopyası değil, Lumos konur. |
 
 ## Durum haritası (2026-08-12 — kanıta dayalı)

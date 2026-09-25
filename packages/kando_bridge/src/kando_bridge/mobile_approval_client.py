@@ -404,20 +404,40 @@ def _approve_or_reject(args: argparse.Namespace, *, approved: bool) -> int:
     if not token:
         print("relay token required (--relay-token or LUMOS_RELAY_TOKEN)", file=sys.stderr)
         return 1
-    if not args.approval_token:
-        print("--approval-token required", file=sys.stderr)
+    if not (args.approval_file or args.approval_id or args.task_id):
+        print("--approval-file, --approval-id veya --task-id gerekli", file=sys.stderr)
         return 1
     base = _relay_base(args.relay_url)
     path = "relay/approve" if approved else "relay/reject"
-    body: dict[str, Any] = {"approval_token": args.approval_token}
+    # Relay onay token'ını PC tarafında çözer; istemci token taşımaz.
+    body: dict[str, Any] = {}
     if args.approval_file:
         body["approval_file"] = args.approval_file
     if args.approval_id:
         body["approval_id"] = args.approval_id
+    if args.task_id:
+        body["task_id"] = args.task_id
     status, payload = _request_json(
         "POST",
         urljoin(base + "/", path),
         body=body,
+        relay_token=token,
+        timeout=args.timeout,
+    )
+    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    return 0 if 200 <= status < 300 and payload.get("accepted", payload.get("ok")) else 1
+
+
+def cmd_task(args: argparse.Namespace) -> int:
+    token = _relay_token_from_args(args)
+    if not token:
+        print("relay token required (--relay-token or LUMOS_RELAY_TOKEN)", file=sys.stderr)
+        return 1
+    base = _relay_base(args.relay_url)
+    status, payload = _request_json(
+        "POST",
+        urljoin(base + "/", "relay/task"),
+        body={"text": args.text},
         relay_token=token,
         timeout=args.timeout,
     )
@@ -439,25 +459,29 @@ def build_relay_parser() -> argparse.ArgumentParser:
     p_disc.set_defaults(func=cmd_discover)
 
     p_pair = sub.add_parser("pair", help="Exchange pairing code for relay token")
-    p_pair.add_argument("pairing_code", help="6-char pairing code from PC beacon/discover")
+    p_pair.add_argument("pairing_code", help="6-char pairing code shown on the PC")
     p_pair.add_argument("--mobile-device-id", default="")
     p_pair.add_argument("--save-token", action="store_true", help="Print export LUMOS_RELAY_TOKEN=…")
     p_pair.set_defaults(func=cmd_pair)
 
-    p_pending = sub.add_parser("pending", help="List pc_remote pending approvals")
+    p_pending = sub.add_parser("pending", help="List pending approvals (PC remote + tasks)")
     p_pending.set_defaults(func=cmd_pending)
 
-    p_app = sub.add_parser("approve", help="Approve a pending request")
-    p_app.add_argument("--approval-file", default="")
-    p_app.add_argument("--approval-id", default="")
-    p_app.add_argument("--approval-token", required=True)
-    p_app.set_defaults(func=cmd_approve)
+    p_task = sub.add_parser("task", help="Send a task to the PC (POST /relay/task)")
+    p_task.add_argument("text", help="Task text")
+    p_task.set_defaults(func=cmd_task)
 
-    p_rej = sub.add_parser("reject", help="Reject a pending request")
-    p_rej.add_argument("--approval-file", default="")
-    p_rej.add_argument("--approval-id", default="")
-    p_rej.add_argument("--approval-token", required=True)
-    p_rej.set_defaults(func=cmd_reject)
+    for name, func, help_text in (
+        ("approve", cmd_approve, "Approve a pending request"),
+        ("reject", cmd_reject, "Reject a pending request"),
+    ):
+        p_act = sub.add_parser(name, help=help_text)
+        p_act.add_argument("--approval-file", default="")
+        p_act.add_argument("--approval-id", default="")
+        p_act.add_argument("--task-id", default="")
+        # Geriye uyumluluk: kabul edilir, relay'e gönderilmez.
+        p_act.add_argument("--approval-token", default="", help=argparse.SUPPRESS)
+        p_act.set_defaults(func=func)
 
     return ap
 
@@ -467,7 +491,7 @@ def build_relay_parser() -> argparse.ArgumentParser:
 def _is_relay_cli(argv: list[str]) -> bool:
     if "--relay-url" in argv or "--beacon" in argv:
         return True
-    relay_only = {"discover", "pair", "pending"}
+    relay_only = {"discover", "pair", "pending", "task"}
     for i, arg in enumerate(argv):
         if arg in relay_only:
             return True
@@ -476,7 +500,7 @@ def _is_relay_cli(argv: list[str]) -> bool:
                 return False
             if any(
                 flag in argv
-                for flag in ("--approval-token", "--approval-file", "--approval-id")
+                for flag in ("--approval-token", "--approval-file", "--approval-id", "--task-id")
             ):
                 return True
     return False

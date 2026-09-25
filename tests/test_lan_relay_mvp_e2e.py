@@ -319,7 +319,9 @@ def test_udp_beacon_loopback() -> None:
     listener.join(timeout=3.0)
     assert received and received[0] is not None
     msg = received[0]
-    assert msg["pairing_id"] == "BEAC01"
+    # UDP yayını LAN'daki herkese gider: eşleştirme kodu beacon'da ASLA yok.
+    assert "pairing_id" not in msg
+    assert "BEAC01" not in json.dumps(msg)
     assert msg["relay_port"] == 8766
     assert "secret" not in json.dumps(msg).lower()
 
@@ -345,12 +347,14 @@ def test_pair_returns_mobile_url(relay_server: tuple[int, RelayState, RelayConfi
     assert payload.get("relay_token")
     mobile_url = payload.get("mobile_url") or payload.get("mobile_ui")
     assert mobile_url
-    assert mobile_url.startswith("/relay/mobile?token=")
+    # Token fragment'ta: sunucuya, log'a ve Referer'a gitmez.
+    assert mobile_url.startswith("/relay/mobile#token=")
+    assert "?token=" not in mobile_url
 
 
 def test_mobile_ui_path_helper() -> None:
     assert mobile_ui_path() == "/relay/mobile"
-    assert mobile_ui_path(token="abc") == "/relay/mobile?token=abc"
+    assert mobile_ui_path(token="abc") == "/relay/mobile#token=abc"
 
 
 def test_build_mobile_ui_html_contains_controls() -> None:
@@ -361,7 +365,8 @@ def test_build_mobile_ui_html_contains_controls() -> None:
     assert 'data-act="reject"' in html
     assert "/relay/approve" in html
     assert "/relay/reject" in html
-    assert "approval_token" in html
+    # Onay token'ı telefona gitmez; arayüz onu ne okur ne gönderir.
+    assert "approval_token" not in html
     assert "error-banner" in html
     assert "headline" in html
     assert "formatExpiry" in html
@@ -451,6 +456,7 @@ def test_handler_unit_pairing_expired() -> None:
 def test_beacon_payload_shape() -> None:
     state = RelayState(device_name="MyPC", pairing_id="ABC123")
     payload = build_beacon_payload(state, 8766)
-    assert payload["pairing_id"] == "ABC123"
+    assert "pairing_id" not in payload
+    assert "ABC123" not in json.dumps(payload)
     assert payload["pc_name"] == "MyPC"
     assert payload["relay_port"] == 8766

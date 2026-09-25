@@ -14,6 +14,8 @@ from pathlib import Path
 from typing import Any, TypedDict
 
 from kando_bridge.pending_approvals import (
+    STATUS_APPROVED,
+    STATUS_PENDING,
     approve_pending_record,
     build_pc_remote_pending_record,
     find_pending_by_token,
@@ -701,9 +703,27 @@ def approve_pc_remote_pending(
         return False, "approval_expired", None
     if bool(record.get("used")):
         return False, "zaten kullanıldı", None
+    status = str(record.get("status") or STATUS_PENDING)
     if not approved:
+        # Kullanılmamış onayı yürütmeden önce geri çekmek serbest; bitmiş kayıt değil.
+        if status not in (STATUS_PENDING, STATUS_APPROVED):
+            return False, "approval_not_pending", None
         reject_pending_record(path, record)
         return True, "", {"status": "rejected", "approval_id": record.get("approval_id")}
+    if status == STATUS_APPROVED:
+        # Çift onay idempotent: kayıt yeniden yazılmaz, onay zamanı ve denetim izi
+        # ilk onaydaki haliyle kalır; yürütme yine tek kullanımlık token kapısından geçer.
+        return True, "", {
+            "status": STATUS_APPROVED,
+            "approval_id": record.get("approval_id"),
+            "command": record.get("command"),
+            "approval_token": record.get("approval_token"),
+            "approval_file": record.get("approval_file"),
+            "already_approved": True,
+            "message": "Zaten onaylı — POST /tools/execute ile approval_token gönderin",
+        }
+    if status != STATUS_PENDING:
+        return False, "approval_not_pending", None
     try:
         from policy.confirmation_policy import (
             is_confirmation_enabled,

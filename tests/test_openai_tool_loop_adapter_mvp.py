@@ -257,7 +257,7 @@ def _make_mock_bridge_request(
         headers: dict[str, str],
         body: bytes | None,
     ) -> tuple[int, dict[str, Any]]:
-        if method.upper() == "GET" and path == "/pending_approvals":
+        if method.upper() == "GET" and path.startswith("/pending_approvals"):
             return 200, {"items": build_pending_approvals_list(include_approval_token=True)}
         if method.upper() == "POST" and path == "/tools/execute":
             obj = json.loads((body or b"{}").decode("utf-8"))

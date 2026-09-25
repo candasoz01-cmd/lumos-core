@@ -5,6 +5,8 @@ import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import pytest
+
 from kando_bridge.pc_remote_tools import (
     CMD_OPEN_URL,
     approve_pc_remote_pending,
@@ -117,7 +119,7 @@ def test_concurrent_execute_one_wins(tmp_path: Path) -> None:
     """
     Two threads race the same approved token — exactly one stub succeeds.
 
-    MVP uses fcntl on Unix; without lock both could succeed (documented gap on Windows).
+    Unix'te fcntl; fcntl yoksa O_EXCL kilit dosyası (bkz. *_without_fcntl testleri).
     """
     pending = execute_tool_stub(
         CMD_OPEN_URL,
@@ -270,3 +272,127 @@ def test_try_consume_rejects_expired_approved(tmp_path: Path) -> None:
     )
     assert ok is False
     assert reason == "approval_expired"
+
+
+def test_concurrent_execute_many_losers_without_fcntl(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """fcntl yok (Windows yolu): O_EXCL kilit dosyası yarışı yine tek kazanana indirir."""
+    import kando_bridge.pending_approvals as pa
+
+    monkeypatch.setattr(pa, "_import_fcntl", lambda: None)
+    pending = execute_tool_stub(CMD_OPEN_URL, {"url": "https://example.com"}, repo_root=tmp_path)
+    _approve_pending(tmp_path, pending)
+    n = 8
+    results: list[dict] = []
+    lock = threading.Lock()
+    barrier = threading.Barrier(n)
+
+    def _run() -> None:
+        barrier.wait()
+        r = execute_tool_stub(
+            CMD_OPEN_URL,
+            {"url": "https://example.com"},
+            approval_token=str(pending["approval_token"]),
+            approval_id=str(pending["approval_id"]),
+            repo_root=tmp_path,
+        )
+        with lock:
+            results.append(r)
+
+    threads = [threading.Thread(target=_run) for _ in range(n)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10.0)
+
+    assert [r.get("status") for r in results].count("stub") == 1
+    errors = sorted(str(r.get("error")) for r in results if r.get("status") != "stub")
+    assert errors == ["approval_already_used"] * (n - 1)
+    assert not list(tmp_path.rglob("*.excl"))
+
+
+def test_consume_lock_timeout_fails_closed_without_fcntl(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Kilit alınamazsa kilitsiz tüketime düşülmez; kayıt kullanılmamış kalır."""
+    import kando_bridge.pending_approvals as pa
+
+    monkeypatch.setattr(pa, "_import_fcntl", lambda: None)
+    monkeypatch.setattr(pa, "_EXCL_LOCK_TIMEOUT_SECONDS", 0.05)
+    pending = execute_tool_stub(CMD_OPEN_URL, {"url": "https://example.com"}, repo_root=tmp_path)
+    _approve_pending(tmp_path, pending)
+    found = find_pending_by_approval_id(tmp_path, str(pending["approval_id"]))
+    assert found is not None
+    held = found[0].with_name(f"{found[0].name}.lock.excl")
+    held.write_text("", encoding="utf-8")  # başka süreç kilidi tutuyor
+
+    ok, reason, _ = pa.try_consume_approval_token(
+        tmp_path, str(pending["approval_id"]), str(pending["approval_token"])
+    )
+    assert (ok, reason) == (False, "approval_lock_timeout")
+    again = find_pending_by_approval_id(tmp_path, str(pending["approval_id"]))
+    assert again is not None and again[1].get("used") is False
+    assert held.exists()  # başkasının kilidine dokunulmaz
+
+
+def test_stale_excl_lock_is_recovered_without_fcntl(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import os
+
+    import kando_bridge.pending_approvals as pa
+
+    monkeypatch.setattr(pa, "_import_fcntl", lambda: None)
+    pending = execute_tool_stub(CMD_OPEN_URL, {"url": "https://example.com"}, repo_root=tmp_path)
+    _approve_pending(tmp_path, pending)
+    found = find_pending_by_approval_id(tmp_path, str(pending["approval_id"]))
+    assert found is not None
+    stale = found[0].with_name(f"{found[0].name}.lock.excl")
+    stale.write_text("", encoding="utf-8")
+    old = datetime.now().timestamp() - (pa._EXCL_LOCK_STALE_SECONDS + 5)
+    os.utime(stale, (old, old))
+
+    ok, reason, rec = pa.try_consume_approval_token(
+        tmp_path, str(pending["approval_id"]), str(pending["approval_token"])
+    )
+    assert ok is True, reason
+    assert rec is not None and rec["used"] is True
+    assert not stale.exists()
+
+
+def test_double_approve_is_idempotent_and_does_not_rewrite(tmp_path: Path) -> None:
+    pending = execute_tool_stub(CMD_OPEN_URL, {"url": "https://example.com"}, repo_root=tmp_path)
+    found = find_pending_by_approval_id(tmp_path, str(pending["approval_id"]))
+    assert found is not None
+    ok, err, first = approve_pc_remote_pending(found[0], found[1], approved=True, repo_root=tmp_path)
+    assert ok is True, err
+    after_first = find_pending_by_approval_id(tmp_path, str(pending["approval_id"]))
+    assert after_first is not None
+    approved_at = after_first[1]["approved_at"]
+    audit = tmp_path / ".lumos" / "logs" / "audit_events.jsonl"
+    audit_lines = audit.read_text(encoding="utf-8").splitlines() if audit.exists() else []
+
+    ok2, err2, second = approve_pc_remote_pending(
+        after_first[0], after_first[1], approved=True, repo_root=tmp_path
+    )
+    assert ok2 is True, err2
+    assert second is not None and second["already_approved"] is True
+    again = find_pending_by_approval_id(tmp_path, str(pending["approval_id"]))
+    assert again is not None and again[1]["approved_at"] == approved_at
+    now_lines = audit.read_text(encoding="utf-8").splitlines() if audit.exists() else []
+    assert now_lines == audit_lines
+
+
+def test_approve_after_reject_is_refused(tmp_path: Path) -> None:
+    pending = execute_tool_stub(CMD_OPEN_URL, {"url": "https://example.com"}, repo_root=tmp_path)
+    found = find_pending_by_approval_id(tmp_path, str(pending["approval_id"]))
+    assert found is not None
+    ok, _, _ = approve_pc_remote_pending(found[0], found[1], approved=False, repo_root=tmp_path)
+    assert ok is True
+    rejected = find_pending_by_approval_id(tmp_path, str(pending["approval_id"]))
+    assert rejected is not None and rejected[1]["status"] == STATUS_REJECTED
+    ok2, err2, _ = approve_pc_remote_pending(
+        rejected[0], rejected[1], approved=True, repo_root=tmp_path
+    )
+    assert (ok2, err2) == (False, "approval_not_pending")

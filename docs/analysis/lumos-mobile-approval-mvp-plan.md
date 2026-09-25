@@ -472,8 +472,8 @@ Beklenen: `"status":"stub"`, disk kaydında `used:true`. Gerçek OS URL açma yo
 | Servis | Varsayılan | Not |
 |--------|------------|-----|
 | kando_bridge | `127.0.0.1:8765` | Loopback; `KANDO_BRIDGE_SECRET` |
-| LAN relay HTTP | `0.0.0.0:8766` | Mobile erişimi; bridge secret **expose edilmez** |
-| UDP beacon | `8767` | `pairing_id`, `relay_port`, `pc_name` only |
+| LAN relay HTTP | `127.0.0.1:8766` (LAN için açıkça `--host 0.0.0.0`) | Mobile erişimi; bridge secret **expose edilmez** |
+| UDP beacon | `8767` | `relay_port`, `pc_name`, `device_id`, `pairing_open`, `tls` — **eşleştirme kodu yok** (2026-09-25) |
 
 ### Keşif ve eşleştirme akışı
 
@@ -487,7 +487,7 @@ sequenceDiagram
   PC->>Relay: Start relay (pairing_id üretilir)
   Relay-->>Mobile: UDP beacon / GET /relay/discover
   Mobile->>Relay: POST /relay/pair {pairing_code}
-  Relay-->>Mobile: relay_token + mobile_url (/relay/mobile?token=…)
+  Relay-->>Mobile: relay_token + mobile_url (/relay/mobile#token=…)
   Mobile->>Relay: GET /relay/mobile (phone browser)
   Mobile->>Relay: GET /relay/pending + token
   Relay->>Bridge: GET /pending_approvals + KANDO_BRIDGE_SECRET
@@ -496,8 +496,8 @@ sequenceDiagram
   Relay->>Bridge: POST /approve
 ```
 
-1. **Keşif:** Mobile `GET /relay/discover` veya UDP beacon dinler (`pairing_id`, `relay_port`, `pc_name`). Bridge secret beacon'da **yok**.
-2. **Eşleştirme:** Mobile `POST /relay/pair` ile 6 karakter `pairing_code` gönderir (≈10 dk TTL). Yanıt: `relay_token` + `mobile_url` (`/relay/mobile?token=…`).
+1. **Keşif:** Mobile `GET /relay/discover` veya UDP beacon dinler (`relay_port`, `pc_name`, `device_id`, `tls`). Bridge secret ve eşleştirme kodu beacon'da **yok** — kod yalnız PC ekranında.
+2. **Eşleştirme:** Mobile `POST /relay/pair` ile 6 karakter `pairing_code` gönderir (≈10 dk TTL). Yanıt: `relay_token` + `mobile_url` (`/relay/mobile#token=…`). Kod tek kullanımlıktır; 5 hatalı denemede yenilenir.
 3. **Kimlik doğrulama:** Korunan uçlar `X-Relay-Token` ister (`discover` / beacon / `/relay/mobile` HTML hariç — sayfa token'ı sessionStorage'da tutar).
 4. **Onay:** `GET /relay/pending` veya **mobile web UI** (`GET /relay/mobile`) → köprüden `pc_remote` kayıtları filtrelenir. `POST /relay/approve` veya `/relay/reject` → köprü `/approve` proxy.
 
@@ -535,7 +535,7 @@ curl -s -X POST http://127.0.0.1:8765/tools/execute \
 Telefon tarayıcısında (pair sonrası):
 
 ```text
-http://192.168.x.x:8766/relay/mobile?token=<relay_token>
+http://192.168.x.x:8766/relay/mobile#token=<relay_token>
 ```
 
 Sayfa 5 sn'de bir `/relay/pending` poll eder; her kayıtta **Onayla / Approve** ve **Reddet / Reject** düğmeleri vardır.
@@ -552,8 +552,8 @@ export LUMOS_RELAY_TOKEN='…'    # pair çıktısından (Mobile UI satırı da 
 
 python -m kando_bridge.mobile_approval_client pending --relay-url "$RELAY"
 python -m kando_bridge.mobile_approval_client approve --relay-url "$RELAY" \
-  --approval-file '.lumos/pending_approvals/pc_remote_….json' \
-  --approval-token '…'
+  --approval-file '.lumos/pending_approvals/pc_remote_….json'
+# onay token'ı gerekmez — relay PC tarafında çözer
 ```
 
 UDP beacon ile keşif:
@@ -597,7 +597,92 @@ PYTHONPATH=src:packages/kando_bridge/src \
 
 Zincir: mock `function_call` (`pc_open_url`) → `POST /tools/execute` → `.lumos/pending_approvals/` → **mobile UI / CLI onay** → token ile stub yürütme → `used: true`.
 
-**Mobile web UI yolu:** `GET /relay/mobile` (LAN relay `:8766`; pair sonrası `?token=` ile).
+**Mobile web UI yolu:** `GET /relay/mobile` (LAN relay `:8766`; pair sonrası `#token=` ile).
+
+---
+
+## v0.6 — yerel ağ görev → onay → icra zinciri (2026-09-25)
+
+**Karar:** [ROADMAP v0.6](../ROADMAP.md#v06-mobil--asgari-sürüm-tanımı-2026-09-25) —
+v0.6 önce aynı Wi-Fi üzerinden kapanır; internet üzerinden uzaktan icra ayrı kapı
+([`device-pairing-strategy.md`](device-pairing-strategy.md) P9 ertelemesi sürer).
+Yeni katman yok: relay, köprünün mevcut `POST /task` kapısını ve `POST /approve`
+icrasını kullanır.
+
+### Zincir
+
+```text
+Telefon ──POST /relay/task {text}──▶ relay ──POST /task {goal, source:"mobile_relay"}──▶ köprü
+                                                         run_lumos_gate → risk
+  düşük risk  → köprü yürütür, sonuç /relay/task yanıtında döner
+  orta/yüksek → .lumos/pending_approvals/ (lumos.dispatch_pending_approval.v1 / lumos.pending_approval.v1)
+Telefon ──GET /relay/pending──▶ kind="task", executes_on_approve=true, token YOK
+Telefon ──POST /relay/approve {approval_file}──▶ relay token'ı PC'de çözer ──POST /approve──▶
+                                                         execute_approved_dispatch_pending
+                                                         → yanıtta execution_dispatch / system_execution (kanıt)
+```
+
+### Relay uçları (değişen / yeni)
+
+| Uç | Davranış |
+|----|----------|
+| `POST /relay/task` | **Yeni.** Yalnız `text` (≤ 4000) okunur; köprüye yalnız `{goal, source: "mobile_relay"}` gider — `auto_approve_safe`, `bridge_mode`/`permission`, `task_type`, `file` telefondan geçemez. Relay token başına 10/dk. |
+| `GET /relay/pending` | PC remote stub kayıtları + **gerçek `/task` onayları** (kullanılmamış, `created_at` son 15 dk). `kind`, `executes_on_approve`, `task_execution_enabled`. **Hiçbir satırda `approval_token` yok.** |
+| `POST /relay/approve` / `reject` | Telefon yalnız `approval_file` / `approval_id` / `task_id` gönderir; token relay'de köprü listesinden çözülür. Listede olmayan/bayat kayıt `404 approval_not_found`. Yanıtlardan token alanları özyinelemeli silinir. |
+
+### Gerçek icra açılmadan kapatılan açıklar
+
+Kaynak: [`mobile-approval-flow-security-review.md`](mobile-approval-flow-security-review.md) §9–§11 + bu turda bulunan beacon sızıntısı.
+
+| Açık | Durum |
+|------|-------|
+| **UDP beacon eşleştirme kodunu yayınlıyordu** (`pairing_id` = kod; LAN'daki herkes eşleşebilirdi) | Kapandı — beacon'da kod yok |
+| Pairing kaba kuvvet (rate limit yok) | Kapandı — 5 hatalı denemede kod yenilenir; başarılı eşleştirmede kod tek kullanımlık |
+| Relay `0.0.0.0` varsayılan bind | Kapandı — varsayılan `127.0.0.1`; LAN açıkça `--host` |
+| Relay token URL query'de | Kapandı — `#token=` fragment; sayfa adresten siler; log'da `token=` maskelenir |
+| `approval_token` telefona listeleniyordu | Kapandı — relay PC tarafında çözer |
+| Düz HTTP LAN (TLS yok) | Kapandı — `--tls-cert/--tls-key`; TLS yoksa ve bind loopback değilse gerçek icra (`/relay/task`, görev onayı) **403 `insecure_transport`**; yalnız bilerek `--allow-insecure-lan` |
+| Çift `POST /approve` kaydı yeniden yazıyordu | Kapandı — idempotent: yeniden yazmaz, denetim olayı çoğaltmaz; red/bitmiş kayıt `approval_not_pending` |
+| Windows'ta tüketim kilidi yok | Kapandı — `fcntl` yoksa `O_EXCL` kilit dosyası; alınamazsa `approval_lock_timeout` (kilitsiz yola düşmez) |
+| Gerçek `/task` onaylarında TTL yok | **Kısmi** — telefon yolunda relay 15 dk uygular; köprü genelinde [TD-42](../TECHNICAL_DEBT.md) |
+
+### Gerçek iPhone ile yerel ağ kurulumu
+
+```bash
+# PC — 1) köprü (loopback)
+export KANDO_BRIDGE_SECRET='…'
+PYTHONPATH=src:packages/kando_runtime/src:packages/kando_bridge/src \
+  python -m kando_bridge --host 127.0.0.1 --port 8765
+
+# PC — 2) TLS sertifikası (bir kez)
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes -days 365 \
+  -subj "/CN=lumos-relay" -keyout ~/.lumos/relay.key -out ~/.lumos/relay.crt
+
+# PC — 3) relay (LAN + TLS)
+PYTHONPATH=packages/kando_bridge/src python scripts/lan_relay_server.py \
+  --host 0.0.0.0 --port 8766 --tls-cert ~/.lumos/relay.crt --tls-key ~/.lumos/relay.key
+# terminal: pairing=XXXXXX ve TLS sha256=… satırları
+```
+
+- **Native istemci (`lumos-ios`):** `GET /relay/discover` → kullanıcı PC ekranındaki
+  kodu girer → `POST /relay/pair` → TLS parmak izi (`tls_fingerprint_sha256`) pinlenir
+  ve kullanıcıya PC terminalindekiyle karşılaştırması için gösterilir →
+  `POST /relay/task`, `GET /relay/pending` (5 sn poll), `POST /relay/approve`.
+- **Geçici yüzey:** aynı akış telefon tarayıcısında `https://<PC-LAN-IP>:8766/relay/mobile#token=…`
+  (self-signed uyarısı kabul edilerek). Görev formu + onay kartı + sonuç kartı içerir.
+
+### Test
+
+```bash
+PYTHONPATH=src:packages/kando_runtime/src:packages/kando_bridge/src KANDO_MOCK=1 \
+  pytest -q tests/test_lan_relay_v06_chain.py tests/test_lan_relay_mvp_e2e.py \
+  tests/test_pc_remote_approval_security.py
+```
+
+`test_lan_relay_v06_chain.py`, gerçek gate kodundan üretilen dispatch onay kaydını
+relay üzerinden token'sız onaylatır ve köprü `_handle_approve` ile `workspace/`'e
+gerçekten dosya yazıldığını doğrular (köprü in-process; relay gerçek HTTP/HTTPS).
+**Canlı iPhone doğrulaması bu testlerin yerine geçmez** — v0.6 kabul kapısı ayrıdır.
 
 ---
 
