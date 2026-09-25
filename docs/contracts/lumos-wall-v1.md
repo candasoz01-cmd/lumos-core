@@ -238,3 +238,76 @@ gömülmez. Yeni sayfa STOP LIST'tedir; görsel dilim ayrı kurucu onayı ister.
 - Onay şeması için imza kökü, imza servisi veya GitHub CheckRun (minimal depo/CLI 2026-09-20 diliminde uygulandı)
 - Ajanlar arası komut ağı, auto-merge, auto-deploy
 - Son kullanıcı paneline claim/worktree sızdırma (PR-005 / ADR-019)
+
+
+## Kalıcı kanıt ve saklama — 2026-09-24
+
+Bu kural Duvar sınıfındadır: insan, ajan, otomasyon, yerel ve Cloud işleri için
+ortaktır. Ajan kuralı veya sağlayıcının 90 günlük VM saklama sözü yerine geçmez.
+
+- İç kurulumda koruma sürekli açık ve kilitlidir; kapatma düğmesi yoktur.
+- Kullanıcı kurulumunda **silinen içerik kopyalarını** saklama tercihi değişebilir.
+  Bu tercih küçük işlem izini kapatmaz ve mevcut arşivi silmez. Önceden
+  oluşturulan kayıtların saklama şartlarını geriye dönük kısaltmaz.
+- Varsayılan süresiz; asgari taban bir takvim yılıdır. Açık onay tabanı kaldıramaz,
+  sürenin dolması otomatik silme izni vermez. Silinme olayı kanıtının süresi olay
+  tarihinden başlar. Ciddiyet daha uzun süre gerektirebilir; kritik/belirsiz
+  sınıflar için onaylı süre tablosu henüz yoktur, silme kapalı kalır.
+- İşlem kimliği, aktör, yetki kaynağı, hedef, UTC zaman, önce/sonra kimlikleri,
+  kanıt hashleri, kalıcı alıcı ve doğrulanmış kurtarma durumu tutulur.
+  Bilinmeyen alan UNKNOWN kalır; "bulunamadı" silinme kanıtı değildir.
+- Sırlar ve gereksiz kişisel veriler alınmaz. Silinen içerik kopyası ile işlem
+  izi ayrı tutulur. Retention, geri alma yetkisi veya geri alma penceresi değildir.
+- Geçici ortamdan bağımsız alıcıda doğrulanmamış çalışma teslim/temizleme adımına
+  geçemez. İzinli temiz HEAD için `scripts/verified_handoff.py pack`, alıcıda
+  `receive`, teslim öncesi aynı HEAD'de `check` kullanılır. Commit izni yoksa
+  commit atılmaz; kaydedilmemiş değişiklikler ayrıca korunmadan teslim kapanmaz.
+- Arşiv: özel `candasoz01-cmd/lumos-wall-evidence`; önceki olaylar değiştirilmez,
+  düzeltme yeni olaydır. Kaynak çalışma kopyası ve özel arşiv ayrı tutulur.
+- Kod: `lumos_board.evidence_policy`, Git teslim aracının kullandığı ortak
+  politikadır. `deletion_blockers` yalnız önkoşul değerlendirir, silme yapmaz;
+  onayı mevcut insan-otorite kapısı doğrulamalıdır. Yeni onay/lease sistemi yoktur.
+
+**Geliştirici paneli:** Ayarlar → Silinen içeriklerin saklanması.
+`LUMOS_DEPLOYMENT_PROFILE` sunucu yapılandırmasıdır; varsayılan `internal`
+kilitlidir. Yalnız `customer` kurulumunda yetkili `/evidence/settings` isteği
+gelecekteki içerik kopyalarını kapatabilir. İstek gövdesi profil değiştiremez.
+Tercih değişiklikleri ayrı, süresiz olay dosyalarıdır. Çöp kutusu yazıcısı,
+kaynak silinmeden önce `evidence_archive/deleted_content` altında bağımsız
+kopya yazar; geri alma kopyasının tüketilmesi bu arşivi silmez.
+Görev motorunun çöp ve doğrudan görev kaldırma yolları da tam içerik arşivini
+aynı çalışma alanı tercihiyle kullanır; arşiv hatasında aktif görev korunur.
+Arşiv için otomatik silici veya purge API'si yoktur. Eski çöp kayıtları
+kendiliğinden arşivlenmiş sayılmaz. Panelde geri yükleme veya kalıcı kaldırma
+sırasında eski çöp dosyasının özgün baytları, özeti, kaynak yolu ve işlem adı
+kaldırmadan önce korunur; arşiv yazılamazsa kaynak dosya yerinde kalır.
+Sandbox arşivleri sandbox köküne yazılır; saklama tercihi canlı çalışma
+alanından yalnız okunur. Bu iki kök birbirinin yerine kullanılmaz.
+
+**Ortak işlem izi:** `core.evidence_continuity` boyut bazlı eski kayıt silmez;
+eski döndürülmüş dosyalar korunur. Panel ve görev motorunun kanıtlı yazımları
+ön kayıt yazılamazsa durur. Son kayıt başarısızlığı, diğer çağrı yolları ve
+kanıt parametresi verilmemiş eski yazımlar ayrıca kapsam denetimi gerektirir.
+
+**Uygulama sınırı:** Yerel arşiv ve Git teslimi sağlayıcı snapshot'ını veya
+GitHub admin silmesini engellemez. Bütün dış araç çağrılarını zorunlu olarak
+saran çalışma zamanı geçidi ve otomatik bağımsız uzak arşivleme bu değişiklikte
+yoktur; bu nedenle “sistem çapında aktif” raporlanmaz. Kaynak commit bulunmadan
+metin karşılaştırması byte düzeyinde özgün commit doğrulaması sayılmaz.
+
+Dosya/klasör `move_to_trash` yolu kaynak-hedef, ortak işlem kimliği ve içerik
+manifestini saklar. Aynı dosya sisteminde rename; farklı dosya sisteminde
+kopyala → doğrula → fsync → kaynağı kaldır sırası kullanılır. Hatalı kopyada
+kaynak tutulur. Symlink kaydı bağlantıyı korur; dış hedefin arşivlendiği iddia
+edilmez. Sandbox canlı çekirdek kaynağını taşıyamaz; kanıtı sandbox'a yazılır.
+Bu kayıtlar bir temizleyici değildir; ayrı çöp denetçisi veya otomatik purge yoktur.
+
+Görev deposu yazımı işlem metadata'sı verilmeden de kayıt üretir; belirtilmemiş
+görev kimliği son satırdan tahmin edilmez. Yazma-sonrası günlük eklemesi
+başarısızsa aynı correlation_id taşıyan sonuç `evidence_archive/audit_fallback`
+altında kalıcı saklanır. İki kayıt yolu da başarısızsa çağrı, verinin yazıldığını
+ama tamamlanma kanıtının eksik kaldığını açık hata olarak döndürür; otomatik
+tekrar veya geri alma yapmaz. Mevcut günlük sorgusu güncel dosyayı, eldeki numaralı eski günlükleri ve
+tamamlanmış fallback kayıtlarını birlikte okur. Bellekte en yeni sınırlı pencere
+tutulur; sorgu filtreleri bu pencereye uygulanır, tüm geçmişte arama iddiası yoktur.
+Geçersiz kayıtlar ve yayımlanmamış pending dosyaları sonuçlara katılmaz; silinmez.

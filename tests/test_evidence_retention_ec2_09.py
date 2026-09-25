@@ -9,8 +9,6 @@ if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from core.evidence_continuity import (  # noqa: E402
-    EVIDENCE_CONTINUITY_KEEP,
-    EVIDENCE_CONTINUITY_MAX_BYTES,
     EVIDENCE_RETENTION_POLICY_ID,
     OPERATION_PANEL_TASK_CREATE,
     OUTCOME_OK,
@@ -32,10 +30,11 @@ from core.log_rotation import append_jsonl_with_rotation  # noqa: E402
 def test_t1_evidence_retention_policy_constants():
     policy = evidence_retention_policy()
     assert policy["policy_id"] == EVIDENCE_RETENTION_POLICY_ID
-    assert policy["max_bytes_per_file"] == EVIDENCE_CONTINUITY_MAX_BYTES == 1_000_000
-    assert policy["rotated_files_kept"] == EVIDENCE_CONTINUITY_KEEP == 3
-    assert policy["max_file_slots"] == 4
-    assert policy["read_scope"] == "current_file_only"
+    assert policy["max_bytes_per_file"] is None
+    assert policy["rotated_files_kept"] == "all_existing"
+    assert policy["max_file_slots"] is None
+    assert policy["automatic_deletion"] is False
+    assert policy["read_scope"] == "current_rotated_and_fallback"
 
 
 def test_t2_append_uses_named_retention_constants(tmp_path, monkeypatch):
@@ -58,8 +57,8 @@ def test_t2_append_uses_named_retention_constants(tmp_path, monkeypatch):
     )
     result = append_evidence_event(tmp_path, rec)
     assert result.get("appended") is True
-    assert result.get("rotated") is True
-    assert Path(str(path) + ".1").is_file()
+    assert result.get("rotated") is False
+    assert path.read_text(encoding="utf-8").startswith(chunk * 3)
 
 
 def test_t3_storage_summary_empty_journal(tmp_path):
@@ -121,7 +120,7 @@ def test_t7_journal_record_schema_unchanged():
     assert validate_evidence_record(rec) == []
 
 
-def test_t8_read_recent_current_file_only_after_rotation(tmp_path):
+def test_t8_read_recent_includes_retained_rotation(tmp_path):
     path = evidence_continuity_path(tmp_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     old_rec = build_evidence_record(
@@ -155,4 +154,36 @@ def test_t8_read_recent_current_file_only_after_rotation(tmp_path):
         if isinstance(e, dict)
     ]
     assert "new-marker" in previews
-    assert "old-marker" not in previews
+    assert "old-marker" in previews
+
+
+def test_retained_sources_newest_window_and_fallback_without_current(tmp_path):
+    from core.evidence_settings import preserve_audit_fallback
+
+    def record(day):
+        rec = build_evidence_record(
+            correlation_id=generate_correlation_id(),
+            source=SOURCE_PANEL_TASKS_SERVER, store=STORE_PANEL_TASKS,
+            operation=OPERATION_PANEL_TASK_CREATE, phase=PHASE_AFTER,
+            outcome=OUTCOME_OK, entity_id=f"task-{day}",
+        )
+        rec['ts'] = f'2026-09-{day:02d}T12:00:00.000Z'
+        return rec
+
+    path = evidence_continuity_path(tmp_path)
+    path.parent.mkdir(parents=True)
+    # Historical slots beyond the old rotation limit remain discoverable.
+    rotated = Path(str(path) + '.99')
+    rotated.write_text('\n'.join(json.dumps(record(day)) for day in (23, 21)))
+    preserve_audit_fallback(tmp_path, record(24))
+    fallback = tmp_path / 'evidence_archive' / 'audit_fallback'
+    (fallback / 'broken.json').write_text('{')
+    (fallback / 'unfinished.pending').write_text(json.dumps({'record': record(25)}))
+    events, truncated = read_recent_evidence_events(tmp_path, limit=2)
+    assert [rec['ts'] for rec in events] == [record(24)['ts'], record(23)['ts']]
+    assert truncated is True
+    all_events, truncated = read_recent_evidence_events(tmp_path, limit=10)
+    assert len(all_events) == 3
+    assert truncated is False
+    assert rotated.exists()
+    assert evidence_journal_storage_summary(tmp_path)['file_count'] == 1

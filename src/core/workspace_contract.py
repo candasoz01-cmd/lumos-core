@@ -27,6 +27,7 @@ CORE_STATE_PATH_NAMES = (
     "config.json",
     "logs",
     "trash",
+    "evidence_archive",
     "aliases.json",
     "notes.enc.json",
     "presence.json",
@@ -316,7 +317,7 @@ def save_task_store_json(
       allow_write_to_core(live_base_dir or tasks_dir.parent, target_path, is_sandbox_mode=True)
       canlı çekirdek state path'ine yazmayı reddeder.
     - sandbox_mode=False varsayılan davranışı korur; guard devre dışı.
-    - correlation_id + mutation verilirse evidence continuity journal (best-effort).
+    - Her yazım evidence continuity kaydı üretir; önce-kaydı başarısızsa yazım engellenir.
     """
     from core.evidence_continuity import (  # yerel import: döngüsel import önleme
         OPERATION_ENGINE_TASK_MUTATION,
@@ -334,9 +335,14 @@ def save_task_store_json(
 
     tasks_dir_path = Path(tasks_dir)
     target_path = tasks_dir_path / "tasks.json"
-    journal_base = Path(live_base_dir) if live_base_dir is not None else tasks_dir_path.parent
-    evidence_enabled = correlation_id is not None or mutation is not None
-    corr_id = correlation_id or (generate_correlation_id() if evidence_enabled else None)
+    journal_base = writing_base_dir(
+        live_base_dir if live_base_dir is not None else (
+            tasks_dir_path.parent if tasks_dir_path.name == "tasks" else tasks_dir_path
+        ),
+        sandbox_mode,
+    )
+    mutation = mutation or "store_write"
+    corr_id = correlation_id or generate_correlation_id()
     entity_str = str(entity_id) if entity_id is not None else None
     step_count = None
     tasks_list = data.get("tasks")
@@ -347,38 +353,30 @@ def save_task_store_json(
                 if isinstance(steps, list):
                     step_count = len(steps)
                 break
-    elif isinstance(tasks_list, list) and mutation in ("create", "update", "archive", "delete"):
-        for item in reversed(tasks_list):
-            if isinstance(item, dict):
-                steps = item.get("steps")
-                if isinstance(steps, list):
-                    step_count = len(steps)
-                if entity_str is None and item.get("task_id") is not None:
-                    entity_str = str(item["task_id"])
-                break
 
     def _emit(phase: str, outcome: str, *, error: dict[str, str] | None = None) -> None:
-        if not evidence_enabled or corr_id is None or not mutation:
-            return
         summary: dict = {}
         if step_count is not None:
             summary["step_count"] = step_count
-        append_evidence_event(
-            journal_base,
-            build_evidence_record(
-                correlation_id=corr_id,
-                source=SOURCE_TASK_ENGINE,
-                store=STORE_TASK_ENGINE,
-                operation=OPERATION_ENGINE_TASK_MUTATION,
-                phase=phase,
-                outcome=outcome,
-                mutation=mutation,
-                entity_id=entity_str,
-                payload_summary=summary or None,
-                error=error,
-            ),
-            is_sandbox_mode=sandbox_mode,
+        record = build_evidence_record(
+            correlation_id=corr_id,
+            source=SOURCE_TASK_ENGINE,
+            store=STORE_TASK_ENGINE,
+            operation=OPERATION_ENGINE_TASK_MUTATION,
+            phase=phase,
+            outcome=outcome,
+            mutation=mutation,
+            entity_id=entity_str,
+            payload_summary=summary or None,
+            error=error,
         )
+        result = append_evidence_event(journal_base, record, is_sandbox_mode=False)
+        if not result.get("appended"):
+            if phase == PHASE_BEFORE:
+                raise OSError("Evidence journal unavailable; mutation blocked")
+            if phase == PHASE_AFTER:
+                from core.evidence_settings import preserve_audit_fallback
+                preserve_audit_fallback(journal_base, record)
 
     if sandbox_mode:
         live_base = Path(live_base_dir) if live_base_dir is not None else tasks_dir_path.parent
@@ -448,6 +446,8 @@ def save_trash_record_json(
     data: dict,
     *,
     is_sandbox_mode: bool = False,
+    evidence_base_dir: Path | str | None = None,
+    preference_base_dir: Path | str | None = None,
 ) -> Path:
     """Canonical ``trash/*.json`` kaydı için merkezi, overwrite etmeyen sink."""
     base = Path(base_dir).resolve()
@@ -465,6 +465,14 @@ def save_trash_record_json(
     if target.exists():
         raise FileExistsError(f"Trash kaydı zaten var: {target}")
 
+    # Durable optional archive is independent of the short-lived undo bin.
+    # Failure stops deletion before its source is removed.
+    from core.evidence_settings import archive_deleted_content
+
+    archive_deleted_content(
+        evidence_base_dir if evidence_base_dir is not None else base, data,
+        preference_base=preference_base_dir,
+    )
     ensure_trash_dir(base, is_sandbox_mode=False)
     tmp = target.with_name(target.name + ".tmp")
     # Önceki süreç temp yazımı ile replace arasında durmuş olabilir. Final kayıt
@@ -501,7 +509,7 @@ def move_to_trash(
 
     Dönüş: taşınan öğenin yeni path'i.
     """
-    import shutil
+    from core.trash_evidence import move_with_evidence
 
     source = Path(source_path).resolve()
     dest_base = writing_base_dir(base_dir, is_sandbox_mode)
@@ -514,12 +522,13 @@ def move_to_trash(
         raise CoreWriteForbidden(
             "Sandbox modunda canlı çekirdek trash path'ine yazma yasak",
         )
+    if not allow_write_to_core(base_dir, source, is_sandbox_mode=is_sandbox_mode):
+        raise CoreWriteForbidden("Sandbox cannot remove a live core source")
     ensure_trash_dir(base_dir, is_sandbox_mode=is_sandbox_mode)
     dest = dest_dir / source.name
     if dest.exists():
         raise FileExistsError(f"Trash hedefi zaten var: {dest}")
-    shutil.move(str(source), str(dest))
-    return dest
+    return move_with_evidence(dest_base, source, dest)
 
 
 def may_perform_permanent_delete(user_initiated: bool) -> bool:
@@ -564,7 +573,7 @@ def is_core_state_path(base_dir: Path | str, candidate_path: Path | str) -> bool
     if len(parts) == 2 and parts[0] == "tasks" and parts[1] == "tasks.json":
         return True
     # config/, logs/, trash/ altındaki her şey çekirdek state
-    if parts[0] in ("config", "logs", "trash"):
+    if parts[0] in ("config", "logs", "trash", "evidence_archive"):
         return True
     return False
 

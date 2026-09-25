@@ -215,6 +215,12 @@ kopyalanmaz.
 - Kaynaklar çelişiyorsa çelişki gizlenmez. Yeniden doğrulama yapılır ve canlı
   doğrulama sonucu esas alınır.
 
+## Duvar kanıt kapısı
+
+Ortak saklama, kurtarma ve teslim politikası ajan sınıfında tanımlanmaz.
+[`Lumos Duvar v1 — Kalıcı kanıt`](docs/contracts/lumos-wall-v1.md#kalıcı-kanıt-ve-saklama--2026-09-24)
+uygulanır. Ajan gereken kanıtı bu ortak kapıya sunar.
+
 ## Cursor Cloud specific instructions
 
 Standard commands live in the [Makefile](Makefile),
