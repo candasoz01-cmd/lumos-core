@@ -6,7 +6,7 @@
 >
 > **Gerekçe.** Repoda «İkinci Manifesto» adında bir bölüm veya dosya yoktur. Companion (Belge §13) uzun vadeli ürün vizyonudur; ADR-005 bellek katmanının mimari hedefidir. İkisi de bu düşüncenin evi değildir. Ürün mimarisi ve kod bu kayıtla değişmez.
 >
-> **Durum.** Yaşayan düşünce kaydı. İlk kayıt 2026-09-26. Vaat değildir. Kurucu kitabın Belge §11 kapısından geçmeden okuma sürümü veya kitap yayını sayılmaz.
+> **Durum.** Yaşayan düşünce kaydı. İlk kayıt 2026-09-26. İkinci kayıt aynı gün, ayrı hat. Vaat değildir. Kurucu kitabın Belge §11 kapısından geçmeden okuma sürümü veya kitap yayını sayılmaz.
 
 ## Kayıt 1 — Bilinç Uzantısında Ortak Hafıza
 
@@ -78,3 +78,64 @@ Dört soru aynı kısa kayda çıkar. Giriş, gelişme ve sonuç birbirine bağl
 «Bütün yapay zekâların katılacağı proje» diye bir iz duruyor olabilir. İnsan bu izi sonra tanımayabilir. Tanımamak, izi yanlış kılmaz. Doğru kayıt o anda tanınmayabilir; insanın kendi hafızası da eksiktir. Lumos, tanınmayan doğruya uydurmak için geçmişi yeniden yazmaz.
 
 İnsan baştan olayı hatırlamadığını söylüyorsa, o andaki «kesinlikle bu değildi» sonraki bir zaman katmanı olarak eklenir. Kayıt silinmez ve yerine yeni bir hikâye konmaz. Lumos'un getirdiği aday ile insanın beyanı ayrı kaynak olarak durur. Hangisinin kesin olduğu da yerinde kalır. Tanınamadı veya belirsiz kaldı durumu kapanmaya zorlanmaz. İnsan aynı olayı başka bir uçtan hatırlarsa, katmanlar hâlâ duruyordur. Birlikte hatırlama döngüsü sürmüş olur.
+
+## Kayıt 2 — İnsanın Uzantısını Geliştirmek
+
+*2026-09-26*
+
+Üst bağ, tek cümle. Bu kayıt Kayıt 1 ile birleştirilmez. Hafızada insanla birlikte hatırlayan, çalışmada insanla birlikte gelişen bir bilinç uzantısı.
+
+Lumos'un amacı bağımsız bir yapay zekâyı geliştirmek değildir. İnsanın uzantısını geliştirmektir. Ajanların gerçek çalışma deneyimleri, bu gelişimin verilerinden biridir.
+
+> Ajanlar Lumos'u eğitmez. Lumos, ajanların doğrulanmış deneyimlerinden kendi çalışma biçimini geliştirir; insan bu gelişimin ortağı ve üretime geçiş kapısıdır.
+
+### Bağ
+
+Aşağıdaki cümleler bu kayıtta yeniden keşfedilmiş gibi durmaz. Onay, yetki, kullanım, bırakma ve gözetim zinciri burada yeniden anlatılmaz.
+
+| Süregelen düşünce | Nerede durur | Bu kayıttaki yeri |
+| --- | --- | --- |
+| Lumos insanı devre dışı bırakmaz. İnsanın yerine karar veren otorite değildir. | Kurucu kitap, Kitap §3. [`PRODUCT_SUMMARY.md`](../PRODUCT_SUMMARY.md), «Lumos'un amacı». Kayıt 1 bunu hafızada tutar. | Amaç cümlesi bunun çalışma halidir. Kayıt 1 yeniden yazılmaz. |
+| Lumos kurallarını ve yetkilerini tek başına yenilemez. «Öğrendim, artık böyleyim» demez. Gelişim, kullanıcı onayı ve açık sürümle gelir. | [`PRODUCT_SUMMARY.md`](../PRODUCT_SUMMARY.md), «Kontrollü gelişen panel». | Yeni olan, gelişim adayının çalışan ajanlara doğrudan yayılmaması, kapalı deneme ve test varsayımının insana gösterilmesidir. |
+| Dış ajan çekirdeği sahiplenmez. Öğrenme adayı deneyde ölçülür, kapıdan geçer. Lumos tek başına güvenlik politikasını, yazma yetkisini ve onay mekanizmasını değiştiremez. | [CONSTITUTION §11](../CONSTITUTION.md). [ADR-027](../decisions/ADR-027-controlled-core-writer.md). | Bu boru burada yeniden kurulmaz. Yeni olan, çalışma biçimi adayının diğer ajanlara kopya olmaması ve testteki insan modelinin varsayım olarak görünmesidir. ADR-027'nin dış tarama envanteri (model, API, teknik, maliyet) yerinde durur. |
+| İç ajanlar birbirine görev vermez, yetki artırmaz, onay veremez. Dış araç Lumos'un yerine geçmez. | [`internal-agent-layers.md`](../memory/internal-agent-layers.md). Kurucu kitap, Kitap §10. [`welockai-charter-draft.md`](../analysis/welockai-charter-draft.md). | Yeni olan, entegre ajanın kendi çalışma prensibini dayatmamasıdır. Sağlayıcıya özgü davranış, bu çerçeveyle çelişmediği alanda kalır. |
+| Karar zinciri Anla → Yorumla → Risk → Onay → Uygula. Nihai karar kullanıcıdadır. Onay, yetki, kullanım, bırakma ve gözetim mevcut mimaridedir. | LUMOS-0008. LUMOS-0005. [`task-claim-v1.md`](../contracts/task-claim-v1.md). [`lumos-wall-v1.md`](../contracts/lumos-wall-v1.md). [ADR-034](../decisions/ADR-034-wall-observer-execution-context.md). | Zincir bu kaydın konusu değildir. Kayıt onun yerine geçmez. |
+| Metin yaşar. Kesin doğrular kitabı değildir. | Kurucu kitap, Belge §9. | Donmuş standart yasağı bu cümlenin tekrarı değildir. Yeni olan, çalışma biçiminin gözle, dene, değerlendir, evril döngüsüdür. Son durum ilan edilmez. |
+| `#886` kanıt sürekliliği ve doğrulanmış teslim parçasıdır. | [`wall-control-plane-haritasi-2026-09-14.md`](../analysis/wall-control-plane-haritasi-2026-09-14.md). | Bu tezin kanıtı veya ilk örneği değildir. Şimdilik inceleme adayıdır. Kayıt ona dayanmaz. |
+
+### Ölçü
+
+Ajanların çalışma kalitesi yalnız sonuçla ölçülmez. Aynı görev, aynı yetki ve aynı güvenlik koşullarında doğrulanmış sonuca ulaşırken gereken insan müdahalesi, gereksiz soru ve izin, tekrar, düzeltme ve işlem yolu karşılaştırılabilir.
+
+Amaç ajanları sıralamak değildir. «En iyi ajan» seçilmez. Amaç, farklı ajanların gerçek çalışmalarından Lumos'un kendi çalışma biçimini geliştirmektir.
+
+### Dayatma yok
+
+Dışarıdan entegre edilen ajan, kendi çalışma prensibini Lumos'a dayatmaz. Lumos içinde çalıştığında Lumos'un görev, yetki, onay ve güvenlik kurallarına tabidir. Sağlayıcıya özgü davranış, bu çerçeveyle çelişmediği alanda kalabilir.
+
+Bir ajanın daha verimli bir yol bulması, o yolun diğer ajanlara doğrudan kopyalanması demek değildir. Doğrulanmış deneyim önce Lumos için gelişim adayı olur.
+
+### Sürekli inovasyon
+
+Kalıcı ve donmuş bir standart hedeflenmez. İlke sürekli inovasyondur. Mevcut yöntem gözlenir. Daha iyi aday ortaya çıkar. Denenir. Değerlendirilir. Uygun bulunursa çalışma biçimi evrilir. Son durum ilan edilmez.
+
+Bu döngü, kapalı denemeyi ve insan kapısını atlamaz.
+
+### Kapalı deneme
+
+Yeni gelişim adayları, gerçek çalışan ajanlara doğrudan yayılmaz. Lumos'un ayrı ve kapalı test ortamında denenir.
+
+Testte kullanılan insan davranışı bir hakikat değildir. Varsayımdır. Lumos yalnız test sonucunu göstermez. Sonuca ulaşırken kullandığı insan varsayımlarını da insana gösterir.
+
+Testten sonra Lumos «geçti» veya «kaldı» ile yetinmez. Neyi fark ettiğini, eski yol ile yeni yol arasındaki farkı, hangi varsayımları kullandığını ve neden değişiklik önerdiğini anlaşılır biçimde sunar.
+
+Lumos ile insan birlikte yeniden değerlendirir. Yanlış varsayım düzeltilir. Gerekirse test tekrarlanır. Diğer ajanlara dağıtım, insan onayından sonra gerçekleşir.
+
+### İçeriden dışarıya
+
+Öğrenme, çalışma biçiminde, önce kendi ajanlarımızın gerçek deneyimlerinden başlar. İçeride geliştirilen yöntem, daha sonra dış dünyadaki yöntem ve sistemlerle stres testine ve kıyaslamaya girer.
+
+Dış dünya Lumos'a doğrudan kural yazmaz. Dışarıda daha iyi bir yöntem görülürse takdir edilir. Nasıl çalıştığı incelenir. Lumos'un neden o yolu göremediği de incelenir. Yöntem doğrudan içeri alınmaz. Yeni bir gelişim adayı olarak aynı kapalı test, insanla değerlendirme ve insan onayı döngüsünden geçer.
+
+Buradaki amaç, rekabet uğruna başka ajanları yenmek değildir. Başkasının daha iyi fikri yenilgi değildir. Gelişim verisidir.
+
