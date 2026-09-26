@@ -1,6 +1,11 @@
 """PC remote audit JSONL contract tests."""
 from __future__ import annotations
 
+import os
+import stat
+
+import pytest
+
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -212,3 +217,33 @@ def test_audit_approval_denied_on_invalid_token(
     assert payload.get("accepted") is False
     denied = [e for e in read_audit_events(tmp_path) if e["event"] == EVENT_APPROVAL_DENIED]
     assert len(denied) == 1
+
+
+def test_audit_syncs_written_file_then_directory(tmp_path: Path, monkeypatch) -> None:
+    original_fsync = os.fsync
+    synced = []
+
+    def sync(fd):
+        assert read_audit_events(tmp_path)[0]["event"] == EVENT_PENDING_CREATED
+        synced.append("directory" if stat.S_ISDIR(os.fstat(fd).st_mode) else "file")
+        original_fsync(fd)
+
+    monkeypatch.setattr("kando_bridge.pc_remote_audit.os.fsync", sync)
+    append_pc_remote_audit(tmp_path, EVENT_PENDING_CREATED)
+    assert synced == ["file", "directory"]
+
+
+@pytest.mark.parametrize("fail_on_directory", [False, True])
+def test_audit_sync_failure_propagates(tmp_path: Path, monkeypatch, fail_on_directory) -> None:
+    original_fsync = os.fsync
+
+    def sync(fd):
+        if stat.S_ISDIR(os.fstat(fd).st_mode) == fail_on_directory:
+            raise OSError("audit sync failed")
+        original_fsync(fd)
+
+    monkeypatch.setattr("kando_bridge.pc_remote_audit.os.fsync", sync)
+    with pytest.raises(OSError, match="audit sync failed"):
+        append_pc_remote_audit(tmp_path, EVENT_PENDING_CREATED)
+    # The line may already exist: callers must not infer rollback from failure.
+    assert len(read_audit_events(tmp_path)) == 1
