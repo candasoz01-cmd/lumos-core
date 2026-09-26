@@ -256,6 +256,12 @@ def _cursor_bridge_env() -> dict[str, str]:
 
 
 def _copy_bridge_outputs_to_outbox() -> None:
+    from core.bridge_evidence import preserve_bridge_views
+
+    preserve_bridge_views(OUTBOX_DIR.parent, tuple(
+        OUTBOX_DIR / name for name in ("last_result.json", "last_execution.json")
+        if (CURSOR_BRIDGE_DIR / name).is_file()
+    ))
     OUTBOX_DIR.mkdir(parents=True, exist_ok=True)
     for name in ("last_result.json", "last_execution.json"):
         src = CURSOR_BRIDGE_DIR / name
@@ -284,7 +290,13 @@ def _run_cursor_bridge(instruction: str) -> tuple[int, str]:
     CURSOR_BRIDGE_DIR.mkdir(parents=True, exist_ok=True)
     OUTBOX_DIR.mkdir(parents=True, exist_ok=True)
 
+    from core.bridge_evidence import preserve_bridge_views
+
     command_file = CURSOR_BRIDGE_DIR / "command.json"
+    preserve_bridge_views(CURSOR_BRIDGE_DIR.parent, (
+        command_file, CURSOR_BRIDGE_DIR / "last_result.json",
+        CURSOR_BRIDGE_DIR / "last_execution.json",
+    ))
     command_file.write_text(
         json.dumps(
             {
@@ -1092,6 +1104,9 @@ def persist_last_result_from_out(out: dict) -> None:
     last_res = out.get("last_result")
     if not isinstance(last_ex, dict) or not isinstance(last_res, dict):
         return
+    from core.bridge_evidence import preserve_bridge_views
+
+    preserve_bridge_views(OUTBOX_DIR.parent, (LAST_EXECUTION_FILE, LAST_RESULT_FILE))
     try:
         OUTBOX_DIR.mkdir(parents=True, exist_ok=True)
         LAST_EXECUTION_FILE.write_text(
@@ -1465,6 +1480,9 @@ def persist_post_task_outbox_snapshots(
     }
     if incomplete:
         last_res["snapshot_incomplete"] = incomplete
+    from core.bridge_evidence import preserve_bridge_views
+
+    preserve_bridge_views(OUTBOX_DIR.parent, (LAST_EXECUTION_FILE, LAST_RESULT_FILE))
     try:
         OUTBOX_DIR.mkdir(parents=True, exist_ok=True)
         LAST_EXECUTION_FILE.write_text(
