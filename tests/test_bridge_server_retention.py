@@ -89,3 +89,37 @@ def test_outbox_archive_failure_is_not_swallowed(folders, monkeypatch, writer):
         else:
             server.persist_post_task_outbox_snapshots({}, None)
     assert all(p.read_bytes() == b'old' for p in outbox.iterdir())
+
+
+@pytest.mark.parametrize('clear', [True, False])
+def test_direct_patch_metadata_retained_before_change(folders, monkeypatch, clear):
+    base, bridge, _ = folders
+    target = bridge / 'direct_patch_meta.json'
+    old = b'{ "auto_approve_safe": true, "legacy": 3 }\r\n'
+    target.write_bytes(old)
+    monkeypatch.setattr(server, 'DIRECT_PATCH_META_FILE', target)
+    if clear:
+        server._clear_direct_patch_meta()
+        assert not target.exists()
+    else:
+        server._persist_direct_patch_meta({'auto_approve_safe': False})
+        assert json.loads(target.read_text()) == {'auto_approve_safe': False}
+    assert archived(base) == [old]
+
+
+@pytest.mark.parametrize('clear', [True, False])
+def test_metadata_archive_failure_propagates(folders, monkeypatch, clear):
+    import core.evidence_settings as settings
+    _, bridge, _ = folders
+    target = bridge / 'direct_patch_meta.json'
+    target.write_bytes(b'old')
+    monkeypatch.setattr(server, 'DIRECT_PATCH_META_FILE', target)
+    def fail(*args, **kwargs):
+        raise OSError('archive unavailable')
+    monkeypatch.setattr(settings, '_save', fail)
+    with pytest.raises(BridgeEvidenceError):
+        if clear:
+            server._clear_direct_patch_meta()
+        else:
+            server._persist_direct_patch_meta({'auto_approve_safe': False})
+    assert target.read_bytes() == b'old'

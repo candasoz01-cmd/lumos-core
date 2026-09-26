@@ -177,6 +177,9 @@ def _read_secret() -> str:
 
 
 def _clear_direct_patch_meta() -> None:
+    from core.bridge_evidence import preserve_bridge_views
+
+    preserve_bridge_views(DIRECT_PATCH_META_FILE.parent.parent, (DIRECT_PATCH_META_FILE,))
     try:
         if DIRECT_PATCH_META_FILE.is_file():
             DIRECT_PATCH_META_FILE.unlink()
@@ -185,6 +188,9 @@ def _clear_direct_patch_meta() -> None:
 
 
 def _persist_direct_patch_meta(obj: dict) -> None:
+    from core.bridge_evidence import preserve_bridge_views
+
+    preserve_bridge_views(DIRECT_PATCH_META_FILE.parent.parent, (DIRECT_PATCH_META_FILE,))
     try:
         DIRECT_PATCH_META_FILE.parent.mkdir(parents=True, exist_ok=True)
         DIRECT_PATCH_META_FILE.write_text(
