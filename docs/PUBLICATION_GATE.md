@@ -78,31 +78,51 @@ kapı bunu `config/publication/allowed_signers` içindeki public anahtarlarla
 açmaz. Tek seferlik kurulum sonraki ayrı kurucu eylemidir. Çalışan kod veya
 kayıtlı imza kökü değildir; kapalı varsayılan yürürlükte kalır.
 
-İki katman birbirinin alternatifi değildir. Yüzeydeki adım insan varlığını
-doğrular (Face ID, Touch ID veya eşdeğeri). Alttaki yetki ayrı bir yayın
-anahtarının SSH imzasıdır. Publication gate yalnız bu imzayı doğrular.
+Publication gate yeni bir biyometrik sistem kurmaz. Mevcut Lumos
+insan-varlığı/kimlik katmanının doğrulanmış sonucunu, belirli bir yayın
+yetkisinin kriptografik kullanımına bağlar. İki katman birbirinin
+alternatifi değildir: üstte "kurucu doğrulandı", altta ayrı publication
+key'in SSH imzası.
 
 Akış:
 
+`Lumos insan-varlığı/kimlik katmanı → "kurucu doğrulandı" → exact görev + SHA + eylem → Secure Enclave publication key → imza → publication gate doğrular`
+
 1. Yayın isteği gelir.
-2. Lumos, istenen görev, SHA ve eylemin doğru olduğunu doğrular.
-3. Onay, kurucunun güvenilir cihazına gelir.
-4. Cihazın yerel biyometrisi (Face ID veya Touch ID) kullanıcı varlığını
-   doğrular.
-5. Secure Enclave içindeki yayın anahtarı imzayı üretir.
-6. Publication gate imzayı doğrular.
+2. Mevcut insan-varlığı/kimlik katmanı "kurucu doğrulandı" sonucunu verir.
+3. Lumos bu sonucu exact görev, SHA ve eyleme bağlar.
+4. Secure Enclave içindeki yayın anahtarı yalnız bu bağdan sonra imzayı üretir.
+5. Publication gate imzayı doğrular.
 
-Lumos yüz görüntüsünü görmez, kameradan yüz tanıma yapmaz ve biyometrik veri
-tutmaz. Apple cihazında Face ID bunu donanım ve işletim sistemi seviyesinde
-yapar. Lumos yalnız şu sonucu alır: korunan anahtar, kullanıcı
-doğrulamasından sonra kullanılabildi.
+Face ID, Touch ID, donanım güvenlik anahtarı veya ayrı güvenilir cihaz, bu
+insan-varlığı katmanının cihazdaki yöntemleridir. Publication gate'in kendi
+yüz tanıması değildir. Lumos yüz görüntüsünü görmez, kameradan yüz tanıma
+yapmaz ve biyometrik veri tutmaz. Apple cihazında Face ID bunu donanım ve
+işletim sistemi yapar. Lumos yalnız şu sonucu alır: korunan anahtar, kurucu
+doğrulandıktan sonra kullanılabildi. 2026-09-18 notundaki Secretive, donanım
+anahtarı ve biyometrik 1Password örnekleri de aynı varlık yöntemleridir;
+private yarı donanım sınırından çıkıyorsa veya anahtar günlük GitHub
+anahtarıysa kabul edilmezler.
 
-Kamera veya Face ID olmayan cihazda yetki aynı kalır. Değişen yalnız insanı
-doğrulayan yöntemdir: Touch ID, donanım güvenlik anahtarı veya ayrı bir
-güvenilir cihazdan onay. 2026-09-18 notundaki Secretive, donanım anahtarı ve
-biyometrik 1Password örnekleri yalnız bu varlık yöntemleridir; private yarı
-donanım sınırından çıkıyorsa veya anahtar günlük GitHub anahtarıysa kabul
-edilmezler.
+**Bugünkü repo karşılığı (2026-09-26, bu ağaç):** "Daha önce tasarlandı" ile
+"bugün çalışıyor" aynı kayıt değildir.
+
+- Var olan parça `src/security/presence_lock.py` ve CLI kamera menüsüdür.
+  Varsayılan `enabled: False`. Açılınca OpenCV kare okur; `require_face`
+  iken Haar cascade herhangi bir önden yüzün var olup olmadığını söyler.
+  Yüz, ayarlı süre boyunca yoksa kilitler (`device_locked`). [ADR-007](decisions/ADR-007-trust-engine-layer.md)
+  bunu demo düzeyinde presence sinyali sayar. Üretim cihaz presence'ı public
+  sınırın dışındadır (ADR-007 public/private tablosu;
+  `docs/security-architecture.md` SEC-D04).
+- Bu parça kurucuyu yabancıdan ayırmaz. Sen kalkınca yabancı oturursa veya
+  arkadan biri ekranı gözetliyorsa diye bir uyarı/kilit bu repoda yoktur.
+- `src/security/identity.py` cihazın Ed25519 kimliğidir. "Kurucu doğrulandı"
+  hükmü değildir.
+- Publication gate bu sinyallerin hiçbirini tüketmez.
+
+Bu yüzden demo kilit yayın kanıtı sayılmaz ve #858 ikinci bir Face ID
+kurmaz. Entegrasyon noktası şudur: o katman "kurucu doğrulandı" ürettiğinde
+sonuç publication key kullanımına bağlanır. O sonuç bugün bu repoda yoktur.
 
 Anahtar kuralları:
 
@@ -111,8 +131,9 @@ Anahtar kuralları:
 2. Kullanım insan varlığı ister. Anahtar günlük GitHub anahtarı değildir.
    `~/.ssh/id_ed25519` ve "kurucunun GitHub hesabı anahtarları" güven kökü
    değildir; bu kalıp iptal edilmiştir. Ayrı publication key kullanılır.
-   Private yarı Secure Enclave veya donanım sınırından çıkmaz. Cihaz
-   destekliyorsa kullanım, yerel biyometrik kullanıcı doğrulamasına bağlanır.
+   Private yarı Secure Enclave veya donanım sınırından çıkmaz. Kullanım,
+   mevcut insan-varlığı/kimlik katmanının "kurucu doğrulandı" sonucuna
+   bağlanır. Publication gate ikinci bir yüz tanıma sistemi kurmaz.
 3. Repoya sonra yalnız public satır girer: principal, namespace
    `lumos-publication`, `ssh-ed25519`. Yük ve namespace değişmez. Parmak izi
    `REVOKED_SIGNER_FINGERPRINTS` içindeki anahtar olamaz.
@@ -140,9 +161,10 @@ python3 ops/publication_gate/gate.py --payload layer1 ui/src/pages/<dosya>.astro
 
 # 2. İmzala. Private yarı Secure Enclave / donanım sınırında kalır.
 #    Günlük GitHub anahtarı (~/.ssh/id_ed25519) kullanılmaz.
-#    İmza, yerel kullanıcı doğrulamasından sonra üretilir
-#    (Face ID, Touch ID, donanım güvenlik anahtarı veya ayrı güvenilir cihaz).
-#    Anahtar yolu repoda yoktur. Kurulum yapılana kadar bu adım çalıştırılmaz:
+#    İmza, mevcut insan-varlığı katmanının "kurucu doğrulandı" sonucundan
+#    sonra üretilir. Publication gate kamera açmaz ve ikinci bir yüz
+#    tanıma kurmaz. Anahtar yolu repoda yoktur. Kurulum yapılana kadar
+#    bu adım çalıştırılmaz:
 ssh-keygen -Y sign -f <yayin-anahtari> -n lumos-publication /tmp/onay.payload
 
 # 3. /tmp/onay.payload.sig içeriğini manifest kaydına approval_signature olarak,
@@ -164,10 +186,14 @@ ssh-keygen -Y sign -f <yayin-anahtari> -n lumos-publication /tmp/onay.payload
 ## Çözülmemiş sınırlar (dokümante edilmiş ≠ çözülmüş)
 
 1. **Kurulum bekliyor (tasarım kararlaştı, 2026-09-26):** Biyometrik insan
-   kapısı yukarıda kurucu kararı olarak kayıtlıdır. Yayın anahtarı henüz
-   kurulmadı; `allowed_signers` boştur; kapalı varsayılan yürürlüktedir
-   (hiçbir onay/istisna geçemez). Bu kayıt anahtar üretmez. Çözüm, sonraki
-   tek seferlik kurucu kurulumuyla gelir. Geliştirme bekleyen iş değildir.
+   kapısı yukarıda kurucu kararı olarak kayıtlıdır. Publication gate ikinci
+   bir biyometrik sistem kurmaz; mevcut insan-varlığı katmanının
+   "kurucu doğrulandı" sonucuna bağlanır. Bugünkü demo presence kilidi
+   (`presence_lock.py`, varsayılan kapalı, herhangi bir yüz) bu sonuç
+   değildir. Yayın anahtarı henüz kurulmadı; `allowed_signers` boştur;
+   kapalı varsayılan yürürlüktedir (hiçbir onay/istisna geçemez). Bu kayıt
+   anahtar üretmez. Çözüm, sonraki tek seferlik kurucu kurulumuyla gelir.
+   Geliştirme bekleyen iş değildir.
 2. **İnsan incelemesi zorlanmıyor:** `require_code_owner_reviews=false`,
    `required_approving_review_count=0`. Tek insan hesabı kendi PR'ını
    onaylayamayacağı için bu ayar ikinci inceleyici hesap olmadan AÇILMAMALIDIR
