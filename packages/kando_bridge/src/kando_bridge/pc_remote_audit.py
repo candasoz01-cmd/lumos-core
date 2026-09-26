@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -68,11 +69,14 @@ def append_pc_remote_audit(
         fh.write(line)
         fh.flush()
         os.fsync(fh.fileno())
-    directory_fd = os.open(path.parent, os.O_RDONLY)
-    try:
-        os.fsync(directory_fd)
-    finally:
-        os.close(directory_fd)
+    # Windows does not expose POSIX directory descriptors through os.open.
+    # File data is synced above; directory-entry durability is POSIX-only.
+    if sys.platform != "win32":
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
 
 
 def read_audit_events(repo_root: Path) -> list[dict[str, Any]]:
