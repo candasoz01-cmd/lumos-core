@@ -46,6 +46,14 @@ def _presence(enabled: bool = False, broken: bool = False):
     return Mod()
 
 
+@pytest.fixture(autouse=True)
+def _pinned_host(monkeypatch):
+    """Host platformu ve kamera izni sabit: macOS'ta da aynı sonuç, gerçek kamera açılmaz.
+    Darwin davranışını sınayan test bunları kendi içinde yeniden ayarlar."""
+    monkeypatch.setattr(startup_health.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(startup_health, "_macos_permissions_ok", lambda: None)
+
+
 @pytest.fixture
 def ready(tmp_path):
     (tmp_path / "consent.json").write_text("{}")
