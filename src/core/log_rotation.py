@@ -8,12 +8,20 @@ from __future__ import annotations
 import json
 import os
 import shutil
-from uuid import uuid4
+import hashlib
 from pathlib import Path
 
 # Defaults for runtime JSONL logs (evolution, decision_feedback, decision_history)
 DEFAULT_MAX_BYTES = 1_000_000  # 1 MB
 DEFAULT_KEEP = 3
+
+
+def _digest(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for block in iter(lambda: stream.read(65536), b""):
+            digest.update(block)
+    return digest.hexdigest()
 
 
 def _rotated_path(base: Path, n: int) -> Path:
@@ -65,14 +73,26 @@ def rotate_jsonl_log(
             if n == keep and dst.exists():
                 archive = path.parent / ".retained-logs" / path.name
                 archive.mkdir(parents=True, exist_ok=True, mode=0o700)
-                retained = archive / (uuid4().hex + ".jsonl")
+                identity = dst.stat()
+                digest = _digest(dst)
+                retained = archive / f"{identity.st_ino}-{identity.st_mtime_ns}-{digest}.jsonl"
                 pending = retained.with_suffix(".pending")
-                with dst.open("rb") as source, pending.open("xb") as target:
-                    os.chmod(pending, 0o600)
-                    shutil.copyfileobj(source, target)
-                    target.flush()
+                if not pending.exists() and not retained.exists():
+                    with dst.open("rb") as source, pending.open("xb") as target:
+                        os.chmod(pending, 0o600)
+                        shutil.copyfileobj(source, target)
+                        target.flush()
+                        os.fsync(target.fileno())
+                candidate = retained if retained.exists() else pending
+                if _digest(candidate) != digest:
+                    raise OSError("Retained log copy incomplete; recovery required")
+                # Retry publication/durability without allocating another copy.
+                with candidate.open("rb") as target:
                     os.fsync(target.fileno())
-                os.link(pending, retained)
+                if not retained.exists():
+                    os.link(pending, retained)
+                if _digest(dst) != digest:
+                    raise OSError("Source log changed during archival")
                 fd = os.open(archive, os.O_RDONLY)
                 try:
                     os.fsync(fd)
