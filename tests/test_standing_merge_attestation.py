@@ -126,7 +126,7 @@ def test_factual_attestation_fail_closed_when_ledger_io_fails(_isolate_ledger):
 
 def test_path_only_eligible_does_not_require_an_attestation_record(_isolate_ledger):
     """Machine-safe allowlist class is not a human judgement; CI still reports it."""
-    code, verdict = _run_main(["docs/TECHNICAL_DEBT.md"])
+    code, verdict = _run_main(["tests/test_example.py"])
     assert code == 0
     assert verdict["class"] == CLASS_ELIGIBLE
     assert verdict["attest_by"] == ""
@@ -189,3 +189,33 @@ def test_ci_classify_step_does_not_pass_attest():
     assert "--attest" not in joined
     assert "--attest-by" not in joined
     assert "--attest-sha" not in joined
+
+
+DEBT = "docs/TECHNICAL_DEBT.md"
+
+
+@pytest.mark.parametrize(
+    "verdict_word,exit_code,cls",
+    [("factual", 0, CLASS_ELIGIBLE), ("normative", 2, "excluded")],
+)
+def test_debt_register_cli_attestation_is_recorded(
+    _isolate_ledger, verdict_word, exit_code, cls
+):
+    code, verdict = _run_main(
+        [DEBT, "--head-sha", HEAD, "--attest", verdict_word,
+         "--attest-sha", HEAD, "--attest-by", ACTOR]
+    )
+    assert code == exit_code
+    assert verdict["class"] == cls
+    assert verdict["standing_merge"] is (cls == CLASS_ELIGIBLE)
+    records = read_standing_attestations()
+    assert [row["verdict"] for row in records] == [verdict_word]
+    assert records[0]["head_sha"] == HEAD
+    assert DEBT in records[0]["paths"]
+
+
+def test_debt_register_without_attestation_exits_three(_isolate_ledger):
+    code, verdict = _run_main([DEBT])
+    assert code == 3
+    assert verdict["class"] == CLASS_SEMANTIC
+    assert read_standing_attestations() == []
