@@ -70,6 +70,9 @@ def newdir(path):
 def pack(repo, out):
     repo = Path(repo).resolve()
     head, tree = identity(repo)
+    # A shallow clone bundles commits whose parents it lacks; stop before any output.
+    if git(repo, 'rev-parse', '--is-shallow-repository') != 'false':
+        raise ValueError('SHALLOW: tam geçmiş olmadan paket üretilmez')
     out = Path(out).resolve()
     if out.is_relative_to(repo):
         raise ValueError('Paket çalışma ağacının dışında olmalı')

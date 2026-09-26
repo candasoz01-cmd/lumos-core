@@ -2,6 +2,7 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import sys
 
 import pytest
 
@@ -40,6 +41,36 @@ def test_restore_without_original_repo(repo, tmp_path):
     package.rename(tmp_path / 'sender-unavailable')
     assert run(archive / 'restored.git', 'show', 'HEAD:file') == b'original\n'
     assert handoff.digest(archive / 'source.bundle') == json.loads((archive / 'receipt.json').read_text())['bundle_sha256']
+
+
+def history(repo):
+    (repo / 'file').write_text('second\n')
+    run(repo, 'commit', '-am', 'second')
+    return run(repo, 'rev-parse', 'HEAD').decode().strip()
+
+
+def test_shallow_clone_blocks_before_any_package_output(repo, tmp_path):
+    history(repo)
+    shallow = tmp_path / 'shallow'
+    run(tmp_path, 'clone', '--depth', '1', repo.as_uri(), str(shallow))
+    package = tmp_path / 'package'
+    with pytest.raises(ValueError, match='SHALLOW'):
+        handoff.pack(shallow, package)
+    assert not package.exists()
+    cli = subprocess.run([sys.executable, spec.origin, 'pack', '--repo', str(shallow), '--out', str(package)],
+                         capture_output=True, text=True)
+    assert cli.returncode == 2
+    assert cli.stderr.startswith('DELIVERY_BLOCKED: SHALLOW')
+    assert not package.exists()
+
+
+def test_full_history_clone_is_delivered(repo, tmp_path):
+    head = history(repo)
+    full = tmp_path / 'full'
+    run(tmp_path, 'clone', repo.as_uri(), str(full))
+    _, archive = delivered(full, tmp_path)
+    assert handoff.check(full, archive) == dict(status='DELIVERY_VERIFIED', head=head, archive=str(archive))
+    assert run(archive / 'restored.git', 'rev-list', '--count', 'HEAD') == b'2\n'
 
 
 def test_dirty_and_untracked_block(repo, tmp_path):
