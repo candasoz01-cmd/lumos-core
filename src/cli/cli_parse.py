@@ -188,6 +188,10 @@ def get_fallback_message(raw: str, last_route: str | None) -> str:
     return NEUTRAL_FALLBACK_TEXT
 
 
+# Presence yalnız bu adla anılır: kişiyi ayırt etmeyen, varsayılan kapalı demo.
+_KAMERA_DEMO = "İsteğe bağlı kamera tabanlı otomatik kilit (demo)"
+
+
 def _get_oneri(
     base_dir: str | Path,
     keystore_initialized: bool,
@@ -207,19 +211,13 @@ def _get_oneri(
         out.append("Önce keystore kurulumunu kontrol et: durum")
         if len(out) >= 3:
             return out
+    # Kamera tabanlı otomatik kilit isteğe bağlı bir demodur; güvenlik önerisi
+    # olarak sunulmaz. Yalnız kullanıcı açtıysa ve ayarı eksikse gösterilir.
     if consent_ok and ks_ready and durum_label == "güvenli":
-        try:
-            cfg = presence_module.load_presence_cfg(Path(base_dir))
-            pres_enabled = bool(getattr(cfg, "enabled", False))
-        except Exception:
-            pres_enabled = True
-        if not pres_enabled:
-            out.append("İstersen kamera aç: kamera")
-        if not out:
-            out.append("Hazırsın. durum, hazir veya yardım et ile devam edebilirsin.")
+        out.append("Hazırsın. durum, hazir veya yardım et ile devam edebilirsin.")
         return out
     if consent_ok and ks_ready:
-        out.append("İstersen kamera aç: kamera")
+        out.append(f"{_KAMERA_DEMO}: {parts.get('not_line')}. Ayarı görmek için: kamera")
     return out if out else ["durum yazıp mevcut durumu kontrol edebilirsin."]
 
 
@@ -235,8 +233,8 @@ def _get_tek_sonraki_adim(
         return "Bir sonraki adım: önce consent akışını tamamla."
     if first.startswith("Önce keystore"):
         return "Bir sonraki adım: keystore durumunu kontrol et."
-    if "kamera" in first and "aç" in first:
-        return "Bir sonraki adım: istersen kamera/presence aç."
+    if first.startswith(_KAMERA_DEMO):
+        return "Bir sonraki adım: durum veya hazir ile devam et. İsteğe bağlı kamera ayarı için: kamera"
     if "Hazırsın" in first or "devam edebilirsin" in first:
         return "Bir sonraki adım: durum veya hazir ile devam et."
     if "durum" in first:
@@ -258,16 +256,10 @@ def _get_guvenli_cevap(
         return "Şu an tam güvenli değilsin. Consent eksik."
     if not ks_ready:
         return "Şu an tam güvenli değilsin. Keystore hazır değil."
-    try:
-        cfg = presence_module.load_presence_cfg(Path(base_dir))
-        pres_enabled = bool(getattr(cfg, "enabled", False))
-    except Exception:
-        pres_enabled = False
-    if consent_ok and ks_ready and not pres_enabled:
-        return "Şu an kısmen güvenlisin. Keystore hazır ama presence kapalı."
+    # Kamera/presence güvenliğin kendisi değildir; kapalı olması cevabı düşürmez.
     if durum_label == "güvenli":
-        return "Şu an güvenlisin. Temel korumalar aktif."
-    return "Şu an kısmen güvenlisin. " + (parts.get("not_line") or "Durum ile detay görebilirsin.")
+        return "Consent kayıtlı, keystore hazır. Kritik eksik görünmüyor."
+    return f"Consent kayıtlı, keystore hazır. {_KAMERA_DEMO}: {parts.get('not_line')}."
 
 
 def _get_en_onemli_eksik(
@@ -282,7 +274,7 @@ def _get_en_onemli_eksik(
     if not parts["keystore_ready"]:
         return "En önemli eksik: keystore hazır değil."
     if parts.get("not_line") != "kritik eksik yok":
-        return "En önemli eksik: temel güvenlik durumu tam değil."
+        return f"Şu an kritik bir eksik görünmüyor. {_KAMERA_DEMO}: {parts.get('not_line')}."
     return "Şu an kritik bir eksik görünmüyor."
 
 
@@ -294,9 +286,6 @@ def _get_mod_cevabi(
     session_consent: bool = False,
 ) -> str:
     if (mode or "").strip().lower() == "offline":
-        parts = get_durum_parts(Path(base_dir), keystore_initialized, presence_module, session_consent=session_consent)
-        if parts.get("durum_label") == "güvenli":
-            return "Şu an güvenli offline moddasın."
         return "Şu an offline moddasın."
     return "Şu an online moddasın."
 
