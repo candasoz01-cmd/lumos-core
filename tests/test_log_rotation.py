@@ -56,8 +56,8 @@ def test_rotate_when_size_limit_exceeded(tmp_path: Path) -> None:
     assert len(old_lines) == 5
 
 
-def test_keep_only_three_rotated_files(tmp_path: Path) -> None:
-    """Only the newest `keep` rotated files are retained (e.g. .1, .2, .3)."""
+def test_keep_three_active_rotations_and_all_older_records(tmp_path: Path) -> None:
+    """The active window is bounded while all older content remains available."""
     p = tmp_path / "log.jsonl"
     max_b = 40
     keep = 3
@@ -71,6 +71,10 @@ def test_keep_only_three_rotated_files(tmp_path: Path) -> None:
         assert r.exists(), f"expected {r} to exist"
     # .4 should not exist
     assert not Path(str(p) + ".4").exists()
+    archived = list((tmp_path / ".retained-logs/log.jsonl").glob("*.jsonl"))
+    rows = [json.loads(line) for f in [p, *rotated, *archived]
+            for line in f.read_text().splitlines()]
+    assert sorted(row["i"] for row in rows) == list(range(10))
 
 
 def test_non_positive_max_bytes_clamped_to_default(tmp_path: Path) -> None:
@@ -197,3 +201,35 @@ def test_decision_history_log_still_writes(tmp_path: Path, monkeypatch) -> None:
     rec = json.loads(lines[-1])
     assert rec.get("goal") == "test goal"
     assert rec.get("chosen_option_id") == "minimal-abc"
+
+
+def test_archive_failure_keeps_rotation_sources(tmp_path, monkeypatch):
+    import core.log_rotation as rotation
+    p = tmp_path / "events.jsonl"
+    p.write_bytes(b'current\r\n')
+    oldest = Path(str(p) + '.1')
+    oldest.write_bytes(b'oldest\r\n')
+    def fail(*args, **kwargs):
+        raise OSError('archive unavailable')
+    monkeypatch.setattr(rotation.os, 'link', fail)
+    result = rotate_jsonl_log(p, max_bytes=1, keep=1)
+    assert result['error'] == 'archive unavailable'
+    assert not result['rotated']
+    assert not result['files_removed']
+    assert p.read_bytes() == b'current\r\n'
+    assert oldest.read_bytes() == b'oldest\r\n'
+
+
+def test_rotation_archive_is_independent_exact_copy(tmp_path):
+    p = tmp_path / 'events.jsonl'
+    p.write_bytes(b'new')
+    oldest = Path(str(p) + '.1')
+    old = b'unknown legacy content\r\n\xff'
+    oldest.write_bytes(old)
+    result = rotate_jsonl_log(p, max_bytes=1, keep=1)
+    assert result['rotated']
+    assert result['files_removed'] == []
+    saved = Path(result['files_archived'][0])
+    assert saved.read_bytes() == old
+    oldest.write_bytes(b'changed later')
+    assert saved.read_bytes() == old

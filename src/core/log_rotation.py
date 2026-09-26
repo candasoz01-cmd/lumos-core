@@ -1,11 +1,14 @@
 """
 Safe JSONL log rotation for Lumos runtime logs.
-Prevents unlimited growth while preserving old records. Stdlib only; never raises on missing file.
+Bounds active log size while retaining older records indefinitely. Stdlib only; never raises on missing file.
 """
 
 from __future__ import annotations
 
 import json
+import os
+import shutil
+from uuid import uuid4
 from pathlib import Path
 
 # Defaults for runtime JSONL logs (evolution, decision_feedback, decision_history)
@@ -27,7 +30,8 @@ def rotate_jsonl_log(
     Rotate the JSONL log at path if its size is >= max_bytes.
 
     Rotation: current -> .1, .1 -> .2, .2 -> .3, etc. Only the newest `keep`
-    rotated files are retained. The current file is renamed to .1; a new
+    rotated files stay in the active window; older files are archived without expiry.
+    The current file is renamed to .1; a new
     empty current file is not created (next append will create it).
 
     Never raises on missing file. Returns a dict with keys:
@@ -41,6 +45,7 @@ def rotate_jsonl_log(
         "rotated": False,
         "size_before": 0,
         "files_removed": [],
+        "files_archived": [],
         "error": None,
     }
     if max_bytes <= 0:
@@ -54,12 +59,26 @@ def rotate_jsonl_log(
         result["size_before"] = size
         if size < max_bytes:
             return result
-        # Rotate from highest index down: remove .keep, then .(k-1) -> .k, ..., current -> .1
+        # Preserve the oldest bytes before reusing its active-window name.
         for n in range(keep, 0, -1):
             dst = _rotated_path(path, n)
             if n == keep and dst.exists():
-                dst.unlink()
-                result["files_removed"].append(str(dst))
+                archive = path.parent / ".retained-logs" / path.name
+                archive.mkdir(parents=True, exist_ok=True, mode=0o700)
+                retained = archive / (uuid4().hex + ".jsonl")
+                pending = retained.with_suffix(".pending")
+                with dst.open("rb") as source, pending.open("xb") as target:
+                    os.chmod(pending, 0o600)
+                    shutil.copyfileobj(source, target)
+                    target.flush()
+                    os.fsync(target.fileno())
+                os.link(pending, retained)
+                fd = os.open(archive, os.O_RDONLY)
+                try:
+                    os.fsync(fd)
+                finally:
+                    os.close(fd)
+                result["files_archived"].append(str(retained))
             src = path if n == 1 else _rotated_path(path, n - 1)
             if src.exists():
                 src.rename(dst)
