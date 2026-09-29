@@ -15,7 +15,7 @@ const umbrellaEn: typeof umbrellaTr = {
     accessibility: "Accessible",
     lab: "Lab",
     education: "Education",
-    privacy: "Data and trust",
+    privacy: "Technical data and trust inventory",
   },
   accessibility: {
     eyebrow: "LUMOS · ACCESSIBLE", title: "Accessible use",
@@ -90,7 +90,7 @@ const umbrellaEn: typeof umbrellaTr = {
     securityRow4: "Payments, domain purchases, and sending mail never happen without user approval.",
     aiTitle: "Model call",
     aiSub: "No key, no call",
-    aiBody: "The trimmed message is sent. The response has no provider name. Detail is on the Data and trust page.",
+    aiBody: "The trimmed message, the name from the session, and permitted memory summaries are sent. The response has no provider name. Detail is on the Technical data and trust inventory page.",
     integrationsTitle: "Integrations",
     integrationsSub: "Permission matrix and status",
     deviceTitle: "Device ecosystem",
@@ -114,7 +114,7 @@ const umbrellaEn: typeof umbrellaTr = {
       "This page is a technical inventory. The data controller, a contact and request channel, a deletion-request process, the legal basis, and rights under KVKK/GDPR are not published here. They await a separate legal and policy decision; this inventory does not replace them.",
     scopeTitle: "Scope",
     scopeBody:
-      "The paths described are hosted chat, the Google session cookie, calls to the Lumos memory service, the Gmail read-only path, the local task log, and browser file history. If another deployment, or an operator layer that is not in this repository, adds a service, this page does not cover it.",
+      "The paths described are hosted chat, the Google session cookie, calls to the Lumos memory service, the Gmail read-only path, Meta (Facebook, Instagram, Pages, WhatsApp) connections, the local task log, and browser file history. If another deployment, or an operator layer that is not in this repository, adds a service, this page does not cover it.",
     notTitle: "What Lumos does not do",
     notBody:
       "It does not run a per-country legal engine. It does not verify that a provider refrains from storing or training on inputs. There is no full masking system.",
@@ -136,6 +136,12 @@ const umbrellaEn: typeof umbrellaTr = {
     gmailTitle: "Gmail read-only path",
     gmailBody:
       "The code defines the gmail.readonly scope. On Google's side that scope permits reading the mailbox; the code in this repository uses it only to request the unread message list (at most 20) and each message's Subject, From, and Date headers, not the message body. The subject is cut at 120 characters and the sender at 80. What comes back is only an unread-mail summary. The token is read from the vault adapter; if the vault has no token, the request stops. A live Gmail API call is made only when LUMOS_GMAIL_SMOKE is 1, true, or yes; otherwise sample data is returned. The result goes back to the calling integration step; this path does not write it to disk, send it to a model API, or pass it to an advertising or sale service. The Gmail OAuth consent and callback handler is not in this repository. welockai.com Google sign-in requests only openid, email, and profile.",
+    metaTitle: "Meta connections (Facebook, Instagram, Pages, WhatsApp)",
+    metaBody:
+      "A connection starts only when the user starts it. Requested permissions: public_profile for Facebook; instagram_business_basic for Instagram; pages_show_list for Pages; business_management and whatsapp_business_management for WhatsApp. On callback the code is exchanged for an access token, extended to a long-lived token, and the account ID and name or username are read. The token, its expiry, the account ID, and lumos_id are written to a separate vault service set by LUMOS_CREDENTIAL_VAULT_WRITE_URL; the token is not written to a cookie. Connection listing and sync read: for Instagram the ID, username, account type, and media count; for Pages the page ID and name; for WhatsApp the business ID and name, the WhatsApp Business Account ID and name, the phone number ID, the display phone number, and the verified name. Page and WhatsApp connection records are also written to the vault service. Meta webhook events whose signature verifies are forwarded with their full payload to the service at LUMOS_META_WEBHOOK_SINK_URL; that payload can carry message content. The vault and webhook services are not in this repository; their retention and location cannot be verified from this code. This path does not send Meta data to a model API.",
+    metaDeleteTitle: "Removing a Meta connection",
+    metaDeleteBody:
+      "“Remove connection” tries to revoke permissions at Meta (DELETE /me/permissions), then deletes the token from the vault service. If the Meta request fails, the token is still deleted and the response is revoked_local, showing that the permission at Meta was not removed. This does not delete page and WhatsApp connection records or events already forwarded to the webhook service. This repository has no endpoint for Meta's data deletion callback or deauthorize callback.",
     qWhereTitle: "Where is it kept?",
     qWhereBody:
       "The session is a browser cookie. The hosted chat handler itself does not write the message to a database or file; a “remember” summary is written to the memory service. If bridge telemetry runs, the user message is written on that machine under .lumos/logs. File upload summaries stay in this browser's localStorage, at most 5 entries. No code chooses a storage place from a per-country rule.",
@@ -153,13 +159,13 @@ const umbrellaEn: typeof umbrellaTr = {
       "The Google access token is not in the session. If the memory service or consent is missing, a “remember” sentence is not saved. This repository has no advertising tag and no data-sale integration. The model provider's and the memory service's own records are outside that sentence.",
     qDeleteTitle: "How do I delete it?",
     qDeleteBody:
-      "Logout clears the cookie and increments session_version. delete_all removes stored local notes. delete_audit_logs removes the log files under .lumos/logs. Memory deletion requires action delete and confirm: true; it counts as deleted only if the service returns ok. A provider copy is not treated as deleted while deletion_api_supported is false in the registry. Google account access can be removed from Google's connections page.",
+      "Logout clears the cookie and increments session_version. delete_all removes stored local notes. delete_audit_logs removes the log files under .lumos/logs. Memory deletion requires action delete and confirm: true; it counts as deleted only if the service returns ok. A provider copy is not treated as deleted while deletion_api_supported is false in the registry. For a Meta token, see “Removing a Meta connection”. Google account access can be removed from Google's connections page.",
     assuranceTitle: "Lumos assurance",
     assuranceBody:
       "This name covers only the controls listed above: session checks, not writing the access token into the cookie, character limits, store: false on the OpenAI request, stripping provider and model from the response, not writing memory without consent, the observability allowlist, stopping a task-engine step that matches SECURITY_NEVER_AUTO, replacing known email, phone, and id-like runs in model text, the country-profile gate, the session_version check, local log cleanup, and local note deletion.",
     missingTitle: "What is missing",
     missingBody:
-      "In the provider registry contract_verified, zero_data_retention_supported, and deletion_api_supported are false, and retention_mode and training_use are unknown (provider verification pending). The Gemini request has no store field. The memory service's retention period and location cannot be verified from this code. The session_version record is a single file. The user is not shown which API was called. The confirmation layer is on when LUMOS_ENV or LUMOS_PRODUCT_ENV is production or prod; elsewhere it runs only when LUMOS_CONFIRMATION_ENABLED is 1, true, or yes. SECURITY_NEVER_AUTO is unchanged. A hosted chat reply is not held for a separate approval step.",
+      "In the provider registry contract_verified, zero_data_retention_supported, and deletion_api_supported are false, and retention_mode and training_use are unknown (provider verification pending). The Gemini request has no store field. The retention period and location of the memory service, the Meta vault, and the Meta webhook service cannot be verified from this code. This repository has no Meta data deletion callback and does not delete Meta connection records. The session_version record is a single file. The user is not shown which API was called. The confirmation layer is on when LUMOS_ENV or LUMOS_PRODUCT_ENV is production or prod; elsewhere it runs only when LUMOS_CONFIRMATION_ENABLED is 1, true, or yes. SECURITY_NEVER_AUTO is unchanged. A hosted chat reply is not held for a separate approval step.",
     countryTitle: "Country rules",
     countryBody:
       "There is no per-country legal engine. An empty country code uses the global_safe profile. An unrecognized country code closes the model call. The XX code is only a test and configuration placeholder; it is not a legal determination. This does not place the operator outside the law.",

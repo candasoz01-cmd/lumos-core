@@ -77,6 +77,25 @@ Hafıza, sohbet işleyicisinden ayrı bir saklama ve işleme katmanıdır (`call
 - Sonuç çağıran entegrasyon adımına döner. Bu yol onu diske yazmaz ve bir model API’sine göndermez.
 - Gmail OAuth onay ve geri çağrı işleyicisi bu depoda yoktur (`oauth_contract.py` yalnız sözleşme sabitleridir). welockai.com Google girişi (`api/auth/google/start.js`) yalnız `openid email profile` ister.
 
+## Meta bağlantıları (Facebook, Instagram, Pages, WhatsApp)
+
+`api/auth/meta/*`, `api/integrations/meta/*`, `api/webhooks/meta.js`, `api/_lib/meta_*.js`.
+
+| Sağlayıcı | İstenen izin | Okunan alanlar |
+| --- | --- | --- |
+| Facebook | `public_profile` | `id`, `name`; `me/accounts` için sayfa `id`, `name` |
+| Instagram | `instagram_business_basic` (Instagram Login) | `id`, `username`, `account_type`, `media_count` |
+| Pages | `pages_show_list` (Business app) | sayfa `id`, `name` |
+| WhatsApp | `business_management`, `whatsapp_business_management` | işletme `id`, `name`; WABA `id`, `name`; telefon `id`, `display_phone_number`, `verified_name` |
+
+- Geri çağrı (`api/auth/meta/callback.js`) kodu erişim belirtecine çevirir, uzun süreli belirtece uzatır, kimliği okur ve `writeMetaCredential` ile belirteç, süre, `auth_mode`, hesap kimliği ve `owner_lumos_id` değerini `LUMOS_CREDENTIAL_VAULT_WRITE_URL` servisine yazar (yalnız `https`). Belirteç çereze yazılmaz.
+- Pages, Instagram ve WhatsApp bağlantı kayıtları (`upsertMetaConnection`: sayfa, işletme, WABA, telefon alanları) aynı servise yazılır.
+- İmzası doğrulanan webhook olayları (`whatsapp_business_account`, `instagram`, `page`) yükün tamamıyla `LUMOS_META_WEBHOOK_SINK_URL` servisine iletilir. Yük ileti içeriği taşıyabilir.
+- Kasa ve webhook servisi bu depoda değildir. Saklama süresi ve konumu doğrulanamaz.
+- Bu yol Meta verisini bir model API’sine göndermez.
+
+**Kaldırma.** `api/integrations/meta/token.js` `action: revoke`: önce Meta’da `DELETE /me/permissions`, sonra `deleteMetaCredential`. Meta isteği başarısızsa belirteç yine silinir, yanıt `502 revoked_local` olur. Bağlantı kayıtları ve webhook servisine iletilmiş olaylar silinmez; bu depoda `connection.delete` çağrısı yoktur. Meta veri silme geri çağrısı veya yetki kaldırma geri çağrısı için uç nokta yoktur.
+
 ## Eksik — güvencenin parçası değil
 
 | Konu | Durum |
@@ -87,6 +106,9 @@ Hafıza, sohbet işleyicisinden ayrı bir saklama ve işleme katmanıdır (`call
 | Sağlayıcının saklama, eğitim veya silme API’si | Doğrulanmıyor. Kayıt `provider verification pending`. `deletion_api_supported` false iken sağlayıcı kopyası silinmiş sayılmaz. |
 | Hafıza servisinin saklama süresi ve konumu | Servis bu depoda yok; doğrulanmıyor. |
 | Paylaşılan çoklu sunucu oturum deposu | Yok. `session_version` tek dosyadır. |
+| Meta kasası ve webhook servisinin saklama süresi ve konumu | Servisler bu depoda yok; doğrulanmıyor. |
+| Meta veri silme / yetki kaldırma geri çağrısı | Bu depoda uç nokta yok. |
+| Meta bağlantı kayıtlarının ve iletilmiş webhook olaylarının silinmesi | Bu depoda silme çağrısı yok. |
 | Gmail verisi için Google API Hizmetleri Kullanıcı Verileri Politikası beyanı | Bu depoda bir politika beyanı yok; ayrı hukuk/politika kararı bekler. |
 | Barındırılan sohbette kullanıcının hangi API’nin çağrıldığını görmesi | Yanıt bu adı taşımaz. |
 | Onay katmanının üretim dışı her kurulumda açık olması | Üretim (`LUMOS_ENV` / `LUMOS_PRODUCT_ENV` = `production` veya `prod`) dışında kapı, `LUMOS_CONFIRMATION_ENABLED` açık değilse no-op kalır. |

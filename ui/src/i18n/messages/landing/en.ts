@@ -6,7 +6,7 @@ const landingEn: typeof landingTr = {
     heroTitle: "One panel. Every flow. Your decision.",
     heroSubtitle: "The control layer for identity, model calls, and automation.",
     heroBody:
-      "Lumos does not run its own model. A model call sends the trimmed message, the name from the session, and the account provider. The session cookie and email are not sent.",
+      "Lumos does not run its own model. A model call sends the trimmed message, the name from the session, the account provider, and, if permitted, up to 12 memory summaries. The session cookie and email are not sent.",
     openLumos: "Open Lumos",
     viewStatus: "View live status",
     mapAria: "Lumos platform layers",
@@ -132,7 +132,7 @@ const landingEn: typeof landingTr = {
     cardRiskTitle: "Risk visibility",
     cardRiskBody: "Showing risk before an action is not attached to the chat reply in this repository.",
     cardDataTitle: "Data awareness",
-    cardDataBody: "Where data goes is written on the Data and trust page. Chat does not show that as a separate card on every reply.",
+    cardDataBody: "Where data goes is written on the Technical data and trust inventory page. Chat does not show that as a separate card on every reply.",
     cardApprovalTitle: "Explicit approval",
     cardApprovalBody: "The confirmation layer is on in production (LUMOS_ENV or LUMOS_PRODUCT_ENV is production or prod). Elsewhere it runs only when LUMOS_CONFIRMATION_ENABLED is on.",
     workTitle: "How we work",
@@ -145,7 +145,7 @@ const landingEn: typeof landingTr = {
     listRiskLabel: "Risk visibility:",
     listRiskBody: "Showing risk before an action is not attached to the chat reply in this repository.",
     listDataLabel: "Data awareness:",
-    listDataBody: "Where data goes is written on the Data and trust page. Chat does not show that as a separate card on every reply.",
+    listDataBody: "Where data goes is written on the Technical data and trust inventory page. Chat does not show that as a separate card on every reply.",
   },
   howItWorks: {
     title: "How it works",
@@ -180,7 +180,7 @@ const landingEn: typeof landingTr = {
     title: "What is Lumos?",
     p1: "Lumos is not a new artificial intelligence and does not run its own model. Hosted chat, when a session and a key exist, sends the trimmed message, the signed-in name, and permitted memory summaries to a model API. That handler itself does not write the message to a database; a “remember” summary goes to the separate memory service.",
     p2: "The response does not name a provider or model. The confirmation layer is off by default. A chat reply is not held for a separate approval step.",
-    p3: "Per-country data rules, masking, and verification of provider retention are not in this repository. Detail is on the Data and trust page.",
+    p3: "Per-country data rules, masking, and verification of provider retention are not in this repository. Detail is on the Technical data and trust inventory page.",
   },
   whatDoes: {
     title: "What does it do?",
