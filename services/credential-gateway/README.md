@@ -26,7 +26,20 @@ türetilmiştir (ADR-021).
 ## Operasyonlar
 
 `credential.upsert | credential.list | credential.metadata | credential.resolve
-(provider veya vault_ref ile) | credential.delete | webhook.ingest`
+(provider veya vault_ref ile) | credential.delete | webhook.ingest |
+connection.upsert | connection.list | connection.delete | account.purge |
+deletion.status`
+
+- `connection.delete` (owner + `credential_ref`): "Bağlantıyı kaldır" sonrası o
+  credential'a bağlı `CONN__` kayıtlarını ve bu bağlantıların `INBOUND__`,
+  `LASTIN__`, `SEND__` kayıtlarını siler.
+- `account.purge` (owner yok; `providers` + `provider_account_id` +
+  `confirmation_code`): Meta veri silme / yetki kaldırma geri çağrısı. Eşleşen
+  `CRED__` kayıtlarını ve yukarıdaki bağlı kayıtları siler, sonucu kullanıcı
+  kimliği taşımayan `DELETION__<code>` kaydına yazar.
+- `deletion.status` (`confirmation_code`): o kaydı döner.
+- `WEBHOOK__` kayıtları yük ve kullanıcı kimliği taşımadığı için bu işlemlerin
+  dışındadır.
 
 ## Deploy
 

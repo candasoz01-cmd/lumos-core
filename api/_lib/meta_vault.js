@@ -206,3 +206,58 @@ export async function resolveMetaCredentialByRef(lumosId, vaultRef, fetchImpl = 
     authMode: clean(payload?.credential?.auth_mode),
   };
 }
+
+// ---------------------------------------------------------------- KARAR-2
+// Meta veri silme / yetki kaldırma (#903). Bu çağrılar gateway'de
+// account.purge, deletion.status ve connection.delete işlemlerini kullanır.
+
+function purgeCounts(payload) {
+  const counts = payload?.counts && typeof payload.counts === "object" ? payload.counts : {};
+  return {
+    credentials: Number(counts.credentials || 0),
+    connections: Number(counts.connections || 0),
+    inbound: Number(counts.inbound || 0),
+    lastInbound: Number(counts.last_inbound || 0),
+    send: Number(counts.send || 0),
+  };
+}
+
+export async function purgeMetaAccount({ providers, providerAccountId, confirmationCode }, fetchImpl = fetch) {
+  const payload = await callMetaVault(
+    "account.purge",
+    {
+      providers,
+      provider_account_id: providerAccountId,
+      confirmation_code: confirmationCode,
+    },
+    fetchImpl,
+  );
+  if (clean(payload?.status) !== "completed") throw new Error("meta_account_purge_incomplete");
+  return { status: "completed", counts: purgeCounts(payload) };
+}
+
+export async function metaDeletionStatus(confirmationCode, fetchImpl = fetch) {
+  const payload = await callMetaVault(
+    "deletion.status",
+    { confirmation_code: confirmationCode },
+    fetchImpl,
+  );
+  return {
+    status: clean(payload?.status),
+    requestedAt: Number(payload?.requested_at || 0),
+    completedAt: Number(payload?.completed_at || 0),
+    counts: purgeCounts(payload),
+  };
+}
+
+export async function deleteMetaConnectionsForCredential(lumosId, vaultRef, fetchImpl = fetch) {
+  const payload = await callMetaVault(
+    "connection.delete",
+    { owner_lumos_id: lumosId, credential_ref: vaultRef },
+    fetchImpl,
+  );
+  if (clean(payload?.credential_ref) !== vaultRef) {
+    throw new Error("meta_connection_delete_invalid_response");
+  }
+  return { counts: purgeCounts(payload) };
+}

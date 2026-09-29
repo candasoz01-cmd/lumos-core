@@ -493,6 +493,9 @@ test("Revoke deletes the local vault credential even when Meta revoke fails", as
             credential: { access_token: "revoked-token", token_type: "bearer", expires_at: 100 },
           }; } };
         }
+        if (body.operation === "connection.delete") {
+          return { ok: true, async json() { return { ok: true, credential_ref: body.credential_ref, counts: { connections: 1 } }; } };
+        }
         return { ok: true, async json() { return { ok: true, vault_ref: "meta:facebook:opaque" }; } };
       }
       return { ok: false, async json() { return {}; } };
@@ -510,8 +513,9 @@ test("Revoke deletes the local vault credential even when Meta revoke fails", as
       provider: "facebook",
       status: "revoked_local",
       upstream_revoked: false,
+      connections_deleted: true,
     });
-    assert.deepEqual(operations, ["credential.resolve", "credential.delete"]);
+    assert.deepEqual(operations, ["credential.resolve", "credential.delete", "connection.delete"]);
     assert.doesNotMatch(res.body, /revoked-token/);
   } finally {
     globalThis.fetch = originalFetch;

@@ -68,6 +68,61 @@ async function scanForOwner(config, accessToken, ownerLumosId, fetchImpl) {
   };
 }
 
+function parseJson(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+const safeKey = (value) => clean(value).replace(/[^A-Za-z0-9_-]/g, "_");
+const deletionKey = (code) => `DELETION__${safeKey(code)}`;
+
+// Silme çekirdeği: verilen credential kayıtlarını, onlara credential_ref ile
+// bağlı CONN__ kayıtlarını ve bu bağlantıların INBOUND__/LASTIN__/SEND__
+// kayıtlarını siler. Silinen her ad sayılır; hiçbir şey "silindi" sayılmadan
+// önce deleteSecret başarıyla dönmüş olmalıdır.
+async function purgeCredentialTree(config, accessToken, secrets, credentialRecords, extraRefs = []) {
+  const counts = { credentials: 0, connections: 0, inbound: 0, last_inbound: 0, send: 0 };
+  const refs = new Set(extraRefs.map(clean).filter(Boolean));
+  for (const record of credentialRecords) {
+    await deleteSecret(config, accessToken, record.secret_name);
+    counts.credentials += 1;
+    refs.add(record.vault_ref);
+  }
+  const connectionIds = new Set();
+  const phones = [];
+  for (const secret of secrets) {
+    if (!secret.name.startsWith("CONN__")) continue;
+    const parsed = parseJson(secret.value);
+    if (!parsed || !refs.has(clean(parsed.credential_ref))) continue;
+    await deleteSecret(config, accessToken, secret.name);
+    counts.connections += 1;
+    connectionIds.add(clean(parsed.connection_id));
+    if (clean(parsed.phone_number_id) && clean(parsed.waba_id)) {
+      phones.push({ phone: clean(parsed.phone_number_id), waba: clean(parsed.waba_id) });
+    }
+  }
+  for (const secret of secrets) {
+    const parsed = secret.name.startsWith("LASTIN__") ? null : parseJson(secret.value);
+    if (secret.name.startsWith("INBOUND__")) {
+      if (!phones.some((p) => p.phone === clean(parsed?.phone_number_id) && p.waba === clean(parsed?.waba_id))) continue;
+      await deleteSecret(config, accessToken, secret.name);
+      counts.inbound += 1;
+    } else if (secret.name.startsWith("LASTIN__")) {
+      if (!phones.some((p) => secret.name.startsWith(`LASTIN__${safeKey(p.phone)}__`))) continue;
+      await deleteSecret(config, accessToken, secret.name);
+      counts.last_inbound += 1;
+    } else if (secret.name.startsWith("SEND__")) {
+      if (!connectionIds.has(clean(parsed?.connection_id))) continue;
+      await deleteSecret(config, accessToken, secret.name);
+      counts.send += 1;
+    }
+  }
+  return counts;
+}
+
 function newestFirst(records) {
   return [...records].sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
 }
@@ -306,6 +361,78 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Meta veri silme / yetki kaldırma geri çağrısı (KARAR-2, #903). Çağrı
+  // Meta'nın imzalı isteğinden gelir; owner_lumos_id bilinmez. Eşleşme:
+  // provider listesi + provider_account_id (Meta'nın uygulama kapsamlı
+  // kullanıcı kimliği). Durum kaydı kullanıcı kimliği taşımaz.
+  if (operation === "account.purge") {
+    const providers = new Set(
+      (Array.isArray(body?.providers) ? body.providers : []).map((item) => clean(item).toLowerCase()).filter(Boolean),
+    );
+    const providerAccountId = clean(body?.provider_account_id);
+    const code = clean(body?.confirmation_code);
+    if (!providers.size || !providerAccountId || !/^[A-Za-z0-9_-]{16,64}$/.test(code)) {
+      json(res, 400, { ok: false, error: "invalid_request" });
+      return;
+    }
+    const requestedAt = Math.floor(Date.now() / 1000);
+    let accessToken;
+    try {
+      accessToken = await infisicalLogin(config);
+      const secrets = await listSecrets(config, accessToken);
+      const { records } = scanCredentialRecords(secrets);
+      const matches = records.filter(
+        (record) => providers.has(record.provider) && record.provider_account_id === providerAccountId,
+      );
+      const counts = await purgeCredentialTree(config, accessToken, secrets, matches);
+      const status = {
+        schema: "lumos-deletion-v1",
+        status: "completed",
+        providers: [...providers].sort(),
+        requested_at: requestedAt,
+        completed_at: Math.floor(Date.now() / 1000),
+        counts,
+      };
+      await writeSecret(config, accessToken, deletionKey(code), JSON.stringify(status));
+      json(res, 200, { ok: true, ...status });
+    } catch (error) {
+      if (accessToken) {
+        try {
+          await writeSecret(config, accessToken, deletionKey(code), JSON.stringify({
+            schema: "lumos-deletion-v1",
+            status: "failed",
+            providers: [...providers].sort(),
+            requested_at: requestedAt,
+          }));
+        } catch {
+          // Durum kaydı da yazılamadı; çağıran başarısızlığı görür.
+        }
+      }
+      json(res, 502, { ok: false, error: clean(error?.message) || "gateway_failed" });
+    }
+    return;
+  }
+
+  if (operation === "deletion.status") {
+    const code = clean(body?.confirmation_code);
+    if (!/^[A-Za-z0-9_-]{16,64}$/.test(code)) {
+      json(res, 400, { ok: false, error: "invalid_request" });
+      return;
+    }
+    try {
+      const accessToken = await infisicalLogin(config);
+      const record = parseJson(await readSecret(config, accessToken, deletionKey(code)));
+      if (!record) {
+        json(res, 404, { ok: false, error: "deletion_not_found" });
+        return;
+      }
+      json(res, 200, { ok: true, ...record });
+    } catch (error) {
+      json(res, 502, { ok: false, error: clean(error?.message) || "gateway_failed" });
+    }
+    return;
+  }
+
   if (!operation || !ownerLumosId) {
     json(res, 400, { ok: false, error: "invalid_request" });
     return;
@@ -452,6 +579,24 @@ export default async function handler(req, res) {
         rows.push(publicFields);
       }
       json(res, 200, { ok: true, connections: rows });
+      return;
+    }
+
+    // Kullanıcının "Bağlantıyı kaldır" eylemi: credential silindikten sonra
+    // ona bağlı bağlantı kayıtları ve WhatsApp zarf/rezervasyon kayıtları.
+    if (operation === "connection.delete") {
+      const credentialRef = clean(body?.credential_ref);
+      if (!credentialRef) {
+        json(res, 400, { ok: false, error: "invalid_request" });
+        return;
+      }
+      const secrets = await listSecrets(config, accessToken);
+      const owned = secrets.filter((secret) => {
+        if (!secret.name.startsWith("CONN__")) return true;
+        return clean(parseJson(secret.value)?.owner_lumos_id) === ownerLumosId;
+      });
+      const counts = await purgeCredentialTree(config, accessToken, owned, [], [credentialRef]);
+      json(res, 200, { ok: true, credential_ref: credentialRef, counts });
       return;
     }
 
