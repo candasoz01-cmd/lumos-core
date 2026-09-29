@@ -13,7 +13,7 @@ const umbrellaTr = {
     accessibility: "Engelsiz",
     lab: "Lab",
     education: "Eğitim",
-    privacy: "Veri ve Güven",
+    privacy: "Teknik veri ve güven envanteri",
   },
   accessibility: {
     eyebrow: "LUMOS · ENGELSİZ", title: "Engelsiz kullanım",
@@ -88,7 +88,7 @@ const umbrellaTr = {
     securityRow4: "Ödeme, domain alma ve mail gönderimi kullanıcı onayı olmadan yapılmaz.",
     aiTitle: "Model çağrısı",
     aiSub: "Anahtar yoksa çağrı yok",
-    aiBody: "Kesilmiş ileti gider. Yanıtta sağlayıcı adı yoktur. Ayrıntı Veri ve Güven sayfasındadır.",
+    aiBody: "Kesilmiş ileti, oturumdaki ad ve izinli hafıza özetleri gider. Yanıtta sağlayıcı adı yoktur. Ayrıntı Teknik veri ve güven envanteri sayfasındadır.",
     integrationsTitle: "Entegrasyonlar",
     integrationsSub: "İzin matrisi ve durum",
     deviceTitle: "Cihaz ekosistemi",
@@ -112,7 +112,7 @@ const umbrellaTr = {
       "Bu sayfa teknik bir envanterdir. Veri sorumlusu, iletişim ve başvuru kanalı, silme talebi süreci, hukuki dayanak ve KVKK/GDPR kapsamındaki haklar burada yayımlanmadı. Bunlar ayrı bir hukuk ve politika kararı bekliyor; bu envanter onların yerine geçmez.",
     scopeTitle: "Kapsam",
     scopeBody:
-      "Anlatılan yollar: barındırılan sohbet, Google oturum çerezi, Lumos hafıza servisi çağrıları, Gmail salt-okuma yolu, yerel görev günlüğü ve tarayıcıdaki dosya geçmişi. Başka bir kurulum veya bu depoda olmayan bir operatör katmanı ek servis bağlarsa bu sayfa onu kapsamaz.",
+      "Anlatılan yollar: barındırılan sohbet, Google oturum çerezi, Lumos hafıza servisi çağrıları, Gmail salt-okuma yolu, Meta (Facebook, Instagram, Pages, WhatsApp) bağlantıları, yerel görev günlüğü ve tarayıcıdaki dosya geçmişi. Başka bir kurulum veya bu depoda olmayan bir operatör katmanı ek servis bağlarsa bu sayfa onu kapsamaz.",
     notTitle: "Lumos ne yapmaz",
     notBody:
       "Ülkeye göre saklama, veri konumu veya yurt dışı aktarım kuralı uygulamaz. Model isteğinden önce maskeleme yapmaz. Sağlayıcının veriyi saklamadığını veya eğitmediğini doğrulamaz.",
@@ -134,6 +134,12 @@ const umbrellaTr = {
     gmailTitle: "Gmail salt-okuma yolu",
     gmailBody:
       "Kod gmail.readonly iznini tanımlar. Google tarafında bu izin posta kutusunu okumaya yetki verir; bu depodaki kod bundan yalnız okunmamış iletilerin listesini (en fazla 20) ve her iletinin Subject, From ve Date başlığını ister, ileti gövdesini istemez. Konu 120, gönderen 80 karakterde kesilir. Dönen veri yalnız okunmamış posta özetidir. Belirteç kasa bağdaştırıcısından okunur; kasada belirteç yoksa istek durur. Canlı Gmail API çağrısı yalnız LUMOS_GMAIL_SMOKE değeri 1, true veya yes iken yapılır; aksi halde örnek veri döner. Sonuç çağıran entegrasyon adımına döner; bu yol onu diske yazmaz, bir model API’sine göndermez, reklam veya satış için bir hizmete iletmez. Gmail OAuth onay ve geri çağrı işleyicisi bu depoda yoktur. welockai.com Google girişi yalnız openid, email ve profile ister.",
+    metaTitle: "Meta bağlantıları (Facebook, Instagram, Pages, WhatsApp)",
+    metaBody:
+      "Bağlantı kullanıcı başlatınca açılır. İstenen izinler: Facebook için public_profile; Instagram için instagram_business_basic; Pages için pages_show_list; WhatsApp için business_management ve whatsapp_business_management. Geri çağrıda kod erişim belirtecine çevrilir, uzun süreli belirtece uzatılır ve hesap kimliği ile adı veya kullanıcı adı okunur. Belirteç, süresi, hesap kimliği ve lumos_id, LUMOS_CREDENTIAL_VAULT_WRITE_URL ile verilen ayrı kasa servisine yazılır; belirteç çereze yazılmaz. Bağlantı listesi ve eşitleme şunları okur: Instagram için kimlik, kullanıcı adı, hesap türü ve medya sayısı; Pages için sayfa kimliği ve adı; WhatsApp için işletme kimliği ve adı, WhatsApp işletme hesabı kimliği ve adı, telefon numarası kimliği, görünen telefon numarası ve doğrulanmış ad. Sayfa ve WhatsApp bağlantı kayıtları da kasa servisine yazılır. İmzası doğrulanan Meta webhook olayları, yükün tamamıyla LUMOS_META_WEBHOOK_SINK_URL servisine iletilir; bu yük ileti içeriği taşıyabilir. Kasa ve webhook servisi bu depoda değildir; saklama süresi ve konumu bu koddan doğrulanamaz. Bu yol Meta verisini bir model API’sine göndermez.",
+    metaDeleteTitle: "Meta bağlantısını kaldırma",
+    metaDeleteBody:
+      "“Bağlantıyı kaldır” Meta’da izinleri geri almayı dener (DELETE /me/permissions), ardından kasa servisinden belirteci siler. Meta isteği başarısız olursa belirteç yine silinir ve yanıt revoked_local olur; Meta tarafındaki iznin kalkmadığı gösterilir. Bu işlem sayfa ve WhatsApp bağlantı kayıtlarını ve webhook servisine iletilmiş olayları silmez. Bu depoda Meta’nın veri silme geri çağrısı veya yetki kaldırma geri çağrısı için bir uç nokta yoktur.",
     qWhereTitle: "Nerede tutuluyor?",
     qWhereBody:
       "Oturum tarayıcı çerezindedir. Barındırılan sohbet işleyicisi iletiyi kendi içinde bir veritabanına veya dosyaya yazmaz; “hatırla” özeti ise hafıza servisine yazılır. Köprü telemetrisi çağrılırsa kullanıcı iletisi o makinede .lumos/logs altına yazılır. Dosya yükleme özeti bu tarayıcının localStorage alanındadır, en fazla 5 kayıt. Ülke veya bölge seçen bir saklama kodu yoktur.",
@@ -151,13 +157,13 @@ const umbrellaTr = {
       "Google access_token oturumda yoktur. Hafıza servisi veya izni yoksa “hatırla” cümlesi kaydedilmez. Bu depoda reklam etiketi ve veri satış entegrasyonu yoktur. Model sağlayıcısının ve hafıza servisinin kendi kaydı bu cümlenin dışındadır.",
     qDeleteTitle: "Nasıl silerim?",
     qDeleteBody:
-      "Çıkış yalnız tarayıcı çerezini siler. Hafıza silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. .lumos/logs ve sağlayıcı kopyası için bu üründe bir silme kontrolü yoktur. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.",
+      "Çıkış yalnız tarayıcı çerezini siler. Hafıza silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. .lumos/logs ve sağlayıcı kopyası için bu üründe bir silme kontrolü yoktur. Meta belirteci için “Meta bağlantısını kaldırma” bölümüne bakın. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.",
     assuranceTitle: "Lumos güvencesi",
     assuranceBody:
       "Bu ad, yukarıda yazılan uygulanmış kontrollerin ortak adıdır: oturum kontrolü, belirtecin çereze yazılmaması, karakter sınırları, OpenAI isteğindeki store: false, yanıttan sağlayıcı adının çıkarılması, hafızanın onaysız yazılmaması, gözlem allowlist’i ve görev motorunda SECURITY_NEVER_AUTO eşleşmesinde durma.",
     missingTitle: "Eksik olanlar",
     missingBody:
-      "Ülke politikası, maskeleme, Gemini store alanı, sağlayıcı saklamasının doğrulanması, hafıza servisinin saklama süresi ve konumu, sunucu tarafında oturum iptali, sohbette hangi API’nin çağrıldığının kullanıcıya gösterilmesi, onay katmanının varsayılan olarak açık olması ve genel silme bu güvencenin parçası değildir. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED=1, true veya yes iken çalışır.",
+      "Ülke politikası, maskeleme, Gemini store alanı, sağlayıcı saklamasının doğrulanması, hafıza, Meta kasası ve Meta webhook servisinin saklama süresi ve konumu, Meta veri silme geri çağrısı, Meta bağlantı kayıtlarının silinmesi, sunucu tarafında oturum iptali, sohbette hangi API’nin çağrıldığının kullanıcıya gösterilmesi, onay katmanının varsayılan olarak açık olması ve genel silme bu güvencenin parçası değildir. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED=1, true veya yes iken çalışır.",
     countryTitle: "Ülke kuralları",
     countryBody:
       "Bu depo, hizmet verilen ülkenin mevzuatını seçen bir politika katmanı çalıştırmaz. Tek kod yolu kullanılır. Bu cümle, işletmecinin hukuk dışında olduğu anlamına gelmez; yazılımın ülkeye göre kural uygulamadığı anlamına gelir.",

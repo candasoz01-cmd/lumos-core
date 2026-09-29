@@ -4,7 +4,7 @@ const landingTr = {
     heroTitle: "Bir panel. Her akış. Senin kararın.",
     heroSubtitle: "Kimlik, model çağrısı ve otomasyon için kontrol katmanı.",
     heroBody:
-      "Lumos kendi modelini çalıştırmaz. Model çağrısında kesilmiş ileti, oturumdaki ad ve hesap sağlayıcısı gider. Oturum çerezi ve e-posta gitmez.",
+      "Lumos kendi modelini çalıştırmaz. Model çağrısında kesilmiş ileti, oturumdaki ad, hesap sağlayıcısı ve izin verilmişse en fazla 12 hafıza özeti gider. Oturum çerezi ve e-posta gitmez.",
     openLumos: "Lumos’u aç",
     viewStatus: "Canlı durumu gör",
     mapAria: "Lumos platform katmanları",
@@ -129,7 +129,7 @@ const landingTr = {
     cardRiskTitle: "Risk Görünürlüğü",
     cardRiskBody: "Riskin işlemden önce gösterilmesi bu depoda sohbet yanıtına bağlı değildir.",
     cardDataTitle: "Veri Farkındalığı",
-    cardDataBody: "Verinin nereye gittiği Veri ve Güven sayfasında yazılır. Sohbet bunu her yanıtta ayrı bir kart olarak göstermez.",
+    cardDataBody: "Verinin nereye gittiği Teknik veri ve güven envanteri sayfasında yazılır. Sohbet bunu her yanıtta ayrı bir kart olarak göstermez.",
     cardApprovalTitle: "Açık Onay İlkesi",
     cardApprovalBody: "Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.",
     workTitle: "Çalışma ilkeleri",
@@ -142,7 +142,7 @@ const landingTr = {
     listRiskLabel: "Risk görünürlüğü:",
     listRiskBody: "Riskin işlemden önce gösterilmesi bu depoda sohbet yanıtına bağlı değildir.",
     listDataLabel: "Veri farkındalığı:",
-    listDataBody: "Verinin nereye gittiği Veri ve Güven sayfasında yazılır. Sohbet bunu her yanıtta ayrı bir kart olarak göstermez.",
+    listDataBody: "Verinin nereye gittiği Teknik veri ve güven envanteri sayfasında yazılır. Sohbet bunu her yanıtta ayrı bir kart olarak göstermez.",
   },
   howItWorks: {
     title: "Nasıl çalışır?",
@@ -177,7 +177,7 @@ const landingTr = {
     title: "Lumos nedir?",
     p1: "Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, oturum varsa ve anahtar tanımlıysa kesilmiş iletiyi, oturumdaki adı ve izinli hafıza özetlerini bir model API’sine gönderir. Bu işleyici iletiyi kendi içinde veritabanına yazmaz; “hatırla” denirse özet ayrı hafıza servisine yazılır.",
     p2: "Yanıtta sağlayıcı ve model adı yoktur. Onay katmanı varsayılan olarak kapalıdır. Sohbet yanıtı ayrı bir onay adımı beklemez.",
-    p3: "Ülkeye göre veri kuralı, maskeleme ve sağlayıcı saklamasının doğrulanması bu depoda yoktur. Ayrıntı Veri ve Güven sayfasındadır.",
+    p3: "Ülkeye göre veri kuralı, maskeleme ve sağlayıcı saklamasının doğrulanması bu depoda yoktur. Ayrıntı Teknik veri ve güven envanteri sayfasındadır.",
   },
   whatDoes: {
     title: "Ne yapar?",

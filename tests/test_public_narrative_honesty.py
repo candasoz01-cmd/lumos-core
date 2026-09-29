@@ -21,7 +21,10 @@ PUBLIC = [
     PAGES / "world.astro",
     PAGES / "panel.astro",
     PAGES / "mimari.astro",
+    PAGES / "auth.astro",
+    PAGES / "geri-bildirim.astro",
     ROOT / "ui" / "src" / "components" / "LumosPlatformHero.astro",
+    ROOT / "ui" / "src" / "components" / "WeLockSiteFooter.astro",
     MESSAGES / "tr.ts",
     MESSAGES / "en.ts",
     MESSAGES / "landing" / "tr.ts",
@@ -73,7 +76,27 @@ BANNED = (
     "logout revokes",
     "revokes the session",
     "session is revoked",
+    # The confirmation layer is off by default; no status reads as an active gate.
+    "Kapı aktif",
+    "Gate active",
+    # /privacy is a technical inventory, not a legal privacy notice.
+    'href="/privacy">Gizlilik Politikası<',
+    'href="/privacy">Gizlilik<',
+    'href="/privacy">Privacy Policy<',
+    # Meta data deletion and deauthorize callbacks do not exist.
+    "Meta verileriniz silinir",
+    "Meta data is deleted",
 )
+
+# Short descriptions of what goes to the model must keep the permitted memory summaries.
+MODEL_INPUT_SUMMARIES = {
+    ROOT / "ui" / "src" / "components" / "LumosPlatformHero.astro": "hafıza özeti",
+    MESSAGES / "landing" / "tr.ts": "hafıza özeti",
+    MESSAGES / "landing" / "en.ts": "memory summaries",
+    PAGES / "help.astro": "hafıza özetleri",
+}
+
+PRIVACY_LINK_TR = "Teknik veri ve güven envanteri"
 
 PRIVACY_TR = MESSAGES / "umbrella" / "tr.ts"
 PRIVACY_EN = MESSAGES / "umbrella" / "en.ts"
@@ -168,6 +191,44 @@ def test_privacy_page_states_model_inputs_memory_gmail_logout_and_fallback():
     for text in (tr, en, _read(PRIVACY_PAGE)):
         assert "garanti" not in text.lower()
         assert "guarantee" not in text.lower()
+
+
+def test_short_model_input_copy_keeps_memory_summaries():
+    for path, needle in MODEL_INPUT_SUMMARIES.items():
+        assert needle in _read(path), f"{path.relative_to(ROOT)} omits {needle!r}"
+
+
+def test_privacy_links_use_the_page_title():
+    title = _privacy_messages(PRIVACY_TR)["title"]
+    assert title == PRIVACY_LINK_TR
+    for path in PUBLIC:
+        for label in re.findall(r'href="/privacy"[^>]*>([^<]*)<', _read(path)):
+            assert label == PRIVACY_LINK_TR, (
+                f"{path.relative_to(ROOT)} links /privacy as {label!r}"
+            )
+
+
+def test_meta_connection_path_is_documented():
+    inventory = _read(ROOT / "docs" / "data-and-trust.md")
+    tr = " ".join(_privacy_messages(PRIVACY_TR).values())
+    en = " ".join(_privacy_messages(PRIVACY_EN).values())
+    scopes = (
+        "public_profile",
+        "instagram_business_basic",
+        "pages_show_list",
+        "whatsapp_business_management",
+    )
+    for text in (inventory, tr, en):
+        for needle in (
+            *scopes,
+            "LUMOS_CREDENTIAL_VAULT_WRITE_URL",
+            "LUMOS_META_WEBHOOK_SINK_URL",
+        ):
+            assert needle in text, needle
+        assert "revoked_local" in text
+    assert "veri silme geri çağrısı" in tr
+    assert "data deletion callback" in en
+    assert "veri silme geri çağrısı" in inventory
 
 
 def test_privacy_page_and_messages_stay_in_sync():
