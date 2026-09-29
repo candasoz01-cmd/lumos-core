@@ -35,9 +35,9 @@ Lumos, kullanıcının günlük iş akışında **Slack içi çalışma arkadaş
 
 Cursor, **geliştirme ortamı ve ajan çalışma yüzeyidir**: kod düzenleme, terminal, repo bağlamı ve IDE içi yapay zekâ asistanı sağlar. Lumos ile ilişkisi **ortak kullanıcı ve iş bağlamı** düzeyindedir; Cursor Lumos'un yerine geçmez ve WeLockAI politika motorunun kapsamına girmez. Geliştirici, Cursor'da kod yazar; Lumos ise ürün davranışı, onay ve entegrasyon omurgasını taşır.
 
-### ChatGPT
+### Model çağrısı
 
-ChatGPT (ve benzeri genel amaçlı sohbet ürünleri), **geniş bilgi ve sohbet platformudur**: model erişimi, genel konuşma ve üçüncü taraf eklenti ekosistemi sunar. Lumos, ChatGPT'nin yerine geçmek için tasarlanmamıştır; iş odaklı görev, onay, hafıza politikası ve kurumsal entegrasyon sınırları Lumos'a özgüdür. ChatGPT Saved Memories ve oturum bağlamı canonical kaynak değildir; repo içi `docs/memory/` esas alınır.
+Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş iletiyi bir model API’sine gönderir. Bugünkü sınır [`data-and-trust.md`](../data-and-trust.md) dosyasındadır. Sohbet oturumu kayıtları canonical kaynak değildir; repo içi `docs/memory/` esas alınır.
 
 ---
 
@@ -98,7 +98,7 @@ Onay tüketilmeden kayıt «evet» sayılmaz; kayıt onayın yerine geçmez.
 - Onaysız **kalıcı silme**, dış yazma veya geri dönüşsüz kullanıcı işlemi tetiklemek
 - Kullanıcı verisini **satmak** veya reklam profili üretmek ([`lumos-privacy-manifesto-draft.md`](./lumos-privacy-manifesto-draft.md))
 - Public OSS repoda **üretim sırrı**, credential veya operasyonel runbook barındırmak
-- ChatGPT/Cursor yerine geçerek **genel amaçlı sohbet platformu** olmak
+- Genel amaçlı bir sohbet ürününün yerine geçmek
 - Lumos'un **tek dış kapı** rolünü bypass ederek doğrudan iç state'e yazmak
 
 ---

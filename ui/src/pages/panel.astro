@@ -5890,9 +5890,9 @@ const PANEL_DEBUG = import.meta.env.DEV;
           >
             <h2 id="panel-yapayzeka-title" data-i18n="panel.sections.yapayzeka">Yapay Zekâ</h2>
             <p class="medya-intro" data-i18n="panel.modules.ai.intro">
-              Bu sekme, Lumos’un yapay zekâyı kullanıcı adına karar veren bir otorite olarak değil; bağlamı toparlayan,
-              seçenekleri düzenleyen ve karar sürecini daha görünür hale getiren bir yardımcı katman olarak ele alma yaklaşımını
-              özetler.
+              Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş
+              iletiyi bir model API’sine gönderir; bu iletiyi Lumos veritabanına yazmaz. Yanıtta sağlayıcı adı yoktur. Onay
+              katmanı varsayılan olarak kapalıdır.
             </p>
             <ul class="medya-card-list">
               <li class="medya-card">
@@ -5910,17 +5910,17 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 </p>
               </li>
               <li class="medya-card">
-                <h3 data-i18n="panel.modules.ai.c3Title">Karar Kullanıcıda</h3>
+                <h3 data-i18n="panel.modules.ai.c3Title">Sohbet onayı</h3>
                 <p data-i18n="panel.modules.ai.c3Body">
-                  Lumos öneri sunabilir, yolu kısaltabilir ve karmaşayı azaltabilir; ancak nihai karar kullanıcının iradesinde
-                  kalmalıdır.
+                  Barındırılan sohbet yanıtı ayrı bir onay adımı beklemez. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED
+                  açıkken çalışır.
                 </p>
               </li>
               <li class="medya-card">
-                <h3 data-i18n="panel.modules.ai.c4Title">Riskli İşlem Duraklatma</h3>
+                <h3 data-i18n="panel.modules.ai.c4Title">Görev motorunda durma</h3>
                 <p data-i18n="panel.modules.ai.c4Body">
-                  Kalıcı, maliyetli veya geri dönüşü zor işlemlerde yapay zekâ otomatik ilerlemek yerine kullanıcıyı bilgilendirmeli
-                  ve açık onay beklemelidir.
+                  Görev motoru, SECURITY_NEVER_AUTO ile eşleşen adımı durdurur. Motor dalı permanent_delete üyesini bu
+                  kontrolün dışında tutar. Bu durdurma sohbet yanıtına bağlı değildir.
                 </p>
               </li>
               <li class="medya-card">

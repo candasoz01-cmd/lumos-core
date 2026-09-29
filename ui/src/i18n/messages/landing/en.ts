@@ -4,9 +4,9 @@ import type landingTr from "./tr";
 const landingEn: typeof landingTr = {
   platform: {
     heroTitle: "One panel. Every flow. Your decision.",
-    heroSubtitle: "The control layer for identity, AI, and automation.",
+    heroSubtitle: "The control layer for identity, model calls, and automation.",
     heroBody:
-      "Lumos is a human-centered platform that manages identity, AI providers, integrations, and devices within one visible trust boundary.",
+      "Lumos does not run its own model. The session, the trimmed message, and an optional memory summary go to a model API when a key is set.",
     openLumos: "Open Lumos",
     viewStatus: "View live status",
     mapAria: "Lumos platform layers",
@@ -16,8 +16,8 @@ const landingEn: typeof landingTr = {
     identityTitle: "Lumos ID",
     identityBody: "Session, profile, and trust context",
     identityState: "Google connection live",
-    aiTitle: "AI provider network",
-    aiBody: "Configurable provider and model selection",
+    aiTitle: "Model call",
+    aiBody: "If a key is set, the trimmed message is sent; the response has no model name",
     aiState: "Orchestration in progress",
     integrationTitle: "Integrations",
     integrationBody: "Google · GitHub · Slack · file flows",
@@ -153,8 +153,8 @@ const landingEn: typeof landingTr = {
     stepUserBody: "You make the request and give final approval.",
     stepLumosLabel: "Lumos",
     stepLumosBody: "Shows the risk and context, and breaks the work into traceable steps.",
-    stepServicesLabel: "AI / Services",
-    stepServicesBody: "ChatGPT, Copilot, and connected services run with your approval, inside your limits.",
+    stepServicesLabel: "Model API",
+    stepServicesBody: "If a key is set, the trimmed message is sent. The response has no provider name. If no key is set, no call is made.",
   },
   world: {
     title: "World",
@@ -172,15 +172,15 @@ const landingEn: typeof landingTr = {
     p1: "I designed Lumos with the belief that people must not lose control in the face of technology.",
     p2: "AI is no longer distant. It touches our writing, decisions, apps, and daily work. That is great power—but as it grows, seeing what you approve, where information goes, and how decisions are made matters more.",
     p3: "I see Lumos not as a system that decides for people, but as a helper layer that strengthens the user’s mind, awareness, and will.",
-    p4: "Lumos aims to shorten paths, reduce clutter, and make options visible—but the final decision must stay with the user. For hard-to-reverse, permanent, or risky actions, the user should know what is happening, see outcomes, and decide themselves.",
+    p4: "This paragraph is intent, not a list of approval checks that run today. The confirmation layer does not run while its environment flag is off. A chat reply is not held for a separate approval step.",
     p5: "Lumos is an actively developed control layer; modules expand gradually. The direction is clear: Lumos stands beside the user, not above them—it works with you, not instead of you.",
     p6: "For me, Lumos is not just software. It is an effort to build a more honest, controlled, and human relationship between people and technology.",
   },
   whatIs: {
     title: "What is Lumos?",
-    p1: "Lumos is a control layer that aims to bring voice commands, media workflows, and AI-assisted help into one flow—locally or within security boundaries you define. It bridges apps, files, and external services to break scattered work into more traceable steps.",
-    p2: "The goal is to simplify what hides behind complex technical detail; to make where data is processed and what the next step might cause more readable. Lumos is not “autopilot”; it aims to inform the user and pause at critical approval points.",
-    p3: "Lumos is actively developed; modules and integrations expand in measured steps—visible roadmap and user approval over promises.",
+    p1: "Lumos is not a new artificial intelligence and does not run its own model. Hosted chat, when a session and a key exist, sends the trimmed message to a model API. That handler does not write the message to a Lumos database.",
+    p2: "The response does not name a provider or model. The confirmation layer is off by default. A chat reply is not held for a separate approval step.",
+    p3: "Per-country data rules, masking, and verification of provider retention are not in this repository. Detail is on the Data and trust page.",
   },
   whatDoes: {
     title: "What does it do?",

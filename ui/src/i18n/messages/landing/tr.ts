@@ -2,9 +2,9 @@
 const landingTr = {
   platform: {
     heroTitle: "Bir panel. Her akış. Senin kararın.",
-    heroSubtitle: "Kimlik, yapay zekâ ve otomasyon için kontrol katmanı.",
+    heroSubtitle: "Kimlik, model çağrısı ve otomasyon için kontrol katmanı.",
     heroBody:
-      "Lumos; kimliği, yapay zekâ sağlayıcılarını, entegrasyonları ve cihazları aynı güven sınırı içinde yöneten insan merkezli platformdur.",
+      "Lumos kendi modelini çalıştırmaz. Oturum, kesilmiş ileti ve isteğe bağlı hafıza özeti, anahtar varsa bir model API’sine gider.",
     openLumos: "Lumos’u aç",
     viewStatus: "Canlı durumu gör",
     mapAria: "Lumos platform katmanları",
@@ -14,8 +14,8 @@ const landingTr = {
     identityTitle: "Lumos ID",
     identityBody: "Oturum, profil ve güven bağlamı",
     identityState: "Google bağlantısı canlı",
-    aiTitle: "AI sağlayıcı ağı",
-    aiBody: "Yapılandırılabilir sağlayıcı ve model seçimi",
+    aiTitle: "Model çağrısı",
+    aiBody: "Anahtar varsa kesilmiş ileti gider; yanıtta model adı yok",
     aiState: "Orkestrasyon hazırlanıyor",
     integrationTitle: "Entegrasyonlar",
     integrationBody: "Google · GitHub · Slack · dosya akışları",
@@ -150,8 +150,8 @@ const landingTr = {
     stepUserBody: "İsteği ve son onayı sen verirsin.",
     stepLumosLabel: "Lumos",
     stepLumosBody: "Riski ve bağlamı gösterir, işi izlenebilir adımlara böler.",
-    stepServicesLabel: "AI / Servisler",
-    stepServicesBody: "ChatGPT, Copilot ve bağlı servisler senin onayınla, sınırların içinde çalışır.",
+    stepServicesLabel: "Model API",
+    stepServicesBody: "Anahtar varsa kesilmiş ileti gider. Yanıtta sağlayıcı adı yoktur. Anahtar yoksa çağrı yapılmaz.",
   },
   world: {
     title: "Dünya",
@@ -169,15 +169,15 @@ const landingTr = {
     p1: "Lumos’u, insanın teknoloji karşısında kontrolünü kaybetmemesi gerektiği düşüncesiyle tasarlıyorum.",
     p2: "Bugün yapay zekâ artık uzak bir konu değil. Yazdığımız metne, aldığımız karara, kullandığımız uygulamaya ve günlük işlerimize kadar giriyor. Bu büyük bir güç. Ama bu güç büyüdükçe, insanın neye onay verdiğini, hangi bilginin nereye gittiğini ve hangi kararın nasıl alındığını görebilmesi daha da önemli hale geliyor.",
     p3: "Ben Lumos’u insanın yerine karar veren bir sistem olarak değil; kullanıcının aklını, bilincini ve iradesini güçlendiren bir yardımcı katman olarak görüyorum.",
-    p4: "Lumos’un amacı yolu kısaltmak, karmaşayı azaltmak ve seçenekleri daha görünür hale getirmek. Ama son karar kullanıcıda kalmalı. Özellikle geri dönüşü zor, kalıcı veya riskli işlemlerde kullanıcı ne olduğunu bilmeli, sonucu görebilmeli ve kendi kararını kendisi vermeli.",
+    p4: "Bu paragraf niyettir, çalışan onay listesi değildir. Onay katmanı ortam değişkeni kapalıyken çalışmaz. Sohbet yanıtı ayrı bir onay adımı beklemez.",
     p5: "Lumos aktif geliştirilen bir kontrol katmanıdır; modüller aşamalı olarak genişler. Yön net: Lumos kullanıcının üstünde değil yanında durur; yerine geçmez, birlikte çalışır.",
     p6: "Benim için Lumos, sadece bir yazılım fikri değil. İnsanla teknoloji arasındaki ilişkiyi daha dürüst, daha kontrollü ve daha insani kurma çabasının adı.",
   },
   whatIs: {
     title: "Lumos nedir?",
-    p1: "Lumos; sesli komutlar, medya işlemleri ve yapay zekâ destekli yardımları yerelde veya sizin tanımladığınız güven sınırları içinde tek bir akışta toparlamayı hedefleyen bir kontrol katmanıdır. Uygulamalar, dosyalar ve harici servisler arasında köprü kurarak dağınık görevleri daha izlenebilir adımlara böler.",
-    p2: "Amaç, karmaşık teknik detayların arkasında kalan işlemleri sadeleştirmek; hangi verinin nerede işlendiğini ve bir sonraki adımın olası sonuçlarını daha okunur kılmaktır. Lumos “otomatik pilot” değildir; kullanıcıyı bilgilendiren ve onay kritik noktalarında duraklatan bir ara yüz sunmayı amaçlar.",
-    p3: "Lumos aktif geliştirilen bir kontrol katmanıdır; modüller ve entegrasyonlar ölçülü biçimde genişler — vaat yerine görünür yol haritası ve kullanıcı onayı önceliklidir.",
+    p1: "Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, oturum varsa ve anahtar tanımlıysa kesilmiş iletiyi bir model API’sine gönderir. Bu işleyici iletiyi Lumos veritabanına yazmaz.",
+    p2: "Yanıtta sağlayıcı ve model adı yoktur. Onay katmanı varsayılan olarak kapalıdır. Sohbet yanıtı ayrı bir onay adımı beklemez.",
+    p3: "Ülkeye göre veri kuralı, maskeleme ve sağlayıcı saklamasının doğrulanması bu depoda yoktur. Ayrıntı Veri ve Güven sayfasındadır.",
   },
   whatDoes: {
     title: "Ne yapar?",

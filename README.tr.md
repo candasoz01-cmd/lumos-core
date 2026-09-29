@@ -1,6 +1,12 @@
 # Lumos — Türkçe özet
 
-> **Not:** Tam Türkçe belgeler planlanıyor. Şimdilik İngilizce kaynaklar geçerlidir.
+Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş iletiyi bir model API’sine gönderir ve bu iletiyi Lumos veritabanına yazmaz. Yanıtta sağlayıcı ve model adı yoktur.
+
+Onay katmanı yalnız `LUMOS_CONFIRMATION_ENABLED` değeri `1`, `true` veya `yes` iken çalışır. Sohbet yanıtı ayrı bir onay adımı beklemez. Ülkeye göre veri kuralı, maskeleme ve sağlayıcı saklamasının doğrulanması bu depoda yoktur.
+
+Aynı envanter: [docs/data-and-trust.md](docs/data-and-trust.md) · sitede `/privacy`.
+
+> **Not:** Tam Türkçe belgeler planlanıyor. Şimdilik İngilizce kaynaklar geçerlidir. Kurulum adımları aşağıdadır. Ürün cümleleri bu dosyada Türkçedir ve [README.md](README.md) ile aynı sınırı söyler.
 
 ## Hızlı başlangıç
 

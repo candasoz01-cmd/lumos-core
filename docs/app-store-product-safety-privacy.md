@@ -26,7 +26,7 @@ Operational review checklist and Demo Workspace spec: [`app-store-review-prep.md
 
 ## What Lumos is
 
-Lumos is a **personal work layer** — scattered conversation and intent into **secure, traceable, actionable workflows**.
+Lumos is not a new artificial intelligence and does not run its own model. Current data behavior is the inventory in [`data-and-trust.md`](data-and-trust.md): hosted chat can send a trimmed message to a configured model API, does not write that message to a Lumos database, and does not verify provider retention. Per-country data rules and masking are not in this repository.
 
 | Capability | Summary |
 |------------|---------|
@@ -37,8 +37,8 @@ Lumos is a **personal work layer** — scattered conversation and intent into **
 
 **Positioning:**
 
-- Not “smarter AI” — **better organized user flow**.
-- A workflow and safety layer, not a model marketplace or generic chatbot wrapper.
+- Not a new model. Hosted chat calls a configured model API when a key exists.
+- Not a claim that third-party retention, country rules, or masking are in place. See [`data-and-trust.md`](data-and-trust.md).
 
 ---
 
@@ -46,7 +46,7 @@ Lumos is a **personal work layer** — scattered conversation and intent into **
 
 | Not in scope | One-line |
 |--------------|----------|
-| **Model marketplace** | Workflow and safety layer only |
+| **Model marketplace** | This repository does not ship its own model |
 | **Autonomous production actions** | No unsupervised email, payment, device control, or external write |
 | **Professional advisor** | Not medical, financial, legal, or children's product |
 | **Production data in review** | Synthetic Demo Workspace only; no real customer accounts |

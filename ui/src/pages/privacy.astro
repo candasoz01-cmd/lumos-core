@@ -4,16 +4,18 @@ import "../styles/umbrella-chrome.css";
 import WeLockSiteNav from "../components/WeLockSiteNav.astro";
 import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
 import I18nInit from "../components/I18nInit.astro";
+
+const DATA_DOC = "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/data-and-trust.md";
 ---
 
 <html lang="tr">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <title data-i18n="umbrella.privacy.metaTitle">Gizlilik Bildirimi — We Lock AI · Lumos</title>
+    <title data-i18n="umbrella.privacy.metaTitle">Veri ve Güven — Lumos</title>
     <meta
       name="description"
-      content="We Lock AI ve Lumos yüzeylerinde verilerin hangi amaçlarla işlendiğini, bağlantı izinlerini ve kullanıcı denetimlerini açıklayan gizlilik bildirimi."
+      content="Bu depodaki Lumos kodunun bugün sakladığı, ilettiği ve saklamadığı veriler. Kodda olmayan bir kural burada varmış gibi yazılmaz."
       data-i18n-content="umbrella.privacy.metaDescription"
     />
     <link rel="canonical" href="https://welockai.com/privacy" />
@@ -22,68 +24,96 @@ import I18nInit from "../components/I18nInit.astro";
   <body class="umbrella-page">
     <WeLockSiteNav />
     <main class="umbrella-main">
-      <p class="umbrella-eyebrow" data-i18n="umbrella.privacy.eyebrow">WE LOCK AI · LUMOS</p>
-      <h1 data-i18n="umbrella.privacy.title">Gizlilik bildirimi</h1>
+      <p class="umbrella-eyebrow" data-i18n="umbrella.privacy.eyebrow">LUMOS · VERİ VE GÜVEN</p>
+      <h1 data-i18n="umbrella.privacy.title">Veri ve Güven</h1>
       <p class="umbrella-lead" data-i18n="umbrella.privacy.lead">
-        Bu bildirim, welockai.com ve Lumos bağlantı akışlarında verilerin hangi sınırlar içinde işlendiğini açıklar.
+        Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Bu sayfa, bu depodaki kodun bugün yaptığı veri işlemlerini yazar.
       </p>
-      <p data-i18n="umbrella.privacy.updated">Son güncelleme: 15 Temmuz 2026</p>
+      <p data-i18n="umbrella.privacy.updated">Son güncelleme: 29 Eylül 2026</p>
 
       <h2 data-i18n="umbrella.privacy.scopeTitle">Kapsam</h2>
       <p data-i18n="umbrella.privacy.scopeBody">
-        Bu bildirim welockai.com, Lumos web ve masaüstü yüzeyleri ile kullanıcının isteğiyle açılan üçüncü taraf bağlantıları kapsar. Henüz canlı olmayan entegrasyonlar veri erişimi sağlamaz.
+        Anlatılan yollar barındırılan sohbet, Google oturum çerezi, isteğe bağlı hafıza servisi, yerel görev günlüğü ve tarayıcıdaki dosya geçmişidir. Başka bir kurulum ek servis bağlarsa bu sayfa onu kapsamaz.
       </p>
 
-      <h2 data-i18n="umbrella.privacy.dataTitle">Hangi veriler işlenebilir?</h2>
-      <ul>
-        <li data-i18n="umbrella.privacy.data1">Kullanıcının doğrudan verdiği görev, dosya ve onay bilgileri.</li>
-        <li data-i18n="umbrella.privacy.data2">Bir hesap bağlandığında temel hesap kimliği, bağlantı durumu ve yalnızca onaylanan kapsamların izin verdiği içerik veya metadata.</li>
-        <li data-i18n="umbrella.privacy.data3">Güvenlik, hata ayıklama ve denetlenebilirlik için gerekli sınırlı teknik kayıtlar.</li>
-      </ul>
-
-      <div class="umbrella-callout">
-        <h2 data-i18n="umbrella.privacy.googleTitle">Google ve YouTube verileri</h2>
-        <p data-i18n="umbrella.privacy.googleBody">
-          Google veya YouTube bağlantısı açıldığında Lumos yalnızca kullanıcı tarafından seçilen ve Google onay ekranında gösterilen kapsamları ister. Veriler, istenen görevi yerine getirmek ve bağlantı durumunu göstermek için kullanılır; reklam hedefleme, satış veya genel amaçlı model eğitimi için kullanılmaz.
-        </p>
-      </div>
-
-      <h2 data-i18n="umbrella.privacy.useTitle">Verileri neden kullanırız?</h2>
-      <ul>
-        <li data-i18n="umbrella.privacy.use1">Kullanıcının istediği görevi yerine getirmek ve sonucu Lumos'ta göstermek.</li>
-        <li data-i18n="umbrella.privacy.use2">Bağlantı, izin ve açık onay durumlarını yönetmek.</li>
-        <li data-i18n="umbrella.privacy.use3">Kötüye kullanımı önlemek, sorunları gidermek ve güvenlik olaylarını incelemek.</li>
-      </ul>
-
-      <h2 data-i18n="umbrella.privacy.sharingTitle">Paylaşım</h2>
-      <p data-i18n="umbrella.privacy.sharingBody">
-        Veriler satılmaz. Yalnızca kullanıcının istediği işlemi sunmak, yasal yükümlülükleri karşılamak veya sistemi korumak için gerekli hizmet sağlayıcılarla ve ilgili platformlarla sınırlı biçimde paylaşılabilir.
+      <h2 data-i18n="umbrella.privacy.notTitle">Lumos ne yapmaz</h2>
+      <p data-i18n="umbrella.privacy.notBody">
+        Ülkeye göre saklama, veri konumu veya yurt dışı aktarım kuralı uygulamaz. Model isteğinden önce maskeleme yapmaz. Sağlayıcının veriyi saklamadığını veya eğitmediğini doğrulamaz.
       </p>
 
-      <h2 data-i18n="umbrella.privacy.retentionTitle">Saklama ve silme</h2>
-      <p data-i18n="umbrella.privacy.retentionBody">
-        Bağlantı belirteçleri bağlantı kesilene veya geçerliliğini yitirene kadar; teknik kayıtlar ise güvenlik ve işletim için gerekli olan sınırlı süre boyunca tutulur. Canlı OAuth kullanıma açılmadan önce silme ve destek kanalı bu sayfada yayımlanacaktır.
+      <h2 data-i18n="umbrella.privacy.flowTitle">Barındırılan sohbet akışı</h2>
+      <p data-i18n="umbrella.privacy.flowBody">
+        Kullanıcı iletisi → oturum yoksa 401 → kimlik uyuşmazsa 409 → karakter sınırı → anahtar varsa model API → provider ve model adı yanıttan çıkarılır → kullanıcı. İkinci API, birincisi yanıt vermezse kullanılan yedektir. Her serviste yeniden uygulanan ayrı bir kontrol döngüsü bu yolda yoktur.
       </p>
 
-      <h2 data-i18n="umbrella.privacy.controlsTitle">Kullanıcı denetimi</h2>
-      <ul>
-        <li data-i18n="umbrella.privacy.controls1">Bağlantıları Lumos içinden kapatabilir ve ilgili sağlayıcının hesap ayarlarından erişimi geri alabilirsiniz.</li>
-        <li data-i18n="umbrella.privacy.controls2">Google erişimi Google Hesabı bağlantılar sayfasından ayrıca kaldırılabilir.</li>
-        <li data-i18n="umbrella.privacy.controls3">Dış etkili paylaşım ve yayınlama işlemleri açık onay olmadan yapılmaz.</li>
-      </ul>
+      <h2 data-i18n="umbrella.privacy.qCollectTitle">Benden ne toplanıyor?</h2>
+      <p data-i18n="umbrella.privacy.qCollectBody">
+        Google ile girişte çereze sid, lumos_id, sub, e-posta, ad, resim, door, provider, package ve süre yazılır. Google access_token yazılmaz. Sohbet iletisi, son 12 tur ve isteğe bağlı görsel model isteğine konur. İzinli hafıza varsa en fazla 12 özet de konur.
+      </p>
 
-      <h2 data-i18n="umbrella.privacy.securityTitle">Güvenlik</h2>
-      <p data-i18n="umbrella.privacy.securityBody">
-        Erişim kapsamını dar tutmak, sırları kullanıcı arayüzüne taşımamak ve dış etkili işlemleri onaya bağlamak temel güvenlik ilkeleridir. Hiçbir çevrimiçi sistem mutlak güvenlik garantisi vermez.
+      <h2 data-i18n="umbrella.privacy.qWhyTitle">Neden?</h2>
+      <p data-i18n="umbrella.privacy.qWhyBody">
+        Oturum, aynı kişiyi sonraki istekte tanımak içindir. Model isteği, yanıt üretmek içindir. Hafıza özeti, kullanıcı “hatırla” dediyse ve servis onaylıysa isteme eklenir.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.qWhereTitle">Nerede tutuluyor?</h2>
+      <p data-i18n="umbrella.privacy.qWhereBody">
+        Oturum tarayıcı çerezindedir. Barındırılan sohbet işleyicisi iletiyi Lumos veritabanına yazmaz. Köprü telemetrisi çağrılırsa kullanıcı iletisi o makinede .lumos/logs altına yazılır. Dosya yükleme özeti bu tarayıcının localStorage alanındadır, en fazla 5 kayıt. Ülke veya bölge seçen bir saklama kodu yoktur.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.qHowLongTitle">Ne kadar tutuluyor?</h2>
+      <p data-i18n="umbrella.privacy.qHowLongBody">
+        Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. .lumos/logs ekleyen fonksiyonda silme süresi yoktur. Şifreli notlarda ttl_seconds doluysa süre dolunca düşer; süresiz not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.qWhoTitle">Kim erişebilir?</h2>
+      <p data-i18n="umbrella.privacy.qWhoBody">
+        Çerez HttpOnly’dir. Çıkış, oturum çerezini ve köprü vekil çerezini siler. Günlüğü, hafızayı veya model sağlayıcısındaki kopyayı silmez. Sentry veya Axiom anahtarı tanımlıysa izinli teknik alanlar ve hata yığını o servise gider; e-posta ve access_token allowlist’te değildir. lumosId gidebilir.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.qModelTitle">Model API’sine ne gönderiliyor?</h2>
+      <p data-i18n="umbrella.privacy.qModelBody">
+        İleti en fazla 8000 karakter, geçmiş tur başına 4000, görsel en fazla 380000 karakter. OpenAI anahtarı varsa Responses API çağrılır ve istekte store: false vardır. Bu, sağlayıcının kopya tutmadığının kanıtı değildir. O çağrı yanıt vermezse ve Gemini anahtarı varsa generateContent çağrılır; o istekte store alanı yoktur. Anahtar yoksa 503 döner ve çağrı yapılmaz. Kullanıcıya dönen JSON sağlayıcı ve model adını taşımaz.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.qNotTitle">Ne tutulmuyor?</h2>
+      <p data-i18n="umbrella.privacy.qNotBody">
+        Google access_token oturumda yoktur. Hafıza servisi veya onayı yoksa “hatırla” cümlesi kaydedilmez. Bu depoda reklam etiketi ve veri satış entegrasyonu yoktur. Model sağlayıcısının kendi kaydı bu cümlenin dışındadır.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.qDeleteTitle">Nasıl silerim?</h2>
+      <p data-i18n="umbrella.privacy.qDeleteBody">
+        Çıkış çerezi siler. Hafıza silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. .lumos/logs ve sağlayıcı kopyası için bu üründe bir silme kontrolü yoktur. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.assuranceTitle">Lumos güvencesi</h2>
+      <p data-i18n="umbrella.privacy.assuranceBody">
+        Bu ad, yukarıda yazılan uygulanmış kontrollerin ortak adıdır: oturum kontrolü, belirtecin çereze yazılmaması, karakter sınırları, OpenAI isteğindeki store: false, yanıttan sağlayıcı adının çıkarılması, hafızanın onaysız yazılmaması, gözlem allowlist’i ve görev motorunda SECURITY_NEVER_AUTO eşleşmesinde durma.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.missingTitle">Eksik olanlar</h2>
+      <p data-i18n="umbrella.privacy.missingBody">
+        Ülke politikası, maskeleme, Gemini store alanı, sağlayıcı saklamasının doğrulanması, sohbette hangi API’nin çağrıldığının kullanıcıya gösterilmesi, onay katmanının varsayılan olarak açık olması ve genel silme bu güvencenin parçası değildir. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED=1, true veya yes iken çalışır.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.countryTitle">Ülke kuralları</h2>
+      <p data-i18n="umbrella.privacy.countryBody">
+        Bu depo, hizmet verilen ülkenin mevzuatını seçen bir politika katmanı çalıştırmaz. Tek kod yolu kullanılır. Bu cümle, işletmecinin hukuk dışında olduğu anlamına gelmez; yazılımın ülkeye göre kural uygulamadığı anlamına gelir.
+      </p>
+
+      <h2 data-i18n="umbrella.privacy.multiTitle">Birden fazla altyapı</h2>
+      <p data-i18n="umbrella.privacy.multiBody">
+        Barındırılan sohbet en fazla iki model çağrısı yapar: önce OpenAI anahtarı, yanıt yoksa Gemini anahtarı. Her geçişte ayrı yetki, maskeleme ve ülke kontrolü yeniden uygulanmaz. Görev motorundaki durdurma bu sohbet yanıtına bağlı değildir.
       </p>
 
       <h2 data-i18n="umbrella.privacy.changesTitle">Değişiklikler</h2>
       <p data-i18n="umbrella.privacy.changesBody">
-        Bu bildirim ürün ve bağlantı kapsamı değiştikçe güncellenebilir. Önemli değişikliklerde güncelleme tarihi ve ilgili yüzeyler yenilenir.
+        Kod değişince bu sayfa ve docs/data-and-trust.md birlikte güncellenir. Önceki gizlilik metnindeki, bu envanterle doğrulanmayan saklama ve eğitim cümleleri kaldırıldı.
       </p>
 
       <div class="umbrella-actions">
-        <a class="umbrella-btn umbrella-btn--primary" href="https://myaccount.google.com/connections" target="_blank" rel="noopener noreferrer" data-i18n="umbrella.privacy.googleControlsCta">Google erişimini yönet</a>
+        <a class="umbrella-btn umbrella-btn--primary" href={DATA_DOC} data-i18n="umbrella.privacy.docCta">Teknik envanter</a>
+        <a class="umbrella-btn" href="https://myaccount.google.com/connections" target="_blank" rel="noopener noreferrer" data-i18n="umbrella.privacy.googleControlsCta">Google erişimini yönet</a>
         <a class="umbrella-btn" href="/integrations" data-i18n="umbrella.privacy.integrationsCta">Bağlantı ekosistemi</a>
       </div>
     </main>

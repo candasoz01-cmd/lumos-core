@@ -15,7 +15,7 @@ const umbrellaEn: typeof umbrellaTr = {
     accessibility: "Accessible",
     lab: "Lab",
     education: "Education",
-    privacy: "Privacy",
+    privacy: "Data and trust",
   },
   accessibility: {
     eyebrow: "LUMOS · ACCESSIBLE", title: "Accessible use",
@@ -81,15 +81,16 @@ const umbrellaEn: typeof umbrellaTr = {
   ecosystem: {
     title: "Trust and ecosystem",
     lead:
-      "Multi-AI providers, integrations, and the device ecosystem sit inside one security boundary — permission and risk stay visible before action.",
+      "Connection and device shelves are separate. A model call happens only when a key is set. Country rules and masking are not on this surface.",
     securityTitle: "Security status",
     securityPill: "Independently monitored",
     securityRow1: "Independent Cyber layer: risk stays visible apart from integrations.",
     securityRow2: "Integration permissions become readable before the action runs.",
     securityRow3: "Permanent deletion is never automatic; trash/undo comes first.",
     securityRow4: "Payments, domain purchases, and sending mail never happen without user approval.",
-    aiTitle: "Multi-AI",
-    aiSub: "Provider routing and fallback",
+    aiTitle: "Model call",
+    aiSub: "No key, no call",
+    aiBody: "The trimmed message is sent. The response has no provider name. Detail is on the Data and trust page.",
     integrationsTitle: "Integrations",
     integrationsSub: "Permission matrix and status",
     deviceTitle: "Device ecosystem",
@@ -100,45 +101,63 @@ const umbrellaEn: typeof umbrellaTr = {
     rights: "Open-source core on GitHub; official services use controlled access.",
   },
   privacy: {
-    metaTitle: "Privacy Notice — We Lock AI · Lumos",
+    metaTitle: "Data and trust — Lumos",
     metaDescription:
-      "Privacy notice explaining data use, connection permissions, and user controls across We Lock AI and Lumos surfaces.",
-    eyebrow: "WE LOCK AI · LUMOS",
-    title: "Privacy notice",
+      "What this repository's Lumos code stores, sends, and does not store today. A rule that is not in the code is not described as present.",
+    eyebrow: "LUMOS · DATA AND TRUST",
+    title: "Data and trust",
     lead:
-      "This notice explains the boundaries for data processing across welockai.com and Lumos connection flows.",
-    updated: "Last updated: July 15, 2026",
+      "Lumos is not a new artificial intelligence. It does not run its own model. This page states the data handling that exists in this repository today.",
+    updated: "Last updated: September 29, 2026",
     scopeTitle: "Scope",
     scopeBody:
-      "This notice covers welockai.com, Lumos web and desktop surfaces, and third-party connections opened at the user's request. Integrations that are not yet live do not provide data access.",
-    dataTitle: "What data may be processed?",
-    data1: "Tasks, files, and approval details provided directly by the user.",
-    data2:
-      "When an account is connected, basic account identity, connection status, and only the content or metadata allowed by approved scopes.",
-    data3: "Limited technical records required for security, troubleshooting, and auditability.",
-    googleTitle: "Google and YouTube data",
-    googleBody:
-      "When a Google or YouTube connection is enabled, Lumos requests only the scopes selected by the user and displayed on Google's consent screen. Data is used to perform the requested task and show connection status; it is not used for advertising, sale, or general-purpose model training.",
-    useTitle: "Why we use data",
-    use1: "Perform the task requested by the user and show the result in Lumos.",
-    use2: "Manage connection, permission, and explicit approval states.",
-    use3: "Prevent misuse, troubleshoot problems, and investigate security incidents.",
-    sharingTitle: "Sharing",
-    sharingBody:
-      "Data is not sold. It may be shared in a limited way with relevant platforms and service providers only when required to provide the requested operation, comply with law, or protect the system.",
-    retentionTitle: "Retention and deletion",
-    retentionBody:
-      "Connection tokens are retained until disconnected or expired; technical records are retained only for the limited period needed for security and operations. A deletion and support channel will be published here before live OAuth access is launched.",
-    controlsTitle: "User controls",
-    controls1: "You can disconnect integrations in Lumos and revoke access in the relevant provider's account settings.",
-    controls2: "Google access can also be removed from the Google Account connections page.",
-    controls3: "Externally visible sharing and publishing actions require explicit approval.",
-    securityTitle: "Security",
-    securityBody:
-      "Core security principles include narrow scopes, keeping secrets out of the user interface, and requiring approval for external effects. No online system can guarantee absolute security.",
+      "The paths described are hosted chat, the Google session cookie, the optional memory service, the local task log, and browser file history. If a deployment adds another service, this page does not cover it.",
+    notTitle: "What Lumos does not do",
+    notBody:
+      "It does not apply per-country retention, data location, or cross-border transfer rules. It does not mask data before a model request. It does not verify that a provider refrains from storing or training on inputs.",
+    flowTitle: "Hosted chat flow",
+    flowBody:
+      "User message → 401 without a session → 409 on identity mismatch → character limits → model API if a key exists → provider and model names are removed from the response → user. A second API is only the fallback when the first returns no reply. This path does not re-apply a separate control loop at every service.",
+    qCollectTitle: "What is collected?",
+    qCollectBody:
+      "Google sign-in writes sid, lumos_id, sub, email, name, picture, door, provider, package, and expiry into the cookie. The Google access token is not written. The chat message, the last 12 turns, and an optional image go into the model request. If permitted memory is loaded, up to 12 summaries are added.",
+    qWhyTitle: "Why?",
+    qWhyBody:
+      "The session identifies the same person on the next request. The model request is for producing a reply. A memory summary is added only if the user asked to remember it and the memory service has consent.",
+    qWhereTitle: "Where is it kept?",
+    qWhereBody:
+      "The session is a browser cookie. The hosted chat handler does not write the message to a Lumos database. If bridge telemetry runs, the user message is written on that machine under .lumos/logs. File upload summaries stay in this browser's localStorage, at most 5 entries. There is no code that chooses a country or region for storage.",
+    qHowLongTitle: "How long?",
+    qHowLongBody:
+      "The session cookie lasts 7 days (604800 seconds). The OAuth state cookie lasts 10 minutes. The function that appends .lumos/logs has no deletion period. Encrypted notes with ttl_seconds are dropped when they expire; notes without a TTL remain. The meeting-bot path refuses to create a request without retention; that rule does not apply to other data.",
+    qWhoTitle: "Who can access it?",
+    qWhoBody:
+      "The cookie is HttpOnly. Logout deletes the session cookie and the bridge proxy cookie. It does not delete logs, memory, or a copy held by a model provider. If a Sentry or Axiom key is set, allowlisted technical fields and the error stack go to that service; email and access_token are not on the allowlist. lumosId can be sent.",
+    qModelTitle: "What is sent to a model API?",
+    qModelBody:
+      "The message is at most 8000 characters, each history turn 4000, and an image at most 380000 characters. If an OpenAI key is set, the Responses API is called with store: false. That flag is not proof the provider kept no copy. If that call returns no reply and a Gemini key is set, generateContent is called; that request has no store field. If neither key is set, the handler returns 503 and makes no call. The JSON returned to the user does not include provider or model.",
+    qNotTitle: "What is not kept?",
+    qNotBody:
+      "The Google access token is not in the session. If the memory service or consent is missing, a “remember” sentence is not saved. This repository has no advertising tag and no data-sale integration. A model provider's own records are outside that sentence.",
+    qDeleteTitle: "How do I delete it?",
+    qDeleteBody:
+      "Logout clears the cookie. Memory deletion requires action delete and confirm: true; it counts as deleted only if the service returns ok. This product has no delete control for .lumos/logs or a provider copy. Google account access can be removed from Google's connections page.",
+    assuranceTitle: "Lumos assurance",
+    assuranceBody:
+      "This name covers only the controls listed above: session checks, not writing the access token into the cookie, character limits, store: false on the OpenAI request, stripping provider and model from the response, not writing memory without consent, the observability allowlist, and stopping a task-engine step that matches SECURITY_NEVER_AUTO.",
+    missingTitle: "What is missing",
+    missingBody:
+      "Country policy, masking, a Gemini store field, verification of provider retention, showing the user which API was called, having the confirmation layer on by default, and general deletion are not part of this assurance. The confirmation layer runs only when LUMOS_CONFIRMATION_ENABLED is 1, true, or yes.",
+    countryTitle: "Country rules",
+    countryBody:
+      "This repository does not run a policy layer that selects the law of the country where the service is offered. One code path is used. That does not place the operator outside the law; it means the software does not apply different rules per country.",
+    multiTitle: "More than one infrastructure",
+    multiBody:
+      "Hosted chat makes at most two model calls: the OpenAI key first, then the Gemini key if there is no reply. It does not re-apply separate authorization, masking, and country checks on each hop. The task engine stop is not attached to this chat reply.",
     changesTitle: "Changes",
     changesBody:
-      "This notice may be updated as the product and connection scope evolve. Material changes will update the date and the relevant product surfaces.",
+      "When the code changes, this page and docs/data-and-trust.md change together. Earlier privacy sentences about retention and training that this inventory does not verify were removed.",
+    docCta: "Technical inventory",
     googleControlsCta: "Manage Google access",
     integrationsCta: "Connection ecosystem",
   },

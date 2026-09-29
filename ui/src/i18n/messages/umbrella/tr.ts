@@ -13,7 +13,7 @@ const umbrellaTr = {
     accessibility: "Engelsiz",
     lab: "Lab",
     education: "Eğitim",
-    privacy: "Gizlilik",
+    privacy: "Veri ve Güven",
   },
   accessibility: {
     eyebrow: "LUMOS · ENGELSİZ", title: "Engelsiz kullanım",
@@ -79,15 +79,16 @@ const umbrellaTr = {
   ecosystem: {
     title: "Güven ve ekosistem",
     lead:
-      "Çoklu AI sağlayıcıları, entegrasyonlar ve cihaz ekosistemi tek güvenlik sınırı içinde durur — izin ve risk işlemden önce görünür kalır.",
+      "Bağlantı ve cihaz rafları ayrıdır. Model çağrısı yalnız anahtar varsa yapılır. Ülke kuralı ve maskeleme bu yüzeyde yoktur.",
     securityTitle: "Güvenlik durumu",
     securityPill: "Bağımsız izleniyor",
     securityRow1: "Bağımsız Cyber katmanı: risk, entegrasyonlardan ayrı görünür.",
     securityRow2: "Entegrasyon izinleri, işlemden önce okunur hâle gelir.",
     securityRow3: "Kalıcı silme otomatik değildir; çöp/geri alma önce gelir.",
     securityRow4: "Ödeme, domain alma ve mail gönderimi kullanıcı onayı olmadan yapılmaz.",
-    aiTitle: "Çoklu AI",
-    aiSub: "Sağlayıcı yönlendirme ve yedekleme",
+    aiTitle: "Model çağrısı",
+    aiSub: "Anahtar yoksa çağrı yok",
+    aiBody: "Kesilmiş ileti gider. Yanıtta sağlayıcı adı yoktur. Ayrıntı Veri ve Güven sayfasındadır.",
     integrationsTitle: "Entegrasyonlar",
     integrationsSub: "İzin matrisi ve durum",
     deviceTitle: "Cihaz ekosistemi",
@@ -98,45 +99,63 @@ const umbrellaTr = {
     rights: "Açık kaynak çekirdek GitHub'da; resmi servisler kontrollü erişimle.",
   },
   privacy: {
-    metaTitle: "Gizlilik Bildirimi — We Lock AI · Lumos",
+    metaTitle: "Veri ve Güven — Lumos",
     metaDescription:
-      "We Lock AI ve Lumos yüzeylerinde verilerin hangi amaçlarla işlendiğini, bağlantı izinlerini ve kullanıcı denetimlerini açıklayan gizlilik bildirimi.",
-    eyebrow: "WE LOCK AI · LUMOS",
-    title: "Gizlilik bildirimi",
+      "Bu depodaki Lumos kodunun bugün sakladığı, ilettiği ve saklamadığı veriler. Kodda olmayan bir kural burada varmış gibi yazılmaz.",
+    eyebrow: "LUMOS · VERİ VE GÜVEN",
+    title: "Veri ve Güven",
     lead:
-      "Bu bildirim, welockai.com ve Lumos bağlantı akışlarında verilerin hangi sınırlar içinde işlendiğini açıklar.",
-    updated: "Son güncelleme: 15 Temmuz 2026",
+      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Bu sayfa, bu depodaki kodun bugün yaptığı veri işlemlerini yazar.",
+    updated: "Son güncelleme: 29 Eylül 2026",
     scopeTitle: "Kapsam",
     scopeBody:
-      "Bu bildirim welockai.com, Lumos web ve masaüstü yüzeyleri ile kullanıcının isteğiyle açılan üçüncü taraf bağlantıları kapsar. Henüz canlı olmayan entegrasyonlar veri erişimi sağlamaz.",
-    dataTitle: "Hangi veriler işlenebilir?",
-    data1: "Kullanıcının doğrudan verdiği görev, dosya ve onay bilgileri.",
-    data2:
-      "Bir hesap bağlandığında temel hesap kimliği, bağlantı durumu ve yalnızca onaylanan kapsamların izin verdiği içerik veya metadata.",
-    data3: "Güvenlik, hata ayıklama ve denetlenebilirlik için gerekli sınırlı teknik kayıtlar.",
-    googleTitle: "Google ve YouTube verileri",
-    googleBody:
-      "Google veya YouTube bağlantısı açıldığında Lumos yalnızca kullanıcı tarafından seçilen ve Google onay ekranında gösterilen kapsamları ister. Veriler, istenen görevi yerine getirmek ve bağlantı durumunu göstermek için kullanılır; reklam hedefleme, satış veya genel amaçlı model eğitimi için kullanılmaz.",
-    useTitle: "Verileri neden kullanırız?",
-    use1: "Kullanıcının istediği görevi yerine getirmek ve sonucu Lumos'ta göstermek.",
-    use2: "Bağlantı, izin ve açık onay durumlarını yönetmek.",
-    use3: "Kötüye kullanımı önlemek, sorunları gidermek ve güvenlik olaylarını incelemek.",
-    sharingTitle: "Paylaşım",
-    sharingBody:
-      "Veriler satılmaz. Yalnızca kullanıcının istediği işlemi sunmak, yasal yükümlülükleri karşılamak veya sistemi korumak için gerekli hizmet sağlayıcılarla ve ilgili platformlarla sınırlı biçimde paylaşılabilir.",
-    retentionTitle: "Saklama ve silme",
-    retentionBody:
-      "Bağlantı belirteçleri bağlantı kesilene veya geçerliliğini yitirene kadar; teknik kayıtlar ise güvenlik ve işletim için gerekli olan sınırlı süre boyunca tutulur. Canlı OAuth kullanıma açılmadan önce silme ve destek kanalı bu sayfada yayımlanacaktır.",
-    controlsTitle: "Kullanıcı denetimi",
-    controls1: "Bağlantıları Lumos içinden kapatabilir ve ilgili sağlayıcının hesap ayarlarından erişimi geri alabilirsiniz.",
-    controls2: "Google erişimi Google Hesabı bağlantılar sayfasından ayrıca kaldırılabilir.",
-    controls3: "Dış etkili paylaşım ve yayınlama işlemleri açık onay olmadan yapılmaz.",
-    securityTitle: "Güvenlik",
-    securityBody:
-      "Erişim kapsamını dar tutmak, sırları kullanıcı arayüzüne taşımamak ve dış etkili işlemleri onaya bağlamak temel güvenlik ilkeleridir. Hiçbir çevrimiçi sistem mutlak güvenlik garantisi vermez.",
+      "Anlatılan yollar barındırılan sohbet, Google oturum çerezi, isteğe bağlı hafıza servisi, yerel görev günlüğü ve tarayıcıdaki dosya geçmişidir. Başka bir kurulum ek servis bağlarsa bu sayfa onu kapsamaz.",
+    notTitle: "Lumos ne yapmaz",
+    notBody:
+      "Ülkeye göre saklama, veri konumu veya yurt dışı aktarım kuralı uygulamaz. Model isteğinden önce maskeleme yapmaz. Sağlayıcının veriyi saklamadığını veya eğitmediğini doğrulamaz.",
+    flowTitle: "Barındırılan sohbet akışı",
+    flowBody:
+      "Kullanıcı iletisi → oturum yoksa 401 → kimlik uyuşmazsa 409 → karakter sınırı → anahtar varsa model API → provider ve model adı yanıttan çıkarılır → kullanıcı. İkinci API, birincisi yanıt vermezse kullanılan yedektir. Her serviste yeniden uygulanan ayrı bir kontrol döngüsü bu yolda yoktur.",
+    qCollectTitle: "Benden ne toplanıyor?",
+    qCollectBody:
+      "Google ile girişte çereze sid, lumos_id, sub, e-posta, ad, resim, door, provider, package ve süre yazılır. Google access_token yazılmaz. Sohbet iletisi, son 12 tur ve isteğe bağlı görsel model isteğine konur. İzinli hafıza varsa en fazla 12 özet de konur.",
+    qWhyTitle: "Neden?",
+    qWhyBody:
+      "Oturum, aynı kişiyi sonraki istekte tanımak içindir. Model isteği, yanıt üretmek içindir. Hafıza özeti, kullanıcı “hatırla” dediyse ve servis onaylıysa isteme eklenir.",
+    qWhereTitle: "Nerede tutuluyor?",
+    qWhereBody:
+      "Oturum tarayıcı çerezindedir. Barındırılan sohbet işleyicisi iletiyi Lumos veritabanına yazmaz. Köprü telemetrisi çağrılırsa kullanıcı iletisi o makinede .lumos/logs altına yazılır. Dosya yükleme özeti bu tarayıcının localStorage alanındadır, en fazla 5 kayıt. Ülke veya bölge seçen bir saklama kodu yoktur.",
+    qHowLongTitle: "Ne kadar tutuluyor?",
+    qHowLongBody:
+      "Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. .lumos/logs ekleyen fonksiyonda silme süresi yoktur. Şifreli notlarda ttl_seconds doluysa süre dolunca düşer; süresiz not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.",
+    qWhoTitle: "Kim erişebilir?",
+    qWhoBody:
+      "Çerez HttpOnly’dir. Çıkış, oturum çerezini ve köprü vekil çerezini siler. Günlüğü, hafızayı veya model sağlayıcısındaki kopyayı silmez. Sentry veya Axiom anahtarı tanımlıysa izinli teknik alanlar ve hata yığını o servise gider; e-posta ve access_token allowlist’te değildir. lumosId gidebilir.",
+    qModelTitle: "Model API’sine ne gönderiliyor?",
+    qModelBody:
+      "İleti en fazla 8000 karakter, geçmiş tur başına 4000, görsel en fazla 380000 karakter. OpenAI anahtarı varsa Responses API çağrılır ve istekte store: false vardır. Bu, sağlayıcının kopya tutmadığının kanıtı değildir. O çağrı yanıt vermezse ve Gemini anahtarı varsa generateContent çağrılır; o istekte store alanı yoktur. Anahtar yoksa 503 döner ve çağrı yapılmaz. Kullanıcıya dönen JSON sağlayıcı ve model adını taşımaz.",
+    qNotTitle: "Ne tutulmuyor?",
+    qNotBody:
+      "Google access_token oturumda yoktur. Hafıza servisi veya onayı yoksa “hatırla” cümlesi kaydedilmez. Bu depoda reklam etiketi ve veri satış entegrasyonu yoktur. Model sağlayıcısının kendi kaydı bu cümlenin dışındadır.",
+    qDeleteTitle: "Nasıl silerim?",
+    qDeleteBody:
+      "Çıkış çerezi siler. Hafıza silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. .lumos/logs ve sağlayıcı kopyası için bu üründe bir silme kontrolü yoktur. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.",
+    assuranceTitle: "Lumos güvencesi",
+    assuranceBody:
+      "Bu ad, yukarıda yazılan uygulanmış kontrollerin ortak adıdır: oturum kontrolü, belirtecin çereze yazılmaması, karakter sınırları, OpenAI isteğindeki store: false, yanıttan sağlayıcı adının çıkarılması, hafızanın onaysız yazılmaması, gözlem allowlist’i ve görev motorunda SECURITY_NEVER_AUTO eşleşmesinde durma.",
+    missingTitle: "Eksik olanlar",
+    missingBody:
+      "Ülke politikası, maskeleme, Gemini store alanı, sağlayıcı saklamasının doğrulanması, sohbette hangi API’nin çağrıldığının kullanıcıya gösterilmesi, onay katmanının varsayılan olarak açık olması ve genel silme bu güvencenin parçası değildir. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED=1, true veya yes iken çalışır.",
+    countryTitle: "Ülke kuralları",
+    countryBody:
+      "Bu depo, hizmet verilen ülkenin mevzuatını seçen bir politika katmanı çalıştırmaz. Tek kod yolu kullanılır. Bu cümle, işletmecinin hukuk dışında olduğu anlamına gelmez; yazılımın ülkeye göre kural uygulamadığı anlamına gelir.",
+    multiTitle: "Birden fazla altyapı",
+    multiBody:
+      "Barındırılan sohbet en fazla iki model çağrısı yapar: önce OpenAI anahtarı, yanıt yoksa Gemini anahtarı. Her geçişte ayrı yetki, maskeleme ve ülke kontrolü yeniden uygulanmaz. Görev motorundaki durdurma bu sohbet yanıtına bağlı değildir.",
     changesTitle: "Değişiklikler",
     changesBody:
-      "Bu bildirim ürün ve bağlantı kapsamı değiştikçe güncellenebilir. Önemli değişikliklerde güncelleme tarihi ve ilgili yüzeyler yenilenir.",
+      "Kod değişince bu sayfa ve docs/data-and-trust.md birlikte güncellenir. Önceki gizlilik metnindeki, bu envanterle doğrulanmayan saklama ve eğitim cümleleri kaldırıldı.",
+    docCta: "Teknik envanter",
     googleControlsCta: "Google erişimini yönet",
     integrationsCta: "Bağlantı ekosistemi",
   },
