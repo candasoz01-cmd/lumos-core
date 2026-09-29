@@ -514,9 +514,55 @@ test("Revoke deletes the local vault credential even when Meta revoke fails", as
       status: "revoked_local",
       upstream_revoked: false,
       connections_deleted: true,
+      credential_deleted: true,
     });
-    assert.deepEqual(operations, ["credential.resolve", "credential.delete", "connection.delete"]);
+    assert.deepEqual(operations, ["credential.resolve", "connection.delete", "credential.delete"]);
     assert.doesNotMatch(res.body, /revoked-token/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    cleanEnv();
+  }
+});
+
+test("Revoke keeps the credential when connection cleanup fails so a retry can finish it", async () => {
+  env();
+  const originalFetch = globalThis.fetch;
+  const operations = [];
+  try {
+    globalThis.fetch = async (url, init = {}) => {
+      if (String(url) === "https://vault.test/credentials") {
+        const body = JSON.parse(init.body);
+        operations.push(body.operation);
+        if (body.operation === "credential.resolve") {
+          return { ok: true, async json() { return {
+            ok: true,
+            vault_ref: "meta:facebook:opaque",
+            provider_account_id: "fb-account",
+            credential: { access_token: "revoked-token", token_type: "bearer", expires_at: 100 },
+          }; } };
+        }
+        if (body.operation === "connection.delete") return { ok: false, async json() { return { ok: false }; } };
+        return { ok: true, async json() { return { ok: true, vault_ref: "meta:facebook:opaque" }; } };
+      }
+      return { ok: true, async json() { return { success: true }; } };
+    };
+    const res = response();
+    await tokenHandler({
+      method: "POST",
+      url: "/api/integrations/meta/token",
+      headers: { cookie: `lumos_session=${lumosSession()}`, origin: "https://welockai.com", host: "welockai.com" },
+      body: { action: "revoke", provider: "facebook" },
+    }, res);
+    assert.equal(res.statusCode, 502);
+    assert.deepEqual(JSON.parse(res.body), {
+      ok: false,
+      provider: "facebook",
+      status: "revoke_incomplete",
+      upstream_revoked: true,
+      connections_deleted: false,
+      credential_deleted: false,
+    });
+    assert.deepEqual(operations, ["credential.resolve", "connection.delete"]);
   } finally {
     globalThis.fetch = originalFetch;
     cleanEnv();

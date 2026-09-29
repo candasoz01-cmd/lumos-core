@@ -138,24 +138,31 @@ export default async function handler(req, res) {
     } catch {
       upstreamRevoked = false;
     }
-    await deleteMetaCredential(lumosId, provider, credential.vaultRef);
-    // KARAR-2 (#903): belirteçle birlikte ona bağlı bağlantı kayıtları da
-    // silinir. Silinemezse başarı dönülmez; belirteç silinmiş olsa da
-    // bağlantı kayıtlarının kaldığı açıkça bildirilir.
-    let connectionsDeleted = true;
+    // KARAR-2 (#903): önce bu credential'a bağlı bağlantı kayıtları silinir,
+    // credential en son. Bağlantı silme başarısızsa credential yerinde kalır;
+    // böylece yeniden deneme aynı vault_ref'i bulup temizliği tamamlar.
     try {
-      await deleteMetaConnectionsForCredential(lumosId, credential.vaultRef);
+      await deleteMetaConnectionsForCredential(lumosId, credential.vaultRef, provider);
     } catch (connectionError) {
-      connectionsDeleted = false;
       await captureError(connectionError, { route: ROUTE, provider, errorCode: "meta_connection_delete_failed" });
+      json(res, 502, {
+        ok: false,
+        provider,
+        status: "revoke_incomplete",
+        upstream_revoked: upstreamRevoked,
+        connections_deleted: false,
+        credential_deleted: false,
+      });
+      return;
     }
-    const ok = upstreamRevoked && connectionsDeleted;
-    json(res, ok ? 200 : 502, {
-      ok,
+    await deleteMetaCredential(lumosId, provider, credential.vaultRef);
+    json(res, upstreamRevoked ? 200 : 502, {
+      ok: upstreamRevoked,
       provider,
       status: upstreamRevoked ? "revoked" : "revoked_local",
       upstream_revoked: upstreamRevoked,
-      connections_deleted: connectionsDeleted,
+      connections_deleted: true,
+      credential_deleted: true,
     });
     await logEvent("oauth.token_revoked", { route: ROUTE, provider, lumosId, status: upstreamRevoked ? "revoked" : "revoked_local" });
   } catch (error) {

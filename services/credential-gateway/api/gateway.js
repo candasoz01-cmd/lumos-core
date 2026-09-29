@@ -79,46 +79,68 @@ function parseJson(value) {
 const safeKey = (value) => clean(value).replace(/[^A-Za-z0-9_-]/g, "_");
 const deletionKey = (code) => `DELETION__${safeKey(code)}`;
 
-// Silme çekirdeği: verilen credential kayıtlarını, onlara credential_ref ile
-// bağlı CONN__ kayıtlarını ve bu bağlantıların INBOUND__/LASTIN__/SEND__
-// kayıtlarını siler. Silinen her ad sayılır; hiçbir şey "silindi" sayılmadan
-// önce deleteSecret başarıyla dönmüş olmalıdır.
-async function purgeCredentialTree(config, accessToken, secrets, credentialRecords, extraRefs = []) {
+// Silme çekirdeği. Önce ne silineceği planlanır, sonra yapraktan köke
+// silinir: SEND__ → LASTIN__ → INBOUND__ → CONN__ → CRED__. Credential en
+// son silindiği için yarıda kalan bir silme, yeniden denendiğinde aynı
+// credential'ı bulur ve kalan kayıtları tamamlar (sahte "completed" yok).
+// `orphans`: bu sahip(ler)in, bu sağlayıcılardaki, credential'ı artık var
+// olmayan bağlantı kayıtları da silinir (önceki revoke akışının artığı).
+// Silinen her ad sayılır; deleteSecret başarıyla dönmeden sayılmaz.
+async function purgeCredentialTree(config, accessToken, secrets, { credentials = [], refs = [], connectionFilter = () => true, orphans = null }) {
   const counts = { credentials: 0, connections: 0, inbound: 0, last_inbound: 0, send: 0 };
-  const refs = new Set(extraRefs.map(clean).filter(Boolean));
-  for (const record of credentialRecords) {
-    await deleteSecret(config, accessToken, record.secret_name);
-    counts.credentials += 1;
-    refs.add(record.vault_ref);
-  }
+  const targetRefs = new Set([...refs, ...credentials.map((record) => record.vault_ref)].map(clean).filter(Boolean));
+  const liveRefs = new Set(
+    scanCredentialRecords(secrets).records.map((record) => record.vault_ref).filter((ref) => !targetRefs.has(ref)),
+  );
+  const orphanOwners = new Set((orphans?.owners || []).map(clean).filter(Boolean));
+  const orphanProviders = new Set((orphans?.providers || []).map((item) => clean(item).toLowerCase()).filter(Boolean));
+
+  const plan = { send: [], lastInbound: [], inbound: [], connections: [] };
   const connectionIds = new Set();
   const phones = [];
   for (const secret of secrets) {
     if (!secret.name.startsWith("CONN__")) continue;
     const parsed = parseJson(secret.value);
-    if (!parsed || !refs.has(clean(parsed.credential_ref))) continue;
-    await deleteSecret(config, accessToken, secret.name);
-    counts.connections += 1;
+    if (!parsed || !connectionFilter(parsed)) continue;
+    const ref = clean(parsed.credential_ref);
+    const linked = targetRefs.has(ref);
+    const orphaned = orphanOwners.has(clean(parsed.owner_lumos_id)) &&
+      orphanProviders.has(clean(parsed.provider).toLowerCase()) &&
+      !liveRefs.has(ref);
+    if (!linked && !orphaned) continue;
+    plan.connections.push(secret.name);
     connectionIds.add(clean(parsed.connection_id));
     if (clean(parsed.phone_number_id) && clean(parsed.waba_id)) {
       phones.push({ phone: clean(parsed.phone_number_id), waba: clean(parsed.waba_id) });
     }
   }
   for (const secret of secrets) {
-    const parsed = secret.name.startsWith("LASTIN__") ? null : parseJson(secret.value);
     if (secret.name.startsWith("INBOUND__")) {
-      if (!phones.some((p) => p.phone === clean(parsed?.phone_number_id) && p.waba === clean(parsed?.waba_id))) continue;
-      await deleteSecret(config, accessToken, secret.name);
-      counts.inbound += 1;
+      const parsed = parseJson(secret.value);
+      if (phones.some((p) => p.phone === clean(parsed?.phone_number_id) && p.waba === clean(parsed?.waba_id))) {
+        plan.inbound.push(secret.name);
+      }
     } else if (secret.name.startsWith("LASTIN__")) {
-      if (!phones.some((p) => secret.name.startsWith(`LASTIN__${safeKey(p.phone)}__`))) continue;
-      await deleteSecret(config, accessToken, secret.name);
-      counts.last_inbound += 1;
+      if (phones.some((p) => secret.name.startsWith(`LASTIN__${safeKey(p.phone)}__`))) plan.lastInbound.push(secret.name);
     } else if (secret.name.startsWith("SEND__")) {
-      if (!connectionIds.has(clean(parsed?.connection_id))) continue;
-      await deleteSecret(config, accessToken, secret.name);
-      counts.send += 1;
+      if (connectionIds.has(clean(parseJson(secret.value)?.connection_id))) plan.send.push(secret.name);
     }
+  }
+
+  for (const [key, names] of [
+    ["send", plan.send],
+    ["last_inbound", plan.lastInbound],
+    ["inbound", plan.inbound],
+    ["connections", plan.connections],
+  ]) {
+    for (const name of names) {
+      await deleteSecret(config, accessToken, name);
+      counts[key] += 1;
+    }
+  }
+  for (const record of credentials) {
+    await deleteSecret(config, accessToken, record.secret_name);
+    counts.credentials += 1;
   }
   return counts;
 }
@@ -384,7 +406,10 @@ export default async function handler(req, res) {
       const matches = records.filter(
         (record) => providers.has(record.provider) && record.provider_account_id === providerAccountId,
       );
-      const counts = await purgeCredentialTree(config, accessToken, secrets, matches);
+      const counts = await purgeCredentialTree(config, accessToken, secrets, {
+        credentials: matches,
+        orphans: { owners: matches.map((record) => record.owner_lumos_id), providers: [...providers] },
+      });
       const status = {
         schema: "lumos-deletion-v1",
         status: "completed",
@@ -591,11 +616,11 @@ export default async function handler(req, res) {
         return;
       }
       const secrets = await listSecrets(config, accessToken);
-      const owned = secrets.filter((secret) => {
-        if (!secret.name.startsWith("CONN__")) return true;
-        return clean(parseJson(secret.value)?.owner_lumos_id) === ownerLumosId;
+      const counts = await purgeCredentialTree(config, accessToken, secrets, {
+        refs: [credentialRef],
+        connectionFilter: (row) => clean(row.owner_lumos_id) === ownerLumosId,
+        orphans: provider ? { owners: [ownerLumosId], providers: [provider] } : null,
       });
-      const counts = await purgeCredentialTree(config, accessToken, owned, [], [credentialRef]);
       json(res, 200, { ok: true, credential_ref: credentialRef, counts });
       return;
     }

@@ -250,10 +250,10 @@ export async function metaDeletionStatus(confirmationCode, fetchImpl = fetch) {
   };
 }
 
-export async function deleteMetaConnectionsForCredential(lumosId, vaultRef, fetchImpl = fetch) {
+export async function deleteMetaConnectionsForCredential(lumosId, vaultRef, provider = "", fetchImpl = fetch) {
   const payload = await callMetaVault(
     "connection.delete",
-    { owner_lumos_id: lumosId, credential_ref: vaultRef },
+    { owner_lumos_id: lumosId, credential_ref: vaultRef, provider: clean(provider) },
     fetchImpl,
   );
   if (clean(payload?.credential_ref) !== vaultRef) {

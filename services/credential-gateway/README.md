@@ -38,8 +38,17 @@ deletion.status`
   `CRED__` kayıtlarını ve yukarıdaki bağlı kayıtları siler, sonucu kullanıcı
   kimliği taşımayan `DELETION__<code>` kaydına yazar.
 - `deletion.status` (`confirmation_code`): o kaydı döner.
-- `WEBHOOK__` kayıtları yük ve kullanıcı kimliği taşımadığı için bu işlemlerin
-  dışındadır.
+- Silme sırası yapraktan köke: `SEND__` → `LASTIN__` → `INBOUND__` → `CONN__`
+  → `CRED__`. Credential en son silinir; yarıda kalan silme yeniden
+  denendiğinde aynı credential'ı bulur ve tamamlar. Aynı sahibin, kapsamdaki
+  sağlayıcılarda credential'ı artık olmayan (önceki revoke akışından kalan)
+  bağlantı kayıtları da silinir.
+- `webhook.ingest` yalnız `WEBHOOK__<ham gövdenin sha256'sı>` adında
+  `{provider, received_at}` kaydı yazar; ileti içeriği, gönderen, telefon
+  veya hesap kimliği saklanmaz (`tests/test_meta_deletion_callbacks.test.mjs`).
+  Bu kayıtlar kişiye bağlanamadığı için silme işlemlerinin dışındadır.
+  `LUMOS_META_WEBHOOK_SINK_URL` bu geçitten başka bir servise yönlendirilirse
+  bu güvence o servis için geçmez.
 
 ## Deploy
 

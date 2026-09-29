@@ -7,6 +7,7 @@ import { deleteMetaConnectionsForCredential } from "../api/_lib/meta_vault.js";
 import { metaAppSecrets, verifyMetaSignedRequest } from "../api/_lib/meta_signed_request.js";
 import dataDeletionHandler from "../api/meta/data-deletion.js";
 import deauthorizeHandler from "../api/meta/deauthorize.js";
+import webhookHandler from "../api/webhooks/meta.js";
 
 const INFISICAL = "https://infisical.test";
 const GATEWAY = "https://gateway.test/api/gateway";
@@ -24,6 +25,8 @@ const ENV = {
   LUMOS_META_APP_SECRET: "consumer-secret",
   LUMOS_INSTAGRAM_APP_SECRET: "instagram-secret",
   LUMOS_WHATSAPP_APP_SECRET: "business-secret",
+  LUMOS_META_WEBHOOK_SINK_URL: undefined,
+  LUMOS_META_WEBHOOK_SINK_TOKEN: undefined,
 };
 
 function configure(overrides = {}) {
@@ -68,7 +71,7 @@ function connection(connectionId, provider, owner, credentialRef, extra = {}) {
 
 // Infisical sahtesi ve gateway köprüsü: istemci (meta_vault.js) → gateway
 // handler → Infisical, tek süreçte uçtan uca.
-function harness(initial) {
+function harness(initial, { failDeletes = false, failDelete = () => false } = {}) {
   const secrets = new Map(Object.entries(initial));
   const respond = (status, body) => ({ ok: status >= 200 && status < 300, status, async json() { return body; } });
   const infisical = async (url, options = {}) => {
@@ -94,6 +97,7 @@ function harness(initial) {
       return respond(200, {});
     }
     if (method === "DELETE") {
+      if (failDeletes || failDelete(name)) return respond(500, {});
       if (!secrets.has(name)) return respond(404, {});
       secrets.delete(name);
       return respond(200, {});
@@ -308,6 +312,182 @@ test("connection.delete removes only the owner's connection tree for that creden
     assert.equal(h.secrets.has("CONN__conn_wa_a"), false);
     assert.equal(h.secrets.has("CONN__conn_forged"), true);
     assert.equal(h.secrets.has("CRED__wa_111"), true);
+  } finally {
+    h.restore();
+    cleanup();
+  }
+});
+
+test("deauthorize with a forged signature purges nothing", async () => {
+  configure();
+  const h = harness(seed());
+  try {
+    const before = new Map(h.secrets);
+    const valid = signedRequest("business-secret", { algorithm: "HMAC-SHA256", user_id: "111" });
+    const forgedPayload = Buffer.from(JSON.stringify({ algorithm: "HMAC-SHA256", user_id: "222" })).toString("base64url");
+    const res = capture();
+    await deauthorizeHandler({
+      method: "POST",
+      url: "/api/meta/deauthorize",
+      headers: {},
+      body: { signed_request: `${valid.split(".")[0]}.${forgedPayload}` },
+    }, res);
+    assert.equal(res.statusCode, 400);
+    assert.deepEqual(h.secrets, before);
+  } finally {
+    h.restore();
+    cleanup();
+  }
+});
+
+test("a purge that fails is recorded as failed and never answered with a confirmation code", async () => {
+  configure();
+  const h = harness(seed(), { failDeletes: true });
+  try {
+    const res = capture();
+    await dataDeletionHandler({
+      method: "POST",
+      url: "/api/meta/data-deletion",
+      headers: {},
+      body: { signed_request: signedRequest("business-secret", { algorithm: "HMAC-SHA256", user_id: "111" }) },
+    }, res);
+    assert.equal(res.statusCode, 503);
+    assert.equal(JSON.parse(res.body).confirmation_code, undefined);
+    assert.equal(h.secrets.has("CRED__wa_111"), true);
+    const failed = [...h.secrets.entries()].filter(([name]) => name.startsWith("DELETION__"));
+    assert.equal(failed.length, 1);
+    assert.equal(JSON.parse(failed[0][1]).status, "failed");
+
+    const code = failed[0][0].slice("DELETION__".length);
+    const statusRes = capture();
+    await dataDeletionHandler({ method: "GET", url: `/api/meta/data-deletion?code=${code}`, headers: {} }, statusRes);
+    assert.equal(statusRes.statusCode, 200);
+    assert.equal(JSON.parse(statusRes.body).status, "failed");
+  } finally {
+    h.restore();
+    cleanup();
+  }
+});
+
+test("a deletion request with nothing stored completes with zero counts", async () => {
+  configure();
+  const h = harness(seed());
+  try {
+    const res = capture();
+    await dataDeletionHandler({
+      method: "POST",
+      url: "/api/meta/data-deletion",
+      headers: {},
+      body: { signed_request: signedRequest("instagram-secret", { algorithm: "HMAC-SHA256", user_id: "999" }) },
+    }, res);
+    assert.equal(res.statusCode, 200);
+    const { confirmation_code: code } = JSON.parse(res.body);
+    const record = JSON.parse(h.secrets.get(`DELETION__${code}`));
+    assert.equal(record.status, "completed");
+    assert.deepEqual(record.counts, { credentials: 0, connections: 0, inbound: 0, last_inbound: 0, send: 0 });
+    assert.equal(h.secrets.size, Object.keys(seed()).length + 1);
+  } finally {
+    h.restore();
+    cleanup();
+  }
+});
+
+test("a Meta webhook forwarded to the gateway stores only a dedupe key, no content or ids", async () => {
+  configure({ LUMOS_META_WEBHOOK_SINK_URL: GATEWAY, LUMOS_META_WEBHOOK_SINK_TOKEN: "gateway-token" });
+  const h = harness({});
+  try {
+    const payload = {
+      object: "whatsapp_business_account",
+      entry: [{
+        id: "W1",
+        changes: [{
+          field: "messages",
+          value: {
+            metadata: { phone_number_id: "PN1", display_phone_number: "+900000000000" },
+            contacts: [{ wa_id: "905550001122", profile: { name: "Secret Sender" } }],
+            messages: [{ id: "wamid.XYZ", from: "905550001122", text: { body: "private message body" } }],
+          },
+        }],
+      }],
+    };
+    const raw = Buffer.from(JSON.stringify(payload));
+    const res = capture();
+    await webhookHandler({
+      method: "POST",
+      body: raw,
+      headers: { "x-hub-signature-256": `sha256=${createHmac("sha256", "business-secret").update(raw).digest("hex")}` },
+    }, res);
+    assert.equal(res.statusCode, 200);
+    assert.deepEqual([...h.secrets.keys()].map((name) => name.replace(/[a-f0-9]{64}$/, "<sha256>")), ["WEBHOOK__<sha256>"]);
+    const stored = JSON.parse([...h.secrets.values()][0]);
+    assert.deepEqual(Object.keys(stored).sort(), ["provider", "received_at"]);
+    const everything = JSON.stringify([...h.secrets.entries()]);
+    for (const needle of ["private message body", "Secret Sender", "905550001122", "PN1", "W1", "wamid"]) {
+      assert.equal(everything.includes(needle), false, needle);
+    }
+  } finally {
+    h.restore();
+    cleanup();
+  }
+});
+
+test("a purge interrupted before the credential is deleted completes on Meta's retry", async () => {
+  configure();
+  let failCredential = true;
+  const h = harness(seed(), { failDelete: (name) => failCredential && name.startsWith("CRED__") });
+  const request = () => ({
+    method: "POST",
+    url: "/api/meta/data-deletion",
+    headers: {},
+    body: { signed_request: signedRequest("business-secret", { algorithm: "HMAC-SHA256", user_id: "111" }) },
+  });
+  try {
+    const first = capture();
+    await dataDeletionHandler(request(), first);
+    assert.equal(first.statusCode, 503);
+    // Yapraktan köke: bağlı kayıtlar gitti, credential kaldı.
+    assert.equal(h.secrets.has("CONN__conn_wa_a"), false);
+    assert.equal(h.secrets.has("SEND__m1"), false);
+    assert.equal(h.secrets.has("CRED__wa_111"), true);
+
+    failCredential = false;
+    const retry = capture();
+    await dataDeletionHandler(request(), retry);
+    assert.equal(retry.statusCode, 200);
+    const { confirmation_code: code } = JSON.parse(retry.body);
+    const record = JSON.parse(h.secrets.get(`DELETION__${code}`));
+    assert.equal(record.status, "completed");
+    assert.equal(record.counts.credentials, 1);
+    assert.equal(h.secrets.has("CRED__wa_111"), false);
+  } finally {
+    h.restore();
+    cleanup();
+  }
+});
+
+test("purge also removes the same owner's orphaned connection records for providers in scope", async () => {
+  configure();
+  const initial = seed();
+  // Eski revoke akışının artığı: credential'ı silinmiş bağlantı kayıtları.
+  initial.CONN__orphan_wa_a = connection("orphan_wa_a", "whatsapp", "lumos-a", "meta:whatsapp:gone", { phone_number_id: "PN9", waba_id: "W9" });
+  initial.LASTIN__PN9__7 = JSON.stringify({ last_inbound_at: 1 });
+  initial.CONN__orphan_ig_a = connection("orphan_ig_a", "instagram", "lumos-a", "meta:instagram:gone");
+  initial.CONN__orphan_wa_b = connection("orphan_wa_b", "whatsapp", "lumos-b", "meta:whatsapp:gone-b");
+  const h = harness(initial);
+  try {
+    const res = capture();
+    await dataDeletionHandler({
+      method: "POST",
+      url: "/api/meta/data-deletion",
+      headers: {},
+      body: { signed_request: signedRequest("business-secret", { algorithm: "HMAC-SHA256", user_id: "111" }) },
+    }, res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(h.secrets.has("CONN__orphan_wa_a"), false);
+    assert.equal(h.secrets.has("LASTIN__PN9__7"), false);
+    // Kapsam dışı sağlayıcı ve başka sahip: dokunulmaz.
+    assert.equal(h.secrets.has("CONN__orphan_ig_a"), true);
+    assert.equal(h.secrets.has("CONN__orphan_wa_b"), true);
   } finally {
     h.restore();
     cleanup();
