@@ -140,6 +140,33 @@
       "Edit(./.githooks/**)"
     ]
   },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": false,
+    "allowUnsandboxedCommands": false,
+    "excludedCommands": [],
+    "filesystem": {
+      "denyWrite": [
+        "./.claude",
+        "./.git/hooks",
+        "./.githooks",
+        "./.github/workflows",
+        "./ops/publication_gate",
+        "./config/publication"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "registry.npmjs.org",
+        "crates.io",
+        "index.crates.io",
+        "static.crates.io"
+      ]
+    }
+  },
   "hooks": {
     "PreToolUse": [
       {
