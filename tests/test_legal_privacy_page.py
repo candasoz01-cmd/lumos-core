@@ -83,3 +83,30 @@ def test_page_points_to_the_technical_inventory_and_its_own_canonical_url():
     assert 'const INVENTORY = "/privacy";' in text
     assert text.count("href={INVENTORY}") >= 2
     assert '<link rel="canonical" href="https://welockai.com/legal/privacy" />' in text
+
+
+def test_page_wires_the_language_switcher_and_links_the_english_section():
+    text = _page()
+    assert 'import I18nInit from "../../components/I18nInit.astro";' in text
+    assert "<I18nInit />" in text
+    assert 'href="#en-title"' in text
+    assert 'id="en-title"' in text
+
+
+def test_draft_notice_is_not_wired_as_the_live_privacy_url():
+    # While open legal items remain, nothing else in the public surface may
+    # point at /legal/privacy (footer, auth, app manifests, docs).
+    if TR_TODO not in _page():
+        return
+    offenders = []
+    for base in (ROOT / "ui" / "src", ROOT / "api", ROOT / "docs"):
+        for path in base.rglob("*"):
+            if (
+                not path.is_file()
+                or path == PAGE
+                or path.suffix not in {".astro", ".ts", ".js", ".md", ".json"}
+            ):
+                continue
+            if "/legal/privacy" in path.read_text(encoding="utf-8", errors="ignore"):
+                offenders.append(str(path.relative_to(ROOT)))
+    assert offenders == []

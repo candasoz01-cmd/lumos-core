@@ -3,6 +3,7 @@ import "../../styles/lumos-tokens.css";
 import "../../styles/umbrella-chrome.css";
 import WeLockSiteNav from "../../components/WeLockSiteNav.astro";
 import WeLockSiteFooter from "../../components/WeLockSiteFooter.astro";
+import I18nInit from "../../components/I18nInit.astro";
 
 // Hukuki gizlilik bildirimi — KARAR-1 (candasoz01-cmd/lumos-core#903).
 // Google ve Meta konsollarındaki "Privacy Policy URL" bu adrese bağlanır;
@@ -30,6 +31,7 @@ const INVENTORY = "/privacy";
     <main class="umbrella-main">
       <p class="umbrella-eyebrow">WE LOCK AI · LUMOS · HUKUKİ</p>
       <h1>Gizlilik bildirimi</h1>
+      <p><a href="#en-title" lang="en">English version</a></p>
 
       <div class="umbrella-callout" id="draft-status">
         <h2>Durum: taslak, hukuk onayı yok</h2>
@@ -173,5 +175,6 @@ const INVENTORY = "/privacy";
       </section>
     </main>
     <WeLockSiteFooter />
+    <I18nInit />
   </body>
 </html>
