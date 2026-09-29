@@ -4,14 +4,25 @@
 import {
   clearBridgeProxyCookieHeader,
   clearSessionCookieHeader,
+  openSession,
+  readCookie,
+  sessionLumosId,
 } from "../_lib/lumos_session.js";
 import { logEvent } from "../_lib/observability.js";
+import { bumpEpoch } from "../_lib/session_epoch.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST" && req.method !== "GET") {
     res.statusCode = 405;
     res.end("method_not_allowed");
     return;
+  }
+  try {
+    const claims = openSession(readCookie(req));
+    const lumosId = sessionLumosId(claims);
+    if (lumosId) bumpEpoch(lumosId);
+  } catch {
+    // Çerez silinir; sürüm dosyası yazılamazsa kopya çerez exp dolana kadar kalır.
   }
   res.setHeader("Set-Cookie", [
     clearSessionCookieHeader(),

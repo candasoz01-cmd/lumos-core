@@ -43,17 +43,17 @@ const DATA_DOC = "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/da
 
       <h2 data-i18n="umbrella.privacy.notTitle">Lumos ne yapmaz</h2>
       <p data-i18n="umbrella.privacy.notBody">
-        Ülkeye göre saklama, veri konumu veya yurt dışı aktarım kuralı uygulamaz. Model isteğinden önce maskeleme yapmaz. Sağlayıcının veriyi saklamadığını veya eğitmediğini doğrulamaz.
+        Ülkeye göre hukuk motoru çalıştırmaz. Sağlayıcının veriyi saklamadığını, eğitmediğini veya sıfır saklama uyguladığını doğrulamaz. Tam bir maskeleme sistemi yoktur.
       </p>
 
       <h2 data-i18n="umbrella.privacy.flowTitle">Barındırılan sohbet akışı</h2>
       <p data-i18n="umbrella.privacy.flowBody">
-        Kullanıcı iletisi → oturum yoksa 401 → kimlik uyuşmazsa 409 → hafıza servisinde lookup → ileti “hatırla” ile başlıyorsa remember denenir ve yanıtı Lumos verir, ileti modele gitmez → “ben kimim” ve saat soruları da model çağrısı olmadan yanıtlanır → hiç model anahtarı yoksa 503, model çağrısı yapılmaz → karakter sınırı → OpenAI anahtarı varsa Responses API → OpenAI çağrısı hata dönerse, istisna fırlatırsa veya boş yanıt verirse ve Gemini anahtarı varsa generateContent → ikisi de yanıt üretmezse 502 → provider ve model adı yanıttan çıkarılır → kullanıcı. Her serviste yeniden uygulanan ayrı bir kontrol döngüsü bu yolda yoktur.
+        Kullanıcı iletisi → oturum yoksa 401 → kimlik uyuşmazsa 409 → session_version küçükse 401 → hafıza servisinde lookup → ileti “hatırla” ile başlıyorsa remember denenir ve yanıtı Lumos verir, ileti modele gitmez → “ben kimim” ve saat soruları da model çağrısı olmadan yanıtlanır → hiç model anahtarı yoksa 503, model çağrısı yapılmaz → prepareProviderPayload e-posta, ayırıcılı telefon ve 9–12 haneli dizileri [email], [phone] ve [id] ile değiştirir → her sağlayıcı adayı ülke profili ve sağlayıcı kaydıyla ayrı kontrol edilir → ikisi de kapanırsa 403 → karakter sınırı → OpenAI anahtarı varsa Responses API → OpenAI çağrısı hata dönerse, istisna fırlatırsa veya boş yanıt verirse ve Gemini anahtarı varsa generateContent → ikisi de yanıt üretmezse 502 → provider ve model adı yanıttan çıkarılır → kullanıcı.
       </p>
 
       <h2 data-i18n="umbrella.privacy.qCollectTitle">Benden ne toplanıyor?</h2>
       <p data-i18n="umbrella.privacy.qCollectBody">
-        Google ile girişte çereze sid, lumos_id, sub, e-posta, ad, resim, door, provider, package ve süre yazılır. Google access_token yazılmaz. Sohbet isteğinde ileti, geçmiş ve isteğe bağlı görsel alınır. Hafıza servisi tanımlıysa her istekte lumos_id o servise gider.
+        Google ile girişte çereze sid, lumos_id, sub, e-posta, ad, resim, door, provider, package, sv (session_version) ve süre yazılır. Google access_token yazılmaz. Sohbet isteğinde ileti, geçmiş ve isteğe bağlı görsel alınır. Hafıza servisi tanımlıysa her istekte lumos_id o servise gider.
       </p>
 
       <h2 data-i18n="umbrella.privacy.qWhyTitle">Neden?</h2>
@@ -63,7 +63,7 @@ const DATA_DOC = "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/da
 
       <h2 data-i18n="umbrella.privacy.qModelTitle">Model API’sine ne gönderiliyor?</h2>
       <p data-i18n="umbrella.privacy.qModelBody">
-        Her model isteğinde şunlar gider: sabit sistem talimatı; oturumdaki ad (yoksa “ad yüklenmedi”); hesap sağlayıcısı (ör. google_web) ve bağlı durumu; hafıza durumu (loaded, empty, not_granted veya unavailable); hafıza yüklüyse en fazla 12 izinli özet, her biri en fazla 1000 karakter; ileti en fazla 8000 karakter; önceki Lumos yanıtları dahil son 12 tur, tur başına en fazla 4000 karakter; isteğe bağlı görsel en fazla 380000 karakter. E-posta adresi ve lumos_id model isteğine konmaz. OpenAI anahtarı varsa istekte store: false vardır; bu, sağlayıcının kopya tutmadığının kanıtı değildir. Gemini isteğinde store alanı yoktur. Kullanıcıya dönen JSON sağlayıcı ve model adını taşımaz.
+        Her model isteğinde şunlar gider: sabit sistem talimatı; oturumdaki ad (yoksa “ad yüklenmedi”); hesap sağlayıcısı (ör. google_web) ve bağlı durumu; hafıza durumu (loaded, empty, not_granted veya unavailable); hafıza yüklüyse en fazla 12 izinli özet, her biri en fazla 1000 karakter; ileti en fazla 8000 karakter; önceki Lumos yanıtları dahil son 12 tur, tur başına en fazla 4000 karakter; isteğe bağlı görsel en fazla 380000 karakter. İletideki e-posta, ayırıcılı telefon ve 9–12 haneli diziler [email], [phone] ve [id] ile değiştirilir. E-posta adresi ve lumos_id model isteğine ayrıca konmaz. OpenAI anahtarı varsa istekte store: false vardır; bu, sağlayıcının kopya tutmadığının kanıtı değildir. Gemini isteğinde store alanı yoktur. Kullanıcıya dönen JSON sağlayıcı ve model adını taşımaz.
       </p>
 
       <h2 data-i18n="umbrella.privacy.memoryTitle">Lumos hafıza servisi</h2>
@@ -78,12 +78,12 @@ const DATA_DOC = "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/da
 
       <h2 data-i18n="umbrella.privacy.qWhereTitle">Nerede tutuluyor?</h2>
       <p data-i18n="umbrella.privacy.qWhereBody">
-        Oturum tarayıcı çerezindedir. Barındırılan sohbet işleyicisi iletiyi kendi içinde bir veritabanına veya dosyaya yazmaz; “hatırla” özeti ise hafıza servisine yazılır. Köprü telemetrisi çağrılırsa kullanıcı iletisi o makinede .lumos/logs altına yazılır. Dosya yükleme özeti bu tarayıcının localStorage alanındadır, en fazla 5 kayıt. Ülke veya bölge seçen bir saklama kodu yoktur.
+        Oturum tarayıcı çerezindedir. Barındırılan sohbet işleyicisi iletiyi kendi içinde bir veritabanına veya dosyaya yazmaz; “hatırla” özeti ise hafıza servisine yazılır. Köprü telemetrisi çağrılırsa kullanıcı iletisi o makinede .lumos/logs altına yazılır. Dosya yükleme özeti bu tarayıcının localStorage alanındadır, en fazla 5 kayıt. Saklama yerini ülkeye göre seçen bir kod yoktur.
       </p>
 
       <h2 data-i18n="umbrella.privacy.qHowLongTitle">Ne kadar tutuluyor?</h2>
       <p data-i18n="umbrella.privacy.qHowLongBody">
-        Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. Hafıza servisindeki özetlerin süresi bu koddan belli değildir. .lumos/logs ekleyen fonksiyonda silme süresi yoktur. Şifreli notlarda ttl_seconds doluysa süre dolunca düşer; süresiz not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.
+        Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. Hafıza servisindeki özetlerin süresi bu koddan belli değildir. cleanup_audit_logs, .lumos/logs dosya adındaki tarihe göre LUMOS_LOG_RETENTION_DAYS (varsayılan 14) günden eski günlükleri siler; append_audit_log bunu her yazımda çağırmaz. LUMOS_MEMORY_TTL_SECONDS doluysa yeni yerel nota o süre yazılır. ttl_seconds boşsa not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.
       </p>
 
       <h2 data-i18n="umbrella.privacy.qWhoTitle">Kim erişebilir?</h2>
@@ -93,7 +93,7 @@ const DATA_DOC = "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/da
 
       <h2 data-i18n="umbrella.privacy.logoutTitle">Çıkış ne yapar?</h2>
       <p data-i18n="umbrella.privacy.logoutBody">
-        Çıkış, tarayıcıdaki oturum çerezini ve köprü vekil çerezini siler. Sunucu tarafında oturum iptal listesi yoktur: çerezin kopyası süresi (en fazla 7 gün) dolana kadar geçerli kalır. Çıkış günlüğü, hafızayı veya model sağlayıcısındaki kopyayı silmez.
+        Çıkış, tarayıcıdaki oturum çerezini ve köprü vekil çerezini siler ve o kullanıcı için session_version değerini bir artırır. Çerezdeki sv bu değerden küçükse sonraki istek 401 döner. Kayıt tek dosyadır (LUMOS_SESSION_EPOCH_PATH veya .lumos/session_epoch.json); paylaşılan çoklu sunucu deposu yoktur. Çıkış günlüğü, hafızayı veya model sağlayıcısındaki kopyayı silmez.
       </p>
 
       <h2 data-i18n="umbrella.privacy.qNotTitle">Ne tutulmuyor?</h2>
@@ -103,27 +103,27 @@ const DATA_DOC = "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/da
 
       <h2 data-i18n="umbrella.privacy.qDeleteTitle">Nasıl silerim?</h2>
       <p data-i18n="umbrella.privacy.qDeleteBody">
-        Çıkış yalnız tarayıcı çerezini siler. Hafıza silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. .lumos/logs ve sağlayıcı kopyası için bu üründe bir silme kontrolü yoktur. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.
+        Çıkış çerezi siler ve session_version değerini artırır. Yerel notlarda delete_all kayıtlı notları siler. delete_audit_logs .lumos/logs altındaki günlük dosyalarını siler. Hafıza silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. Sağlayıcı kopyası, kayıttaki deletion_api_supported false olduğu sürece bu kodla silinmiş sayılmaz. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.
       </p>
 
       <h2 data-i18n="umbrella.privacy.assuranceTitle">Lumos güvencesi</h2>
       <p data-i18n="umbrella.privacy.assuranceBody">
-        Bu ad, yukarıda yazılan uygulanmış kontrollerin ortak adıdır: oturum kontrolü, belirtecin çereze yazılmaması, karakter sınırları, OpenAI isteğindeki store: false, yanıttan sağlayıcı adının çıkarılması, hafızanın onaysız yazılmaması, gözlem allowlist’i ve görev motorunda SECURITY_NEVER_AUTO eşleşmesinde durma.
+        Bu ad, yukarıda yazılan uygulanmış kontrollerin ortak adıdır: oturum kontrolü, belirtecin çereze yazılmaması, karakter sınırları, OpenAI isteğindeki store: false, yanıttan sağlayıcı adının çıkarılması, hafızanın onaysız yazılmaması, gözlem allowlist’i, görev motorunda SECURITY_NEVER_AUTO eşleşmesinde durma, model metnindeki bilinen e-posta, telefon ve kimlik benzeri dizilerin değiştirilmesi, ülke profili kapısı, session_version kontrolü, yerel günlük temizliği ve yerel not silme.
       </p>
 
       <h2 data-i18n="umbrella.privacy.missingTitle">Eksik olanlar</h2>
       <p data-i18n="umbrella.privacy.missingBody">
-        Ülke politikası, maskeleme, Gemini store alanı, sağlayıcı saklamasının doğrulanması, hafıza servisinin saklama süresi ve konumu, sunucu tarafında oturum iptali, sohbette hangi API’nin çağrıldığının kullanıcıya gösterilmesi, onay katmanının varsayılan olarak açık olması ve genel silme bu güvencenin parçası değildir. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED=1, true veya yes iken çalışır.
+        Sağlayıcı kaydında contract_verified, zero_data_retention_supported ve deletion_api_supported false, retention_mode ve training_use unknown değerindedir (provider verification pending). Gemini isteğinde store alanı yoktur. Hafıza servisinin saklama süresi ve konumu bu koddan doğrulanamaz. session_version kaydı tek dosyadır. Sohbette hangi API’nin çağrıldığı kullanıcıya gösterilmez. Onay katmanı LUMOS_ENV veya LUMOS_PRODUCT_ENV production veya prod iken açıktır; bu ortamlar dışında yalnız LUMOS_CONFIRMATION_ENABLED=1, true veya yes iken çalışır. SECURITY_NEVER_AUTO aynı kalır. Barındırılan sohbet yanıtı ayrı onay beklemez.
       </p>
 
       <h2 data-i18n="umbrella.privacy.countryTitle">Ülke kuralları</h2>
       <p data-i18n="umbrella.privacy.countryBody">
-        Bu depo, hizmet verilen ülkenin mevzuatını seçen bir politika katmanı çalıştırmaz. Tek kod yolu kullanılır. Bu cümle, işletmecinin hukuk dışında olduğu anlamına gelmez; yazılımın ülkeye göre kural uygulamadığı anlamına gelir.
+        Ülkeye göre hukuk motoru yoktur. Ülke kodu boşsa global_safe profili kullanılır. Tanınmayan ülke kodu model çağrısını kapatır. XX kodu yalnız test ve yapılandırma yer tutucusudur; hukuki belirleme değildir. Bu cümle, işletmecinin hukuk dışında olduğu anlamına gelmez.
       </p>
 
       <h2 data-i18n="umbrella.privacy.multiTitle">Birden fazla altyapı</h2>
       <p data-i18n="umbrella.privacy.multiBody">
-        Barındırılan sohbet en fazla iki model çağrısı yapar: önce OpenAI anahtarı; o çağrı hata verir veya boş dönerse Gemini anahtarı. Her geçişte ayrı yetki, maskeleme ve ülke kontrolü yeniden uygulanmaz. Görev motorundaki durdurma bu sohbet yanıtına bağlı değildir.
+        Barındırılan sohbet en fazla iki model çağrısı yapar: önce OpenAI anahtarı; o çağrı hata verir, istisna fırlatır veya boş dönerse Gemini anahtarı. Her aday, çağrıdan önce ülke profili ve sağlayıcı kaydıyla ayrı kontrol edilir. İkisi de kapanırsa yanıt 403 olur ve sağlayıcı adı taşımaz. Görev motorundaki durdurma bu sohbet yanıtına bağlı değildir.
       </p>
 
       <h2 data-i18n="umbrella.privacy.changesTitle">Değişiklikler</h2>

@@ -5005,7 +5005,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
                       </section>
                     </div>
                   </div>
-                  <p class="lumos-security-note" data-i18n="panel.modules.chat.security.approval">Onay katmanı varsayılan olarak kapalıdır. LUMOS_CONFIRMATION_ENABLED açıkken listelenen kalıcı işlemler için onay ister.</p>
+                  <p class="lumos-security-note" data-i18n="panel.modules.chat.security.approval">Onay katmanı üretimde (LUMOS_ENV veya LUMOS_PRODUCT_ENV production ya da prod) açıktır. Diğer ortamlarda yalnız LUMOS_CONFIRMATION_ENABLED açıkken listelenen kalıcı işlemler için onay ister.</p>
                   <p id="panel-empty-secret-note" class="lumos-security-note" data-i18n="panel.modules.chat.security.secret">Cihaz içinde çalışır; gizli bilgileri sohbete yazma.</p>
                   {PANEL_DEBUG && (
                     <p class="lumos-security-note panel-debug-only" data-i18n="panel.modules.chat.security.debugBridge">
@@ -5893,7 +5893,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş
               iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse
               özet ayrı hafıza servisine yazılır. Yanıtta sağlayıcı adı yoktur. Onay
-              katmanı varsayılan olarak kapalıdır.
+              katmanı üretimde (LUMOS_ENV veya LUMOS_PRODUCT_ENV production ya da prod) açıktır. Diğer ortamlarda yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.
             </p>
             <ul class="medya-card-list">
               <li class="medya-card">
@@ -5913,8 +5913,7 @@ const PANEL_DEBUG = import.meta.env.DEV;
               <li class="medya-card">
                 <h3 data-i18n="panel.modules.ai.c3Title">Sohbet onayı</h3>
                 <p data-i18n="panel.modules.ai.c3Body">
-                  Barındırılan sohbet yanıtı ayrı bir onay adımı beklemez. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED
-                  açıkken çalışır.
+                  Barındırılan sohbet yanıtı ayrı bir onay adımı beklemez. Onay katmanı üretimde (LUMOS_ENV veya LUMOS_PRODUCT_ENV production ya da prod) açıktır. Diğer ortamlarda yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.
                 </p>
               </li>
               <li class="medya-card">

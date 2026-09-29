@@ -6,6 +6,7 @@ import {
   readCookie,
   sessionLumosId,
 } from "../_lib/lumos_session.js";
+import { sessionEpochAllows } from "../_lib/session_epoch.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -25,6 +26,11 @@ export default async function handler(req, res) {
   if (!lumosId) {
     res.statusCode = 401;
     res.end(JSON.stringify({ ok: false, authenticated: false, error: "identity_missing" }));
+    return;
+  }
+  if (!sessionEpochAllows(claims, lumosId)) {
+    res.statusCode = 401;
+    res.end(JSON.stringify({ ok: false, authenticated: false, error: "session_revoked" }));
     return;
   }
   res.statusCode = 200;
