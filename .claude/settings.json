@@ -54,12 +54,8 @@
       "Bash(git check-ignore *)",
       "Bash(PYTHONPATH=src python3 -m lumos_board.claim_cli list*)",
       "Bash(PYTHONPATH=src python3 -m lumos_board.claim_cli heartbeat *)",
-      "Bash(PYTHONPATH=src python3 -m lumos_board.claim_cli release *)",
-      "Bash(PYTHONPATH=src python3 -m lumos_board.claim_cli attach-pr *)",
       "Bash(python3 -m lumos_board.claim_cli list*)",
       "Bash(python3 -m lumos_board.claim_cli heartbeat *)",
-      "Bash(python3 -m lumos_board.claim_cli release *)",
-      "Bash(python3 -m lumos_board.claim_cli attach-pr *)",
       "mcp__github__get_me",
       "mcp__github__get_commit",
       "mcp__github__get_check_run",
@@ -115,7 +111,11 @@
       "Bash(git fetch *)",
       "mcp__github__get_file_contents",
       "mcp__github__search_code",
-      "mcp__github__get_job_logs"
+      "mcp__github__get_job_logs",
+      "Bash(PYTHONPATH=src python3 -m lumos_board.claim_cli release *)",
+      "Bash(PYTHONPATH=src python3 -m lumos_board.claim_cli attach-pr *)",
+      "Bash(python3 -m lumos_board.claim_cli release *)",
+      "Bash(python3 -m lumos_board.claim_cli attach-pr *)"
     ],
     "deny": [
       "Bash(git push --force *)",
@@ -135,7 +135,22 @@
       "Bash(npx vercel --prod*)",
       "Bash(npx vercel deploy --prod*)",
       "Bash(vercel * --prod*)",
-      "Bash(npx vercel * --prod*)"
+      "Bash(npx vercel * --prod*)",
+      "Edit(./.git/**)",
+      "Edit(./.githooks/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__github__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/github_repo_guard.py\""
+          }
+        ]
+      }
     ]
   }
 }
