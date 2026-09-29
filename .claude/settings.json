@@ -136,7 +136,8 @@
       "Bash(npx vercel deploy --prod*)",
       "Bash(vercel * --prod*)",
       "Bash(npx vercel * --prod*)",
-      "Edit(./.git/**)"
+      "Edit(./.git/**)",
+      "Edit(./.githooks/**)"
     ]
   },
   "hooks": {
