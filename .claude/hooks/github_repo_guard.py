@@ -19,8 +19,11 @@ ALLOWED_FULL = f"{ALLOWED_OWNER}/{ALLOWED_REPO}"
 
 # Pairs of (owner key, repo key) that a GitHub MCP tool may carry.
 REPO_KEY_PAIRS = (("owner", "repo"), ("parent_owner", "parent_repo"))
-# Search qualifiers that widen a query beyond one repository.
-SCOPE_QUALIFIER = re.compile(r"\b(repo|org|user|owner):(\S+)", re.IGNORECASE)
+# Search qualifiers that name a scope, with an optional negation prefix.
+SCOPE_QUALIFIER = re.compile(r"(?<![\w-])(-?)(repo|org|user|owner):(\S+)", re.IGNORECASE)
+# Boolean operators and grouping can combine the repo qualifier with an
+# unscoped term (`repo:x OR secret`), so they are not accepted at all.
+BOOLEAN_OPERATOR = re.compile(r"(?<!\S)(?:NOT|OR)(?!\S)|[()]")
 
 
 def _same(value: object, expected: str) -> bool:
@@ -42,10 +45,14 @@ def violation(tool_name: str, tool_input: dict) -> str | None:
         query = tool_input.get("query")
         if not isinstance(query, str):
             return f"{tool_name}: search without a query string"
+        if BOOLEAN_OPERATOR.search(query):
+            return f"{tool_name}: boolean operators or grouping are not allowed in a guarded search"
         scopes = SCOPE_QUALIFIER.findall(query)
         if not scopes:
             return f"{tool_name}: query must include repo:{ALLOWED_FULL}"
-        for kind, target in scopes:
+        for negated, kind, target in scopes:
+            if negated:
+                return f"{tool_name}: negated qualifier -{kind}:{target} widens the search"
             if kind.lower() != "repo" or not _same(target, ALLOWED_FULL):
                 return f"{tool_name}: qualifier {kind}:{target} is outside {ALLOWED_FULL}"
     return None

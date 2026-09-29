@@ -49,6 +49,11 @@ def test_calls_on_this_repository_pass(payload: dict) -> None:
         call("search_code", query="password"),
         call("search_issues", query="repo:candasoz01-cmd/lumos-core repo:someone/else"),
         call("search_pull_requests", query="org:someone is:open"),
+        call("search_code", query="-repo:candasoz01-cmd/lumos-core secret"),
+        call("search_code", query="secret -repo:candasoz01-cmd/lumos-core"),
+        call("search_code", query="repo:candasoz01-cmd/lumos-core OR secret"),
+        call("search_code", query="secret NOT repo:candasoz01-cmd/lumos-core"),
+        call("search_code", query="(repo:candasoz01-cmd/lumos-core) secret"),
         call("search_code"),
     ],
 )
