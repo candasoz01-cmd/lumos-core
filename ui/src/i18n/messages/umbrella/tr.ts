@@ -99,59 +99,71 @@ const umbrellaTr = {
     rights: "Açık kaynak çekirdek GitHub'da; resmi servisler kontrollü erişimle.",
   },
   privacy: {
-    metaTitle: "Veri ve Güven — Lumos",
+    metaTitle: "Teknik Veri ve Güven Envanteri — Lumos",
     metaDescription:
-      "Bu depodaki Lumos kodunun bugün sakladığı, ilettiği ve saklamadığı veriler. Kodda olmayan bir kural burada varmış gibi yazılmaz.",
-    eyebrow: "LUMOS · VERİ VE GÜVEN",
-    title: "Veri ve Güven",
+      "Bu depodaki Lumos kodunun bugün modele, hafıza servisine ve tarayıcıya gönderdiği ve saklamadığı veriler. Hukuki gizlilik bildirimi değildir.",
+    eyebrow: "LUMOS · TEKNİK VERİ ENVANTERİ",
+    title: "Teknik veri ve güven envanteri",
     lead:
       "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Bu sayfa, bu depodaki kodun bugün yaptığı veri işlemlerini yazar.",
     updated: "Son güncelleme: 29 Eylül 2026",
+    legalTitle: "Bu sayfa hukuki gizlilik bildirimi değildir",
+    legalBody:
+      "Bu sayfa teknik bir envanterdir. Veri sorumlusu, iletişim ve başvuru kanalı, silme talebi süreci, hukuki dayanak ve KVKK/GDPR kapsamındaki haklar burada yayımlanmadı. Bunlar ayrı bir hukuk ve politika kararı bekliyor; bu envanter onların yerine geçmez.",
     scopeTitle: "Kapsam",
     scopeBody:
-      "Anlatılan yollar barındırılan sohbet, Google oturum çerezi, isteğe bağlı hafıza servisi, yerel görev günlüğü ve tarayıcıdaki dosya geçmişidir. Başka bir kurulum ek servis bağlarsa bu sayfa onu kapsamaz.",
+      "Anlatılan yollar: barındırılan sohbet, Google oturum çerezi, Lumos hafıza servisi çağrıları, Gmail salt-okuma yolu, yerel görev günlüğü ve tarayıcıdaki dosya geçmişi. Başka bir kurulum veya bu depoda olmayan bir operatör katmanı ek servis bağlarsa bu sayfa onu kapsamaz.",
     notTitle: "Lumos ne yapmaz",
     notBody:
       "Ülkeye göre saklama, veri konumu veya yurt dışı aktarım kuralı uygulamaz. Model isteğinden önce maskeleme yapmaz. Sağlayıcının veriyi saklamadığını veya eğitmediğini doğrulamaz.",
     flowTitle: "Barındırılan sohbet akışı",
     flowBody:
-      "Kullanıcı iletisi → oturum yoksa 401 → kimlik uyuşmazsa 409 → karakter sınırı → anahtar varsa model API → provider ve model adı yanıttan çıkarılır → kullanıcı. İkinci API, birincisi yanıt vermezse kullanılan yedektir. Her serviste yeniden uygulanan ayrı bir kontrol döngüsü bu yolda yoktur.",
+      "Kullanıcı iletisi → oturum yoksa 401 → kimlik uyuşmazsa 409 → hafıza servisinde lookup → ileti “hatırla” ile başlıyorsa remember denenir ve yanıtı Lumos verir, ileti modele gitmez → “ben kimim” ve saat soruları da model çağrısı olmadan yanıtlanır → hiç model anahtarı yoksa 503, model çağrısı yapılmaz → karakter sınırı → OpenAI anahtarı varsa Responses API → OpenAI çağrısı hata dönerse, istisna fırlatırsa veya boş yanıt verirse ve Gemini anahtarı varsa generateContent → ikisi de yanıt üretmezse 502 → provider ve model adı yanıttan çıkarılır → kullanıcı. Her serviste yeniden uygulanan ayrı bir kontrol döngüsü bu yolda yoktur.",
     qCollectTitle: "Benden ne toplanıyor?",
     qCollectBody:
-      "Google ile girişte çereze sid, lumos_id, sub, e-posta, ad, resim, door, provider, package ve süre yazılır. Google access_token yazılmaz. Sohbet iletisi, son 12 tur ve isteğe bağlı görsel model isteğine konur. İzinli hafıza varsa en fazla 12 özet de konur.",
+      "Google ile girişte çereze sid, lumos_id, sub, e-posta, ad, resim, door, provider, package ve süre yazılır. Google access_token yazılmaz. Sohbet isteğinde ileti, geçmiş ve isteğe bağlı görsel alınır. Hafıza servisi tanımlıysa her istekte lumos_id o servise gider.",
     qWhyTitle: "Neden?",
     qWhyBody:
-      "Oturum, aynı kişiyi sonraki istekte tanımak içindir. Model isteği, yanıt üretmek içindir. Hafıza özeti, kullanıcı “hatırla” dediyse ve servis onaylıysa isteme eklenir.",
-    qWhereTitle: "Nerede tutuluyor?",
-    qWhereBody:
-      "Oturum tarayıcı çerezindedir. Barındırılan sohbet işleyicisi iletiyi Lumos veritabanına yazmaz. Köprü telemetrisi çağrılırsa kullanıcı iletisi o makinede .lumos/logs altına yazılır. Dosya yükleme özeti bu tarayıcının localStorage alanındadır, en fazla 5 kayıt. Ülke veya bölge seçen bir saklama kodu yoktur.",
-    qHowLongTitle: "Ne kadar tutuluyor?",
-    qHowLongBody:
-      "Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. .lumos/logs ekleyen fonksiyonda silme süresi yoktur. Şifreli notlarda ttl_seconds doluysa süre dolunca düşer; süresiz not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.",
-    qWhoTitle: "Kim erişebilir?",
-    qWhoBody:
-      "Çerez HttpOnly’dir. Çıkış, oturum çerezini ve köprü vekil çerezini siler. Günlüğü, hafızayı veya model sağlayıcısındaki kopyayı silmez. Sentry veya Axiom anahtarı tanımlıysa izinli teknik alanlar ve hata yığını o servise gider; e-posta ve access_token allowlist’te değildir. lumosId gidebilir.",
+      "Oturum, aynı kişiyi sonraki istekte tanımak içindir. Model isteği yanıt üretmek içindir; ad ve hafıza özetleri yanıtın bağlı kullanıcıya göre verilmesi için eklenir. Hafıza özeti, kullanıcı “hatırla” dediyse ve servis izin verdiyse yazılır.",
     qModelTitle: "Model API’sine ne gönderiliyor?",
     qModelBody:
-      "İleti en fazla 8000 karakter, geçmiş tur başına 4000, görsel en fazla 380000 karakter. OpenAI anahtarı varsa Responses API çağrılır ve istekte store: false vardır. Bu, sağlayıcının kopya tutmadığının kanıtı değildir. O çağrı yanıt vermezse ve Gemini anahtarı varsa generateContent çağrılır; o istekte store alanı yoktur. Anahtar yoksa 503 döner ve çağrı yapılmaz. Kullanıcıya dönen JSON sağlayıcı ve model adını taşımaz.",
+      "Her model isteğinde şunlar gider: sabit sistem talimatı; oturumdaki ad (yoksa “ad yüklenmedi”); hesap sağlayıcısı (ör. google_web) ve bağlı durumu; hafıza durumu (loaded, empty, not_granted veya unavailable); hafıza yüklüyse en fazla 12 izinli özet, her biri en fazla 1000 karakter; ileti en fazla 8000 karakter; önceki Lumos yanıtları dahil son 12 tur, tur başına en fazla 4000 karakter; isteğe bağlı görsel en fazla 380000 karakter. E-posta adresi ve lumos_id model isteğine konmaz. OpenAI anahtarı varsa istekte store: false vardır; bu, sağlayıcının kopya tutmadığının kanıtı değildir. Gemini isteğinde store alanı yoktur. Kullanıcıya dönen JSON sağlayıcı ve model adını taşımaz.",
+    memoryTitle: "Lumos hafıza servisi",
+    memoryBody:
+      "Hafıza, sohbet işleyicisinden ayrı bir saklama ve işleme katmanıdır. Adres LUMOS_MEMORY_LOOKUP_URL ile verilir; verilmezse BRIDGE_UPSTREAM_URL altındaki /memory/hosted/lookup kullanılır. Belirteç LUMOS_MEMORY_SERVICE_TOKEN, yoksa KANDO_BRIDGE_SECRET değeridir. Adres veya belirteç yoksa çağrı yapılmaz. Her sohbet isteğinde lumos_id ile lookup yapılır; model çağrısı olmasa da yapılır. İleti “hatırla”, “unutma” veya “remember” ile başlıyorsa ve izin varsa remember çağrısı en fazla 1000 karakterlik özeti ve hesap sağlayıcısını servise gönderir. Servisin kendisi bu depoda değildir; verinin nerede ve ne kadar süre tutulduğu bu koddan doğrulanamaz.",
+    gmailTitle: "Gmail salt-okuma yolu",
+    gmailBody:
+      "Kod gmail.readonly iznini tanımlar. Google tarafında bu izin posta kutusunu okumaya yetki verir; bu depodaki kod bundan yalnız okunmamış iletilerin listesini (en fazla 20) ve her iletinin Subject, From ve Date başlığını ister, ileti gövdesini istemez. Konu 120, gönderen 80 karakterde kesilir. Dönen veri yalnız okunmamış posta özetidir. Belirteç kasa bağdaştırıcısından okunur; kasada belirteç yoksa istek durur. Canlı Gmail API çağrısı yalnız LUMOS_GMAIL_SMOKE değeri 1, true veya yes iken yapılır; aksi halde örnek veri döner. Sonuç çağıran entegrasyon adımına döner; bu yol onu diske yazmaz, bir model API’sine göndermez, reklam veya satış için bir hizmete iletmez. Gmail OAuth onay ve geri çağrı işleyicisi bu depoda yoktur. welockai.com Google girişi yalnız openid, email ve profile ister.",
+    qWhereTitle: "Nerede tutuluyor?",
+    qWhereBody:
+      "Oturum tarayıcı çerezindedir. Barındırılan sohbet işleyicisi iletiyi kendi içinde bir veritabanına veya dosyaya yazmaz; “hatırla” özeti ise hafıza servisine yazılır. Köprü telemetrisi çağrılırsa kullanıcı iletisi o makinede .lumos/logs altına yazılır. Dosya yükleme özeti bu tarayıcının localStorage alanındadır, en fazla 5 kayıt. Ülke veya bölge seçen bir saklama kodu yoktur.",
+    qHowLongTitle: "Ne kadar tutuluyor?",
+    qHowLongBody:
+      "Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. Hafıza servisindeki özetlerin süresi bu koddan belli değildir. .lumos/logs ekleyen fonksiyonda silme süresi yoktur. Şifreli notlarda ttl_seconds doluysa süre dolunca düşer; süresiz not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.",
+    qWhoTitle: "Kim erişebilir?",
+    qWhoBody:
+      "Çerez HttpOnly’dir. Sentry veya Axiom anahtarı tanımlıysa izinli teknik alanlar ve hata yığını o servise gider; e-posta ve access_token allowlist’te değildir. lumosId gidebilir.",
+    logoutTitle: "Çıkış ne yapar?",
+    logoutBody:
+      "Çıkış, tarayıcıdaki oturum çerezini ve köprü vekil çerezini siler. Sunucu tarafında oturum iptal listesi yoktur: çerezin kopyası süresi (en fazla 7 gün) dolana kadar geçerli kalır. Çıkış günlüğü, hafızayı veya model sağlayıcısındaki kopyayı silmez.",
     qNotTitle: "Ne tutulmuyor?",
     qNotBody:
-      "Google access_token oturumda yoktur. Hafıza servisi veya onayı yoksa “hatırla” cümlesi kaydedilmez. Bu depoda reklam etiketi ve veri satış entegrasyonu yoktur. Model sağlayıcısının kendi kaydı bu cümlenin dışındadır.",
+      "Google access_token oturumda yoktur. Hafıza servisi veya izni yoksa “hatırla” cümlesi kaydedilmez. Bu depoda reklam etiketi ve veri satış entegrasyonu yoktur. Model sağlayıcısının ve hafıza servisinin kendi kaydı bu cümlenin dışındadır.",
     qDeleteTitle: "Nasıl silerim?",
     qDeleteBody:
-      "Çıkış çerezi siler. Hafıza silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. .lumos/logs ve sağlayıcı kopyası için bu üründe bir silme kontrolü yoktur. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.",
+      "Çıkış yalnız tarayıcı çerezini siler. Hafıza silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. .lumos/logs ve sağlayıcı kopyası için bu üründe bir silme kontrolü yoktur. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.",
     assuranceTitle: "Lumos güvencesi",
     assuranceBody:
       "Bu ad, yukarıda yazılan uygulanmış kontrollerin ortak adıdır: oturum kontrolü, belirtecin çereze yazılmaması, karakter sınırları, OpenAI isteğindeki store: false, yanıttan sağlayıcı adının çıkarılması, hafızanın onaysız yazılmaması, gözlem allowlist’i ve görev motorunda SECURITY_NEVER_AUTO eşleşmesinde durma.",
     missingTitle: "Eksik olanlar",
     missingBody:
-      "Ülke politikası, maskeleme, Gemini store alanı, sağlayıcı saklamasının doğrulanması, sohbette hangi API’nin çağrıldığının kullanıcıya gösterilmesi, onay katmanının varsayılan olarak açık olması ve genel silme bu güvencenin parçası değildir. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED=1, true veya yes iken çalışır.",
+      "Ülke politikası, maskeleme, Gemini store alanı, sağlayıcı saklamasının doğrulanması, hafıza servisinin saklama süresi ve konumu, sunucu tarafında oturum iptali, sohbette hangi API’nin çağrıldığının kullanıcıya gösterilmesi, onay katmanının varsayılan olarak açık olması ve genel silme bu güvencenin parçası değildir. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED=1, true veya yes iken çalışır.",
     countryTitle: "Ülke kuralları",
     countryBody:
       "Bu depo, hizmet verilen ülkenin mevzuatını seçen bir politika katmanı çalıştırmaz. Tek kod yolu kullanılır. Bu cümle, işletmecinin hukuk dışında olduğu anlamına gelmez; yazılımın ülkeye göre kural uygulamadığı anlamına gelir.",
     multiTitle: "Birden fazla altyapı",
     multiBody:
-      "Barındırılan sohbet en fazla iki model çağrısı yapar: önce OpenAI anahtarı, yanıt yoksa Gemini anahtarı. Her geçişte ayrı yetki, maskeleme ve ülke kontrolü yeniden uygulanmaz. Görev motorundaki durdurma bu sohbet yanıtına bağlı değildir.",
+      "Barındırılan sohbet en fazla iki model çağrısı yapar: önce OpenAI anahtarı; o çağrı hata verir veya boş dönerse Gemini anahtarı. Her geçişte ayrı yetki, maskeleme ve ülke kontrolü yeniden uygulanmaz. Görev motorundaki durdurma bu sohbet yanıtına bağlı değildir.",
     changesTitle: "Değişiklikler",
     changesBody:
       "Kod değişince bu sayfa ve docs/data-and-trust.md birlikte güncellenir. Önceki gizlilik metnindeki, bu envanterle doğrulanmayan saklama ve eğitim cümleleri kaldırıldı.",

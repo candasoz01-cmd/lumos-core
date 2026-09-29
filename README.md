@@ -28,7 +28,7 @@ runtime code.
 
 Turkish: [README.tr.md](README.tr.md) · [docs/tr/](docs/tr/)
 
-**Lumos** is not a new artificial intelligence. It does not run its own model. Hosted chat sends the trimmed message to a model API when a key is set, and that handler does not write the message to a Lumos database. The response does not include a provider or model name.
+**Lumos** is not a new artificial intelligence. It does not run its own model. Hosted chat sends the trimmed message, the signed-in name, and permitted memory summaries to a model API when a key is set. The chat handler itself does not write the message to a database; a “remember” summary is written to a separate memory service whose retention this repository cannot verify. The response does not include a provider or model name.
 
 The public data inventory is [docs/data-and-trust.md](docs/data-and-trust.md) and [https://welockai.com/privacy](https://welockai.com/privacy). The same limits are stated there: no per-country data rules, no masking before a model call, and no verification of what a provider stores. The confirmation layer runs only when `LUMOS_CONFIRMATION_ENABLED` is `1`, `true`, or `yes`. A chat reply is not held for a separate approval step.
 

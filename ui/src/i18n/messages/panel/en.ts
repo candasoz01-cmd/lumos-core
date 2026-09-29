@@ -209,10 +209,10 @@ const panel: typeof panelTr = {
       canDo2: "Read on-device settings.",
       wontDoSection: "I won't",
       wontDo1: "Run commands.",
-      wontDo2: "Act permanently without approval.",
+      wontDo2: "Ask for separate approval of permanent actions unless the confirmation layer is on.",
     },
     security: {
-      approval: "Asks for approval before permanent actions.",
+      approval: "The confirmation layer is off by default. With LUMOS_CONFIRMATION_ENABLED on, it asks before the listed permanent actions.",
       secret: "Runs on-device; do not paste secrets into chat.",
       debugBridge: "Local bridge connected. Voice and task actions run on this device.",
       devicePerms: "Camera and microphone depend on device permissions.",
@@ -766,7 +766,7 @@ const panel: typeof panelTr = {
   },
   ai: {
     intro:
-      "Lumos is not a new artificial intelligence and does not run its own model. Hosted chat sends the trimmed message to a model API when a key is set, and does not write that message to a Lumos database. The response has no provider name. The confirmation layer is off by default.",
+      "Lumos is not a new artificial intelligence and does not run its own model. Hosted chat sends the trimmed message and the signed-in name to a model API when a key is set; the chat handler itself does not write it to a database, and a “remember” summary goes to the separate memory service. The response has no provider name. The confirmation layer is off by default.",
     c1Title: "Gathering context",
     c1Body:
       "Lumos aims to build a clearer task context by weighing your request together with the current workspace and related information.",

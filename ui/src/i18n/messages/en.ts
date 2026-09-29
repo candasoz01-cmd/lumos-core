@@ -8,13 +8,13 @@ const en: MessageTree = {
   meta: {
     landingTitle: "Lumos — control layer",
     description:
-      "Lumos is not a new artificial intelligence. It does not run its own model. Hosted chat sends a message to a model API when a key is set, and does not write that message to a Lumos database.",
+      "Lumos is not a new artificial intelligence. It does not run its own model. Hosted chat sends the message and the signed-in name to a model API when a key is set; the chat handler itself does not write it to a database, and a “remember” summary goes to the separate memory service.",
     ogTitle: "Lumos — control layer",
     ogDescription:
-      "Lumos is not a new artificial intelligence. It does not run its own model. Hosted chat sends a message to a model API when a key is set, and does not write that message to a Lumos database.",
+      "Lumos is not a new artificial intelligence. It does not run its own model. Hosted chat sends the message and the signed-in name to a model API when a key is set; the chat handler itself does not write it to a database, and a “remember” summary goes to the separate memory service.",
     twitterTitle: "Lumos — control layer",
     twitterDescription:
-      "Lumos is not a new artificial intelligence. It does not run its own model. Hosted chat sends a message to a model API when a key is set, and does not write that message to a Lumos database.",
+      "Lumos is not a new artificial intelligence. It does not run its own model. Hosted chat sends the message and the signed-in name to a model API when a key is set; the chat handler itself does not write it to a database, and a “remember” summary goes to the separate memory service.",
   },
   lang: {
     switchLabel: "Language",
@@ -43,7 +43,7 @@ const en: MessageTree = {
     lead1:
       "Lumos is not a new artificial intelligence. It does not run its own model. When a key is set, your message goes to a model API.",
     lead2:
-      "Hosted chat does not write that message to a Lumos database. The response does not include a provider or model name.",
+      "The chat handler itself does not write the message to a database; a “remember” summary goes to the separate memory service. The response does not include a provider or model name.",
     lead3:
       "The confirmation layer does not run unless its environment flag is on. A chat reply is not held for a separate approval step.",
     pillar: "One panel · Multiple flows · User control",

@@ -5000,12 +5000,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
                         <h4 class="chat-capability-card__heading" data-i18n="panel.modules.chat.capability.wontDoSection">Şu an yapmam</h4>
                         <ul class="chat-capability-card__list">
                           <li data-i18n="panel.modules.chat.capability.wontDo1">Komut çalıştırmaz, kod değiştirmez.</li>
-                          <li data-i18n="panel.modules.chat.capability.wontDo2">Onaysız kalıcı işlem yapmaz.</li>
+                          <li data-i18n="panel.modules.chat.capability.wontDo2">Onay katmanı açık değilse kalıcı işlem için ayrı onay istemez.</li>
                         </ul>
                       </section>
                     </div>
                   </div>
-                  <p class="lumos-security-note" data-i18n="panel.modules.chat.security.approval">Kalıcı işlemler için onay ister.</p>
+                  <p class="lumos-security-note" data-i18n="panel.modules.chat.security.approval">Onay katmanı varsayılan olarak kapalıdır. LUMOS_CONFIRMATION_ENABLED açıkken listelenen kalıcı işlemler için onay ister.</p>
                   <p id="panel-empty-secret-note" class="lumos-security-note" data-i18n="panel.modules.chat.security.secret">Cihaz içinde çalışır; gizli bilgileri sohbete yazma.</p>
                   {PANEL_DEBUG && (
                     <p class="lumos-security-note panel-debug-only" data-i18n="panel.modules.chat.security.debugBridge">
@@ -5891,7 +5891,8 @@ const PANEL_DEBUG = import.meta.env.DEV;
             <h2 id="panel-yapayzeka-title" data-i18n="panel.sections.yapayzeka">Yapay Zekâ</h2>
             <p class="medya-intro" data-i18n="panel.modules.ai.intro">
               Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş
-              iletiyi bir model API’sine gönderir; bu iletiyi Lumos veritabanına yazmaz. Yanıtta sağlayıcı adı yoktur. Onay
+              iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse
+              özet ayrı hafıza servisine yazılır. Yanıtta sağlayıcı adı yoktur. Onay
               katmanı varsayılan olarak kapalıdır.
             </p>
             <ul class="medya-card-list">

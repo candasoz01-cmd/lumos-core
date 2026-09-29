@@ -175,7 +175,7 @@ const landingTr = {
   },
   whatIs: {
     title: "Lumos nedir?",
-    p1: "Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, oturum varsa ve anahtar tanımlıysa kesilmiş iletiyi bir model API’sine gönderir. Bu işleyici iletiyi Lumos veritabanına yazmaz.",
+    p1: "Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, oturum varsa ve anahtar tanımlıysa kesilmiş iletiyi, oturumdaki adı ve izinli hafıza özetlerini bir model API’sine gönderir. Bu işleyici iletiyi kendi içinde veritabanına yazmaz; “hatırla” denirse özet ayrı hafıza servisine yazılır.",
     p2: "Yanıtta sağlayıcı ve model adı yoktur. Onay katmanı varsayılan olarak kapalıdır. Sohbet yanıtı ayrı bir onay adımı beklemez.",
     p3: "Ülkeye göre veri kuralı, maskeleme ve sağlayıcı saklamasının doğrulanması bu depoda yoktur. Ayrıntı Veri ve Güven sayfasındadır.",
   },

@@ -1,6 +1,6 @@
 # Lumos — Türkçe özet
 
-Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş iletiyi bir model API’sine gönderir ve bu iletiyi Lumos veritabanına yazmaz. Yanıtta sağlayıcı ve model adı yoktur.
+Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş iletiyi, oturumdaki adı ve izinli hafıza özetlerini bir model API’sine gönderir. Sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz; “hatırla” denirse en fazla 1000 karakterlik özet, saklama süresi bu depodan doğrulanamayan ayrı hafıza servisine yazılır. Yanıtta sağlayıcı ve model adı yoktur.
 
 Onay katmanı yalnız `LUMOS_CONFIRMATION_ENABLED` değeri `1`, `true` veya `yes` iken çalışır. Sohbet yanıtı ayrı bir onay adımı beklemez. Ülkeye göre veri kuralı, maskeleme ve sağlayıcı saklamasının doğrulanması bu depoda yoktur.
 

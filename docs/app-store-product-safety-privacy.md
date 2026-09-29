@@ -26,7 +26,7 @@ Operational review checklist and Demo Workspace spec: [`app-store-review-prep.md
 
 ## What Lumos is
 
-Lumos is not a new artificial intelligence and does not run its own model. Current data behavior is the inventory in [`data-and-trust.md`](data-and-trust.md): hosted chat can send a trimmed message to a configured model API, does not write that message to a Lumos database, and does not verify provider retention. Per-country data rules and masking are not in this repository.
+Lumos is not a new artificial intelligence and does not run its own model. Current data behavior is the inventory in [`data-and-trust.md`](data-and-trust.md): hosted chat can send a trimmed message, the signed-in name, and permitted memory summaries to a configured model API; the chat handler itself does not write the message to a database, while a “remember” summary goes to a separate memory service; and does not verify provider retention. Per-country data rules and masking are not in this repository.
 
 | Capability | Summary |
 |------------|---------|

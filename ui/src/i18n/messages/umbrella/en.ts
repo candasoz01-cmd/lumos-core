@@ -101,59 +101,71 @@ const umbrellaEn: typeof umbrellaTr = {
     rights: "Open-source core on GitHub; official services use controlled access.",
   },
   privacy: {
-    metaTitle: "Data and trust — Lumos",
+    metaTitle: "Technical data and trust inventory — Lumos",
     metaDescription:
-      "What this repository's Lumos code stores, sends, and does not store today. A rule that is not in the code is not described as present.",
-    eyebrow: "LUMOS · DATA AND TRUST",
-    title: "Data and trust",
+      "What this repository's Lumos code sends to a model, the memory service, and the browser today, and what it does not keep. This is not a legal privacy notice.",
+    eyebrow: "LUMOS · TECHNICAL DATA INVENTORY",
+    title: "Technical data and trust inventory",
     lead:
       "Lumos is not a new artificial intelligence. It does not run its own model. This page states the data handling that exists in this repository today.",
     updated: "Last updated: September 29, 2026",
+    legalTitle: "This page is not a legal privacy notice",
+    legalBody:
+      "This page is a technical inventory. The data controller, a contact and request channel, a deletion-request process, the legal basis, and rights under KVKK/GDPR are not published here. They await a separate legal and policy decision; this inventory does not replace them.",
     scopeTitle: "Scope",
     scopeBody:
-      "The paths described are hosted chat, the Google session cookie, the optional memory service, the local task log, and browser file history. If a deployment adds another service, this page does not cover it.",
+      "The paths described are hosted chat, the Google session cookie, calls to the Lumos memory service, the Gmail read-only path, the local task log, and browser file history. If another deployment, or an operator layer that is not in this repository, adds a service, this page does not cover it.",
     notTitle: "What Lumos does not do",
     notBody:
       "It does not apply per-country retention, data location, or cross-border transfer rules. It does not mask data before a model request. It does not verify that a provider refrains from storing or training on inputs.",
     flowTitle: "Hosted chat flow",
     flowBody:
-      "User message → 401 without a session → 409 on identity mismatch → character limits → model API if a key exists → provider and model names are removed from the response → user. A second API is only the fallback when the first returns no reply. This path does not re-apply a separate control loop at every service.",
+      "User message → 401 without a session → 409 on identity mismatch → memory service lookup → if the message starts with “remember”, remember is attempted and Lumos answers itself; the message does not go to a model → “who am I” and time questions are also answered without a model call → if no model key is set, 503 and no model call → character limits → Responses API if an OpenAI key is set → if the OpenAI call returns an error, throws, or returns an empty reply and a Gemini key is set, generateContent → 502 if neither produces a reply → provider and model names are removed from the response → user. This path does not re-apply a separate control loop at every service.",
     qCollectTitle: "What is collected?",
     qCollectBody:
-      "Google sign-in writes sid, lumos_id, sub, email, name, picture, door, provider, package, and expiry into the cookie. The Google access token is not written. The chat message, the last 12 turns, and an optional image go into the model request. If permitted memory is loaded, up to 12 summaries are added.",
+      "Google sign-in writes sid, lumos_id, sub, email, name, picture, door, provider, package, and expiry into the cookie. The Google access token is not written. A chat request carries the message, history, and an optional image. If a memory service is configured, lumos_id goes to it on every request.",
     qWhyTitle: "Why?",
     qWhyBody:
-      "The session identifies the same person on the next request. The model request is for producing a reply. A memory summary is added only if the user asked to remember it and the memory service has consent.",
-    qWhereTitle: "Where is it kept?",
-    qWhereBody:
-      "The session is a browser cookie. The hosted chat handler does not write the message to a Lumos database. If bridge telemetry runs, the user message is written on that machine under .lumos/logs. File upload summaries stay in this browser's localStorage, at most 5 entries. There is no code that chooses a country or region for storage.",
-    qHowLongTitle: "How long?",
-    qHowLongBody:
-      "The session cookie lasts 7 days (604800 seconds). The OAuth state cookie lasts 10 minutes. The function that appends .lumos/logs has no deletion period. Encrypted notes with ttl_seconds are dropped when they expire; notes without a TTL remain. The meeting-bot path refuses to create a request without retention; that rule does not apply to other data.",
-    qWhoTitle: "Who can access it?",
-    qWhoBody:
-      "The cookie is HttpOnly. Logout deletes the session cookie and the bridge proxy cookie. It does not delete logs, memory, or a copy held by a model provider. If a Sentry or Axiom key is set, allowlisted technical fields and the error stack go to that service; email and access_token are not on the allowlist. lumosId can be sent.",
+      "The session identifies the same person on the next request. The model request produces a reply; the name and memory summaries are added so the reply fits the signed-in user. A memory summary is written only if the user asked to remember it and the service has consent.",
     qModelTitle: "What is sent to a model API?",
     qModelBody:
-      "The message is at most 8000 characters, each history turn 4000, and an image at most 380000 characters. If an OpenAI key is set, the Responses API is called with store: false. That flag is not proof the provider kept no copy. If that call returns no reply and a Gemini key is set, generateContent is called; that request has no store field. If neither key is set, the handler returns 503 and makes no call. The JSON returned to the user does not include provider or model.",
+      "Every model request carries: a fixed system instruction; the name from the session (or “name not loaded”); the account provider (for example google_web) and connected state; the memory status (loaded, empty, not_granted, or unavailable); if memory is loaded, up to 12 permitted summaries of at most 1000 characters each; the message, at most 8000 characters; the last 12 turns including earlier Lumos replies, at most 4000 characters per turn; and an optional image of at most 380000 characters. The email address and lumos_id are not put in the model request. If an OpenAI key is set, the request has store: false; that flag is not proof the provider kept no copy. The Gemini request has no store field. The JSON returned to the user does not include provider or model.",
+    memoryTitle: "Lumos memory service",
+    memoryBody:
+      "Memory is a storage and processing layer separate from the chat handler. Its address is LUMOS_MEMORY_LOOKUP_URL; if that is unset, /memory/hosted/lookup under BRIDGE_UPSTREAM_URL is used. The token is LUMOS_MEMORY_SERVICE_TOKEN, or KANDO_BRIDGE_SECRET if that is unset. Without an address or token no call is made. Every chat request performs a lookup with lumos_id, even when no model call follows. If the message starts with “hatırla”, “unutma”, or “remember” and consent exists, the remember call sends a summary of at most 1000 characters and the account provider to the service. The service itself is not in this repository; where and for how long it keeps data cannot be verified from this code.",
+    gmailTitle: "Gmail read-only path",
+    gmailBody:
+      "The code defines the gmail.readonly scope. On Google's side that scope permits reading the mailbox; the code in this repository uses it only to request the unread message list (at most 20) and each message's Subject, From, and Date headers, not the message body. The subject is cut at 120 characters and the sender at 80. What comes back is only an unread-mail summary. The token is read from the vault adapter; if the vault has no token, the request stops. A live Gmail API call is made only when LUMOS_GMAIL_SMOKE is 1, true, or yes; otherwise sample data is returned. The result goes back to the calling integration step; this path does not write it to disk, send it to a model API, or pass it to an advertising or sale service. The Gmail OAuth consent and callback handler is not in this repository. welockai.com Google sign-in requests only openid, email, and profile.",
+    qWhereTitle: "Where is it kept?",
+    qWhereBody:
+      "The session is a browser cookie. The hosted chat handler itself does not write the message to a database or file; a “remember” summary is written to the memory service. If bridge telemetry runs, the user message is written on that machine under .lumos/logs. File upload summaries stay in this browser's localStorage, at most 5 entries. There is no code that chooses a country or region for storage.",
+    qHowLongTitle: "How long?",
+    qHowLongBody:
+      "The session cookie lasts 7 days (604800 seconds). The OAuth state cookie lasts 10 minutes. How long the memory service keeps summaries is not determined by this code. The function that appends .lumos/logs has no deletion period. Encrypted notes with ttl_seconds are dropped when they expire; notes without a TTL remain. The meeting-bot path refuses to create a request without retention; that rule does not apply to other data.",
+    qWhoTitle: "Who can access it?",
+    qWhoBody:
+      "The cookie is HttpOnly. If a Sentry or Axiom key is set, allowlisted technical fields and the error stack go to that service; email and access_token are not on the allowlist. lumosId can be sent.",
+    logoutTitle: "What does logout do?",
+    logoutBody:
+      "Logout deletes the session cookie and the bridge proxy cookie in the browser. There is no server-side session revocation list: a copy of the cookie stays valid until it expires (at most 7 days). Logout does not delete logs, memory, or a copy held by a model provider.",
     qNotTitle: "What is not kept?",
     qNotBody:
-      "The Google access token is not in the session. If the memory service or consent is missing, a “remember” sentence is not saved. This repository has no advertising tag and no data-sale integration. A model provider's own records are outside that sentence.",
+      "The Google access token is not in the session. If the memory service or consent is missing, a “remember” sentence is not saved. This repository has no advertising tag and no data-sale integration. The model provider's and the memory service's own records are outside that sentence.",
     qDeleteTitle: "How do I delete it?",
     qDeleteBody:
-      "Logout clears the cookie. Memory deletion requires action delete and confirm: true; it counts as deleted only if the service returns ok. This product has no delete control for .lumos/logs or a provider copy. Google account access can be removed from Google's connections page.",
+      "Logout clears only the browser cookie. Memory deletion requires action delete and confirm: true; it counts as deleted only if the service returns ok. This product has no delete control for .lumos/logs or a provider copy. Google account access can be removed from Google's connections page.",
     assuranceTitle: "Lumos assurance",
     assuranceBody:
       "This name covers only the controls listed above: session checks, not writing the access token into the cookie, character limits, store: false on the OpenAI request, stripping provider and model from the response, not writing memory without consent, the observability allowlist, and stopping a task-engine step that matches SECURITY_NEVER_AUTO.",
     missingTitle: "What is missing",
     missingBody:
-      "Country policy, masking, a Gemini store field, verification of provider retention, showing the user which API was called, having the confirmation layer on by default, and general deletion are not part of this assurance. The confirmation layer runs only when LUMOS_CONFIRMATION_ENABLED is 1, true, or yes.",
+      "Country policy, masking, a Gemini store field, verification of provider retention, the memory service's retention period and location, server-side session revocation, showing the user which API was called, having the confirmation layer on by default, and general deletion are not part of this assurance. The confirmation layer runs only when LUMOS_CONFIRMATION_ENABLED is 1, true, or yes.",
     countryTitle: "Country rules",
     countryBody:
       "This repository does not run a policy layer that selects the law of the country where the service is offered. One code path is used. That does not place the operator outside the law; it means the software does not apply different rules per country.",
     multiTitle: "More than one infrastructure",
     multiBody:
-      "Hosted chat makes at most two model calls: the OpenAI key first, then the Gemini key if there is no reply. It does not re-apply separate authorization, masking, and country checks on each hop. The task engine stop is not attached to this chat reply.",
+      "Hosted chat makes at most two model calls: the OpenAI key first, then the Gemini key if that call errors or returns nothing. It does not re-apply separate authorization, masking, and country checks on each hop. The task engine stop is not attached to this chat reply.",
     changesTitle: "Changes",
     changesBody:
       "When the code changes, this page and docs/data-and-trust.md change together. Earlier privacy sentences about retention and training that this inventory does not verify were removed.",

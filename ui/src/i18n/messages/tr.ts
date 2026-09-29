@@ -7,13 +7,13 @@ const tr = {
   meta: {
     landingTitle: "Lumos — kontrol katmanı",
     description:
-      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa iletiyi bir model API’sine gönderir ve bu iletiyi Lumos veritabanına yazmaz.",
+      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse özet ayrı hafıza servisine yazılır.",
     ogTitle: "Lumos — kontrol katmanı",
     ogDescription:
-      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa iletiyi bir model API’sine gönderir ve bu iletiyi Lumos veritabanına yazmaz.",
+      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse özet ayrı hafıza servisine yazılır.",
     twitterTitle: "Lumos — kontrol katmanı",
     twitterDescription:
-      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa iletiyi bir model API’sine gönderir ve bu iletiyi Lumos veritabanına yazmaz.",
+      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse özet ayrı hafıza servisine yazılır.",
   },
   lang: {
     switchLabel: "Dil seçimi",
@@ -42,7 +42,7 @@ const tr = {
     lead1:
       "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Anahtar tanımlıysa iletiniz bir model API’sine gider.",
     lead2:
-      "Barındırılan sohbet bu iletiyi Lumos veritabanına yazmaz. Yanıtta sağlayıcı ve model adı yoktur.",
+      "Sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz; “hatırla” denirse özet ayrı hafıza servisine yazılır. Yanıtta sağlayıcı ve model adı yoktur.",
     lead3:
       "Onay katmanı, ortam değişkeni açık değilse çalışmaz. Sohbet yanıtı ayrı bir onay adımı beklemez.",
     pillar: "Tek panel · Çoklu akış · Kullanıcı kontrolü",

@@ -178,7 +178,7 @@ const landingEn: typeof landingTr = {
   },
   whatIs: {
     title: "What is Lumos?",
-    p1: "Lumos is not a new artificial intelligence and does not run its own model. Hosted chat, when a session and a key exist, sends the trimmed message to a model API. That handler does not write the message to a Lumos database.",
+    p1: "Lumos is not a new artificial intelligence and does not run its own model. Hosted chat, when a session and a key exist, sends the trimmed message, the signed-in name, and permitted memory summaries to a model API. That handler itself does not write the message to a database; a “remember” summary goes to the separate memory service.",
     p2: "The response does not name a provider or model. The confirmation layer is off by default. A chat reply is not held for a separate approval step.",
     p3: "Per-country data rules, masking, and verification of provider retention are not in this repository. Detail is on the Data and trust page.",
   },

@@ -209,10 +209,10 @@ const panelModules = {
       canDo2: "Cihaz içi ayarlardan okur.",
       wontDoSection: "Yapmam",
       wontDo1: "Komut çalıştırmaz.",
-      wontDo2: "Onaysız kalıcı işlem yapmaz.",
+      wontDo2: "Onay katmanı açık değilse kalıcı işlem için ayrı onay istemez.",
     },
     security: {
-      approval: "Kalıcı işlemler için onay ister.",
+      approval: "Onay katmanı varsayılan olarak kapalıdır. LUMOS_CONFIRMATION_ENABLED açıkken listelenen kalıcı işlemler için onay ister.",
       secret: "Cihaz içinde çalışır; gizli bilgileri sohbete yazma.",
       debugBridge: "Yerel köprü bağlı. Ses ve görev işlemleri bu cihaz üzerinden yürütülür.",
       devicePerms: "Kamera ve mikrofon cihaz iznine bağlıdır.",
@@ -762,7 +762,7 @@ const panelModules = {
   },
   ai: {
     intro:
-      "Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş iletiyi bir model API’sine gönderir; bu iletiyi Lumos veritabanına yazmaz. Yanıtta sağlayıcı adı yoktur. Onay katmanı varsayılan olarak kapalıdır.",
+      "Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse özet ayrı hafıza servisine yazılır. Yanıtta sağlayıcı adı yoktur. Onay katmanı varsayılan olarak kapalıdır.",
     c1Title: "Bağlamı Toplama",
     c1Body:
       "Lumos, kullanıcının isteğini, mevcut çalışma alanını ve ilgili bilgileri birlikte değerlendirerek daha anlaşılır bir görev bağlamı oluşturmayı hedefler.",
