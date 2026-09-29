@@ -163,5 +163,33 @@
         ]
       }
     ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "failIfUnavailable": true,
+    "allowUnsandboxedCommands": false,
+    "filesystem": {
+      "denyWrite": [
+        "./.claude/**",
+        "./.git/hooks/**",
+        "./.git/config",
+        "./.githooks/**",
+        "./.lumos/board/**",
+        "./ops/publication_gate/**",
+        "./config/publication/**",
+        "./.github/workflows/**"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "registry.npmjs.org",
+        "pypi.org",
+        "files.pythonhosted.org",
+        "crates.io",
+        "index.crates.io",
+        "static.crates.io"
+      ]
+    }
   }
 }
