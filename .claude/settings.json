@@ -7,8 +7,10 @@
       "Bash(make test)",
       "Bash(make test-rust)",
       "Bash(make test-api)",
-      "Bash(python3 -m pytest *)",
-      "Bash(pytest *)",
+      "Bash(python3 -m pytest)",
+      "Bash(python3 -m pytest -q)",
+      "Bash(pytest)",
+      "Bash(pytest -q)",
       "Bash(cargo test)",
       "Bash(cargo test -p anchorusb-core -p anchorusb-cli)",
       "Bash(cargo build)",
@@ -45,8 +47,8 @@
       "Bash(git branch --show-current)",
       "Bash(git stash list*)",
       "Bash(git stash push*)",
-      "Bash(git add *)",
-      "Bash(git commit *)",
+      "Bash(git add -A)",
+      "Bash(git add .)",
       "Bash(git checkout -b *)",
       "Bash(git switch -c *)",
       "Bash(git rev-parse *)",
@@ -124,7 +126,18 @@
       "Bash(git push * main)",
       "Bash(vercel --prod*)",
       "Bash(vercel deploy --prod*)",
-      "Bash(rm -rf /*)"
+      "Bash(rm -rf /*)",
+      "Bash(git push --force*)",
+      "Bash(git push * --force*)",
+      "Bash(git push * -f*)",
+      "Bash(git push *+*)",
+      "Bash(git push *:main*)",
+      "Bash(git push *refs/heads/main*)",
+      "Bash(git push * main *)",
+      "Bash(npx vercel --prod*)",
+      "Bash(npx vercel deploy --prod*)",
+      "Bash(vercel * --prod*)",
+      "Bash(npx vercel * --prod*)"
     ]
   }
 }
