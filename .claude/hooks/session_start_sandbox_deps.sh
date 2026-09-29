@@ -36,10 +36,10 @@ main() {
   fi
 
   export DEBIAN_FRONTEND=noninteractive
-  if ! timeout 180 apt-get install -y -q --no-install-recommends "${missing[@]}" >/dev/null 2>&1; then
+  if ! timeout 120 apt-get install -y -q --no-install-recommends "${missing[@]}" >/dev/null 2>&1; then
     # Package lists can be empty in a fresh container; refresh once and retry.
-    if ! { timeout 180 apt-get update -q >/dev/null 2>&1 \
-        && timeout 180 apt-get install -y -q --no-install-recommends "${missing[@]}" >/dev/null 2>&1; }; then
+    if ! { timeout 120 apt-get update -q >/dev/null 2>&1 \
+        && timeout 120 apt-get install -y -q --no-install-recommends "${missing[@]}" >/dev/null 2>&1; }; then
       log "install of ${missing[*]} failed; the Bash sandbox stays unavailable"
       return 0
     fi

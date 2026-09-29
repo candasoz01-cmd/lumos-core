@@ -151,6 +151,17 @@
           }
         ]
       }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session_start_sandbox_deps.sh",
+            "timeout": 420
+          }
+        ]
+      }
     ]
   }
 }
