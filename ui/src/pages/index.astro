@@ -2550,12 +2550,12 @@ const showMay19Commemoration = isMay19CommemorationDay();
       <div class="lumos-how-grid">
         <article class="lumos-how-step">
           <h3 data-i18n="landing.howItWorks.stepUserLabel">Kullanıcı</h3>
-          <p data-i18n="landing.howItWorks.stepUserBody">İsteği ve son onayı sen verirsin.</p>
+          <p data-i18n="landing.howItWorks.stepUserBody">İletiyi sen yazarsın. Sohbet yanıtı ayrı onay beklemez.</p>
         </article>
         <span class="lumos-how-arrow" aria-hidden="true">→</span>
         <article class="lumos-how-step">
           <h3 data-i18n="landing.howItWorks.stepLumosLabel">Lumos</h3>
-          <p data-i18n="landing.howItWorks.stepLumosBody">Riski ve bağlamı gösterir, işi izlenebilir adımlara böler.</p>
+          <p data-i18n="landing.howItWorks.stepLumosBody">Oturum yoksa 401. İleti kesilir. Ayrı onay adımı yoktur.</p>
         </article>
         <span class="lumos-how-arrow" aria-hidden="true">→</span>
         <article class="lumos-how-step">
@@ -2587,9 +2587,9 @@ const showMay19Commemoration = isMay19CommemorationDay();
       <ul>
         <li data-i18n="landing.whatDoes.item1">Ses ve doğal dil ile iletilen görevleri güvenli ve izlenebilir alt adımlara ayırmayı hedefler.</li>
         <li data-i18n="landing.whatDoes.item2">Medya ve dosya akışlarını düzenler; paylaşım veya dış servise aktarımda şeffaflığı artırmayı amaçlar.</li>
-        <li data-i18n="landing.whatDoes.item3">Yapay zekâ önerilerini bağlam ve risk bilgisiyle birlikte sunar; kalıcı sonuç doğuran işlemlerde onayı kullanıcıya bırakır.</li>
+        <li data-i18n="landing.whatDoes.item3">Model yanıtı bağlam kartı değildir. Kalıcı işlem onayı sohbet yanıtında beklenmez.</li>
         <li data-i18n="landing.whatDoes.item4">Kimlik ve servis bağlantılarını daha yönetilebilir tek bir çatı altında toplamayı hedefler.</li>
-        <li data-i18n="landing.whatDoes.item5">Riski yüksek veya geri alınması güç işlemlerde ek uyarı ve onay akışlarını önceliklendirir.</li>
+        <li data-i18n="landing.whatDoes.item5">Ek uyarı ve onay akışı sohbet yanıtına bağlı değildir. Onay katmanı ortam değişkeni kapalıyken çalışmaz.</li>
       </ul>
     </section>
 
@@ -2711,25 +2711,25 @@ const showMay19Commemoration = isMay19CommemorationDay();
         <a class="lumos-cap-card-link" href="#ilkeler">
           <article class="lumos-cap-card">
             <h3 data-i18n="landing.principles.cardUserControlTitle">Kullanıcı Kontrolü</h3>
-            <p data-i18n="landing.principles.cardUserControlBody">Nihai seçim her zaman sizdedir; Lumos sizin yerinize geçmez.</p>
+            <p data-i18n="landing.principles.cardUserControlBody">Bu kart ürün yönüdür. Barındırılan sohbet yanıtı ayrı bir onay adımı beklemez.</p>
           </article>
         </a>
         <a class="lumos-cap-card-link" href="#ilkeler">
           <article class="lumos-cap-card">
             <h3 data-i18n="landing.principles.cardRiskTitle">Risk Görünürlüğü</h3>
-            <p data-i18n="landing.principles.cardRiskBody">Olası sonuçlar ve yan etkiler özetlenerek gösterilir.</p>
+            <p data-i18n="landing.principles.cardRiskBody">Riskin işlemden önce gösterilmesi bu depoda sohbet yanıtına bağlı değildir.</p>
           </article>
         </a>
         <a class="lumos-cap-card-link" href="#ilkeler">
           <article class="lumos-cap-card">
             <h3 data-i18n="landing.principles.cardDataTitle">Veri Farkındalığı</h3>
-            <p data-i18n="landing.principles.cardDataBody">Verinin nerede işlendiği ve hangi sınırların geçerli olduğu okunur biçimde sunulur.</p>
+            <p data-i18n="landing.principles.cardDataBody">Verinin nereye gittiği Veri ve Güven sayfasında yazılır. Sohbet bunu her yanıtta ayrı bir kart olarak göstermez.</p>
           </article>
         </a>
         <a class="lumos-cap-card-link" href="#ilkeler">
           <article class="lumos-cap-card">
             <h3 data-i18n="landing.principles.cardApprovalTitle">Açık Onay İlkesi</h3>
-            <p data-i18n="landing.principles.cardApprovalBody">Kalıcı veya riskli adımlarda net, geri alınabilir onay akışları.</p>
+            <p data-i18n="landing.principles.cardApprovalBody">Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.</p>
           </article>
         </a>
       </div>
