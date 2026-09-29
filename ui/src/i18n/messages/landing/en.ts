@@ -139,7 +139,7 @@ const landingEn: typeof landingTr = {
     workIntro:
       "Lumos under We Lock AI aims to stay consistent across four axes without trading transparency for speed.",
     listUserDecisionLabel: "User decision:",
-    listUserDecisionBody: "This line is product direction. A hosted chat reply is not held for a separate approval step.",
+    listUserDecisionBody: "This card is product direction. A hosted chat reply is not held for a separate approval step.",
     listApprovalLabel: "Explicit approval:",
     listApprovalBody: "The confirmation layer runs only when LUMOS_CONFIRMATION_ENABLED is on.",
     listRiskLabel: "Risk visibility:",

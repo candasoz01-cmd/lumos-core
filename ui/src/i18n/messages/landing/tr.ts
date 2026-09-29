@@ -136,7 +136,7 @@ const landingTr = {
     workIntro:
       "We Lock AI çatısındaki Lumos; hız uğruna şeffaflığı feda etmeden, aşağıdaki dört eksende tutarlı kalmayı hedefler.",
     listUserDecisionLabel: "Kullanıcı kararı:",
-    listUserDecisionBody: "Bu satır ürün yönüdür. Barındırılan sohbet yanıtı ayrı bir onay adımı beklemez.",
+    listUserDecisionBody: "Bu kart ürün yönüdür. Barındırılan sohbet yanıtı ayrı bir onay adımı beklemez.",
     listApprovalLabel: "Açık onay:",
     listApprovalBody: "Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.",
     listRiskLabel: "Risk görünürlüğü:",
