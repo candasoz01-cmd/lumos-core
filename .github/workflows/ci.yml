@@ -48,6 +48,22 @@ jobs:
         env:
           KANDO_MOCK: "1"
 
+      # Güvenlik-kritik Meta silme / deauthorize / credential gateway sözleşme
+      # testleri (candasoz01-cmd/lumos-core#909). Bu dosyalar pytest'e değil
+      # node:test'e yazılı; burada koşmazlarsa CI onları hiç görmez.
+      - name: Set up Node (Meta callback contract tests)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Meta deletion, deauthorize, webhook and gateway contract tests
+        run: >-
+          node --test
+          tests/test_meta_deletion_callbacks.test.mjs
+          tests/test_meta_oauth.test.mjs
+          tests/test_meta_webhook.test.mjs
+          tests/test_credential_gateway.test.mjs
+
   rust:
     runs-on: ubuntu-latest
     steps:
