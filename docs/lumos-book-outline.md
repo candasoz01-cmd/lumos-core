@@ -25,6 +25,8 @@ Bu belgede iki numara dizisi vardır; referans verirken karıştırılmamalıdı
 
 Alt çalışma cümlesi: **İzinli, şeffaf ve güvenilir yapay zekâ yardımı için bir ürün düşüncesi.**
 
+*Bu ad çalışma adıdır; nihai başlık yayın öncesi ayrı bir kapıda dondurulur (Belge §6).*
+
 ## 2. Ana fikir
 
 Bu kitap, Lumos'u kontrolsüz otonom bir ajan olarak değil, kullanıcının kararını merkeze alan güvenilir bir yardımcı ve kontrol katmanı olarak anlatır.
@@ -56,6 +58,8 @@ Bu ifade bugün hukuki bir taahhüt değil, niyet beyanıdır. Gelecekte kurulac
 3. **Mimari:** Çekirdek, dal ajanlar, güvenlik katmanları, entegrasyon sınırları ve sistemin neden bu şekilde tasarlandığı.
 
 ## 3. Bölüm listesi
+
+*Biçim: kısa bir kurucu mektubu girişi açar; arkasından aşağıdaki bölümlü kitap gelir (Belge §6).*
 
 ### Katman 1 — Hikâye
 
@@ -147,7 +151,7 @@ Lumos'un yerel çalışma, panel, CLI, cihaz ve köprü bağlamlarını nasıl d
 
 ### 13. Quantum Readiness ve araştırma disiplini
 
-Kuantum alanını abartılı "quantum powered" iddialarından ayırır. Lumos Quantum Readiness'in yerel, salt okunur, kanıtlı bir hazırlık tarayıcısı olarak konumlanmasını; araştırma ile ürün iddiası arasındaki sınırı anlatır.
+Kuantum alanını abartılı "quantum powered" iddialarından ayırır. Lumos Quantum Readiness'in yerel, salt okunur, kanıtlı bir hazırlık tarayıcısı olarak konumlanmasını; araştırma ile ürün iddiası arasındaki sınırı anlatır. «Lumos Quantum» (Labs) bu bölümün konusu değildir; gelecek araştırma/vizyon alanı olarak ayrı durur (Belge §13, ⚪).
 
 ### 14. Açık kaynak çekirdek ve ticari omurga
 
@@ -183,17 +187,19 @@ Kaynak notları toplanırken dikkat: kitabın kullanıcıya dönük ana metninde
 
 ## 6. Henüz belirsiz kalan sorular
 
-- Kitap bir public manifesto mu, iç ürün kitabı mi, yoksa geliştirici rehberiyle karışık bir kurucu metin mi olacak?
-- Birincil hedef kitle kim: son kullanıcı, geliştirici, yatırımcı/partner, kurumsal müşteri, yoksa ekip içi karar okuyucusu mu?
-- Dil yalnızca Türkçe mi olacak, yoksa Türkçe ana metin + İngilizce özet/terim sözlüğü mu hazırlanacak?
-- WeLockAI ticari omurgası kitapta ne kadar görünür olacak; hangi bölümlerde yalnızca arka plan sınırı olarak kalacak? → **Referans yayınında çözüldü (Belge §10):** WeLockAI yayıncı/ön planda; kitap içinde Lumos ürün sesi ağırlıkta, WeLockAI ticari omurga **Kitap §14** ve dipnotlarda.
-- Teknik detay derinliği ne olacak: kod/pipeline anlatımı mi, yoksa ürün ilkeleri ve örnek senaryolar mi ağırlıkta olacak?
-- Quantum Readiness bölümü araştırma disiplini olarak mi kalacak, yoksa ayrı bir gelecek vizyonu bölümü mu olacak?
-- Gizlilik ve audit iddiaları için hukuki/uyum kontrolü gerekecek mi?
-- Bölümlerde gerçek kullanıcı senaryoları, panel ekranları veya vaka çalışmaları kullanılacak mi?
-- Kitap kısa bir "founder letter + ilkeler" metni mi, yoksa uzun soluklu bölümlü kitap mi olacak?
-- Son başlık "Lumos: Kontrol Kullanıcıda" olarak mi kalacak, yoksa daha sıcak/insani bir çalışma adına mi evrilecek?
-- **Lansman / yayın tarihi:** Belge §10 «Lansman türleri» — Life ve ticari için **TBD**; referans web/PDF Belge §11 sonrası; dış kamu AI haberleri Lumos takvimi değildir.
+> **Kapanış notu (2026-09-30):** Bu bölümdeki sorular kurucu kararlarıyla kapatıldı; karar her sorunun yanında yazılıdır. Bilerek açık kalan iki nokta vardır: nihai başlık (yayın öncesi ayrı kapıda dondurulur) ve yayın tarihi (TBD, koşullu). Dondurma sahibi onayı: kararlar `lumos-book-v0.1` iskeletine yalnız açık bırakılmış karar noktalarının kapatılması olarak işlendi; yeni fikir, yeni kapsam veya tarih eklenmedi.
+
+- Kitap bir public manifesto mu, iç ürün kitabı mi, yoksa geliştirici rehberiyle karışık bir kurucu metin mi olacak? → **Karar (kurucu, 2026-09-30):** Karışık kurucu metin. Manifesto ruhunu taşır ama yalnız manifesto değildir; ürünün nedenini, ilkelerini ve nasıl çalıştığını anlatır.
+- Birincil hedef kitle kim: son kullanıcı, geliştirici, yatırımcı/partner, kurumsal müşteri, yoksa ekip içi karar okuyucusu mu? → **Karar:** Tek birincil kitle seçilmez. Kitap erken kullanıcı, geliştirici/teknik okuyucu ve kurumsal/partner okuyucu tarafından anlaşılabilir olur; yatırımcıya özel bir kitaba dönüşmez. Öncelik sırası metne yazılmaz.
+- Dil yalnızca Türkçe mi olacak, yoksa Türkçe ana metin + İngilizce özet/terim sözlüğü mu hazırlanacak? → **Karar:** Türkçe tek kaynak metindir; diğer diller sabit bir Türkçe sürümden türetilir. İlk uluslararası türev İngilizce olabilir. Mimari: LUMOS-0020 (çok dilli yayın mimarisi), draft PR candasoz01-cmd/lumos-core#895 içinde; henüz `main`'de değildir, merge edilmiş sayılmaz.
+- WeLockAI ticari omurgası kitapta ne kadar görünür olacak; hangi bölümlerde yalnızca arka plan sınırı olarak kalacak? → **Referans yayınında çözüldü (Belge §10):** WeLockAI yayıncı/ön planda; kitap içinde Lumos ürün sesi ağırlıkta, WeLockAI ticari omurga **Kitap §14** ve dipnotlarda. **Kurucu (2026-09-30): kapalı; yeniden açılmaz, Belge §10 kararı geçerlidir.**
+- Teknik detay derinliği ne olacak: kod/pipeline anlatımı mi, yoksa ürün ilkeleri ve örnek senaryolar mi ağırlıkta olacak? → **Karar:** İlke ağırlıklı ana metin; gerektiğinde teknik dipnot veya ayrı teknik ek. Gövde pipeline ve kodla yüklenmez; teknik iddialar dayanaksız bırakılmaz.
+- Quantum Readiness bölümü araştırma disiplini olarak mi kalacak, yoksa ayrı bir gelecek vizyonu bölümü mu olacak? → **Karar:** İkisi ayrı kalır. Kitap §13 araştırma disiplini/readiness olarak kalır; Belge §13'teki «Lumos Quantum» (Labs) açıkça gelecek araştırma/vizyon alanı olarak ayrı durur. Mevcut olmayan yetenek iddiası (ör. «quantum powered») yapılmaz.
+- Gizlilik ve audit iddiaları için hukuki/uyum kontrolü gerekecek mi? → **Karar:** İddia içeren bölümler için gerekli. Gizlilik, audit, veri işleme, uyum veya hukuki sonuç doğurabilecek ifadeler yayın öncesi hukuki/uyum kontrolünden geçer; kitabın tamamı için hukuki redaksiyon gerekmez (bkz. Belge §11).
+- Bölümlerde gerçek kullanıcı senaryoları, panel ekranları veya vaka çalışmaları kullanılacak mi? → **Karar:** Karışık. Vizyon senaryoları açıkça «vizyon» diye etiketlenir; gerçek ürün ekranı veya gerçek davranış gösteriliyorsa kanıtlanabilir mevcut sürümden gelir. Vizyon ile çalışan ürün karıştırılmaz (bkz. Belge §11).
+- Kitap kısa bir "founder letter + ilkeler" metni mi, yoksa uzun soluklu bölümlü kitap mi olacak? → **Karar:** İkisi de. Kısa bir kurucu mektubu giriş olur; arkasından bölümlü kitap gelir.
+- Son başlık "Lumos: Kontrol Kullanıcıda" olarak mi kalacak, yoksa daha sıcak/insani bir çalışma adına mi evrilecek? → **Karar:** «Lumos: Kontrol Kullanıcıda» çalışma adı olarak kalır. Nihai başlık yayın öncesi ayrı bir kapıda dondurulur; şimdi isim aranmaz.
+- **Lansman / yayın tarihi:** Belge §10 «Lansman türleri» — Life ve ticari için **TBD**; referans web/PDF Belge §11 sonrası; dış kamu AI haberleri Lumos takvimi değildir. → **Karar:** TBD kalır ve koşula bağlanır: §6 kararları metne işlendiğinde, Belge §11 kontrolleri geçtiğinde ve yayın sürümü gerçekten hazır olduğunda tarih konur. Takvim için içerik sıkıştırılmaz.
 
 ## 7. Kurucu hikâye notları
 
@@ -337,7 +343,7 @@ Ayrıntılar aşağıda alt başlıklarda; burada tekrarlanmaz.
 | **Yakın gelecek** | Referans 1 web okuma sürümü; §11 dört kontrol; basit GitHub Pages veya welockai.com/referanslar/1 | 🟢 planlı — otomasyon TBD |
 | **Yakın gelecek** | PDF/ePub aynı kaynaktan türetim (tek omurga) | 🟢 planlı |
 | **Yakın gelecek** | Referans 2–5 ayrı iskeletler; kütüphane indeksi | planlı |
-| **Uzun vadeli** | Tam referans kütüphanesi; çoklu dil; otomatik üç yüz pipeline | ⚪ |
+| **Uzun vadeli** | Tam referans kütüphanesi; çoklu dil (mimari kararı: LUMOS-0020, draft PR #895; henüz `main`'de değil); otomatik üç yüz pipeline | ⚪ |
 
 **Not:** Panel v1 kapanışı (**2026-06-12**) iç mühendislik kapısıdır; referans web yayını değildir.
 
@@ -419,7 +425,7 @@ Bu belgede **«lansman»** tek anlama gelmez. Dış haberler (ör. başka ülkel
 
 | Tür | Ne | Tarih (repo) | Ana kaynak |
 |-----|-----|--------------|------------|
-| **Referans yayını** | Kurucu kitap / Referanslar web veya PDF | **TBD** — Belge §11 onayı sonrası | Belge §10 |
+| **Referans yayını** | Kurucu kitap / Referanslar web veya PDF | **TBD** — Belge §11 onayı sonrası; koşullu: Belge §6 kararları metne işlenmiş, §11 kontrolleri geçmiş, yayın sürümü hazır | Belge §10 |
 | **Life lansmanı** | Erişilebilirlik omurgası; 🟢🟡 özellik tanıtımı | **TBD** — taahhüt tarihi yok | Belge §12 |
 | **Ticari lansman** | Open Beta → Commercial Launch | **TBD** — Pre-Alpha; `docs/analysis/pre-commercial-release-plan.md` | Repo plan belgeleri |
 | **İç mühendislik kapısı** | Panel v1 kapanışı | **2026-06-12** (`LUMOS_V1_READINESS.md`) | Halka lansman değil |
@@ -436,6 +442,7 @@ Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub vey
 
 - Kanıtlanamayan iddialar açıkça belirtilir.
 - «Emin değilsek yazmayalım» disiplini: tahmin, varsayım ve henüz doğrulanmamış noktalar gizlenmez.
+- Vizyon senaryoları «vizyon» diye etiketlenir; gerçek ürün ekranı veya davranışı gösteriliyorsa kanıtlanabilir mevcut sürümden gelir (Belge §6).
 
 ### 2. Tutarlılık
 
@@ -451,6 +458,7 @@ Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub vey
 
 - En az bir kez baştan sona okunur.
 - Bağlantılar, başlıklar, dil ve kaynaklar kontrol edilir.
+- Gizlilik, audit, veri işleme, uyum veya hukuki sonuç doğurabilecek ifadeler içeren bölümler yayın öncesi hukuki/uyum kontrolünden geçer (Belge §6).
 
 **Amaç:** Kusursuzluk değil; **yarım kalmış düşünceleri tamamlanmış gibi sunmamaktır.**
 
@@ -651,7 +659,7 @@ Hiçbiri V1 veya erken faz omurgasında değildir. Tanıtımda yalnızca **vizyo
 | 🧬 **Lumos Bio** | Hücre içi; DNA kopyalanması (3B); kan dolaşımı; bağışıklık simülasyonu | Eğitim simülasyonu |
 | 🫀 **Lumos Med** | Sanal ameliyat simülasyonu; organ modelleri; hastalık ilerlemesi gözlemi | **Yalnızca eğitim** — gerçek tıbbi tavsiye yerine geçmez |
 | 🚀 **Lumos Space** | Mars; kara deliğe yaklaşma; ışık hızı etkileri (simülasyon) | Bilimsel model + sadeleştirme |
-| ⚛️ **Lumos Quantum** | Qubit deneyleri; devre sürükle-bırak; sonuç görselleştirme | ADR-013 / Quantum Readiness ile hizalı araştırma sınırı |
+| ⚛️ **Lumos Quantum** | Qubit deneyleri; devre sürükle-bırak; sonuç görselleştirme | ADR-013 / Quantum Readiness ile hizalı araştırma sınırı; Kitap §13 (Quantum Readiness) ile karıştırılmaz, mevcut yetenek iddiası değildir |
 | 🏛️ **Lumos History** | Roma, Göbeklitepe, Ayasofya dönemleri — karşılaştırmalı gezinti | Tarihsel model + belirsizlik işaretleme |
 | 🌊 **Lumos Ocean** | Okyanus dibi (~11 km); basınç ve canlılar simülasyonu | Eğitim / keşif |
 
