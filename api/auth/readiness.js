@@ -1,6 +1,8 @@
 /**
  * GET /api/auth/readiness — secret sızdırmaz canlı hazırlık
  */
+import { allowedRedirectUris, redirectUri } from "../_lib/lumos_session.js";
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     res.statusCode = 405;
@@ -18,10 +20,8 @@ export default async function handler(req, res) {
     (process.env.OPENAI_API_KEY || "").trim() ||
     (process.env.LUMOS_GOOGLE_GEMINI_API_KEY || "").trim()
   );
-  const redirect = (
-    process.env.LUMOS_GOOGLE_WEB_REDIRECT_URI ||
-    "https://welockai.com/auth/google/callback"
-  ).trim();
+  // Bu isteğin alan adı için seçilen callback (start/callback ile aynı kural).
+  const redirect = redirectUri(req);
   const live =
     Boolean(clientId) &&
     Boolean(secret) &&
@@ -36,6 +36,7 @@ export default async function handler(req, res) {
       live_login: live,
       client_id_prefix: clientId ? clientId.slice(0, 8) : "",
       redirect_uri: redirect,
+      redirect_uris: allowedRedirectUris(),
       has_client_secret: Boolean(secret),
       has_dedicated_state_secret: Boolean(stateDedicated),
       stable_identity: identityDedicated.length >= 32,
