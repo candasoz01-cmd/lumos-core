@@ -6,7 +6,7 @@
 > - Henüz nihai kitap değildir.
 > - **Tek kaynak:** GitHub'daki bu dosya yaşayan belgedir.
 > - **Okuma ve kitap sürümleri** aynı kaynaktan üretilir; ayrı metin yönetilmez (bkz. Belge §10).
-> - Web/kitap yayımlamadan önce **Belge §11 — Tamamlanmadan yayımlama** dört kontrolden geçer.
+> - Web/kitap yayımlamadan önce **Belge §11 — Tamamlanmadan yayımlama** altı kontrolden geçer.
 
 ### Numaralandırma (iki sistem)
 
@@ -329,7 +329,7 @@ Ayrıntılar aşağıda alt başlıklarda; burada tekrarlanmaz.
 ### 3. Sınırları (neleri içermez?)
 
 - **Ürün özellik vaadi** — erişilebilirlik, eğitim, Labs içeriği → Belge §12–§14.
-- **Yayımlama kalite kapısı** (dört kontrol, «tamamlanmadan yayımlama») → **Belge §11**; bu bölüm yalnızca referans verir.
+- **Yayımlama kalite kapısı** (altı kontrol, «tamamlanmadan yayımlama») → **Belge §11**; bu bölüm yalnızca referans verir.
 - **Kurucu pusula ve vizyon dalları** → Belge §8, §13.
 - **Ticari aşama planı** (Alpha / Beta / Commercial giriş kriterleri) → `docs/analysis/pre-commercial-release-plan.md`.
 - **Otomasyon / CI / build pipeline** — henüz kurulmadı; bu belge hedef mimariyi tanımlar, uygulama taahhüdü değildir.
@@ -340,7 +340,7 @@ Ayrıntılar aşağıda alt başlıklarda; burada tekrarlanmaz.
 | Dönem | Ne | Durum |
 |-------|-----|--------|
 | **Şimdi (V1 / erken faz)** | GitHub kaynak (`docs/lumos-book-outline.md`); taslak; diff açık | ✅ Yaşayan belge |
-| **Yakın gelecek** | Referans 1 web okuma sürümü; §11 dört kontrol; basit GitHub Pages veya welockai.com/referanslar/1 | 🟢 planlı — otomasyon TBD |
+| **Yakın gelecek** | Referans 1 web okuma sürümü; §11 altı kontrol; basit GitHub Pages veya welockai.com/referanslar/1 | 🟢 planlı — otomasyon TBD |
 | **Yakın gelecek** | PDF/ePub aynı kaynaktan türetim (tek omurga) | 🟢 planlı |
 | **Yakın gelecek** | Referans 2–5 ayrı iskeletler; kütüphane indeksi | planlı |
 | **Uzun vadeli** | Tam referans kütüphanesi; çoklu dil (mimari kararı: LUMOS-0020, draft PR #895; henüz `main`'de değil); otomatik üç yüz pipeline | ⚪ |
@@ -351,7 +351,7 @@ Ayrıntılar aşağıda alt başlıklarda; burada tekrarlanmaz.
 
 | Bölüm | Bağlantı |
 |-------|----------|
-| **Belge §11** | Web/PDF/indeks «yayımlandı» sayılmadan önce dört kontrol |
+| **Belge §11** | Web/PDF/indeks «yayımlandı» sayılmadan önce altı kontrol |
 | **Belge §8** | Pusula; şeffaflık ve kanıt önceliği |
 | **Belge §12** | Life **ürün** lansmanı; tarih TBD — §10 yalnızca tür haritası |
 | **Belge §13–§14** | Vizyon; referans yayını kapsam dışı |
@@ -417,7 +417,7 @@ Altında zamanla oluşan belgeler — kullanıcı «GitHub deposu»na değil, **
 
 Bu model Lumos'un «kontrol kullanıcıda», şeffaflık ve kanıt önceliği ilkesiyle uyumludur: kaynak açık, okuma deneyimi insancıl, sürüm geçmişi izlenebilir.
 
-Web ve kitap sürümüne çıkmadan önce Belge §11 dört kontrolden geçilir; GitHub'daki taslak kaynak yaşayan belge olabilir ancak «okuma sürümü» olarak sunulmaz.
+Web ve kitap sürümüne çıkmadan önce Belge §11 altı kontrolden geçilir; GitHub'daki taslak kaynak yaşayan belge olabilir ancak «okuma sürümü» olarak sunulmaz.
 
 ### Lansman türleri (karıştırma notu) {#lansman-türleri-karıştırma-notu}
 
@@ -436,7 +436,7 @@ Bu belgede **«lansman»** tek anlama gelmez. Dış haberler (ör. başka ülkel
 
 **İlke:** Tamamlanmadan yayımlama.
 
-Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub veya «Referanslar» kütüphanesinde okuyucuya açılan sürüm — yayımlanmadan önce şu **dört kontrolden** geçer:
+Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub veya «Referanslar» kütüphanesinde okuyucuya açılan sürüm — yayımlanmadan önce şu **altı kontrolden** geçer:
 
 ### 1. Doğruluk
 
@@ -459,6 +459,16 @@ Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub vey
 - En az bir kez baştan sona okunur.
 - Bağlantılar, başlıklar, dil ve kaynaklar kontrol edilir.
 - Gizlilik, audit, veri işleme, uyum veya hukuki sonuç doğurabilecek ifadeler içeren bölümler yayın öncesi hukuki/uyum kontrolünden geçer (Belge §6).
+
+### 5. Hukuki ve uyum kontrolü
+
+- Gizlilik, audit, veri işleme ve uyum iddiası taşıyan yerler yayımlanmadan önce kontrol edilir.
+- Bu kontrol kitabın tamamını bir hukuk onayına bağlamak için değildir; iddia taşıyan yerler içindir.
+
+### 6. Vizyon ve gerçek ayrımı
+
+- Gerçek ekran veya davranış, kanıtlı sürümden gelir.
+- Vizyon açıkça vizyon diye etiketlenir.
 
 **Amaç:** Kusursuzluk değil; **yarım kalmış düşünceleri tamamlanmış gibi sunmamaktır.**
 
@@ -812,7 +822,7 @@ Belge §8 Pusula (değişmez ilke)
 - «Worlds eğitim senaryoları kullanıma açık»
 - «3B simülasyonla öğretim mevcut»
 
-Academy görselleri veya örnek diyalogları tek başına «mevcut özellik» algısı yaratmaz; tüm maddeler **⚪** ile geçer; ana lansman Belge §12 omurgasındadır. Web okuma sürümü veya kitap yayımlanmadan önce Belge §11 dört kontrolden geçer.
+Academy görselleri veya örnek diyalogları tek başına «mevcut özellik» algısı yaratmaz; tüm maddeler **⚪** ile geçer; ana lansman Belge §12 omurgasındadır. Web okuma sürümü veya kitap yayımlanmadan önce Belge §11 altı kontrolden geçer.
 
 ⸻
 
@@ -827,7 +837,7 @@ Academy görselleri veya örnek diyalogları tek başına «mevcut özellik» al
 > | Öğretmen / uzman ikamesi | Bilgi engelini azaltan yardım katmanı |
 > | Labs/Worlds'in yerine geçen ürün | Academy + Labs gelecek entegrasyonu |
 >
-> **Durum etiketi:** ⚪ Araştırma / uzun vadeli · **Ana omurga:** Belge §12 · **Yayımlama:** Belge §11 dört kontrol
+> **Durum etiketi:** ⚪ Araştırma / uzun vadeli · **Ana omurga:** Belge §12 · **Yayımlama:** Belge §11 altı kontrol
 >
 > Bu kutudaki hiçbir ifade ürün vaadi, tarih taahhüdü veya «yakında geliyor» iddiası değildir.
 
