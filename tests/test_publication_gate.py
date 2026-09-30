@@ -495,12 +495,28 @@ def test_no_enrolled_signer_rejects_every_approval(tmp_path, signer):
     assert "approval-signature-invalid" in out
 
 
-def test_real_repo_closed_default_no_enrolled_signer():
-    # 2026-09-18 kapalı varsayılan: gerçek allowed_signers'ta kayıtlı kök yok.
-    # Kurucu insan-kapılı yeni kökü kaydederken bu assertion'ı bilinçli olarak
-    # güncelller; ajan güncellerse bu bir kapsam ihlalidir.
+FOUNDER_PUBLICATION_FINGERPRINT = "SHA256:5ujNNKDVsHYwC/8hhZQBw8kRbvoyZG9oOn8RQOOAduk"
+
+
+def test_real_repo_enrolls_founder_publication_root():
+    # Kayıtlı kök tam olarak founder yayın anahtarıdır. İptal edilmiş GitHub
+    # anahtarı bu dosyada yoktur; boş kayıt veya ikinci bir kök kabul edilmez.
     signers = REPO_ROOT / "config" / "publication" / "allowed_signers"
-    assert gate.enrolled_signer_lines(signers) == []
+    lines = gate.enrolled_signer_lines(signers)
+    assert len(lines) == 1
+    parts = lines[0].split()
+    assert parts[0] == "founder"
+    fingerprints = []
+    for idx in range(1, len(parts) - 1):
+        if parts[idx].startswith(gate.SSH_KEY_TYPE_PREFIXES):
+            fingerprint = gate._fingerprint(f"{parts[idx]} {parts[idx + 1]}")
+            assert fingerprint
+            fingerprints.append(fingerprint)
+    assert fingerprints == [FOUNDER_PUBLICATION_FINGERPRINT]
+    assert FOUNDER_PUBLICATION_FINGERPRINT not in gate.REVOKED_SIGNER_FINGERPRINTS
+    for revoked in gate.REVOKED_SIGNER_FINGERPRINTS:
+        assert revoked not in fingerprints
+    assert gate.validate_signer_roots(signers) == []
 
 
 def test_options_field_cannot_hide_revoked_key(tmp_path, signer):
