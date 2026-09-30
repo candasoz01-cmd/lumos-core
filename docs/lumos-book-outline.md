@@ -185,13 +185,13 @@ Lumos'un tek hamlede her şeyi yapan bir sistem değil, kontrollü gelişen bir 
 
 Kaynak notları toplanırken dikkat: kitabın kullanıcıya dönük ana metninde Lumos dış yüz olarak kalmalı; iç teknik katman adları gerekiyorsa kaynak notu veya mimari dipnot seviyesinde tutulmalı.
 
-## 6. Henüz belirsiz kalan sorular
+## 6. Karara bağlanan sorular
 
 > **Kapanış notu (2026-09-30):** Bu bölümdeki sorular kurucu kararlarıyla kapatıldı; karar her sorunun yanında yazılıdır. Nihai başlık sonradan karara bağlandı (#10, güncel karar); bilerek açık kalan nokta yayın tarihidir (TBD, koşullu). Dondurma sahibi onayı: kararlar `lumos-book-v0.1` iskeletine yalnız açık bırakılmış karar noktalarının kapatılması olarak işlendi; yeni fikir, yeni kapsam veya tarih eklenmedi.
 
 - Kitap bir public manifesto mu, iç ürün kitabı mi, yoksa geliştirici rehberiyle karışık bir kurucu metin mi olacak? → **Karar (kurucu, 2026-09-30):** Karışık kurucu metin. Manifesto ruhunu taşır ama yalnız manifesto değildir; ürünün nedenini, ilkelerini ve nasıl çalıştığını anlatır.
 - Birincil hedef kitle kim: son kullanıcı, geliştirici, yatırımcı/partner, kurumsal müşteri, yoksa ekip içi karar okuyucusu mu? → **Karar:** Tek birincil kitle seçilmez. Kitap erken kullanıcı, geliştirici/teknik okuyucu ve kurumsal/partner okuyucu tarafından anlaşılabilir olur; yatırımcıya özel bir kitaba dönüşmez. Öncelik sırası metne yazılmaz.
-- Dil yalnızca Türkçe mi olacak, yoksa Türkçe ana metin + İngilizce özet/terim sözlüğü mu hazırlanacak? → **Karar:** Türkçe tek kaynak metindir; diğer diller sabit bir Türkçe sürümden türetilir. İlk uluslararası türev İngilizce olabilir. Mimari: LUMOS-0020 (çok dilli yayın mimarisi), draft PR candasoz01-cmd/lumos-core#895 içinde; henüz `main`'de değildir, merge edilmiş sayılmaz.
+- Dil yalnızca Türkçe mi olacak, yoksa Türkçe ana metin + İngilizce özet/terim sözlüğü mu hazırlanacak? → **Karar:** Türkçe tek kaynak metindir; diğer diller sabit bir Türkçe sürümden türetilir. İlk uluslararası türev İngilizce olabilir. Mimari: LUMOS-0020 (çok dilli yayın mimarisi), açık PR candasoz01-cmd/lumos-core#895 içinde; draft değildir, henüz `main`'de değildir, merge edilmiş sayılmaz.
 - WeLockAI ticari omurgası kitapta ne kadar görünür olacak; hangi bölümlerde yalnızca arka plan sınırı olarak kalacak? → **Referans yayınında çözüldü (Belge §10):** WeLockAI yayıncı/ön planda; kitap içinde Lumos ürün sesi ağırlıkta, WeLockAI ticari omurga **Kitap §14** ve dipnotlarda. **Kurucu (2026-09-30): kapalı; yeniden açılmaz, Belge §10 kararı geçerlidir.**
 - Teknik detay derinliği ne olacak: kod/pipeline anlatımı mi, yoksa ürün ilkeleri ve örnek senaryolar mi ağırlıkta olacak? → **Karar:** İlke ağırlıklı ana metin; gerektiğinde teknik dipnot veya ayrı teknik ek. Gövde pipeline ve kodla yüklenmez; teknik iddialar dayanaksız bırakılmaz.
 - Quantum Readiness bölümü araştırma disiplini olarak mi kalacak, yoksa ayrı bir gelecek vizyonu bölümü mu olacak? → **Karar:** İkisi ayrı kalır. Kitap §13 araştırma disiplini/readiness olarak kalır; Belge §13'teki «Lumos Quantum» (Labs) açıkça gelecek araştırma/vizyon alanı olarak ayrı durur. Mevcut olmayan yetenek iddiası (ör. «quantum powered») yapılmaz.
@@ -199,7 +199,7 @@ Kaynak notları toplanırken dikkat: kitabın kullanıcıya dönük ana metninde
 - Bölümlerde gerçek kullanıcı senaryoları, panel ekranları veya vaka çalışmaları kullanılacak mi? → **Karar:** Karışık. Vizyon senaryoları açıkça «vizyon» diye etiketlenir; gerçek ürün ekranı veya gerçek davranış gösteriliyorsa kanıtlanabilir mevcut sürümden gelir. Vizyon ile çalışan ürün karıştırılmaz (bkz. Belge §11, madde 6).
 - Kitap kısa bir "founder letter + ilkeler" metni mi, yoksa uzun soluklu bölümlü kitap mi olacak? → **Karar:** İkisi de. Kısa bir kurucu mektubu giriş olur; arkasından bölümlü kitap gelir.
 - Son başlık "Lumos: Kontrol Kullanıcıda" olarak mi kalacak, yoksa daha sıcak/insani bir çalışma adına mi evrilecek? → **Karar (güncel, 2026-09-30):** Nihai başlık «Lumos — Dream it. Approve it. Done.» olur; çalışma adı kapanmıştır. «Done» ürünün tamamlandığı iddiası değil, iş akışı ilkesidir (bkz. Belge §1). Önceki karar (çalışma adı kalır, başlık yayın öncesi dondurulur) bu kararla yürürlükten kalkar.
-- **Lansman / yayın tarihi:** Belge §10 «Lansman türleri» — Life ve ticari için **TBD**; referans web/PDF Belge §11 sonrası; dış kamu AI haberleri Lumos takvimi değildir. → **Karar:** TBD kalır ve koşula bağlanır: §6 kararları metne işlendiğinde, Belge §11 kontrolleri geçtiğinde, başlık, §11 sadeleştirmesi, çok dilli mimari (#895) ve hukuki gözden geçirme kapandığında ve yayın sürümü gerçekten hazır olduğunda tarih konur. Takvim için içerik sıkıştırılmaz.
+- **Lansman / yayın tarihi:** Belge §10 «Lansman türleri». Referans web/PDF için tarih **TBD** kalır; Life ve ticari lansmanların kendi tarihleri de yoktur. Dış kamu AI haberleri Lumos takvimi değildir. → **Karar:** Tarih konmaz. §6 kararları, nihai başlık ve §11 sadeleştirmesi kapanmıştır. Tarih için hâlâ açık olanlar: Belge §11 kontrollerinin yayın sürümünde geçmesi, #895'in `main`'e inmesi, hukuki gözden geçirme ve yayın sürümünün hazır olması. Takvim için içerik sıkıştırılmaz.
 
 ## 7. Kurucu hikâye notları
 
@@ -343,7 +343,7 @@ Ayrıntılar aşağıda alt başlıklarda; burada tekrarlanmaz.
 | **Yakın gelecek** | Referans 1 web okuma sürümü; §11 altı kontrol; basit GitHub Pages veya welockai.com/referanslar/1 | 🟢 planlı — otomasyon TBD |
 | **Yakın gelecek** | PDF/ePub aynı kaynaktan türetim (tek omurga) | 🟢 planlı |
 | **Yakın gelecek** | Referans 2–5 ayrı iskeletler; kütüphane indeksi | planlı |
-| **Uzun vadeli** | Tam referans kütüphanesi; çoklu dil (mimari kararı: LUMOS-0020, draft PR #895; henüz `main`'de değil); otomatik üç yüz pipeline | ⚪ |
+| **Uzun vadeli** | Tam referans kütüphanesi; çoklu dil (mimari kararı: LUMOS-0020, açık PR #895; draft değil, henüz `main`'de değil); otomatik üç yüz pipeline | ⚪ |
 
 **Not:** Panel v1 kapanışı (**2026-06-12**) iç mühendislik kapısıdır; referans web yayını değildir.
 
@@ -425,7 +425,7 @@ Bu belgede **«lansman»** tek anlama gelmez. Dış haberler (ör. başka ülkel
 
 | Tür | Ne | Tarih (repo) | Ana kaynak |
 |-----|-----|--------------|------------|
-| **Referans yayını** | Kurucu kitap / Referanslar web veya PDF | **TBD** — Belge §11 onayı sonrası; koşullu: Belge §6 kararları metne işlenmiş, §11 kontrolleri geçmiş, başlık, §11 sadeleştirmesi, çok dilli mimari (#895) ve hukuki gözden geçirme kapanmış, yayın sürümü hazır | Belge §10 |
+| **Referans yayını** | Kurucu kitap / Referanslar web veya PDF | **TBD** — tarih yok; açık koşullar Belge §6 yayın tarihi kararında | Belge §10 |
 | **Life lansmanı** | Erişilebilirlik omurgası; 🟢🟡 özellik tanıtımı | **TBD** — taahhüt tarihi yok | Belge §12 |
 | **Ticari lansman** | Open Beta → Commercial Launch | **TBD** — Pre-Alpha; `docs/analysis/pre-commercial-release-plan.md` | Repo plan belgeleri |
 | **İç mühendislik kapısı** | Panel v1 kapanışı | **2026-06-12** (`LUMOS_V1_READINESS.md`) | Halka lansman değil |
@@ -477,7 +477,7 @@ Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub vey
 | PDF / ePub | Evet |
 | Referans Kütüphanesi indeksinde «yayımlandı» | Evet |
 
-**Referans:** `docs/lumos-karar-sozlesmesi.md` (cevap disiplini, emin değil); Belge §6 belirsiz sorular (açık işaretleme).
+**Referans:** `docs/lumos-karar-sozlesmesi.md` (cevap disiplini, emin değil); Belge §6 karara bağlanan sorular (yayın tarihi TBD).
 
 ## 12. Lumos Life — Erişilebilirlik Platformu ve Toplumsal Katkı
 
