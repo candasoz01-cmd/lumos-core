@@ -19,13 +19,13 @@ Bu belgede iki numara dizisi vardır; referans verirken karıştırılmamalıdı
 
 Örnek: **Kitap §7** = Panel dili; **Belge §7** = Kurucu hikâye notları. **Kitap §14** = Açık kaynak çekirdek; **Belge §14** = Lumos Academy vizyonu.
 
-## 1. Kitabın çalışma adı
+## 1. Kitabın adı
 
-**Lumos: Kontrol Kullanıcıda**
+**Lumos — Dream it. Approve it. Done.**
 
-Alt çalışma cümlesi: **İzinli, şeffaf ve güvenilir yapay zekâ yardımı için bir ürün düşüncesi.**
+Alt açıklama: **İzinli, şeffaf ve güvenilir yapay zekâ yardımı için bir ürün düşüncesi.**
 
-*Bu ad çalışma adıdır; nihai başlık yayın öncesi ayrı bir kapıda dondurulur (Belge §6).*
+*Nihai başlık kararıdır (2026-09-30, Belge §6 #10); önceki çalışma adı «Lumos: Kontrol Kullanıcıda» kapanmıştır. «Done», ürünün tamamen bitmiş olduğu iddiası değildir; Lumos'un iş akışı ilkesidir. Neyin bugün var olduğu, neyin planlı veya vizyon olduğu Belge §12–§14 durum etiketleriyle okunur.*
 
 ## 2. Ana fikir
 
@@ -187,7 +187,7 @@ Kaynak notları toplanırken dikkat: kitabın kullanıcıya dönük ana metninde
 
 ## 6. Henüz belirsiz kalan sorular
 
-> **Kapanış notu (2026-09-30):** Bu bölümdeki sorular kurucu kararlarıyla kapatıldı; karar her sorunun yanında yazılıdır. Bilerek açık kalan iki nokta vardır: nihai başlık (yayın öncesi ayrı kapıda dondurulur) ve yayın tarihi (TBD, koşullu). Dondurma sahibi onayı: kararlar `lumos-book-v0.1` iskeletine yalnız açık bırakılmış karar noktalarının kapatılması olarak işlendi; yeni fikir, yeni kapsam veya tarih eklenmedi.
+> **Kapanış notu (2026-09-30):** Bu bölümdeki sorular kurucu kararlarıyla kapatıldı; karar her sorunun yanında yazılıdır. Nihai başlık sonradan karara bağlandı (#10, güncel karar); bilerek açık kalan nokta yayın tarihidir (TBD, koşullu). Dondurma sahibi onayı: kararlar `lumos-book-v0.1` iskeletine yalnız açık bırakılmış karar noktalarının kapatılması olarak işlendi; yeni fikir, yeni kapsam veya tarih eklenmedi.
 
 - Kitap bir public manifesto mu, iç ürün kitabı mi, yoksa geliştirici rehberiyle karışık bir kurucu metin mi olacak? → **Karar (kurucu, 2026-09-30):** Karışık kurucu metin. Manifesto ruhunu taşır ama yalnız manifesto değildir; ürünün nedenini, ilkelerini ve nasıl çalıştığını anlatır.
 - Birincil hedef kitle kim: son kullanıcı, geliştirici, yatırımcı/partner, kurumsal müşteri, yoksa ekip içi karar okuyucusu mu? → **Karar:** Tek birincil kitle seçilmez. Kitap erken kullanıcı, geliştirici/teknik okuyucu ve kurumsal/partner okuyucu tarafından anlaşılabilir olur; yatırımcıya özel bir kitaba dönüşmez. Öncelik sırası metne yazılmaz.
@@ -195,11 +195,11 @@ Kaynak notları toplanırken dikkat: kitabın kullanıcıya dönük ana metninde
 - WeLockAI ticari omurgası kitapta ne kadar görünür olacak; hangi bölümlerde yalnızca arka plan sınırı olarak kalacak? → **Referans yayınında çözüldü (Belge §10):** WeLockAI yayıncı/ön planda; kitap içinde Lumos ürün sesi ağırlıkta, WeLockAI ticari omurga **Kitap §14** ve dipnotlarda. **Kurucu (2026-09-30): kapalı; yeniden açılmaz, Belge §10 kararı geçerlidir.**
 - Teknik detay derinliği ne olacak: kod/pipeline anlatımı mi, yoksa ürün ilkeleri ve örnek senaryolar mi ağırlıkta olacak? → **Karar:** İlke ağırlıklı ana metin; gerektiğinde teknik dipnot veya ayrı teknik ek. Gövde pipeline ve kodla yüklenmez; teknik iddialar dayanaksız bırakılmaz.
 - Quantum Readiness bölümü araştırma disiplini olarak mi kalacak, yoksa ayrı bir gelecek vizyonu bölümü mu olacak? → **Karar:** İkisi ayrı kalır. Kitap §13 araştırma disiplini/readiness olarak kalır; Belge §13'teki «Lumos Quantum» (Labs) açıkça gelecek araştırma/vizyon alanı olarak ayrı durur. Mevcut olmayan yetenek iddiası (ör. «quantum powered») yapılmaz.
-- Gizlilik ve audit iddiaları için hukuki/uyum kontrolü gerekecek mi? → **Karar:** İddia içeren bölümler için gerekli. Gizlilik, audit, veri işleme, uyum veya hukuki sonuç doğurabilecek ifadeler yayın öncesi hukuki/uyum kontrolünden geçer; kitabın tamamı için hukuki redaksiyon gerekmez (bkz. Belge §11).
-- Bölümlerde gerçek kullanıcı senaryoları, panel ekranları veya vaka çalışmaları kullanılacak mi? → **Karar:** Karışık. Vizyon senaryoları açıkça «vizyon» diye etiketlenir; gerçek ürün ekranı veya gerçek davranış gösteriliyorsa kanıtlanabilir mevcut sürümden gelir. Vizyon ile çalışan ürün karıştırılmaz (bkz. Belge §11).
+- Gizlilik ve audit iddiaları için hukuki/uyum kontrolü gerekecek mi? → **Karar:** İddia içeren bölümler için gerekli. Gizlilik, audit, veri işleme, uyum veya hukuki sonuç doğurabilecek ifadeler yayın öncesi hukuki/uyum kontrolünden geçer; kitabın tamamı için hukuki redaksiyon gerekmez (bkz. Belge §11, madde 5).
+- Bölümlerde gerçek kullanıcı senaryoları, panel ekranları veya vaka çalışmaları kullanılacak mi? → **Karar:** Karışık. Vizyon senaryoları açıkça «vizyon» diye etiketlenir; gerçek ürün ekranı veya gerçek davranış gösteriliyorsa kanıtlanabilir mevcut sürümden gelir. Vizyon ile çalışan ürün karıştırılmaz (bkz. Belge §11, madde 6).
 - Kitap kısa bir "founder letter + ilkeler" metni mi, yoksa uzun soluklu bölümlü kitap mi olacak? → **Karar:** İkisi de. Kısa bir kurucu mektubu giriş olur; arkasından bölümlü kitap gelir.
-- Son başlık "Lumos: Kontrol Kullanıcıda" olarak mi kalacak, yoksa daha sıcak/insani bir çalışma adına mi evrilecek? → **Karar:** «Lumos: Kontrol Kullanıcıda» çalışma adı olarak kalır. Nihai başlık yayın öncesi ayrı bir kapıda dondurulur; şimdi isim aranmaz.
-- **Lansman / yayın tarihi:** Belge §10 «Lansman türleri» — Life ve ticari için **TBD**; referans web/PDF Belge §11 sonrası; dış kamu AI haberleri Lumos takvimi değildir. → **Karar:** TBD kalır ve koşula bağlanır: §6 kararları metne işlendiğinde, Belge §11 kontrolleri geçtiğinde ve yayın sürümü gerçekten hazır olduğunda tarih konur. Takvim için içerik sıkıştırılmaz.
+- Son başlık "Lumos: Kontrol Kullanıcıda" olarak mi kalacak, yoksa daha sıcak/insani bir çalışma adına mi evrilecek? → **Karar (güncel, 2026-09-30):** Nihai başlık «Lumos — Dream it. Approve it. Done.» olur; çalışma adı kapanmıştır. «Done» ürünün tamamlandığı iddiası değil, iş akışı ilkesidir (bkz. Belge §1). Önceki karar (çalışma adı kalır, başlık yayın öncesi dondurulur) bu kararla yürürlükten kalkar.
+- **Lansman / yayın tarihi:** Belge §10 «Lansman türleri» — Life ve ticari için **TBD**; referans web/PDF Belge §11 sonrası; dış kamu AI haberleri Lumos takvimi değildir. → **Karar:** TBD kalır ve koşula bağlanır: §6 kararları metne işlendiğinde, Belge §11 kontrolleri geçtiğinde, başlık, §11 sadeleştirmesi, çok dilli mimari (#895) ve hukuki gözden geçirme kapandığında ve yayın sürümü gerçekten hazır olduğunda tarih konur. Takvim için içerik sıkıştırılmaz.
 
 ## 7. Kurucu hikâye notları
 
@@ -425,7 +425,7 @@ Bu belgede **«lansman»** tek anlama gelmez. Dış haberler (ör. başka ülkel
 
 | Tür | Ne | Tarih (repo) | Ana kaynak |
 |-----|-----|--------------|------------|
-| **Referans yayını** | Kurucu kitap / Referanslar web veya PDF | **TBD** — Belge §11 onayı sonrası; koşullu: Belge §6 kararları metne işlenmiş, §11 kontrolleri geçmiş, yayın sürümü hazır | Belge §10 |
+| **Referans yayını** | Kurucu kitap / Referanslar web veya PDF | **TBD** — Belge §11 onayı sonrası; koşullu: Belge §6 kararları metne işlenmiş, §11 kontrolleri geçmiş, başlık, §11 sadeleştirmesi, çok dilli mimari (#895) ve hukuki gözden geçirme kapanmış, yayın sürümü hazır | Belge §10 |
 | **Life lansmanı** | Erişilebilirlik omurgası; 🟢🟡 özellik tanıtımı | **TBD** — taahhüt tarihi yok | Belge §12 |
 | **Ticari lansman** | Open Beta → Commercial Launch | **TBD** — Pre-Alpha; `docs/analysis/pre-commercial-release-plan.md` | Repo plan belgeleri |
 | **İç mühendislik kapısı** | Panel v1 kapanışı | **2026-06-12** (`LUMOS_V1_READINESS.md`) | Halka lansman değil |
@@ -442,7 +442,6 @@ Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub vey
 
 - Kanıtlanamayan iddialar açıkça belirtilir.
 - «Emin değilsek yazmayalım» disiplini: tahmin, varsayım ve henüz doğrulanmamış noktalar gizlenmez.
-- Vizyon senaryoları «vizyon» diye etiketlenir; gerçek ürün ekranı veya davranışı gösteriliyorsa kanıtlanabilir mevcut sürümden gelir (Belge §6).
 
 ### 2. Tutarlılık
 
@@ -458,11 +457,10 @@ Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub vey
 
 - En az bir kez baştan sona okunur.
 - Bağlantılar, başlıklar, dil ve kaynaklar kontrol edilir.
-- Gizlilik, audit, veri işleme, uyum veya hukuki sonuç doğurabilecek ifadeler içeren bölümler yayın öncesi hukuki/uyum kontrolünden geçer (Belge §6).
 
 ### 5. Hukuki ve uyum kontrolü
 
-- Gizlilik, audit, veri işleme ve uyum iddiası taşıyan yerler yayımlanmadan önce kontrol edilir.
+- Gizlilik, audit, veri işleme ve uyum iddiası taşıyan yerler ile hukuki sonuç doğurabilecek ifadeler yayımlanmadan önce kontrol edilir.
 - Bu kontrol kitabın tamamını bir hukuk onayına bağlamak için değildir; iddia taşıyan yerler içindir.
 
 ### 6. Vizyon ve gerçek ayrımı
