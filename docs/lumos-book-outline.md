@@ -143,7 +143,7 @@ Akış: **Kullanıcı / Lumos Orkestratör -> tek odaklı ajan -> merkez kontrol
 
 ### 11. Entegrasyonlar: araçların verisine saygı
 
-GitHub, Slack, Google, Gmail, Calendar gibi araçların kendi verisinin sahibi olduğunu anlatır. Lumos yalnızca kullanıcı izni ve politika kapsamında gerekli özeti, metadata'yi veya eylemi işler; tam kopya, sessiz senkron veya onaysız dış yazma varsayılan değildir.
+GitHub, Slack, Google, Gmail ve Calendar'daki verinin kaynak sistemde kaldığını ve Lumos'un bu veriyi sahiplenmediğini anlatır. Kaynak sistem ve veri hakları korunur. Lumos yalnızca kullanıcı izni ve politika kapsamında gerekli özeti, metadata'yi veya eylemi işler; tam kopya, sessiz senkron veya onaysız dış yazma varsayılan değildir.
 
 ### 12. Yerel çalışma, cihazlar ve köprü mantığı
 
@@ -195,7 +195,7 @@ Kaynak notları toplanırken dikkat: kitabın kullanıcıya dönük ana metninde
 - WeLockAI ticari omurgası kitapta ne kadar görünür olacak; hangi bölümlerde yalnızca arka plan sınırı olarak kalacak? → **Referans yayınında çözüldü (Belge §10):** WeLockAI yayıncı/ön planda; kitap içinde Lumos ürün sesi ağırlıkta, WeLockAI ticari omurga **Kitap §14** ve dipnotlarda. **Kurucu (2026-09-30): kapalı; yeniden açılmaz, Belge §10 kararı geçerlidir.**
 - Teknik detay derinliği ne olacak: kod/pipeline anlatımı mi, yoksa ürün ilkeleri ve örnek senaryolar mi ağırlıkta olacak? → **Karar:** İlke ağırlıklı ana metin; gerektiğinde teknik dipnot veya ayrı teknik ek. Gövde pipeline ve kodla yüklenmez; teknik iddialar dayanaksız bırakılmaz.
 - Quantum Readiness bölümü araştırma disiplini olarak mi kalacak, yoksa ayrı bir gelecek vizyonu bölümü mu olacak? → **Karar:** İkisi ayrı kalır. Kitap §13 araştırma disiplini/readiness olarak kalır; Belge §13'teki «Lumos Quantum» (Labs) açıkça gelecek araştırma/vizyon alanı olarak ayrı durur. Mevcut olmayan yetenek iddiası (ör. «quantum powered») yapılmaz.
-- Gizlilik ve audit iddiaları için hukuki/uyum kontrolü gerekecek mi? → **Karar:** İddia içeren bölümler için gerekli. Gizlilik, audit, veri işleme, uyum veya hukuki sonuç doğurabilecek ifadeler yayın öncesi hukuki/uyum kontrolünden geçer; kitabın tamamı için hukuki redaksiyon gerekmez (bkz. Belge §11, madde 5).
+- Gizlilik ve audit iddiaları için hukuki/uyum kontrolü gerekecek mi? → **Karar:** İddia içeren bölümler için gerekli. Kurucu kararlar bu kontrolle yeniden açılmaz. Hukuk tarafı, gizlilik, audit, veri işleme ve uyum kararlarının uygulama biçimini ve kamusal ifade ile uyum gerekliliklerini inceler. Kitabın tamamı için hukuki redaksiyon gerekmez (bkz. Belge §11, madde 5).
 - Bölümlerde gerçek kullanıcı senaryoları, panel ekranları veya vaka çalışmaları kullanılacak mi? → **Karar:** Karışık. Vizyon senaryoları açıkça «vizyon» diye etiketlenir; gerçek ürün ekranı veya gerçek davranış gösteriliyorsa kanıtlanabilir mevcut sürümden gelir. Vizyon ile çalışan ürün karıştırılmaz (bkz. Belge §11, madde 6).
 - Kitap kısa bir "founder letter + ilkeler" metni mi, yoksa uzun soluklu bölümlü kitap mi olacak? → **Karar:** İkisi de. Kısa bir kurucu mektubu giriş olur; arkasından bölümlü kitap gelir.
 - Son başlık "Lumos: Kontrol Kullanıcıda" olarak mi kalacak, yoksa daha sıcak/insani bir çalışma adına mi evrilecek? → **Karar (güncel, 2026-09-30):** Nihai başlık «Lumos — Dream it. Approve it. Done.» olur; çalışma adı kapanmıştır. «Done» ürünün tamamlandığı iddiası değil, iş akışı ilkesidir (bkz. Belge §1). Önceki karar (çalışma adı kalır, başlık yayın öncesi dondurulur) bu kararla yürürlükten kalkar.
@@ -460,8 +460,8 @@ Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub vey
 
 ### 5. Hukuki ve uyum kontrolü
 
-- Gizlilik, audit, veri işleme ve uyum iddiası taşıyan yerler ile hukuki sonuç doğurabilecek ifadeler yayımlanmadan önce kontrol edilir.
-- Bu kontrol kitabın tamamını bir hukuk onayına bağlamak için değildir; iddia taşıyan yerler içindir.
+- Gizlilik, audit, veri işleme ve uyum iddiası taşıyan yerlerde uygulama biçimi ile kamusal ifade ve uyum gereklilikleri yayımlanmadan önce kontrol edilir. Kurucu kararlar bu kontrolle yeniden açılmaz.
+- Bu kontrol kitabın tamamını bir hukuk onayına bağlamak için değildir; iddia taşıyan yerlerin uygulanması ve kamusal ifadesi içindir.
 
 ### 6. Vizyon ve gerçek ayrımı
 
