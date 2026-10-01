@@ -125,7 +125,7 @@ Karar katmanlarını merkez bölüm olarak açıklar: sadece cevap ver, analiz e
 
 ### 9. Gizlilik, audit ve veri sınırları
 
-Kullanıcı verisinin ürün malzemesi olmadığını; reklam, veri satışı ve gereksiz arşiv mantığından uzak durulması gerektiğini açıklar. Audit'in amacı kullanıcıyı izlemek değil, sistemin söz verdiği sınırlarda durduğunu kanıtlamaktır.
+Kullanıcı verisinin ürün malzemesi olmadığını ve satılmadığını (veri satmama bir ilkedir) ve gereksiz arşiv mantığından uzak durulması gerektiğini açıklar. Reklamsızlık ise mutlak bir ilke değil, mevcut tercih/stratejidir; ileride ekip tarafından etik sınırlar içinde yeniden değerlendirilebilir, karar değişmese bile bilinçli biçimde yeniden teyit edilir. Audit'in amacı kullanıcıyı izlemek değil, sistemin söz verdiği sınırlarda durduğunu kanıtlamaktır.
 
 ### 10. Çekirdek, dal ajanlar ve sözleşmeyle korunan kök
 
@@ -174,7 +174,7 @@ Lumos'un tek hamlede her şeyi yapan bir sistem değil, kontrollü gelişen bir 
 - `docs/lumos-konusmadan-gorev-cikarma.md`: açık komut yokken iş sinyali yakalama ve güvenli başlatma.
 - `docs/lumos-panel-dili-rehberi.md`: panel dili, cevap sırası, sade Türkçe ve güven veren ton.
 - `docs/security-architecture.md`: onay, trash, offline, secret ve public repo güvenlik sınırları.
-- `docs/analysis/lumos-privacy-manifesto-draft.md`: veri satışı yok, reklam yok, audit/gizlilik dengesi.
+- `docs/analysis/lumos-privacy-manifesto-draft.md`: veri satışı yok (ilke), reklam yok (kaynak taslak; kitapta mevcut tercih/strateji olarak ele alınır, Kitap §9), audit/gizlilik dengesi.
 - `docs/integrations-overview.md`: entegrasyon yüzeyleri, read/write/delete izin modeli, OSS/private ayrımı.
 - `docs/analysis/welockai-charter-draft.md`: Lumos ile ticari omurga arasındaki rol ayrımı.
 - `docs/analysis/welockai-trust-model-draft.md`: rol, yetki, onay zinciri ve trust boundary notları.
