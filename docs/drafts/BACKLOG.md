@@ -44,6 +44,31 @@ Tam şema taslağı: [decision-engine-schema.md](./decision-engine-schema.md)
 ## Aktif kararlar
 
 ```
+ID: LUMOS-0020
+[2026-09-26] 🟢 AKTİF
+🟢 Karar: Çok Dilli Yayın Mimarisi. Türkçe ana metin kitabın tek kaynağı ve sabit sürümüdür. Dil sürümleri bu kaynağa ve sürümüne bağlı türev olarak yönetilir; bağımsız ikinci kanon veya platform otomatik çevirisi değildir.
+🎯 Gerekçe: Aynı kitabın anlamı, ileride onlarca dilde, platform çevirisine bağlı kalmadan korunabilsin. Kavramlar hedef dilde sessizce yeniden yorumlanmasın.
+Öngörülen hat (bugün kurulmaz, çeviri üretilmez):
+- Sabit kavram/terim sözlüğü — karşılıklar çeviri geçişinde sessizce değişmez
+- AI ilk çeviri — taslaktır, yayımlanmış dil sürümü değildir
+- Bağımsız anlam-tutarlılık kontrolü — ilk çeviriyi üreten geçiş kendi çıktısını onaylamaz
+- Kritik kavramlarda insan onayı
+- Kaynak sürümü değişince etkilenen dil sürümleri stale işaretlenir; etki belirsizse türev güncel sayılmaz
+- Dil bazında sürüm ve provenance kaydı
+Sessiz yeniden yorum yok: «Bilinç uzantısı», insan merkezlilik, yetki, onay, güven kökü, Stajyer, Duvar. Hedef dilde birebir karşılık güvenilir değilse sistem bunu karar gerektiren nokta olarak insana getirir; yakın kelimeyi kesin karşılık diye yazmaz.
+🎯 Kapsam: Kitap metninin ilerideki dil sürümleri. Bu kayıt uygulama, çeviri, yayın, merge veya deploy değildir.
+🚫 Kapsam dışı: Çeviri veya sözlük karşılığı üretmek; lumos-book-v0.1 outline'ına yazmak; panel/arayüz yerelleştirmesini bu kararla birleştirmek (LUMOS-0002 ayrı kalır); Belge §10 üç yüz kuralını dil türevi için ikinci kanon haline getirmek.
+İlişkili kararlar: LUMOS-0002 (panel/arayüz dili — ayrı), LUMOS-0003 (uydurma onay yok)
+Decision level: L2 (kitap yayın mimarisi)
+Evidence: Kullanıcı kararı, bu oturum, 2026-09-26. Mevcut yapı kontrolü: aynı karar yoktu. Belge §6 dil sorusu açıktı ve daha dardı; Belge §10 uzun vadede «çoklu dil» satırı mimarisizdi.
+Legal review: N/A (sahte onay yok)
+approved_by: (boş — ayrı kurul onayı yoktur)
+Etkilenen dosyalar: docs/drafts/BACKLOG.md, docs/drafts/cok-dilli-yayin-mimarisi.md, docs/drafts/decision-engine-schema.md
+Ayrıntı: docs/drafts/cok-dilli-yayin-mimarisi.md
+Son güncelleme: 2026-09-26
+```
+
+```
 ID: LUMOS-0019
 [2026-07-03] 🟢 AKTİF
 🟢 Karar: Güvenlik mimarisi vs repository sınırı. Çekirdek ilke: Security tek mimari ve yönetişim çatısı altında tasarlanır. Repository ayrımı teknik ve operasyonel ihtiyaç oluştuğunda yapılır; yeniden kullanılabilir olması tek başına ayrı repository gerekçesi değildir.
