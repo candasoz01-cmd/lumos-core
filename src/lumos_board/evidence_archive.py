@@ -158,10 +158,20 @@ def _worktree_paths(repo: Path) -> list[str]:
     except (OSError, subprocess.CalledProcessError):
         return []
     paths: list[str] = []
-    for entry in out.split("\0"):
+    fields = out.split("\0")
+    index = 0
+    while index < len(fields):
+        entry = fields[index]
+        index += 1
         if len(entry) < 4:
             continue
-        relative = entry[3:]
+        status, relative = entry[:2], entry[3:]
+        if "R" in status or "C" in status:
+            # Rename/copy: the next NUL field is the origin path and has no status prefix.
+            origin = fields[index] if index < len(fields) else ""
+            index += 1
+            if "R" in status and origin:
+                paths.append(origin)  # renamed away: the old name is now a deletion
         if relative and not relative.endswith("/"):
             paths.append(relative)
     return paths
@@ -177,20 +187,47 @@ def _scope(repo: Path, extra: list[str] | None) -> list[str]:
     return seen
 
 
+def _tracked_in_head(repo: Path, relative: str) -> bool:
+    return _git(repo, "cat-file", "-e", f"HEAD:{relative}", check=False).returncode == 0
+
+
 def _read_file(repo: Path, relative: str) -> tuple[str, bytes | None]:
-    path = (repo / relative).resolve()
+    root = Path(repo).resolve()
+    if PurePosixPath(relative).is_absolute():
+        return "outside_repo", None
+    # Look for links BEFORE resolving: resolve() follows them, so the check would never fire.
+    current = root
+    for part in PurePosixPath(relative).parts:
+        if part == "..":
+            return "outside_repo", None
+        current = current / part
+        if current.is_symlink():
+            return "symlink", None
+    path = current.resolve()
     try:
-        path.relative_to(repo.resolve())
+        path.relative_to(root)
     except ValueError:
         return "outside_repo", None
-    if path.is_symlink():
-        return "symlink", None
     if not path.is_file():
+        # A tracked file that is gone is a verifiable deletion; anything else is just missing.
+        if not path.exists() and _tracked_in_head(root, relative):
+            return "deleted", None
         return "missing", None
     try:
         return "ok", path.read_bytes()
     except OSError:
         return "unreadable", None
+
+
+def archive_dir_for(archive: Path, report_id: str) -> Path:
+    """`archive_report` writes <archive>/<report_id>/manifest.json. Accept the root or that directory."""
+    archive = Path(archive)
+    nested = archive / safe_report_id(report_id)
+    if (nested / "manifest.json").is_file():
+        return nested
+    if (archive / "manifest.json").is_file():
+        return archive
+    return nested
 
 
 def _record(path: Path, payload: dict) -> None:
@@ -372,8 +409,15 @@ def _observe(repo: Path, archive_dir: Path, expect: dict[str, str]) -> dict[str,
     if not isinstance(files, list) or not isinstance(excluded, list):
         return _stopped(archive_dir, "ARCHIVE_CORRUPT", manifest)
     for item in excluded:
-        if not isinstance(item, dict) or item.get("reason") not in {"secret", "symlink"}:
-            return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
+        reason = item.get("reason") if isinstance(item, dict) else None
+        if reason == "secret":
+            continue
+        if reason in {"symlink", "deleted"}:
+            # The observer checks the exclusion itself instead of trusting the manifest.
+            if _read_file(repo, str(item.get("path") or ""))[0] != reason:
+                return _stopped(archive_dir, "SOURCE_CHANGED", manifest)
+            continue
+        return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
     checked: list[dict[str, object]] = []
     for entry in files:
         if not isinstance(entry, dict):

@@ -1,13 +1,18 @@
 import json
 import os
 import subprocess
+import sys
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
+from unittest.mock import patch
 
 from lumos_board.evidence_archive import (
     DEFAULT_REMOTE,
+    _worktree_paths,
+    archive_dir_for,
     archive_report,
     bind_report,
     checkpoint_due,
@@ -255,3 +260,171 @@ def test_checkpoint_interval_and_unconfigured_report(tmp_path, monkeypatch):
     assert bound["evidence"]["required"] is True
     assert bound["evidence"]["verified"] is True
     assert bound["status"] == "ok"
+
+
+def _archive(root, tmp_path, report_id="report-1", **kwargs):
+    return archive_report(
+        root, tmp_path / "archive", task_id="KA-1", report_id=report_id, report_kind="delivery",
+        run_attempt="2", now=NOW, policy_days=14, object_expires_at=NOW + timedelta(days=30),
+        retry_margin=timedelta(hours=1), **kwargs,
+    )
+
+
+# --- #912 / Bugbot: deletions must be verifiable, not SCOPE_INCOMPLETE ---------------------
+
+
+def test_deleted_tracked_file_verifies_and_reappearing_file_stops(tmp_path):
+    root = repo(tmp_path)
+    (root / "note.txt").unlink()  # worktree deletion, also listed in changed_files
+    verdict = _archive(root, tmp_path, extra_paths=["note.txt"])
+    assert verdict["status"] == "VERIFIED" and verdict["verified"] is True
+    assert {"path": "note.txt", "reason": "deleted"} in verdict["excluded"]
+    again = observe_archive(root, tmp_path / "archive" / "report-1", expect=expect(root, "report-1"))
+    assert again["status"] == "VERIFIED"
+    (root / "note.txt").write_text("it came back\n")  # the exclusion is re-checked, not trusted
+    stale = observe_archive(root, tmp_path / "archive" / "report-1", expect=expect(root, "report-1"))
+    assert stale["status"] == "SOURCE_CHANGED" and stale["verified"] is False
+
+
+def test_unverifiable_missing_paths_stay_incomplete(tmp_path):
+    root = repo(tmp_path)
+    for index, ghost in enumerate(("never-existed.txt", "../outside.txt")):
+        verdict = _archive(root, tmp_path, report_id=f"r-{index}", extra_paths=[ghost])
+        assert verdict["verified"] is False
+        assert verdict["status"] == "SCOPE_INCOMPLETE"
+
+
+# --- rename records carry a second, un-prefixed path ----------------------------------------
+
+
+def test_rename_keeps_both_full_paths(tmp_path):
+    root = repo(tmp_path)
+    (root / "old-name.txt").write_text("renamed content\n")
+    git(root, "add", "old-name.txt")
+    git(root, "commit", "-m", "old")
+    git(root, "mv", "old-name.txt", "new-name.txt")
+    paths = _worktree_paths(root)
+    assert "new-name.txt" in paths
+    assert "old-name.txt" in paths  # not truncated to "name.txt"
+    assert not any(path in {"name.txt", "ld-name.txt"} for path in paths)
+    verdict = _archive(root, tmp_path)
+    assert verdict["status"] == "VERIFIED"
+    assert [item["path"] for item in verdict["files"]] == ["new-name.txt"]
+    assert {"path": "old-name.txt", "reason": "deleted"} in verdict["excluded"]
+
+
+# --- symlinks are detected before they are followed ----------------------------------------
+
+
+def test_symlinks_are_excluded_not_followed(tmp_path):
+    root = repo(tmp_path)
+    outside = tmp_path / "outside.txt"
+    outside.write_text("not part of the repo\n")
+    (root / "in-repo-link").symlink_to("note.txt")
+    (root / "outside-link").symlink_to(outside)
+    (root / "sub").mkdir()
+    (root / "sub" / "kept.txt").write_text("kept\n")
+    (root / "dir-link").symlink_to("sub")
+    verdict = _archive(root, tmp_path, extra_paths=["dir-link/kept.txt"])
+    assert verdict["status"] == "VERIFIED" and verdict["verified"] is True
+    archived_paths = {item["path"] for item in verdict["files"]}
+    assert "in-repo-link" not in archived_paths and "outside-link" not in archived_paths
+    assert "dir-link/kept.txt" not in archived_paths
+    reasons = {item["path"]: item["reason"] for item in verdict["excluded"]}
+    assert reasons["in-repo-link"] == "symlink"
+    assert reasons["outside-link"] == "symlink"  # was outside_repo -> SCOPE_INCOMPLETE
+    assert reasons["dir-link/kept.txt"] == "symlink"
+    payload = tmp_path / "archive" / "report-1" / "payload"
+    assert b"not part of the repo" not in b"".join(path.read_bytes() for path in payload.iterdir())
+    # The symlink exclusion is verified by the observer: a real file in its place is a change.
+    (root / "in-repo-link").unlink()
+    (root / "in-repo-link").write_text("now a regular file\n")
+    changed = observe_archive(root, tmp_path / "archive" / "report-1", expect=expect(root, "report-1"))
+    assert changed["status"] == "SOURCE_CHANGED"
+
+
+# --- verify CLI must work with the same --archive that checkpoint used ---------------------
+
+
+def _cli(*args):
+    env = {**os.environ, "PYTHONPATH": str(ROOT / "src"), "KANDO_MOCK": "1"}
+    return subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "verified_handoff.py"), *args],
+        capture_output=True, text=True, env=env, timeout=60,
+    )
+
+
+def test_verify_cli_accepts_the_checkpoint_archive_directory(tmp_path):
+    root = repo(tmp_path)
+    (root / "new.txt").write_text("uncommitted work\n")
+    archive = tmp_path / "archive"
+    commit = expect(root, "report-1")["commit"]
+    made = _cli("checkpoint", "--repo", str(root), "--archive", str(archive), "--task", "KA-1",
+                "--report", "report-1", "--kind", "delivery", "--run-attempt", "2")
+    assert made.returncode == 0, made.stderr
+    for target in (archive, archive / "report-1"):  # root and per-report directory both work
+        checked = _cli("verify", "--repo", str(root), "--archive", str(target), "--task", "KA-1",
+                       "--report", "report-1", "--commit", commit, "--run-attempt", "2")
+        assert checked.returncode == 0, checked.stderr
+        assert json.loads(checked.stdout)["status"] == "VERIFIED"
+    empty = _cli("verify", "--repo", str(root), "--archive", str(tmp_path / "nowhere"), "--task", "KA-1",
+                 "--report", "report-1", "--commit", commit, "--run-attempt", "2")
+    assert empty.returncode == 2
+    assert json.loads(empty.stdout)["status"] == "ARCHIVE_MISSING"
+    assert archive_dir_for(archive, "report-1") == archive / "report-1"
+
+
+# --- the verified outcome must exist before any "saved" artifact is written -----------------
+
+
+def _run_job(tmp_path, monkeypatch, report):
+    from core.evidence_continuity import evidence_continuity_path
+    from kando.agent_runner import start_agent_job
+
+    work = repo(tmp_path / "work")
+    outbox = tmp_path / "outbox"
+    outbox.mkdir()
+    (tmp_path / "evidence").mkdir()
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path))
+    monkeypatch.setenv("LUMOS_WALL_EVIDENCE_DIR", str(tmp_path / "evidence"))
+    with patch("kando.agent_runner.run_agent_pipeline", return_value=report), patch(
+        "kando.agent_runner._copy_cursor_bridge_snapshots_to_outbox"
+    ):
+        job_id = start_agent_job("goal", False, repo_root=work, outbox_dir=outbox)
+        status_path = outbox / f"agent_status_{job_id}.json"
+        deadline = time.monotonic() + 20.0
+        status = {}
+        while time.monotonic() < deadline:
+            if status_path.is_file():
+                status = json.loads(status_path.read_text(encoding="utf-8"))
+                if status.get("phase") == "done":
+                    break
+            time.sleep(0.05)
+    last = json.loads((outbox / "agent_last.json").read_text(encoding="utf-8"))
+    journal = evidence_continuity_path(tmp_path)
+    records = [json.loads(line) for line in journal.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return status, last, records
+
+
+def test_failed_archive_is_never_recorded_as_saved(tmp_path, monkeypatch):
+    from core.evidence_continuity import OUTCOME_ERROR, PHASE_RESULT
+
+    report = {"status": "ok", "task": "goal", "changed_files": ["ghost.txt"], "errors": []}
+    status, last, records = _run_job(tmp_path, monkeypatch, report)
+    assert status["status"] == "failed"
+    assert last["status"] == "partial"  # agent_last.json was written from the verified outcome
+    assert last["evidence"]["verified"] is False
+    assert "evidence_unverified" in last["errors"]
+    result = [record for record in records if record["phase"] == PHASE_RESULT]
+    assert [record["outcome"] for record in result] == [OUTCOME_ERROR]
+    assert result[0]["error"]["code"] == "evidence_unverified"
+
+
+def test_verified_archive_is_still_recorded_as_saved(tmp_path, monkeypatch):
+    from core.evidence_continuity import OUTCOME_OK, PHASE_RESULT
+
+    report = {"status": "ok", "task": "goal", "changed_files": [], "errors": []}
+    status, last, records = _run_job(tmp_path, monkeypatch, report)
+    assert status["status"] == "completed"
+    assert last["status"] == "ok" and last["evidence"]["verified"] is True
+    assert [record["outcome"] for record in records if record["phase"] == PHASE_RESULT] == [OUTCOME_OK]

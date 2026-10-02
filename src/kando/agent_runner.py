@@ -498,6 +498,19 @@ def start_agent_job(
                 repo_root=rr,
                 on_phase=on_phase,
             )
+            # Arşiv doğrulaması, başarıyı kaydeden her artefaktan ÖNCE koşar: agent_last.json ve
+            # evidence journal doğrulama sonrası sonucu taşır; doğrulanamayan teslim "ok" görünmez.
+            try:
+                from lumos_board.evidence_archive import bind_report
+
+                fr = bind_report(fr, repo=rr, job_id=job_id, kind="delivery")
+            except Exception as exc:
+                fr = dict(fr)
+                fr["evidence"] = {"verified": False, "required": True, "status": "EVIDENCE_BIND_FAILED"}
+                fr["status"] = "partial"
+                errors = list(fr.get("errors") or [])
+                errors.append(f"evidence_unverified:{exc}"[:200])
+                fr["errors"] = errors
             # Sıralama sözleşmesi: status dosyasındaki "completed" yayın noktasıdır —
             # evidence journal ve diğer tamamlanma artefaktları ondan ÖNCE yazılır,
             # böylece "completed" gören her gözlemci journal'daki result kaydını bulur.
@@ -510,17 +523,6 @@ def start_agent_job(
                 mirror_bridge_agent_result_to_evidence_journal(job_id, fr)
             except Exception:
                 pass
-            try:
-                from lumos_board.evidence_archive import bind_report
-
-                fr = bind_report(fr, repo=rr, job_id=job_id, kind="delivery")
-            except Exception as exc:
-                fr = dict(fr)
-                fr["evidence"] = {"verified": False, "required": True, "status": "EVIDENCE_BIND_FAILED"}
-                fr["status"] = "partial"
-                errors = list(fr.get("errors") or [])
-                errors.append(f"evidence_unverified:{exc}"[:200])
-                fr["errors"] = errors
             state.final_report = fr
             evidence = fr.get("evidence") or {}
             blocked = evidence.get("required") is True and evidence.get("verified") is not True

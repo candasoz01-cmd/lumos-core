@@ -184,9 +184,10 @@ def main():
                     run_attempt=args['run_attempt'],
                 )
             elif command == 'verify':
+                # checkpoint, manifest'i <archive>/<report>/ altına yazar; aynı --archive burada da çalışır.
                 result = archive.observe_archive(
-                    Path(args['repo']), Path(args['archive']),
-                    expect={'task_id': args['task'], 'report_id': args['report'],
+                    Path(args['repo']), archive.archive_dir_for(Path(args['archive']), args['report']),
+                    expect={'task_id': args['task'], 'report_id': archive.safe_report_id(args['report']),
                             'commit': args['commit'], 'run_attempt': args['run_attempt']},
                 )
             else:
