@@ -10,6 +10,7 @@ import {
   randomBytes,
   timingSafeEqual,
 } from "node:crypto";
+import { sessionEpochAllows } from "./session_epoch.js";
 
 const COOKIE = "lumos_session";
 const STATE_COOKIE = "lumos_oauth_state";
@@ -164,6 +165,19 @@ export function mobileOAuthCookieHeader(sealed) {
 
 export function clearMobileOAuthCookieHeader() {
   return `${MOBILE_OAUTH_COOKIE}=; Path=/auth/google; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+}
+
+/**
+ * Çerezdeki mühürlü oturumu açar ve çıkışla artan oturum sürümüne karşı doğrular.
+ * Sürümü eski kalmış (çıkıştan önce kopyalanmış) belirteç için null döner.
+ * Yalnız çerez okur: OAuth/entegrasyon uçları Bearer kabul etmez.
+ */
+export function openLiveSession(req, name = COOKIE) {
+  const claims = openSession(readCookie(req, name));
+  if (!claims) return null;
+  const lumosId = sessionLumosId(claims);
+  if (lumosId && !sessionEpochAllows(claims, lumosId)) return null;
+  return claims;
 }
 
 export function readCookie(req, name = COOKIE) {

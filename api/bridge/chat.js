@@ -1,6 +1,7 @@
 import {
   buildGeminiRequest,
   buildOpenAIRequest,
+  gateHostedModelCall,
   geminiReply,
   hostedGeminiKey,
   hostedOpenAIKey,
@@ -11,8 +12,10 @@ import {
   memoryWriteStatusReply,
   OPENAI_HOSTED_MODEL,
   openAIReply,
+  prepareProviderPayload,
   readJsonBody,
 } from "../_lib/hosted_lumos.js";
+import { appendOperatorWall, buildOperatorWallRecord } from "../_lib/operator_wall.js";
 import { captureError, captureSecurityEvent } from "../_lib/observability.js";
 
 const ROUTE = "bridge_chat";
@@ -119,15 +122,78 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: "model_unconfigured", errorKind: "model_error" });
   }
 
+  const prepared = prepareProviderPayload(body, userContext);
+  const country = typeof body?.country === "string" ? body.country : "";
+  const attempts = [];
+  if (hostedOpenAIKey()) {
+    attempts.push({
+      id: "openai",
+      model: OPENAI_HOSTED_MODEL,
+      call: () => callOpenAI(prepared.body, prepared.context),
+    });
+  }
+  if (hostedGeminiKey()) {
+    attempts.push({
+      id: "google",
+      model: HOSTED_MODEL,
+      call: () => callGemini(prepared.body, prepared.context),
+    });
+  }
+
   try {
     let answer = null;
-    try {
-      answer = await callOpenAI(body, userContext);
-    } catch (e) {
-      await captureError(e, { route: ROUTE, provider: "openai", errorCode: "integration_exception" });
-      answer = null;
+    let blocked = null;
+    let called = false;
+    for (const attempt of attempts) {
+      const gate = gateHostedModelCall({
+        providerId: attempt.id,
+        country,
+        dataClasses: prepared.dataClasses,
+      });
+      if (!gate.ok) {
+        blocked = gate;
+        appendOperatorWall(buildOperatorWallRecord({
+          provider: attempt.id,
+          model: attempt.model,
+          region: gate.region,
+          retention_policy: gate.policy?.retention_mode || "unknown",
+          contract_verified: gate.policy?.contract_verified === true,
+          data_classes_sent: prepared.dataClasses,
+          outcome: "blocked",
+          reason: gate.reason,
+        }));
+        continue;
+      }
+      called = true;
+      try {
+        answer = await attempt.call();
+      } catch (e) {
+        await captureError(e, {
+          route: ROUTE,
+          provider: attempt.id,
+          errorCode: "integration_exception",
+        });
+        answer = null;
+      }
+      if (!answer) continue;
+      appendOperatorWall(buildOperatorWallRecord({
+        provider: answer.provider,
+        model: answer.model,
+        region: gate.region,
+        retention_policy: gate.policy.retention_mode,
+        contract_verified: gate.policy.contract_verified === true,
+        data_classes_sent: prepared.dataClasses,
+        outcome: "sent",
+      }));
+      break;
     }
-    if (!answer) answer = await callGemini(body, userContext);
+    if (!answer && !called && blocked) {
+      return res.status(403).json({
+        error: "provider_policy_blocked",
+        errorKind: "policy",
+        reason: blocked.reason,
+      });
+    }
     if (!answer) {
       await captureError(new Error("model_unavailable"), { route: ROUTE, errorCode: "model_unavailable" });
       return res.status(502).json({ error: "model_unavailable", errorKind: "model_error" });

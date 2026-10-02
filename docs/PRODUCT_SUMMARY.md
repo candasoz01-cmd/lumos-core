@@ -40,7 +40,7 @@ Lumos, kullanıcının çalışma alanında **güvenilir, şeffaf ve izinli** bi
 
 ## Kullanıcı onayı ilkesi
 
-Onay katmanı yalnız `LUMOS_CONFIRMATION_ENABLED` açıkken çalışır. Barındırılan sohbet yanıtı ayrı onay beklemez. Görev motoru, `SECURITY_NEVER_AUTO` ile eşleşen adımı durdurur; motor dalı `permanent_delete` üyesini bu kontrolün dışında tutar. Sonraki cümle ürün yönüdür, çalışan kontrol listesi değildir: yalnızca cevap, sonra analiz, sonra öneri.
+Onay katmanı `LUMOS_ENV` veya `LUMOS_PRODUCT_ENV` `production` veya `prod` iken açıktır. Bu ortamlar dışında yalnız `LUMOS_CONFIRMATION_ENABLED` açıkken çalışır. Barındırılan sohbet yanıtı ayrı onay beklemez. Görev motoru, `SECURITY_NEVER_AUTO` ile eşleşen adımı durdurur; motor dalı `permanent_delete` üyesini bu kontrolün dışında tutar. Sonraki cümle ürün yönüdür, çalışan kontrol listesi değildir: yalnızca cevap, sonra analiz, sonra öneri.
 
 ---
 

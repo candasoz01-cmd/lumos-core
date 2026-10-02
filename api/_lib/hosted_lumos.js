@@ -1,5 +1,11 @@
 import { stripUnsupportedChatMarkup } from "./chat_visible_markup.js";
+import { resolveCountryPolicy } from "./country_policy_map.js";
 import { openSession, readCookie, sessionLumosId } from "./lumos_session.js";
+import {
+  SENSITIVE_DATA_CLASSES,
+  getProviderPolicy,
+} from "./provider_policy_registry.js";
+import { sessionEpochAllows } from "./session_epoch.js";
 
 export const HOSTED_MODEL = "gemini-2.5-flash";
 export const OPENAI_HOSTED_MODEL = "gpt-5.6-luna";
@@ -14,12 +20,40 @@ function bearerClaims(req) {
   return match ? openSession(match[1]) : null;
 }
 
+// Ortak oturum kapısı: çerez ve Bearer aynı mühürlü belirteci taşır; ikisi de
+// çıkış sonrası artan oturum sürümüne (session epoch) karşı doğrulanır. Çıkıştan
+// sonra kopyalanmış eski çerez veya Bearer hiçbir yüzeyde geçerli sayılmaz.
+// `revoked`, çözülebilen bir belirtecin yalnız sürüm nedeniyle reddedildiğini
+// gösterir (çağıranlar 401 ayrımı için kullanabilir).
+function resolveSession(req) {
+  let revoked = false;
+  const candidates = [() => openSession(readCookie(req)), () => bearerClaims(req)];
+  for (const open of candidates) {
+    const claims = open();
+    if (!claims) continue;
+    const lumosId = sessionLumosId(claims);
+    if (lumosId && !sessionEpochAllows(claims, lumosId)) {
+      revoked = true;
+      continue;
+    }
+    return { claims, revoked: false };
+  }
+  return { claims: null, revoked };
+}
+
 export function hasLumosSession(req) {
   return Boolean(sessionLumosId(hostedSessionClaims(req)));
 }
 
+/** Sürümü geçerli oturum iddiaları; yoksa veya çıkışla iptal edildiyse null. */
 export function hostedSessionClaims(req) {
-  return openSession(readCookie(req)) || bearerClaims(req);
+  return resolveSession(req).claims;
+}
+
+/** Geçerli bir oturum yok ve çözülebilen belirteç çıkış nedeniyle reddedildi. */
+export function hostedSessionRevoked(req) {
+  const state = resolveSession(req);
+  return !state.claims && state.revoked;
 }
 
 function cleanMemoryItems(raw) {
@@ -124,8 +158,14 @@ export async function rememberExplicitMemory(lumosId, message, sourceProvider, m
 }
 
 export async function loadHostedUserContext(req, body) {
-  const claims = hostedSessionClaims(req);
-  if (!claims) return { ok: false, error: "unauthorized", status: 401 };
+  const session = resolveSession(req);
+  const claims = session.claims;
+  if (!claims) {
+    // Çıkıştan sonra kopyalanmış çerez/Bearer: tek kapı (resolveSession) reddetti.
+    return session.revoked
+      ? { ok: false, error: "session_revoked", status: 401 }
+      : { ok: false, error: "unauthorized", status: 401 };
+  }
   const lumosId = sessionLumosId(claims);
   if (!lumosId) return { ok: false, error: "identity_missing", status: 401 };
   const requestedLumosId = String(body?.identity?.lumos_id || "").trim();
@@ -209,6 +249,104 @@ function identityInstruction(context) {
   return lines.join("\n");
 }
 
+function rememberClass(found, name) {
+  if (!found.includes(name)) found.push(name);
+}
+
+export function maskSensitiveText(input) {
+  const found = [];
+  let text = String(input ?? "");
+  text = text.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, () => {
+    rememberClass(found, "email");
+    return "[email]";
+  });
+  text = text.replace(/(?:\+\d{1,3}[\s.-])?(?:\(?\d{2,4}\)?[\s.-])\d{3,4}[\s.-]\d{3,4}/g, () => {
+    rememberClass(found, "phone");
+    return "[phone]";
+  });
+  text = text.replace(/\b\d{9,12}\b/g, () => {
+    rememberClass(found, "government_id");
+    return "[id]";
+  });
+  return { text, classes: found };
+}
+
+export function detectSensitiveClasses(input) {
+  return maskSensitiveText(input).classes;
+}
+
+function absorb(found, classes) {
+  for (const name of classes) rememberClass(found, name);
+}
+
+export function prepareProviderPayload(body, context = null) {
+  const minimized = [];
+  const take = (value) => {
+    const masked = maskSensitiveText(value);
+    absorb(minimized, masked.classes);
+    return masked.text;
+  };
+  const message = take(String(body?.message || "").trim().slice(0, 8000));
+  const history = Array.isArray(body?.history)
+    ? body.history.map((turn) => ({
+        ...turn,
+        content: take(String(turn?.content || "").slice(0, 4000)),
+      }))
+    : body?.history;
+  const items = Array.isArray(context?.memory?.items)
+    ? context.memory.items.map((item) => take(item))
+    : [];
+  const nextContext = context
+    ? {
+        ...context,
+        profile: {
+          ...context.profile,
+          name: take(context.profile?.name || ""),
+        },
+        memory: {
+          ...context.memory,
+          items,
+        },
+      }
+    : context;
+  const instruction = take(identityInstruction(nextContext));
+  const historyText = Array.isArray(history)
+    ? history.map((turn) => turn?.content || "").join("\n")
+    : "";
+  const residual = detectSensitiveClasses([message, historyText, instruction].join("\n"));
+  return {
+    body: { ...body, message, history },
+    context: nextContext,
+    dataClasses: residual.length ? residual : ["message_text"],
+    minimizedClasses: minimized,
+  };
+}
+
+export function gateHostedModelCall({ providerId, country, dataClasses }) {
+  const profile = resolveCountryPolicy(country);
+  const policy = getProviderPolicy(providerId);
+  const classes = Array.isArray(dataClasses) && dataClasses.length ? dataClasses : ["message_text"];
+  const region = policy.allowed_regions[0] || "";
+  if (profile.fail_closed) {
+    return { ok: false, reason: "unknown_country", policy, region, profile };
+  }
+  const sensitive = classes.some((name) => SENSITIVE_DATA_CLASSES.includes(name));
+  if (policy.unknown && sensitive) {
+    return { ok: false, reason: "unknown_provider", policy, region, profile };
+  }
+  if (!profile.allowed_providers.includes(policy.id)) {
+    return { ok: false, reason: "provider_not_allowed", policy, region, profile };
+  }
+  if (!region || !profile.allowed_regions.includes(region)) {
+    return { ok: false, reason: "disallowed_region", policy, region, profile };
+  }
+  const outside = classes.some((name) => !policy.allowed_data_classes.includes(name));
+  if ((sensitive || outside) && policy.contract_verified !== true) {
+    return { ok: false, reason: "unverified_provider_sensitive", policy, region, profile };
+  }
+  return { ok: true, reason: "", policy, region, profile };
+}
+
 export function hostedGeminiKey() {
   return String(process.env.LUMOS_GOOGLE_GEMINI_API_KEY || "").trim();
 }
@@ -263,6 +401,9 @@ export function localTimeReply(message) {
 }
 
 export function buildGeminiRequest(body, context = null) {
+  const prepared = prepareProviderPayload(body, context);
+  body = prepared.body;
+  context = prepared.context;
   const message = String(body?.message || "").trim().slice(0, 8000);
   const turns = cleanHistory(body?.history);
   if (!turns.length || turns.at(-1)?.role !== "user" || turns.at(-1)?.text !== message) {
@@ -310,6 +451,9 @@ export function buildGeminiRequest(body, context = null) {
 }
 
 export function buildOpenAIRequest(body, context = null) {
+  const prepared = prepareProviderPayload(body, context);
+  body = prepared.body;
+  context = prepared.context;
   const message = String(body?.message || "").trim().slice(0, 8000);
   const turns = cleanHistory(body?.history);
   if (!turns.length || turns.at(-1)?.role !== "user" || turns.at(-1)?.text !== message) {

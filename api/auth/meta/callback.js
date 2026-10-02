@@ -1,6 +1,6 @@
 /** GET /api/auth/meta/callback -> code exchange -> private credential vault */
 import {
-  COOKIE,
+  openLiveSession,
   openSession,
   readCookie,
   sessionLumosId,
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
   const code = String(url.searchParams.get("code") || "").trim();
   const state = String(url.searchParams.get("state") || "").trim();
   const providerError = String(url.searchParams.get("error") || "").trim();
-  const claims = openSession(readCookie(req, COOKIE));
+  const claims = openLiveSession(req);
   const lumosId = sessionLumosId(claims);
   const flow = openSession(readCookie(req, META_FLOW_COOKIE));
   const provider = String(flow?.provider || "").trim().toLowerCase();

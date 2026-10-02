@@ -212,7 +212,7 @@ const panel: typeof panelTr = {
       wontDo2: "Ask for separate approval of permanent actions unless the confirmation layer is on.",
     },
     security: {
-      approval: "The confirmation layer is off by default. With LUMOS_CONFIRMATION_ENABLED on, it asks before the listed permanent actions.",
+      approval: "The confirmation layer is on in production (LUMOS_ENV or LUMOS_PRODUCT_ENV is production or prod). Elsewhere it asks before the listed permanent actions only when LUMOS_CONFIRMATION_ENABLED is on.",
       secret: "Runs on-device; do not paste secrets into chat.",
       debugBridge: "Local bridge connected. Voice and task actions run on this device.",
       devicePerms: "Camera and microphone depend on device permissions.",
@@ -766,7 +766,7 @@ const panel: typeof panelTr = {
   },
   ai: {
     intro:
-      "Lumos is not a new artificial intelligence and does not run its own model. Hosted chat sends the trimmed message and the signed-in name to a model API when a key is set; the chat handler itself does not write it to a database, and a “remember” summary goes to the separate memory service. The response has no provider name. The confirmation layer is off by default.",
+      "Lumos is not a new artificial intelligence and does not run its own model. Hosted chat sends the trimmed message and the signed-in name to a model API when a key is set; the chat handler itself does not write it to a database, and a “remember” summary goes to the separate memory service. The response has no provider name. The confirmation layer is on in production (LUMOS_ENV or LUMOS_PRODUCT_ENV is production or prod). Elsewhere it runs only when LUMOS_CONFIRMATION_ENABLED is on.",
     c1Title: "Gathering context",
     c1Body:
       "Lumos aims to build a clearer task context by weighing your request together with the current workspace and related information.",
@@ -775,7 +775,7 @@ const panel: typeof panelTr = {
       "AI does not present a single outcome as unquestionably correct; it surfaces options, uncertainties, and points that need attention.",
     c3Title: "Chat approval",
     c3Body:
-      "A hosted chat reply is not held for a separate approval step. The confirmation layer runs only when LUMOS_CONFIRMATION_ENABLED is on.",
+      "A hosted chat reply is not held for a separate approval step. The confirmation layer is on in production (LUMOS_ENV or LUMOS_PRODUCT_ENV is production or prod). Elsewhere it runs only when LUMOS_CONFIRMATION_ENABLED is on.",
     c4Title: "Task engine stop",
     c4Body:
       "The task engine stops a step that matches SECURITY_NEVER_AUTO. Its engine branch keeps permanent_delete outside that check. That stop is not attached to the chat reply.",
