@@ -1,13 +1,14 @@
 /**
- * POST|GET /api/auth/logout — Lumos oturum çerezini temizle
+ * POST|GET /api/auth/logout — Lumos oturum çerezini temizle ve oturum sürümünü artır.
+ * Oturum, ortak kapıdan (çerez veya Bearer) çözülür: yalnız hâlâ geçerli bir oturum
+ * sürümü artırabilir; çıkıştan sonra kopyalanmış eski belirteç sürümü tekrar artıramaz.
  */
 import {
   clearBridgeProxyCookieHeader,
   clearSessionCookieHeader,
-  openSession,
-  readCookie,
   sessionLumosId,
 } from "../_lib/lumos_session.js";
+import { hostedSessionClaims } from "../_lib/hosted_lumos.js";
 import { logEvent } from "../_lib/observability.js";
 import { bumpEpoch } from "../_lib/session_epoch.js";
 
@@ -18,11 +19,12 @@ export default async function handler(req, res) {
     return;
   }
   try {
-    const claims = openSession(readCookie(req));
+    // Mobil istemci yalnız Bearer sunabilir; çerez yoksa Bearer'dan da çıkış yapılır.
+    const claims = hostedSessionClaims(req);
     const lumosId = sessionLumosId(claims);
     if (lumosId) bumpEpoch(lumosId);
   } catch {
-    // Çerez silinir; sürüm dosyası yazılamazsa kopya çerez exp dolana kadar kalır.
+    // Çerez silinir; sürüm dosyası yazılamazsa kopya belirteç exp dolana kadar kalır.
   }
   res.setHeader("Set-Cookie", [
     clearSessionCookieHeader(),

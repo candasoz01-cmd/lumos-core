@@ -20,12 +20,40 @@ function bearerClaims(req) {
   return match ? openSession(match[1]) : null;
 }
 
+// Ortak oturum kapısı: çerez ve Bearer aynı mühürlü belirteci taşır; ikisi de
+// çıkış sonrası artan oturum sürümüne (session epoch) karşı doğrulanır. Çıkıştan
+// sonra kopyalanmış eski çerez veya Bearer hiçbir yüzeyde geçerli sayılmaz.
+// `revoked`, çözülebilen bir belirtecin yalnız sürüm nedeniyle reddedildiğini
+// gösterir (çağıranlar 401 ayrımı için kullanabilir).
+function resolveSession(req) {
+  let revoked = false;
+  const candidates = [() => openSession(readCookie(req)), () => bearerClaims(req)];
+  for (const open of candidates) {
+    const claims = open();
+    if (!claims) continue;
+    const lumosId = sessionLumosId(claims);
+    if (lumosId && !sessionEpochAllows(claims, lumosId)) {
+      revoked = true;
+      continue;
+    }
+    return { claims, revoked: false };
+  }
+  return { claims: null, revoked };
+}
+
 export function hasLumosSession(req) {
   return Boolean(sessionLumosId(hostedSessionClaims(req)));
 }
 
+/** Sürümü geçerli oturum iddiaları; yoksa veya çıkışla iptal edildiyse null. */
 export function hostedSessionClaims(req) {
-  return openSession(readCookie(req)) || bearerClaims(req);
+  return resolveSession(req).claims;
+}
+
+/** Geçerli bir oturum yok ve çözülebilen belirteç çıkış nedeniyle reddedildi. */
+export function hostedSessionRevoked(req) {
+  const state = resolveSession(req);
+  return !state.claims && state.revoked;
 }
 
 function cleanMemoryItems(raw) {
@@ -130,13 +158,16 @@ export async function rememberExplicitMemory(lumosId, message, sourceProvider, m
 }
 
 export async function loadHostedUserContext(req, body) {
-  const claims = hostedSessionClaims(req);
-  if (!claims) return { ok: false, error: "unauthorized", status: 401 };
+  const session = resolveSession(req);
+  const claims = session.claims;
+  if (!claims) {
+    // Çıkıştan sonra kopyalanmış çerez/Bearer: tek kapı (resolveSession) reddetti.
+    return session.revoked
+      ? { ok: false, error: "session_revoked", status: 401 }
+      : { ok: false, error: "unauthorized", status: 401 };
+  }
   const lumosId = sessionLumosId(claims);
   if (!lumosId) return { ok: false, error: "identity_missing", status: 401 };
-  if (!sessionEpochAllows(claims, lumosId)) {
-    return { ok: false, error: "session_revoked", status: 401 };
-  }
   const requestedLumosId = String(body?.identity?.lumos_id || "").trim();
   if (requestedLumosId && requestedLumosId !== lumosId) {
     return { ok: false, error: "identity_mismatch", status: 409 };
