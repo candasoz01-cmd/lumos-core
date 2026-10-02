@@ -1,5 +1,5 @@
 /** Authenticated, same-origin, read-only Meta account sync. */
-import { COOKIE, openSession, readCookie, sessionLumosId } from "../../_lib/lumos_session.js";
+import { openLiveSession, sessionLumosId } from "../../_lib/lumos_session.js";
 import { META_PROVIDERS } from "../../_lib/meta_oauth.js";
 import { syncMetaReadOnly } from "../../_lib/meta_sync.js";
 import { resolveMetaCredential } from "../../_lib/meta_vault.js";
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
     json(res, 405, { ok: false, error: "method_not_allowed" });
     return;
   }
-  const claims = openSession(readCookie(req, COOKIE));
+  const claims = openLiveSession(req);
   const lumosId = claims?.sid ? sessionLumosId(claims) : "";
   if (!lumosId) {
     json(res, 401, { ok: false, error: "lumos_session_required" });

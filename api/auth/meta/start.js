@@ -1,9 +1,7 @@
 /** GET /api/auth/meta/start?provider=... -> read-only Meta OAuth */
 import {
-  COOKIE,
   makeState,
-  openSession,
-  readCookie,
+  openLiveSession,
   sealSession,
   sessionLumosId,
 } from "../../_lib/lumos_session.js";
@@ -35,7 +33,7 @@ export default async function handler(req, res) {
     res.end("method_not_allowed");
     return;
   }
-  const claims = openSession(readCookie(req, COOKIE));
+  const claims = openLiveSession(req);
   const lumosId = sessionLumosId(claims);
   if (!claims?.sid || !lumosId) {
     redirectError(res, "lumos_session_required");
