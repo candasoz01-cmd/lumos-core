@@ -34,7 +34,11 @@ export function buildOperatorWallRecord(input = {}) {
 export function appendOperatorWall(record) {
   const file = String(process.env.LUMOS_OPERATOR_WALL_PATH || "").trim();
   if (!file || !record) return record;
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.appendFileSync(file, `${JSON.stringify(record)}\n`);
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.appendFileSync(file, `${JSON.stringify(record)}\n`);
+  } catch {
+    // Operatör kaydı best-effort. mkdir/yazma hatası isteğin 200, 403 veya model sonucunu değiştirmez.
+  }
   return record;
 }

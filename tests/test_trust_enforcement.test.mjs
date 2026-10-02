@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -8,6 +8,7 @@ import logoutHandler from "../api/auth/logout.js";
 import sessionHandler from "../api/auth/session.js";
 import { gateHostedModelCall, buildOpenAIRequest, prepareProviderPayload } from "../api/_lib/hosted_lumos.js";
 import { sealSession } from "../api/_lib/lumos_session.js";
+import { appendOperatorWall, buildOperatorWallRecord } from "../api/_lib/operator_wall.js";
 
 const SECRET = "test-only-secret-32-characters-minimum";
 const epochDir = mkdtempSync(path.join(tmpdir(), "lumos-epoch-"));
@@ -187,6 +188,93 @@ test("provider and model stay on the operator record only", async () => {
     assert.equal(record.contract_verified, false);
     assert.deepEqual(record.data_classes_sent, ["message_text"]);
     assert.equal(JSON.stringify(record).includes("Merhaba"), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.LUMOS_OPERATOR_WALL_PATH;
+  }
+});
+
+function brokenOperatorWallPath() {
+  const blocker = path.join(epochDir, `wall-blocker-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  writeFileSync(blocker, "not a directory\n");
+  return path.join(blocker, "wall.jsonl");
+}
+
+test("operator wall mkdir failure does not throw and still returns the record", () => {
+  process.env.LUMOS_OPERATOR_WALL_PATH = brokenOperatorWallPath();
+  try {
+    const record = buildOperatorWallRecord({ provider: "openai", outcome: "sent" });
+    assert.deepEqual(appendOperatorWall(record), record);
+  } finally {
+    delete process.env.LUMOS_OPERATOR_WALL_PATH;
+  }
+});
+
+test("operator wall write failure keeps the successful chat reply", async () => {
+  const wallDir = path.join(epochDir, "wall-is-a-directory");
+  mkdirSync(wallDir, { recursive: true });
+  process.env.LUMOS_OPERATOR_WALL_PATH = wallDir;
+  process.env.OPENAI_API_KEY = "private-openai-test-key";
+  delete process.env.LUMOS_GOOGLE_GEMINI_API_KEY;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    async json() {
+      return { output: [{ content: [{ type: "output_text", text: "Tamam" }] }] };
+    },
+  });
+  const res = makeRes();
+  try {
+    await handler(cookieReq("Merhaba"), res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(res.payload.reply, "Tamam");
+    assert.equal(res.payload.mode, "hosted_chat");
+    assert.equal(res.payload.error, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.LUMOS_OPERATOR_WALL_PATH;
+  }
+});
+
+test("operator wall write failure keeps the policy block", async () => {
+  process.env.LUMOS_OPERATOR_WALL_PATH = brokenOperatorWallPath();
+  process.env.OPENAI_API_KEY = "private-openai-test-key";
+  delete process.env.LUMOS_GOOGLE_GEMINI_API_KEY;
+  let called = false;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    called = true;
+    return { ok: false, status: 500, async json() { return {}; } };
+  };
+  const res = makeRes();
+  try {
+    await handler(cookieReq("Merhaba", { country: "XX" }), res);
+    assert.equal(res.statusCode, 403);
+    assert.equal(res.payload.error, "provider_policy_blocked");
+    assert.equal(res.payload.reason, "disallowed_region");
+    assert.equal(called, false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.LUMOS_OPERATOR_WALL_PATH;
+  }
+});
+
+test("a failed model stays model_unavailable when the operator wall cannot be written", async () => {
+  process.env.LUMOS_OPERATOR_WALL_PATH = brokenOperatorWallPath();
+  process.env.OPENAI_API_KEY = "private-openai-test-key";
+  delete process.env.LUMOS_GOOGLE_GEMINI_API_KEY;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new Error("upstream down");
+  };
+  const res = makeRes();
+  try {
+    await handler(cookieReq("Merhaba"), res);
+    assert.equal(res.statusCode, 502);
+    assert.equal(res.payload.error, "model_unavailable");
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.OPENAI_API_KEY;
