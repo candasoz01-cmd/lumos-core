@@ -199,7 +199,7 @@ Kaynak notları toplanırken dikkat: kitabın kullanıcıya dönük ana metninde
 - Bölümlerde gerçek kullanıcı senaryoları, panel ekranları veya vaka çalışmaları kullanılacak mi? → **Karar:** Karışık. Vizyon senaryoları açıkça «vizyon» diye etiketlenir; gerçek ürün ekranı veya gerçek davranış gösteriliyorsa kanıtlanabilir mevcut sürümden gelir. Vizyon ile çalışan ürün karıştırılmaz (bkz. Belge §11, madde 6).
 - Kitap kısa bir "founder letter + ilkeler" metni mi, yoksa uzun soluklu bölümlü kitap mi olacak? → **Karar:** İkisi de. Kısa bir kurucu mektubu giriş olur; arkasından bölümlü kitap gelir.
 - Son başlık "Lumos: Kontrol Kullanıcıda" olarak mi kalacak, yoksa daha sıcak/insani bir çalışma adına mi evrilecek? → **Karar (güncel, 2026-09-30):** Nihai başlık «Lumos — Dream it. Approve it. Done.» olur; çalışma adı kapanmıştır. «Done» ürünün tamamlandığı iddiası değil, iş akışı ilkesidir (bkz. Belge §1). Önceki karar (çalışma adı kalır, başlık yayın öncesi dondurulur) bu kararla yürürlükten kalkar.
-- **Lansman / yayın tarihi:** Belge §10 «Lansman türleri». Referans web/PDF için tarih **TBD** kalır; Life ve ticari lansmanların kendi tarihleri de yoktur. Dış kamu AI haberleri Lumos takvimi değildir. → **Karar:** Tarih konmaz. §6 kararları, nihai başlık, §11 sadeleştirmesi ve çok dilli mimari (#895, `main`'e indi) kapanmıştır. Tarih için hâlâ açık olanlar: Belge §11 kontrollerinin yayın sürümünde geçmesi, hukuki gözden geçirme ve yayın sürümünün hazır olması. Takvim için içerik sıkıştırılmaz.
+- **Lansman / yayın tarihi:** Belge §10 «Lansman türleri». Referans web/PDF için tarih **TBD** kalır; Life ve ticari lansmanların kendi tarihleri de yoktur. Dış kamu AI haberleri Lumos takvimi değildir. → **Karar:** Tarih konmaz. §6 kararları, nihai başlık, §11 sadeleştirmesi ve çok dilli mimari (#895, `main`'e indi) kapanmıştır. Tarih için hâlâ açık olanlar: Belge §11 kontrollerinin yayın sürümünde geçmesi ve yayın sürümünün hazır olması. Takvim için içerik sıkıştırılmaz.
 
 ## 7. Kurucu hikâye notları
 
@@ -332,7 +332,7 @@ Ayrıntılar aşağıda alt başlıklarda; burada tekrarlanmaz.
 - **Yayımlama kalite kapısı** (altı kontrol, «tamamlanmadan yayımlama») → **Belge §11**; bu bölüm yalnızca referans verir.
 - **Kurucu pusula ve vizyon dalları** → Belge §8, §13.
 - **Ticari aşama planı** (Alpha / Beta / Commercial giriş kriterleri) → `docs/analysis/pre-commercial-release-plan.md`.
-- **Otomasyon / CI / build pipeline** — henüz kurulmadı; bu belge hedef mimariyi tanımlar, uygulama taahhüdü değildir.
+- **Kitabın web/PDF/ePub üretim ve yayın otomasyonu** — henüz kurulmadı; bu belge hedef mimariyi tanımlar, uygulama taahhüdü değildir. Bu ifade, mevcut repo CI ve uygulama build süreçlerinin eksik olduğu anlamına gelmez.
 - **Takvim taahhüdü** — TBD; ayrı yazılı karar + onay olmadan eklenmez (Belge §11).
 
 ### 4. V1 / yakın gelecek / uzun vadeli
@@ -723,10 +723,17 @@ Erken fazda yalnızca «Yapar» ve sınırlı «Anlatır» katmanları gerçekç
 
 ### Gömülü eğitim — örnekler ve vakalar
 
-Lumos bir modülde bir işi yapabiliyorsa, aynı bağlamda o işin mantığını anlatmayı ve öğretmeyi de hedefler:
+Lumos bir modülde bir işi yapabiliyorsa, aynı bağlamda o işin mantığını anlatmayı ve öğretmeyi de hedefler. Aşağıdaki örnekler öğrenme alanlarını gösterir; her satırın Lumos panelinde uygulanmış veya doğrulanmış olduğu anlamına gelmez.
 
-| Yapabildiği | Öğretebilmeyi hedeflediği |
+**Testin kaynağı ve kapsamı:** Altyapı sağlayıcılarının yayımladığı değerlendirmeler, bizim bu sağlayıcıların ortamlarında yürüttüğümüz testler ve Lumos panelinde yapılan uçtan uca denemeler ayrı kanıt türleridir. Bu ayrım, söz konusu testlerin yapılmış olduğu anlamına gelmez; her biri kendi kaydıyla doğrulanır. Bir sonuç aktarılırken kaynak, testi yürüten taraf, ortam, sürüm ve sınanan davranış belirtilir. Sağlayıcı ortamında bir testin koşması, sağlayıcının Lumos'u bağımsız olarak test ettiği veya onayladığı anlamına gelmez; sağlayıcı/model düzeyindeki bir sonuç da tek başına Lumos panelindeki özelliği doğrulamaz.
+
+**Bu bölümde doğrulanabilen dar örnek:** Repodaki [simülatör bağlantı prototipi](../src/integrations/quantum_aer_connect.py), tek qubit ve tek ölçümlük bir deneme içerir. [Bağlantı testindeki](../tests/test_quantum_aer_connect.py) başarı senaryosu, simülatör sonucunu taklit ederek bağlantı akışını sınar; gerçek simülatör çalıştırmasını veya Academy eğitim arayüzünü kanıtlamaz. Aşağıdaki öğrenme örnekleri için bu bölümde doğrulanmış bir altyapı sağlayıcısı test raporu ya da Lumos panelinde uçtan uca kullanım kaydı gösterilmemiştir. Böyle bir kanıt eklendiğinde yalnız doğruladığı kapsam için «çalışıyor» denir.
+
+| Örnek görev / öğrenme alanı | Öğretebilmeyi hedeflediği |
 |-------------|---------------------------|
+| Matematik problemi | Çözüm adımları, gerekçe ve farklı çözüm yolları |
+| Fizik ve devre problemi | Model, varsayımlar, birimler ve hesaplama mantığı |
+| İstatistik ve veri yorumlama | Olasılık, belirsizlik ve sonuçların sınırları |
 | Muhasebe işlemi | Muhasebe mantığı |
 | Kod yazma / düzenleme | Kodlama ve karar gerekçesi |
 | Şirket / süreç yönetimi | Yöneticilik ve önceliklendirme |
