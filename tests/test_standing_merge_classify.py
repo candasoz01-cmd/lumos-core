@@ -22,11 +22,13 @@ def test_pr777_fixture_is_excluded() -> None:
     assert any(hit["reason"].startswith("prefix:docs/contracts/") for hit in verdict["hits"])
 
 
-def test_debt_register_only_is_eligible() -> None:
+def test_debt_register_is_semantic_review_not_eligible() -> None:
+    """Dosya adı yetki vermez: aynı TECHNICAL_DEBT.md hem olgusal satır
+    düzeltmesi hem yeni kural/izin kaydı taşıyabilir (2026-09-26, kurucu)."""
     verdict = classify_paths(["docs/TECHNICAL_DEBT.md"])
-    assert verdict["class"] == CLASS_ELIGIBLE
-    assert verdict["standing_merge"] is True
-    assert verdict["human_merge_required"] is False
+    assert verdict["class"] == CLASS_SEMANTIC
+    assert verdict["standing_merge"] is False
+    assert verdict["human_merge_required"] is True
     assert verdict["unknown"] == []
 
 
@@ -84,7 +86,7 @@ def test_cli_exits_two_when_excluded() -> None:
 
 
 def test_cli_exits_zero_when_eligible() -> None:
-    assert main(["docs/TECHNICAL_DEBT.md"]) == 0
+    assert main(["tests/test_example.py"]) == 0
 
 
 def test_policy_code_is_hard_excluded() -> None:
@@ -489,3 +491,54 @@ def test_workflow_materialize_step_has_pythonpath() -> None:
     ).read_text(encoding="utf-8")
     materialize = text.split("Materialize trusted classifier", 1)[1].split("- name:", 1)[0]
     assert "PYTHONPATH:" in materialize
+
+
+# --- TECHNICAL_DEBT.md: dosya adı değil, değişikliğin içeriği yetki belirler ---
+
+DEBT = "docs/TECHNICAL_DEBT.md"
+
+
+def test_debt_factual_attestation_on_this_head_opens_standing() -> None:
+    verdict = classify_paths([DEBT], attestation=_attest("factual"), head_sha=HEAD)
+    assert verdict["class"] == CLASS_ELIGIBLE
+    assert verdict["standing_merge"] is True
+    assert verdict["attestation"] == "factual"
+
+
+def test_debt_normative_attestation_requires_human_merge() -> None:
+    """#892 türü: yeni güvenlik/mahremiyet niyeti ve kural cümlesi taşıyan
+    TD kaydı normatiftir; standing kapanır, açık insan onayı gerekir."""
+    verdict = classify_paths([DEBT], attestation=_attest("normative"), head_sha=HEAD)
+    assert verdict["class"] == CLASS_EXCLUDED
+    assert verdict["standing_merge"] is False
+    assert verdict["human_merge_required"] is True
+    assert verdict["attestation"] == "normative"
+
+
+def test_debt_without_attestation_stays_closed() -> None:
+    verdict = classify_paths([DEBT], head_sha=HEAD)
+    assert verdict["class"] == CLASS_SEMANTIC
+    assert verdict["standing_merge"] is False
+    assert verdict["attestation"] == "absent"
+    assert verdict["reasons"] == ["semantic:prefix:docs/"]
+
+
+def test_debt_stale_attestation_does_not_carry_to_new_head() -> None:
+    verdict = classify_paths(
+        [DEBT], attestation=_attest("factual", "deadbeef"), head_sha=HEAD
+    )
+    assert verdict["class"] == CLASS_SEMANTIC
+    assert verdict["standing_merge"] is False
+    assert verdict["attestation"] == "stale"
+
+
+def test_debt_ci_default_run_cannot_open_standing() -> None:
+    """CI attestation üretmez: standing-class workflow'undaki çağrı biçimi
+    (yalnız yol listesi) TD değişikliğinde artık exit 0 vermez."""
+    assert main(["--", DEBT]) == 3
+
+
+def test_debt_with_tests_still_needs_attestation() -> None:
+    verdict = classify_paths([DEBT, "tests/test_example.py"])
+    assert verdict["class"] == CLASS_SEMANTIC
+    assert verdict["standing_merge"] is False
