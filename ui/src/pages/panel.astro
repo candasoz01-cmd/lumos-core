@@ -5000,12 +5000,12 @@ const PANEL_DEBUG = import.meta.env.DEV;
                         <h4 class="chat-capability-card__heading" data-i18n="panel.modules.chat.capability.wontDoSection">Şu an yapmam</h4>
                         <ul class="chat-capability-card__list">
                           <li data-i18n="panel.modules.chat.capability.wontDo1">Komut çalıştırmaz, kod değiştirmez.</li>
-                          <li data-i18n="panel.modules.chat.capability.wontDo2">Onaysız kalıcı işlem yapmaz.</li>
+                          <li data-i18n="panel.modules.chat.capability.wontDo2">Onay katmanı açık değilse kalıcı işlem için ayrı onay istemez.</li>
                         </ul>
                       </section>
                     </div>
                   </div>
-                  <p class="lumos-security-note" data-i18n="panel.modules.chat.security.approval">Kalıcı işlemler için onay ister.</p>
+                  <p class="lumos-security-note" data-i18n="panel.modules.chat.security.approval">Onay katmanı üretimde (LUMOS_ENV veya LUMOS_PRODUCT_ENV production ya da prod) açıktır. Diğer ortamlarda yalnız LUMOS_CONFIRMATION_ENABLED açıkken listelenen kalıcı işlemler için onay ister.</p>
                   <p id="panel-empty-secret-note" class="lumos-security-note" data-i18n="panel.modules.chat.security.secret">Cihaz içinde çalışır; gizli bilgileri sohbete yazma.</p>
                   {PANEL_DEBUG && (
                     <p class="lumos-security-note panel-debug-only" data-i18n="panel.modules.chat.security.debugBridge">
@@ -5890,9 +5890,10 @@ const PANEL_DEBUG = import.meta.env.DEV;
           >
             <h2 id="panel-yapayzeka-title" data-i18n="panel.sections.yapayzeka">Yapay Zekâ</h2>
             <p class="medya-intro" data-i18n="panel.modules.ai.intro">
-              Bu sekme, Lumos’un yapay zekâyı kullanıcı adına karar veren bir otorite olarak değil; bağlamı toparlayan,
-              seçenekleri düzenleyen ve karar sürecini daha görünür hale getiren bir yardımcı katman olarak ele alma yaklaşımını
-              özetler.
+              Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş
+              iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse
+              özet ayrı hafıza servisine yazılır. Yanıtta sağlayıcı adı yoktur. Onay
+              katmanı üretimde (LUMOS_ENV veya LUMOS_PRODUCT_ENV production ya da prod) açıktır. Diğer ortamlarda yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.
             </p>
             <ul class="medya-card-list">
               <li class="medya-card">
@@ -5910,17 +5911,16 @@ const PANEL_DEBUG = import.meta.env.DEV;
                 </p>
               </li>
               <li class="medya-card">
-                <h3 data-i18n="panel.modules.ai.c3Title">Karar Kullanıcıda</h3>
+                <h3 data-i18n="panel.modules.ai.c3Title">Sohbet onayı</h3>
                 <p data-i18n="panel.modules.ai.c3Body">
-                  Lumos öneri sunabilir, yolu kısaltabilir ve karmaşayı azaltabilir; ancak nihai karar kullanıcının iradesinde
-                  kalmalıdır.
+                  Barındırılan sohbet yanıtı ayrı bir onay adımı beklemez. Onay katmanı üretimde (LUMOS_ENV veya LUMOS_PRODUCT_ENV production ya da prod) açıktır. Diğer ortamlarda yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.
                 </p>
               </li>
               <li class="medya-card">
-                <h3 data-i18n="panel.modules.ai.c4Title">Riskli İşlem Duraklatma</h3>
+                <h3 data-i18n="panel.modules.ai.c4Title">Görev motorunda durma</h3>
                 <p data-i18n="panel.modules.ai.c4Body">
-                  Kalıcı, maliyetli veya geri dönüşü zor işlemlerde yapay zekâ otomatik ilerlemek yerine kullanıcıyı bilgilendirmeli
-                  ve açık onay beklemelidir.
+                  Görev motoru, SECURITY_NEVER_AUTO ile eşleşen adımı durdurur. Motor dalı permanent_delete üyesini bu
+                  kontrolün dışında tutar. Bu durdurma sohbet yanıtına bağlı değildir.
                 </p>
               </li>
               <li class="medya-card">

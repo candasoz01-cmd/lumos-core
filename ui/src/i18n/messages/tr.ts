@@ -5,15 +5,15 @@ import umbrella from "./umbrella/tr";
 
 const tr = {
   meta: {
-    landingTitle: "We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi",
+    landingTitle: "Lumos — kontrol katmanı",
     description:
-      "We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür.",
-    ogTitle: "We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi",
+      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse özet ayrı hafıza servisine yazılır.",
+    ogTitle: "Lumos — kontrol katmanı",
     ogDescription:
-      "We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür.",
-    twitterTitle: "We Lock AI — İnsan Merkezli Yapay Zekâ Ekosistemi",
+      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse özet ayrı hafıza servisine yazılır.",
+    twitterTitle: "Lumos — kontrol katmanı",
     twitterDescription:
-      "We Lock AI, insan merkezli yapay zekâ ekosistemidir. Lumos; sohbet, görev, dosya ve bağlantıları tek çalışma alanında buluşturan son kullanıcı ürünüdür.",
+      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse özet ayrı hafıza servisine yazılır.",
   },
   lang: {
     switchLabel: "Dil seçimi",
@@ -38,10 +38,13 @@ const tr = {
   hero: {
     eyebrow: "WE LOCK AI · LUMOS",
     title: "Lumos",
-    subtitle: "Yapay zekâ kontrol katmanı",
+    subtitle: "Kontrol katmanı",
     lead1:
-      "Lumos yeni bir yapay zekâ değildir. Kullandığınız yapay zekâları (ChatGPT, Copilot ve benzerleri) güvenli, denetlenebilir ve sizin kontrolünüzde çalıştıran ortak katmandır.",
-    lead2: "Karar kullanıcıda kalır. Lumos riski, bağlamı ve sonraki adımı görünür kılar.",
+      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Anahtar tanımlıysa iletiniz bir model API’sine gider.",
+    lead2:
+      "Sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz; “hatırla” denirse özet ayrı hafıza servisine yazılır. Yanıtta sağlayıcı ve model adı yoktur.",
+    lead3:
+      "Onay katmanı, ortam değişkeni açık değilse çalışmaz. Sohbet yanıtı ayrı bir onay adımı beklemez.",
     pillar: "Tek panel · Çoklu akış · Kullanıcı kontrolü",
     audience: "Şu an: geliştiriciler için açık kaynak · kurumlar için yol haritada · son kullanıcı paketi yakında.",
     ctaPanel: "Paneli Aç",

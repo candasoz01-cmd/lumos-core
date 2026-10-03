@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import os
 import time
 from typing import List, Optional
 
@@ -75,6 +76,14 @@ class Memory:
         ctx.memory_note_count = len(self.notes)
         return ctx
 
+    def delete_all(self) -> int:
+        if not self._is_unlocked:
+            return 0
+        removed = len(self.notes)
+        self.notes = []
+        self._save_to_store()
+        return removed
+
     def add(self, note: MemoryNote) -> None:
         if not self._is_unlocked:
             return
@@ -82,6 +91,19 @@ class Memory:
             return
         if note.created_at is None:
             note.created_at = time.time()
+        if note.ttl_seconds is None:
+            note.ttl_seconds = _default_ttl_seconds()
         self.notes.append(note)
         self._save_to_store()
+
+
+def _default_ttl_seconds() -> Optional[int]:
+    raw = (os.environ.get("LUMOS_MEMORY_TTL_SECONDS") or "").strip()
+    if not raw:
+        return None
+    try:
+        value = int(raw)
+    except ValueError:
+        return None
+    return value if value > 0 else None
 

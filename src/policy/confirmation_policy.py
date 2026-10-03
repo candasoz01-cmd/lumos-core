@@ -104,8 +104,22 @@ class PendingConfirmation:
     schema_version: str = SCHEMA_VERSION
 
 
+def _production_product_env() -> bool:
+    for key in ("LUMOS_ENV", "LUMOS_PRODUCT_ENV"):
+        raw = (os.environ.get(key) or "").strip().lower()
+        if raw in ("production", "prod"):
+            return True
+    return False
+
+
 def is_confirmation_enabled() -> bool:
-    """LUMOS_CONFIRMATION_ENABLED=true|1|yes → aktif; aksi halde no-op."""
+    """Üretimde kapı açıktır. Diğer ortamlarda yalnız 1|true|yes açar.
+
+    LUMOS_ENV veya LUMOS_PRODUCT_ENV production|prod iken açık `false` dahil
+    kapı kapanmaz. SECURITY_NEVER_AUTO bu fonksiyondan bağımsızdır.
+    """
+    if _production_product_env():
+        return True
     raw = (os.environ.get("LUMOS_CONFIRMATION_ENABLED") or "").strip().lower()
     return raw in ("1", "true", "yes")
 
