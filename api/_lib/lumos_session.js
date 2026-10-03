@@ -176,11 +176,42 @@ export function readCookie(req, name = COOKIE) {
   return "";
 }
 
-export function redirectUri() {
-  return (
+const OAUTH_CALLBACK_PATH = "/auth/google/callback";
+
+function requestHost(req) {
+  const headers = req?.headers || {};
+  const forwarded = String(headers["x-forwarded-host"] || "").split(",")[0].trim();
+  return (forwarded || String(headers.host || "").trim()).toLowerCase();
+}
+
+// Birden çok alan adı (ör. mobil + web) aynı projeye bağlıysa her biri kendi
+// callback'ini kullanmalı: OAuth çerezleri (Path=/auth/google) alan adına
+// bağlıdır, başka alan adına dönen callback onları göremez. Liste yalnız
+// açıkça izin verilen https callback'lerini kabul eder; Host başlığı listeye
+// eşleşmezse tek adresli eski davranış korunur.
+export function allowedRedirectUris() {
+  return String(process.env.LUMOS_GOOGLE_WEB_REDIRECT_URIS || "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter((value) => {
+      try {
+        const url = new URL(value);
+        return url.protocol === "https:" && url.pathname === OAUTH_CALLBACK_PATH &&
+          !url.search && !url.hash && !url.username && !url.password;
+      } catch {
+        return false;
+      }
+    });
+}
+
+export function redirectUri(req = null) {
+  const fallback = (
     process.env.LUMOS_GOOGLE_WEB_REDIRECT_URI ||
-    "https://welockai.com/auth/google/callback"
+    `https://welockai.com${OAUTH_CALLBACK_PATH}`
   ).trim();
+  const host = requestHost(req);
+  if (!host) return fallback;
+  return allowedRedirectUris().find((value) => new URL(value).host === host) || fallback;
 }
 
 export {
