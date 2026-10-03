@@ -478,6 +478,17 @@ def start_agent_job(
                 _write_json(path_status, payload)
             except OSError:
                 pass
+            if name == "final_report":
+                return
+            try:
+                from lumos_board.evidence_archive import checkpoint_phase
+
+                checkpoint = checkpoint_phase(repo=rr, job_id=job_id, phase=name)
+            except (OSError, ValueError, TypeError) as exc:
+                state.errors.append(f"evidence_checkpoint_failed:{exc}"[:200])
+                return
+            if checkpoint and checkpoint.get("required") and checkpoint.get("status") not in {None, "NOT_DUE"} and not checkpoint.get("verified"):
+                state.errors.append(f"evidence_checkpoint_{checkpoint.get('status')}"[:200])
 
         try:
             os.chdir(rr)
@@ -487,6 +498,19 @@ def start_agent_job(
                 repo_root=rr,
                 on_phase=on_phase,
             )
+            # Arşiv doğrulaması, başarıyı kaydeden her artefaktan ÖNCE koşar: agent_last.json ve
+            # evidence journal doğrulama sonrası sonucu taşır; doğrulanamayan teslim "ok" görünmez.
+            try:
+                from lumos_board.evidence_archive import bind_report
+
+                fr = bind_report(fr, repo=rr, job_id=job_id, kind="delivery")
+            except Exception as exc:
+                fr = dict(fr)
+                fr["evidence"] = {"verified": False, "required": True, "status": "EVIDENCE_BIND_FAILED"}
+                fr["status"] = "partial"
+                errors = list(fr.get("errors") or [])
+                errors.append(f"evidence_unverified:{exc}"[:200])
+                fr["errors"] = errors
             # Sıralama sözleşmesi: status dosyasındaki "completed" yayın noktasıdır —
             # evidence journal ve diğer tamamlanma artefaktları ondan ÖNCE yazılır,
             # böylece "completed" gören her gözlemci journal'daki result kaydını bulur.
@@ -500,14 +524,16 @@ def start_agent_job(
             except Exception:
                 pass
             state.final_report = fr
-            state.status = "completed"
+            evidence = fr.get("evidence") or {}
+            blocked = evidence.get("required") is True and evidence.get("verified") is not True
+            state.status = "failed" if blocked else "completed"
             state.phase = "done"
             if fr.get("errors"):
                 state.errors = list(fr["errors"])
             done_payload = {
                 "job_id": job_id,
                 "phase": "done",
-                "status": "completed",
+                "status": state.status,
                 "final_report": fr,
                 "errors": state.errors,
             }

@@ -156,8 +156,47 @@ def main():
     p = sub.add_parser('check')
     p.add_argument('--repo', required=True)
     p.add_argument('--archive', required=True)
+    p = sub.add_parser('checkpoint')
+    p.add_argument('--repo', required=True)
+    p.add_argument('--archive', required=True)
+    p.add_argument('--task', required=True)
+    p.add_argument('--report', required=True)
+    p.add_argument('--kind', choices=('interim', 'delivery'), required=True)
+    p.add_argument('--run-attempt', default='local')
+    p = sub.add_parser('verify')
+    p.add_argument('--repo', required=True)
+    p.add_argument('--archive', required=True)
+    p.add_argument('--task', required=True)
+    p.add_argument('--report', required=True)
+    p.add_argument('--commit', required=True)
+    p.add_argument('--run-attempt', default='local')
+    p = sub.add_parser('inventory')
+    p.add_argument('--archive', required=True)
     args = vars(parser.parse_args())
     command = args.pop('command')
+    if command in {'checkpoint', 'verify', 'inventory'}:
+        from lumos_board import evidence_archive as archive
+        try:
+            if command == 'checkpoint':
+                result = archive.archive_report(
+                    Path(args['repo']), Path(args['archive']),
+                    task_id=args['task'], report_id=args['report'], report_kind=args['kind'],
+                    run_attempt=args['run_attempt'],
+                )
+            elif command == 'verify':
+                # checkpoint, manifest'i <archive>/<report>/ altına yazar; aynı --archive burada da çalışır.
+                result = archive.observe_archive(
+                    Path(args['repo']), archive.archive_dir_for(Path(args['archive']), args['report']),
+                    expect={'task_id': args['task'], 'report_id': archive.safe_report_id(args['report']),
+                            'commit': args['commit'], 'run_attempt': args['run_attempt']},
+                )
+            else:
+                result = archive.inventory(Path(args['archive']))
+            print(json.dumps(result, ensure_ascii=False))
+        except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+            print('DELIVERY_BLOCKED: ' + str(exc), file=sys.stderr)
+            return 2
+        return 0 if result.get('verified', True) else 2
     try:
         print(json.dumps(globals()[command](**args), ensure_ascii=False))
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as exc:
