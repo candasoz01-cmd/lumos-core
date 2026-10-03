@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     return;
   }
   const clientId = (process.env.LUMOS_GOOGLE_WEB_CLIENT_ID || "").trim();
-  const cb = redirectUri();
+  const cb = redirectUri(req);
   if (!clientId) {
     await captureError(new Error("missing_client_id"), { route: ROUTE, errorCode: "missing_client_id" });
     redirectAuthError(res, "missing_client_id");

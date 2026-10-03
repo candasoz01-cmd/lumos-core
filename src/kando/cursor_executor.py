@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 from typing import Any
 
+from core.bridge_evidence import preserve_bridge_views
+
 
 def run_after_bridge(lumos_base: Path, exe: Any) -> None:
     """execution_mode task veya patch ise disk kanıtı üret."""
@@ -21,7 +23,9 @@ def run_after_bridge(lumos_base: Path, exe: Any) -> None:
         "execution_mode": mode,
         "execution": (getattr(exe, "constraints", None) or {}).get("execution"),
     }
-    (d / "last_cursor_executor.json").write_text(
+    target = d / "last_cursor_executor.json"
+    preserve_bridge_views(lumos_base, (target,))
+    target.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
