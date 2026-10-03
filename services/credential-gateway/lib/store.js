@@ -71,7 +71,8 @@ export function scanCredentialRecords(secrets) {
       name.startsWith("CONN__") ||
       name.startsWith("INBOUND__") ||
       name.startsWith("LASTIN__") ||
-      name.startsWith("SEND__")
+      name.startsWith("SEND__") ||
+      name.startsWith("DELETION__")
     ) continue;
     const record = parseCredentialRecord(secret.value);
     if (record) {

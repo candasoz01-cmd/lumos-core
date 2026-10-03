@@ -26,7 +26,29 @@ türetilmiştir (ADR-021).
 ## Operasyonlar
 
 `credential.upsert | credential.list | credential.metadata | credential.resolve
-(provider veya vault_ref ile) | credential.delete | webhook.ingest`
+(provider veya vault_ref ile) | credential.delete | webhook.ingest |
+connection.upsert | connection.list | connection.delete | account.purge |
+deletion.status`
+
+- `connection.delete` (owner + `credential_ref`): "Bağlantıyı kaldır" sonrası o
+  credential'a bağlı `CONN__` kayıtlarını ve bu bağlantıların `INBOUND__`,
+  `LASTIN__`, `SEND__` kayıtlarını siler.
+- `account.purge` (owner yok; `providers` + `provider_account_id` +
+  `confirmation_code`): Meta veri silme / yetki kaldırma geri çağrısı. Eşleşen
+  `CRED__` kayıtlarını ve yukarıdaki bağlı kayıtları siler, sonucu kullanıcı
+  kimliği taşımayan `DELETION__<code>` kaydına yazar.
+- `deletion.status` (`confirmation_code`): o kaydı döner.
+- Silme sırası yapraktan köke: `SEND__` → `LASTIN__` → `INBOUND__` → `CONN__`
+  → `CRED__`. Credential en son silinir; yarıda kalan silme yeniden
+  denendiğinde aynı credential'ı bulur ve tamamlar. Aynı sahibin, kapsamdaki
+  sağlayıcılarda credential'ı artık olmayan (önceki revoke akışından kalan)
+  bağlantı kayıtları da silinir.
+- `webhook.ingest` yalnız `WEBHOOK__<ham gövdenin sha256'sı>` adında
+  `{provider, received_at}` kaydı yazar; ileti içeriği, gönderen, telefon
+  veya hesap kimliği saklanmaz (`tests/test_meta_deletion_callbacks.test.mjs`).
+  Bu kayıtlar kişiye bağlanamadığı için silme işlemlerinin dışındadır.
+  `LUMOS_META_WEBHOOK_SINK_URL` bu geçitten başka bir servise yönlendirilirse
+  bu güvence o servis için geçmez.
 
 ## Deploy
 

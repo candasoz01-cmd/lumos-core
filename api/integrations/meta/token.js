@@ -13,6 +13,7 @@ import {
 } from "../../_lib/meta_oauth.js";
 import {
   deleteMetaCredential,
+  deleteMetaConnectionsForCredential,
   metaCredentialMetadata,
   resolveMetaCredential,
   writeMetaCredential,
@@ -137,12 +138,31 @@ export default async function handler(req, res) {
     } catch {
       upstreamRevoked = false;
     }
+    // KARAR-2 (#903): önce bu credential'a bağlı bağlantı kayıtları silinir,
+    // credential en son. Bağlantı silme başarısızsa credential yerinde kalır;
+    // böylece yeniden deneme aynı vault_ref'i bulup temizliği tamamlar.
+    try {
+      await deleteMetaConnectionsForCredential(lumosId, credential.vaultRef, provider);
+    } catch (connectionError) {
+      await captureError(connectionError, { route: ROUTE, provider, errorCode: "meta_connection_delete_failed" });
+      json(res, 502, {
+        ok: false,
+        provider,
+        status: "revoke_incomplete",
+        upstream_revoked: upstreamRevoked,
+        connections_deleted: false,
+        credential_deleted: false,
+      });
+      return;
+    }
     await deleteMetaCredential(lumosId, provider, credential.vaultRef);
     json(res, upstreamRevoked ? 200 : 502, {
       ok: upstreamRevoked,
       provider,
       status: upstreamRevoked ? "revoked" : "revoked_local",
       upstream_revoked: upstreamRevoked,
+      connections_deleted: true,
+      credential_deleted: true,
     });
     await logEvent("oauth.token_revoked", { route: ROUTE, provider, lumosId, status: upstreamRevoked ? "revoked" : "revoked_local" });
   } catch (error) {
