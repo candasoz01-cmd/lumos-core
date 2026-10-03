@@ -101,7 +101,7 @@ export default async function handler(req, res) {
 
   const clientId = (process.env.LUMOS_GOOGLE_WEB_CLIENT_ID || "").trim();
   const clientSecret = (process.env.LUMOS_GOOGLE_WEB_CLIENT_SECRET || "").trim();
-  const cb = redirectUri();
+  const cb = redirectUri(req);
   if (!clientId || !clientSecret || !code) {
     await captureError(new Error("missing_credentials_or_code"), {
       route: ROUTE,
