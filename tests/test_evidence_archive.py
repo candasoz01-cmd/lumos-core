@@ -574,9 +574,13 @@ def test_verify_cli_accepts_the_checkpoint_archive_directory(tmp_path):
     made = _cli("checkpoint", "--repo", str(root), "--archive", str(archive), "--task", "KA-1",
                 "--report", "report-1", "--kind", "delivery", "--run-attempt", "2")
     assert made.returncode == 0, made.stderr
+    captured = json.loads(made.stdout)
     for target in (archive, archive / "report-1"):  # root and per-report directory both work
-        checked = _cli("verify", "--repo", str(root), "--archive", str(target), "--task", "KA-1",
-                       "--report", "report-1", "--commit", commit, "--run-attempt", "2")
+        checked = _cli(
+            "verify", "--repo", str(root), "--archive", str(target), "--task", "KA-1",
+            "--report", "report-1", "--commit", commit, "--run-attempt", "2",
+            "--expect-path", *captured["frozen_paths"],
+        )
         assert checked.returncode == 0, checked.stderr
         assert json.loads(checked.stdout)["status"] == "VERIFIED"
     empty = _cli("verify", "--repo", str(root), "--archive", str(tmp_path / "nowhere"), "--task", "KA-1",
@@ -1023,12 +1027,47 @@ def _checkpoint(root, archive, commit, *, base=""):
     return body
 
 
-def _verify(root, archive, commit, *, base=""):
+def _verify(root, archive, commit, *, base="", paths=None, empty=False):
     args = ["verify", "--repo", str(root), "--archive", str(archive), "--task", "KA-1",
             "--report", "report-1", "--commit", commit, "--run-attempt", "2"]
+    if empty:
+        args.append("--expect-empty")
+    if paths is not None:
+        for item in paths:
+            args.extend(["--expect-path", item])
     if base:
         args.extend(["--base", base])
     return _cli(*args)
+
+
+def _forge_sidecar(archive, commit, paths, base):
+    (Path(archive) / "caller-scope.json").write_text(json.dumps({
+        "schema": "lumos.caller_scope.v1",
+        "entries": [{
+            "task_id": "KA-1", "report_id": "report-1", "commit": commit,
+            "run_attempt": "2", "paths": list(paths), "base": base,
+        }],
+    }), encoding="utf-8")
+
+
+def _wipe_members(archive_dir):
+    manifest_path = archive_dir / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"] = []
+    manifest["excluded"] = []
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    payload = archive_dir / "payload"
+    if payload.is_dir():
+        for child in list(payload.iterdir()):
+            if child.is_file():
+                child.unlink()
+
+
+def _assert_not_verified(checked):
+    assert checked.returncode == 2
+    body = json.loads(checked.stdout)
+    assert body["status"] == "SCOPE_INCOMPLETE" and body["verified"] is False
+    assert body["files"] == [] and body["excluded"] == []
 
 
 def test_cli_empty_snapshot_verifies(tmp_path):
@@ -1037,69 +1076,93 @@ def test_cli_empty_snapshot_verifies(tmp_path):
     commit = expect(root, "report-1", extra=())["commit"]
     made = _checkpoint(root, archive, commit)
     assert made["verified"] is True and made["files"] == [] and made["frozen_paths"] == []
+    assert made["scope_base"] is None
     stored = json.loads((archive / "report-1" / "manifest.json").read_text(encoding="utf-8"))
-    assert "frozen_paths" not in stored and "paths" not in stored
-    checked = _verify(root, archive, commit)
+    assert "frozen_paths" not in stored and "paths" not in stored and "scope_base" not in stored
+    assert not (archive / "caller-scope.json").exists()
+    checked = _verify(root, archive, commit, empty=True)
     assert checked.returncode == 0, checked.stderr
     assert json.loads(checked.stdout)["status"] == "VERIFIED"
 
 
-def test_cli_untracked_shrink_loses_verification(tmp_path):
+def test_cli_untracked_shrink_with_forged_sidecar_is_not_verified(tmp_path):
     root = repo(tmp_path)
     (root / "new.txt").write_text("uncommitted work\n")
     archive = tmp_path / "archive"
     commit = expect(root, "report-1", extra=())["commit"]
     made = _checkpoint(root, archive, commit)
-    assert made["status"] == "VERIFIED" and made["frozen_paths"] == ["new.txt"]
-    intact = _verify(root, archive, commit)
+    assert made["frozen_paths"] == ["new.txt"]
+    intact = _verify(root, archive, commit, paths=made["frozen_paths"])
     assert intact.returncode == 0 and json.loads(intact.stdout)["status"] == "VERIFIED"
     (root / "new.txt").unlink()
     _omit(archive / "report-1", "new.txt")
-    shrunk = _verify(root, archive, commit)
-    assert shrunk.returncode == 2
-    assert json.loads(shrunk.stdout)["status"] == "SCOPE_INCOMPLETE"
+    _forge_sidecar(archive, commit, [], None)
+    _assert_not_verified(_verify(root, archive, commit))
 
 
-def test_cli_tracked_revert_shrink_loses_verification(tmp_path):
+def test_cli_tracked_revert_with_forged_sidecar_is_not_verified(tmp_path):
     root = repo(tmp_path)
     (root / "note.txt").write_text("changed for the archive\n")
     archive = tmp_path / "archive"
     commit = expect(root, "report-1", extra=())["commit"]
     made = _checkpoint(root, archive, commit)
-    assert made["status"] == "VERIFIED" and made["frozen_paths"] == ["note.txt"]
+    assert made["frozen_paths"] == ["note.txt"]
+    intact = _verify(root, archive, commit, paths=made["frozen_paths"])
+    assert intact.returncode == 0
     git(root, "checkout", "--", "note.txt")
     _omit(archive / "report-1", "note.txt")
-    shrunk = _verify(root, archive, commit)
-    assert shrunk.returncode == 2
-    assert json.loads(shrunk.stdout)["status"] == "SCOPE_INCOMPLETE"
+    _forge_sidecar(archive, commit, [], None)
+    _assert_not_verified(_verify(root, archive, commit))
 
 
-def test_cli_restored_deletion_shrink_loses_verification(tmp_path):
+def test_cli_restored_deletion_with_forged_sidecar_is_not_verified(tmp_path):
     root = repo(tmp_path)
     (root / "note.txt").unlink()
     archive = tmp_path / "archive"
     commit = expect(root, "report-1", extra=())["commit"]
     made = _checkpoint(root, archive, commit)
-    assert made["status"] == "VERIFIED"
     assert {"path": "note.txt", "reason": "deleted"} in made["excluded"]
+    intact = _verify(root, archive, commit, paths=made["frozen_paths"])
+    assert intact.returncode == 0
     git(root, "checkout", "--", "note.txt")
     _omit(archive / "report-1", "note.txt")
-    shrunk = _verify(root, archive, commit)
-    assert shrunk.returncode == 2
-    assert json.loads(shrunk.stdout)["status"] == "SCOPE_INCOMPLETE"
+    _forge_sidecar(archive, commit, [], None)
+    _assert_not_verified(_verify(root, archive, commit))
 
 
-def test_cli_verify_without_frozen_snapshot_is_incomplete(tmp_path):
+def test_cli_caller_untracked_contract_rejects_the_shrink(tmp_path):
     root = repo(tmp_path)
     (root / "new.txt").write_text("uncommitted work\n")
     archive = tmp_path / "archive"
     commit = expect(root, "report-1", extra=())["commit"]
-    assert _checkpoint(root, archive, commit)["verified"] is True
-    (archive / "caller-scope.json").unlink()
-    checked = _verify(root, archive, commit)
-    assert checked.returncode == 2
-    body = json.loads(checked.stdout)
-    assert body["status"] == "SCOPE_INCOMPLETE" and body["verified"] is False
+    made = _checkpoint(root, archive, commit)
+    (root / "new.txt").unlink()
+    _omit(archive / "report-1", "new.txt")
+    _forge_sidecar(archive, commit, [], None)
+    _assert_not_verified(_verify(root, archive, commit, paths=made["frozen_paths"]))
+
+
+def test_cli_caller_tracked_contract_rejects_the_revert(tmp_path):
+    root = repo(tmp_path)
+    (root / "note.txt").write_text("changed for the archive\n")
+    archive = tmp_path / "archive"
+    commit = expect(root, "report-1", extra=())["commit"]
+    made = _checkpoint(root, archive, commit)
+    git(root, "checkout", "--", "note.txt")
+    _omit(archive / "report-1", "note.txt")
+    _forge_sidecar(archive, commit, made["frozen_paths"], None)
+    _assert_not_verified(_verify(root, archive, commit, paths=["note.txt"]))
+
+
+def test_cli_caller_deletion_contract_rejects_the_restore(tmp_path):
+    root = repo(tmp_path)
+    (root / "note.txt").unlink()
+    archive = tmp_path / "archive"
+    commit = expect(root, "report-1", extra=())["commit"]
+    made = _checkpoint(root, archive, commit)
+    git(root, "checkout", "--", "note.txt")
+    _omit(archive / "report-1", "note.txt")
+    _assert_not_verified(_verify(root, archive, commit, paths=made["frozen_paths"]))
 
 
 def test_frozen_untracked_path_survives_source_and_manifest_shrink(tmp_path):
@@ -1141,16 +1204,6 @@ def test_frozen_deletion_survives_restore_and_manifest_shrink(tmp_path):
         expect=expect(root, "report-1", extra=(), paths=["note.txt"]),
     )
     assert again["status"] == "SCOPE_INCOMPLETE" and again["verified"] is False
-
-
-def test_remember_scope_refuses_a_smaller_replacement(tmp_path):
-    from lumos_board.evidence_archive import remember_scope
-
-    kwargs = {"task_id": "KA-1", "report_id": "report-1", "commit": "abc", "run_attempt": "2"}
-    remember_scope(tmp_path, paths=["new.txt", "note.txt"], **kwargs)
-    remember_scope(tmp_path, paths=["note.txt", "new.txt"], **kwargs)
-    with pytest.raises(ValueError):
-        remember_scope(tmp_path, paths=["note.txt"], **kwargs)
 
 
 def test_range_deletion_before_head_parent_verifies(tmp_path):
@@ -1215,19 +1268,29 @@ def test_deletion_before_pinned_base_is_not_range_evidence(tmp_path):
     assert verdict["status"] == "SCOPE_INCOMPLETE" and verdict["verified"] is False
 
 
-def test_cli_range_deletion_uses_the_stored_base(tmp_path):
+def test_cli_range_deletion_readback_uses_the_caller_contract(tmp_path):
     root = repo(tmp_path)
+    (root / "kept.txt").write_text("original\n")
+    git(root, "add", "kept.txt")
+    git(root, "commit", "-m", "base files")
     base = expect(root, "report-1", extra=())["commit"]
     git(root, "rm", "note.txt")
     git(root, "commit", "-m", "delete note")
-    (root / "later.txt").write_text("later\n")
-    git(root, "add", "later.txt")
-    git(root, "commit", "-m", "add later")
+    (root / "kept.txt").write_text("changed\n")
+    git(root, "add", "kept.txt")
+    git(root, "commit", "-m", "change kept")
     archive = tmp_path / "archive"
     head = expect(root, "report-1", extra=())["commit"]
     made = _checkpoint(root, archive, head, base=base)
-    assert made["status"] == "VERIFIED"
+    assert made["status"] == "VERIFIED" and made["scope_base"] == base
     assert {"path": "note.txt", "reason": "deleted"} in made["excluded"]
-    checked = _verify(root, archive, head)
-    assert checked.returncode == 0, checked.stderr
-    assert json.loads(checked.stdout)["status"] == "VERIFIED"
+    assert "kept.txt" in {item["path"] for item in made["files"]}
+    intact = _verify(root, archive, head, paths=made["frozen_paths"], base=base)
+    assert intact.returncode == 0, intact.stderr
+    _wipe_members(archive / "report-1")
+    _forge_sidecar(archive, head, [], head)
+    # Same task/report/commit. The forged sidecar is not a contract.
+    _assert_not_verified(_verify(root, archive, head))
+    # The caller's real base still rejects the emptied archive.
+    _assert_not_verified(_verify(root, archive, head, base=base))
+    _assert_not_verified(_verify(root, archive, head, paths=made["frozen_paths"], base=base))

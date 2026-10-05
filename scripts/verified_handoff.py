@@ -174,6 +174,9 @@ def main():
     p.add_argument('--run-attempt', default='local')
     p.add_argument('--extra', action='append', default=[])
     p.add_argument('--base', default='')
+    # Absent means no contract. An explicit empty snapshot is --expect-empty, not a missing flag.
+    p.add_argument('--expect-path', action='append', default=None)
+    p.add_argument('--expect-empty', action='store_true')
     p = sub.add_parser('inventory')
     p.add_argument('--archive', required=True)
     args = vars(parser.parse_args())
@@ -190,79 +193,57 @@ def main():
                     extra_paths=list(args.get('extra') or []),
                     scope_base=base,
                 )
-                if result.get('verified') is True and isinstance(result.get('frozen_paths'), list):
-                    # Caller binding, outside manifest.json. Verify reloads this exact list.
-                    archive.remember_scope(
-                        Path(args['archive']),
-                        task_id=args['task'], report_id=args['report'],
-                        commit=str(result.get('commit') or ''),
-                        run_attempt=args['run_attempt'],
-                        paths=list(result['frozen_paths']),
-                        base=base,
-                    )
             elif command == 'verify':
                 # checkpoint, manifest'i <archive>/<report>/ altına yazar; aynı --archive burada da çalışır.
-                # Kapsam manifestten veya güncel status'tan tahmin edilmez.
+                # Beklenen küme yalnız bu komutun argümanıdır. Arşivdeki hiçbir dosya kapsam otoritesi değildir.
                 report_key = archive.safe_report_id(args['report'])
-                binding = archive.recall_scope(
-                    Path(args['archive']),
-                    task_id=args['task'], report_id=report_key,
-                    commit=args['commit'], run_attempt=args['run_attempt'],
-                )
                 report_dir = archive.archive_dir_for(Path(args['archive']), args['report'])
-                if binding is None:
-                    if not (report_dir / 'manifest.json').is_file():
-                        result = archive.observe_archive(
-                            Path(args['repo']), report_dir,
-                            expect={
+                expect_paths = args.get('expect_path')
+                expect_empty = bool(args.get('expect_empty'))
+                supplied_base = args.get('base') or ''
+                contract = expect_empty or expect_paths is not None
+                if expect_empty and expect_paths is not None:
+                    contract = False
+                if not (report_dir / 'manifest.json').is_file():
+                    result = archive.observe_archive(
+                        Path(args['repo']), report_dir,
+                        expect={
+                            'task_id': args['task'], 'report_id': report_key,
+                            'commit': args['commit'], 'run_attempt': args['run_attempt'],
+                            'scope': {
+                                'paths': [], 'worktree': False, 'head': args['commit'],
                                 'task_id': args['task'], 'report_id': report_key,
                                 'commit': args['commit'], 'run_attempt': args['run_attempt'],
-                                'scope': {
-                                    'paths': [], 'worktree': False, 'head': args['commit'],
-                                    'task_id': args['task'], 'report_id': report_key,
-                                    'commit': args['commit'], 'run_attempt': args['run_attempt'],
-                                },
                             },
-                        )
-                    else:
-                        result = {
-                            'schema': archive.SCHEMA, 'status': 'SCOPE_INCOMPLETE',
-                            'verified': False, 'scope_complete': False,
-                            'archive': str(report_dir), 'task_id': args['task'],
-                            'report_id': report_key, 'commit': args['commit'],
-                            'run_attempt': args['run_attempt'], 'files': [], 'excluded': [],
-                        }
+                        },
+                    )
+                elif not contract:
+                    result = {
+                        'schema': archive.SCHEMA, 'status': 'SCOPE_INCOMPLETE',
+                        'verified': False, 'scope_complete': False,
+                        'archive': str(report_dir), 'task_id': args['task'],
+                        'report_id': report_key, 'commit': args['commit'],
+                        'run_attempt': args['run_attempt'], 'files': [], 'excluded': [],
+                    }
                 else:
-                    supplied_base = args.get('base') or ''
-                    stored_base = binding.get('base') or ''
-                    if stored_base and supplied_base and supplied_base != stored_base:
-                        result = {
-                            'schema': archive.SCHEMA, 'status': 'SCOPE_INCOMPLETE',
-                            'verified': False, 'scope_complete': False,
-                            'archive': str(report_dir), 'task_id': args['task'],
-                            'report_id': report_key, 'commit': args['commit'],
-                            'run_attempt': args['run_attempt'], 'files': [], 'excluded': [],
-                        }
-                    else:
-                        scope = {
-                            'paths': list(binding['paths']),
-                            'worktree': True,
-                            'extra': list(args.get('extra') or []),
-                            'head': args['commit'],
-                            'task_id': args['task'],
-                            'report_id': report_key,
-                            'commit': args['commit'],
-                            'run_attempt': args['run_attempt'],
-                        }
-                        base = stored_base or supplied_base
-                        if base:
-                            scope['base'] = base
-                        result = archive.observe_archive(
-                            Path(args['repo']), report_dir,
-                            expect={'task_id': args['task'], 'report_id': report_key,
-                                    'commit': args['commit'], 'run_attempt': args['run_attempt'],
-                                    'scope': scope},
-                        )
+                    scope = {
+                        'paths': [] if expect_empty else list(expect_paths),
+                        'worktree': True,
+                        'extra': list(args.get('extra') or []),
+                        'head': args['commit'],
+                        'task_id': args['task'],
+                        'report_id': report_key,
+                        'commit': args['commit'],
+                        'run_attempt': args['run_attempt'],
+                    }
+                    if supplied_base:
+                        scope['base'] = supplied_base
+                    result = archive.observe_archive(
+                        Path(args['repo']), report_dir,
+                        expect={'task_id': args['task'], 'report_id': report_key,
+                                'commit': args['commit'], 'run_attempt': args['run_attempt'],
+                                'scope': scope},
+                    )
             else:
                 result = archive.inventory(Path(args['archive']))
             print(json.dumps(result, ensure_ascii=False))

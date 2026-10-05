@@ -540,7 +540,9 @@ def archive_report(
             "scope": observe_scope,
         },
     )
+    # Returned to the caller. Not written into manifest.json or any archive sidecar.
     verdict["frozen_paths"] = frozen_paths
+    verdict["scope_base"] = scope_base
     _touch_checkpoint(archive_root, now)
     return verdict
 
@@ -953,100 +955,6 @@ def _archive_still_matches(archive_dir: Path, verification: dict) -> bool:
 
 def archive_required() -> bool:
     return bool(os.environ.get(ENV_DIR) or os.environ.get(ENV_REMOTE))
-
-
-_SCOPE_STORE = "caller-scope.json"
-_SCOPE_STORE_SCHEMA = "lumos.caller_scope.v1"
-
-
-def scope_store_dir(archive: Path, report_id: str) -> Path:
-    """Caller binding lives beside the archive, not inside manifest.json.
-
-    ``verify --archive`` may name the archive root or the per-report directory.
-    """
-    archive = Path(archive)
-    report_key = safe_report_id(report_id)
-    if (archive / "manifest.json").is_file() and archive.name == report_key:
-        return archive.parent
-    return archive
-
-
-def _scope_identity(task_id: str, report_id: str, commit: str, run_attempt: str) -> dict[str, str]:
-    return {
-        "task_id": str(task_id),
-        "report_id": safe_report_id(report_id),
-        "commit": str(commit),
-        "run_attempt": str(run_attempt),
-    }
-
-
-def _load_scope_store(path: Path) -> dict:
-    try:
-        loaded = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError):
-        return {}
-    return loaded if isinstance(loaded, dict) else {}
-
-
-def remember_scope(
-    archive: Path,
-    *,
-    task_id: str,
-    report_id: str,
-    commit: str,
-    run_attempt: str,
-    paths: list[str],
-    base: str | None = None,
-) -> None:
-    """Record the capture snapshot once. A later smaller list is refused."""
-    if not isinstance(paths, list) or any(not isinstance(item, str) or item == "" for item in paths):
-        raise ValueError("frozen paths are not a caller list")
-    if len(paths) != len(set(paths)):
-        raise ValueError("duplicate frozen path")
-    folder = scope_store_dir(archive, report_id)
-    path = folder / _SCOPE_STORE
-    store = _load_scope_store(path) if path.is_file() else {}
-    entries = store.get("entries")
-    if not isinstance(entries, list):
-        entries = []
-    identity = _scope_identity(task_id, report_id, commit, run_attempt)
-    frozen = sorted(paths)
-    base_value = base or None
-    for entry in entries:
-        if not isinstance(entry, dict):
-            continue
-        if all(entry.get(key) == value for key, value in identity.items()):
-            if entry.get("paths") != frozen or (entry.get("base") or None) != base_value:
-                raise ValueError("frozen scope cannot change")
-            return
-    entries.append({**identity, "paths": frozen, "base": base_value})
-    _record(path, {"schema": _SCOPE_STORE_SCHEMA, "entries": entries})
-
-
-def recall_scope(
-    archive: Path,
-    *,
-    task_id: str,
-    report_id: str,
-    commit: str,
-    run_attempt: str,
-) -> dict | None:
-    """The snapshot bound to this task, report, commit, and attempt. Manifest is not read."""
-    path = scope_store_dir(archive, report_id) / _SCOPE_STORE
-    if not path.is_file():
-        return None
-    identity = _scope_identity(task_id, report_id, commit, run_attempt)
-    for entry in _load_scope_store(path).get("entries") or []:
-        if not isinstance(entry, dict):
-            continue
-        if not all(entry.get(key) == value for key, value in identity.items()):
-            continue
-        paths = entry.get("paths")
-        if not isinstance(paths, list) or any(not isinstance(item, str) for item in paths):
-            return None
-        base = entry.get("base")
-        return {"paths": list(paths), "base": base if isinstance(base, str) and base else None}
-    return None
 
 
 def bind_report(report: dict, *, repo: Path, job_id: str, kind: str = "delivery") -> dict:
