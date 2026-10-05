@@ -1,7 +1,7 @@
 /** WeLockAI umbrella — product surfaces (TR) */
 const umbrellaTr = {
   nav: {
-    aria: "We Lock AI site",
+    aria: "Lumos AI site",
     home: "Ana sayfa",
     connect: "Bağlan",
     integrations: "Entegrasyonlar",
@@ -14,6 +14,7 @@ const umbrellaTr = {
     lab: "Lab",
     education: "Eğitim",
     privacy: "Gizlilik",
+    dataTrust: "Teknik veri ve güven envanteri",
   },
   accessibility: {
     eyebrow: "LUMOS · ENGELSİZ", title: "Engelsiz kullanım",
@@ -25,7 +26,7 @@ const umbrellaTr = {
     panelCta: "Lumos'u aç", educationCta: "Eğitime geç",
   },
   lab: {
-    eyebrow: "WE LOCK AI · LUMOS LAB", title: "Kurumsal araştırma ve doğrulama alanı",
+    eyebrow: "LUMOS AI · LUMOS LAB", title: "Kurumsal araştırma ve doğrulama alanı",
     lead: "Lumos Lab; yapay zekâ, kuantum hazırlığı, erişilebilirlik ve güvenli etkileşim yaklaşımlarını ölçülebilir raporlara dönüştüren araştırma katmanıdır.",
     visual: "Her çalışma kapsam, yöntem, kanıt, sınırlama ve önerilen sonraki adımla sunulur.",
     servicesTitle: "Lab hizmet alanları",
@@ -79,29 +80,30 @@ const umbrellaTr = {
   ecosystem: {
     title: "Güven ve ekosistem",
     lead:
-      "Çoklu AI sağlayıcıları, entegrasyonlar ve cihaz ekosistemi tek güvenlik sınırı içinde durur — izin ve risk işlemden önce görünür kalır.",
+      "Bağlantı ve cihaz rafları ayrıdır. Model çağrısı yalnız anahtar varsa yapılır. Ülke kuralı ve maskeleme bu yüzeyde yoktur.",
     securityTitle: "Güvenlik durumu",
     securityPill: "Bağımsız izleniyor",
     securityRow1: "Bağımsız Cyber katmanı: risk, entegrasyonlardan ayrı görünür.",
     securityRow2: "Entegrasyon izinleri, işlemden önce okunur hâle gelir.",
     securityRow3: "Kalıcı silme otomatik değildir; çöp/geri alma önce gelir.",
     securityRow4: "Ödeme, domain alma ve mail gönderimi kullanıcı onayı olmadan yapılmaz.",
-    aiTitle: "Çoklu AI",
-    aiSub: "Sağlayıcı yönlendirme ve yedekleme",
+    aiTitle: "Model çağrısı",
+    aiSub: "Anahtar yoksa çağrı yok",
+    aiBody: "Kesilmiş ileti, oturumdaki ad ve izinli hafıza özetleri gider. Yanıtta sağlayıcı adı yoktur. Ayrıntı Teknik veri ve güven envanteri sayfasındadır.",
     integrationsTitle: "Entegrasyonlar",
     integrationsSub: "İzin matrisi ve durum",
     deviceTitle: "Cihaz ekosistemi",
     deviceSub: "Ev, ses ve akıllı cihaz bağlantıları",
   },
   footer: {
-    tagline: "We Lock AI · welockai.com — Lumos ürün ailesi",
+    tagline: "Lumos AI · We Lock AI ürünü",
     rights: "Açık kaynak çekirdek GitHub'da; resmi servisler kontrollü erişimle.",
   },
   privacy: {
-    metaTitle: "Gizlilik Bildirimi — We Lock AI · Lumos",
+    metaTitle: "Gizlilik Bildirimi — Lumos Company · Lumos",
     metaDescription:
-      "We Lock AI ve Lumos yüzeylerinde verilerin hangi amaçlarla işlendiğini, bağlantı izinlerini ve kullanıcı denetimlerini açıklayan gizlilik bildirimi.",
-    eyebrow: "WE LOCK AI · LUMOS",
+      "Lumos Company ve Lumos yüzeylerinde verilerin hangi amaçlarla işlendiğini, bağlantı izinlerini ve kullanıcı denetimlerini açıklayan gizlilik bildirimi.",
+    eyebrow: "LUMOS COMPANY · LUMOS",
     title: "Gizlilik bildirimi",
     lead:
       "Bu bildirim, welockai.com ve Lumos bağlantı akışlarında verilerin hangi sınırlar içinde işlendiğini açıklar.",
@@ -140,11 +142,90 @@ const umbrellaTr = {
     googleControlsCta: "Google erişimini yönet",
     integrationsCta: "Bağlantı ekosistemi",
   },
+  dataTrust: {
+    metaTitle: "Teknik Veri ve Güven Envanteri — Lumos",
+    metaDescription:
+      "Bu depodaki Lumos kodunun bugün modele, hafıza servisine ve tarayıcıya gönderdiği ve saklamadığı veriler. Hukuki gizlilik bildirimi değildir.",
+    eyebrow: "LUMOS · TEKNİK VERİ ENVANTERİ",
+    title: "Teknik veri ve güven envanteri",
+    lead:
+      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Bu sayfa, 5 Ekim 2026 tarihinde canlı uygulamanın kaynak sürümü olarak doğrulanan 39effc6 kodundaki veri yollarını açıklar. Ortam ayarları ve harici servislerin davranışı ayrıca doğrulanmış değildir.",
+    updated: "Son güncelleme: 5 Ekim 2026",
+    legalTitle: "Bu sayfa hukuki gizlilik bildirimi değildir",
+    legalBody:
+      "Bu sayfa teknik bir envanterdir. Veri sorumlusu, iletişim ve başvuru kanalı, silme talebi süreci, hukuki dayanak ve KVKK/GDPR kapsamındaki haklar burada yayımlanmadı. Bunlar ayrı bir hukuk ve politika kararı bekliyor; bu envanter onların yerine geçmez.",
+    scopeTitle: "Kapsam",
+    scopeBody:
+      "Anlatılan yollar: barındırılan sohbet, Google oturum çerezi, Lumos hafıza servisi çağrıları, Gmail salt-okuma yolu, Meta (Facebook, Instagram, Pages, WhatsApp) bağlantıları, yerel görev günlüğü ve tarayıcıdaki dosya geçmişi. Başka bir kurulum veya bu depoda olmayan bir operatör katmanı ek servis bağlarsa bu sayfa onu kapsamaz.",
+    notTitle: "Lumos ne yapmaz",
+    notBody:
+      "Ülkeye göre hukuk motoru çalıştırmaz. Sağlayıcının veriyi saklamadığını, eğitmediğini veya sıfır saklama uyguladığını doğrulamaz. Tam bir maskeleme sistemi yoktur.",
+    flowTitle: "Barındırılan sohbet akışı",
+    flowBody:
+      "Kullanıcı iletisi → oturum yoksa 401 → kimlik uyuşmazsa 409 → hafıza servisinde lookup → ileti “hatırla” ile başlıyorsa remember denenir ve yanıtı Lumos verir, ileti modele gitmez → “ben kimim” ve saat soruları da model çağrısı olmadan yanıtlanır → hiç model anahtarı yoksa 503, model çağrısı yapılmaz → karakter sınırı → OpenAI anahtarı varsa Responses API → OpenAI çağrısı hata dönerse, istisna fırlatırsa veya boş yanıt verirse ve Gemini anahtarı varsa generateContent → ikisi de yanıt üretmezse 502 → provider ve model adı yanıttan çıkarılır → kullanıcı.",
+    qCollectTitle: "Benden ne toplanıyor?",
+    qCollectBody:
+      "Google ile girişte çereze sid, lumos_id, sub, e-posta, ad, resim, door, provider, package ve süre yazılır. Google access_token yazılmaz. Sohbet isteğinde ileti, geçmiş ve isteğe bağlı görsel alınır. Hafıza servisi tanımlıysa her istekte lumos_id o servise gider.",
+    qWhyTitle: "Neden?",
+    qWhyBody:
+      "Oturum, aynı kişiyi sonraki istekte tanımak içindir. Model isteği yanıt üretmek içindir; ad ve hafıza özetleri yanıtın bağlı kullanıcıya göre verilmesi için eklenir. Hafıza özeti, kullanıcı “hatırla” dediyse ve servis izin verdiyse yazılır.",
+    qModelTitle: "Model API’sine ne gönderiliyor?",
+    qModelBody:
+      "Her model isteğinde şunlar gider: sabit sistem talimatı; oturumdaki ad (yoksa “ad yüklenmedi”); hesap sağlayıcısı (ör. google_web) ve bağlı durumu; hafıza durumu (loaded, empty, not_granted veya unavailable); hafıza yüklüyse en fazla 12 izinli özet, her biri en fazla 1000 karakter; ileti en fazla 8000 karakter; önceki Lumos yanıtları dahil son 12 tur, tur başına en fazla 4000 karakter; isteğe bağlı görsel en fazla 380000 karakter. Bu sürümün sohbet yolunda e-posta, telefon ve kimlik benzeri diziler otomatik değiştirilmez. E-posta adresi ve lumos_id model isteğine ayrıca konmaz. OpenAI anahtarı varsa istekte store: false vardır; bu, sağlayıcının kopya tutmadığının kanıtı değildir. Gemini isteğinde store alanı yoktur. Kullanıcıya dönen JSON sağlayıcı ve model adını taşımaz.",
+    memoryTitle: "Lumos hafıza servisi",
+    memoryBody:
+      "Hafıza, sohbet işleyicisinden ayrı bir saklama ve işleme katmanıdır. Adres LUMOS_MEMORY_LOOKUP_URL ile verilir; verilmezse BRIDGE_UPSTREAM_URL altındaki /memory/hosted/lookup kullanılır. Belirteç LUMOS_MEMORY_SERVICE_TOKEN, yoksa KANDO_BRIDGE_SECRET değeridir. Adres veya belirteç yoksa çağrı yapılmaz. Her sohbet isteğinde lumos_id ile lookup yapılır; model çağrısı olmasa da yapılır. İleti “hatırla”, “unutma” veya “remember” ile başlıyorsa ve izin varsa remember çağrısı en fazla 1000 karakterlik özeti ve hesap sağlayıcısını servise gönderir. Servisin kendisi bu depoda değildir; verinin nerede ve ne kadar süre tutulduğu bu koddan doğrulanamaz.",
+    gmailTitle: "Gmail salt-okuma yolu",
+    gmailBody:
+      "Kod gmail.readonly iznini tanımlar. Google tarafında bu izin posta kutusunu okumaya yetki verir; bu depodaki kod bundan yalnız okunmamış iletilerin listesini (en fazla 20) ve her iletinin Subject, From ve Date başlığını ister, ileti gövdesini istemez. Konu 120, gönderen 80 karakterde kesilir. Dönen veri yalnız okunmamış posta özetidir. Belirteç kasa bağdaştırıcısından okunur; kasada belirteç yoksa istek durur. Canlı Gmail API çağrısı yalnız LUMOS_GMAIL_SMOKE değeri 1, true veya yes iken yapılır; aksi halde örnek veri döner. Sonuç çağıran entegrasyon adımına döner; bu yol onu diske yazmaz, bir model API’sine göndermez, reklam veya satış için bir hizmete iletmez. Gmail OAuth onay ve geri çağrı işleyicisi bu depoda yoktur. welockai.com Google girişi yalnız openid, email ve profile ister.",
+    metaConnectionsTitle: "Meta bağlantıları (Facebook, Instagram, Pages, WhatsApp)",
+    metaBody:
+      "Bağlantı kullanıcı başlatınca açılır. İstenen izinler: Facebook için public_profile; Instagram için instagram_business_basic; Pages için pages_show_list; WhatsApp için business_management ve whatsapp_business_management. Geri çağrıda kod erişim belirtecine çevrilir, uzun süreli belirtece uzatılır ve hesap kimliği ile adı veya kullanıcı adı okunur. Belirteç, süresi, hesap kimliği ve lumos_id, LUMOS_CREDENTIAL_VAULT_WRITE_URL ile verilen ayrı kasa servisine yazılır; belirteç çereze yazılmaz. Bağlantı listesi ve eşitleme şunları okur: Instagram için kimlik, kullanıcı adı, hesap türü ve medya sayısı; Pages için sayfa kimliği ve adı; WhatsApp için işletme kimliği ve adı, WhatsApp işletme hesabı kimliği ve adı, telefon numarası kimliği, görünen telefon numarası ve doğrulanmış ad. Sayfa ve WhatsApp bağlantı kayıtları da kasa servisine yazılır. İmzası doğrulanan Meta webhook olayları, yükün tamamıyla LUMOS_META_WEBHOOK_SINK_URL servisine iletilir; bu yük ileti içeriği taşıyabilir. Kasa ve webhook servisi bu depoda değildir; saklama süresi ve konumu bu koddan doğrulanamaz. Bu yol Meta verisini bir model API’sine göndermez.",
+    metaDeleteTitle: "Meta bağlantısını kaldırma",
+    metaDeleteBody:
+      "“Bağlantıyı kaldır” Meta’da izinleri geri almayı dener (DELETE /me/permissions), ardından kasa servisinden belirteci siler. Meta isteği başarısız olursa belirteç yine silinir ve yanıt revoked_local olur; Meta tarafındaki iznin kalkmadığı gösterilir. Bu işlem sayfa ve WhatsApp bağlantı kayıtlarını ve webhook servisine iletilmiş olayları silmez. Bu depoda Meta’nın veri silme geri çağrısı veya yetki kaldırma geri çağrısı için bir uç nokta yoktur.",
+    qWhereTitle: "Nerede tutuluyor?",
+    qWhereBody:
+      "Oturum tarayıcı çerezindedir. Barındırılan sohbet işleyicisi iletiyi kendi içinde bir veritabanına veya dosyaya yazmaz; “hatırla” özeti ise hafıza servisine yazılır. Köprü telemetrisi çağrılırsa kullanıcı iletisi o makinede .lumos/logs altına yazılır. Dosya yükleme özeti bu tarayıcının localStorage alanındadır, en fazla 5 kayıt. Saklama yerini ülkeye göre seçen bir kod yoktur.",
+    qHowLongTitle: "Ne kadar tutuluyor?",
+    qHowLongBody:
+      "Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. Hafıza servisindeki özetlerin süresi bu koddan belli değildir. cleanup_audit_logs yalnız testlerden çağrılan bir yardımcı işlevdir; runtime, UI veya API bağlantısı yoktur. Açıkça çağrılırsa .lumos/logs dosya adındaki tarihe göre LUMOS_LOG_RETENTION_DAYS (varsayılan 14) günden eski günlükleri siler. Otomatik günlük saklama süresi uygulanmış değildir. LUMOS_MEMORY_TTL_SECONDS doluysa yeni yerel nota o süre yazılır; Memory.cleanup çağrıldığında süresi dolan notlar ayıklanır. ttl_seconds boşsa not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.",
+    qWhoTitle: "Kim erişebilir?",
+    qWhoBody:
+      "Çerez HttpOnly’dir. Sentry veya Axiom anahtarı tanımlıysa izinli teknik alanlar ve hata yığını o servise gider; e-posta ve access_token allowlist’te değildir. lumosId gidebilir.",
+    logoutTitle: "Çıkış ne yapar?",
+    logoutBody:
+      "Çıkış, tarayıcıdaki oturum çerezini ve köprü vekil çerezini siler. Bu kaynak sürümünde session_version artırımı veya kopyalanmış oturum belirteçlerini çıkışla topluca geçersiz kılma uygulanmamıştır. Çıkış günlüğü, hafızayı veya model sağlayıcısındaki kopyayı silmez.",
+    qNotTitle: "Ne tutulmuyor?",
+    qNotBody:
+      "Google access_token oturumda yoktur. Hafıza servisi veya izni yoksa “hatırla” cümlesi kaydedilmez. Bu depoda reklam etiketi ve veri satış entegrasyonu yoktur. Model sağlayıcısının ve hafıza servisinin kendi kaydı bu cümlenin dışındadır.",
+    qDeleteTitle: "Nasıl silerim?",
+    qDeleteBody:
+      "Çıkış bu tarayıcıdaki çerezleri temizler; kopyalanmış oturum belirteçlerini topluca geçersiz kılmaz. Memory.delete_all ve delete_audit_logs yalnız testlerden çağrılan yardımcı işlevlerdir; runtime, UI veya API bağlantısı yoktur. Bunlar üründe kullanılabilir bir yerel not veya günlük silme denetimi değildir. Ayrı hafıza servisi için silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. Sağlayıcının tuttuğu kopyanın silinmesi bu kodla doğrulanmaz. Meta belirteci için “Meta bağlantısını kaldırma” bölümüne bakın. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.",
+    assuranceTitle: "Lumos güvencesi",
+    assuranceBody:
+      "Bu ad, yukarıda yazılan uygulanmış kontrollerin ortak adıdır: oturum kontrolü, belirtecin çereze yazılmaması, karakter sınırları, OpenAI isteğindeki store: false, yanıttan sağlayıcı adının çıkarılması, hafızanın onaysız yazılmaması, gözlem allowlist’i, görev motorunda SECURITY_NEVER_AUTO eşleşmesinde durma.",
+    missingTitle: "Eksik olanlar",
+    missingBody:
+      "Sağlayıcının saklama, eğitim kullanımı ve silme uygulamaları bu kodla doğrulanmaz. Bu sürümün sohbet yolunda ülke profili kapısı, sağlayıcı politika kaydı ve otomatik kişisel veri maskelemesi yoktur. Gemini isteğinde store alanı yoktur. Hafıza servisinin, Meta kasasının ve Meta webhook servisinin saklama süresi ve konumu bu koddan doğrulanamaz. Meta veri silme geri çağrısı ve Meta bağlantı kayıtlarının silinmesi bu depoda yoktur. Sunucu tarafında çıkışa bağlı oturum sürümü iptali yoktur. Sohbette hangi API’nin çağrıldığı kullanıcıya gösterilmez. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED=1, true veya yes iken çalışır. Üretim ortamı adı tek başına bu katmanı açmaz; canlı ortamın bu ayarı doğrulanmadı. SECURITY_NEVER_AUTO aynı kalır. Barındırılan sohbet yanıtı ayrı onay beklemez.",
+    countryTitle: "Ülke kuralları",
+    countryBody:
+      "Ülkeye göre hukuk motoru yoktur. Bu sürümün sohbet yolunda ülke koduna göre sağlayıcı çağrısını kapatan bir profil kapısı yoktur. Bu cümle, işletmecinin hukuk dışında olduğu anlamına gelmez.",
+    multiTitle: "Birden fazla altyapı",
+    multiBody:
+      "Barındırılan sohbet en fazla iki model çağrısı yapar: önce OpenAI anahtarı; o çağrı hata verir, istisna fırlatır veya boş dönerse Gemini anahtarı. Bu sürümde çağrı öncesi ülke profili ve sağlayıcı kaydı kapısı uygulanmamıştır. Görev motorundaki durdurma bu sohbet yanıtına bağlı değildir.",
+    changesTitle: "Değişiklikler",
+    changesBody:
+      "Kod değişince bu teknik sayfa ve docs/data-and-trust.md birlikte güncellenir. Kayıtlı /privacy adresindeki gizlilik bildirimi ayrı tutulur; bu envanter onun yerine geçmez.",
+    docCta: "Teknik envanter",
+    googleControlsCta: "Google erişimini yönet",
+    integrationsCta: "Bağlantı ekosistemi",
+  },
   slack: {
-    metaTitle: "Lumos in Slack — We Lock AI",
+    metaTitle: "Lumos in Slack — Lumos AI",
     metaDescription:
       "Lumos'un Slack içi çalışma arkadaşı yüzeyi: Kuruluş → Proje → Konu bağlamı, kontrollü bildirim ve onay — OAuth burada başlatılmaz.",
-    eyebrow: "WE LOCK AI · SLACK",
+    eyebrow: "LUMOS AI · SLACK",
     title: "Lumos in Slack",
     lead:
       "Slack, Lumos'un Kuruluş → Proje → Konu hiyerarşisiyle hizalı iş yeri yüzeylerinden biridir. Konu özeti, mention/thread bağlamı ve kontrollü bildirimler planlanır; Kuruluş özel alanının tam arşivi veya onaysız mesaj gönderimi hedeflenmez.",
@@ -169,10 +250,10 @@ const umbrellaTr = {
     homeCta: "Ana sayfa",
   },
   mac: {
-    metaTitle: "Lumos Mac — Universal Links — We Lock AI",
+    metaTitle: "Lumos Mac — Universal Links — Lumos AI",
     metaDescription:
       "Lumos Mac uygulaması, doğrudan sohbet girişi, welockai.com Universal Links ve Apple App Site Association.",
-    eyebrow: "WE LOCK AI · MAC",
+    eyebrow: "LUMOS AI · MAC",
     title: "Mac ve Apple bağlantıları",
     lead:
       "Lumos Mac uygulaması doğrudan sohbet çalışma alanını açar; görev, dosya ve onay akışları mevcut güvenli köprü sözleşmesini kullanır.",
@@ -186,10 +267,10 @@ const umbrellaTr = {
     homeCta: "Ana sayfa",
   },
   cyber: {
-    metaTitle: "Lumos Cyber — We Lock AI",
+    metaTitle: "Lumos Cyber — Lumos AI",
     metaDescription:
-      "Lumos Cyber: güvenlik, risk görünürlüğü, savunma ve kontrollü onay için bağımsız We Lock AI katmanı.",
-    eyebrow: "WE LOCK AI · CYBER",
+      "Lumos Cyber: güvenlik, risk görünürlüğü, savunma ve kontrollü onay için bağımsız Lumos AI katmanı.",
+    eyebrow: "LUMOS AI · CYBER",
     title: "Lumos Cyber",
     lead:
       "Lumos Cyber, We Lock AI çatısı altında güvenlik operasyonları, risk görünürlüğü ve politika odaklı çalışma için planlanan varyanttır. Ayrı bir cyberpunk arayüz değil; profesyonel kontrol katmanıdır.",
@@ -198,7 +279,7 @@ const umbrellaTr = {
     focusTitle: "Odak",
     focus1: "Risk ve politika özetlerinin panelde görünür tutulması.",
     focus2: "Yüksek etkili adımlarda ek onay ve audit izi.",
-    focus3: "We Lock AI private katmanıyla hizalı kurumsal politika (üretimde).",
+    focus3: "Lumos AI private katmanıyla hizalı kurumsal politika (üretimde).",
     liveEyebrow: "CANLI TEHDİT GÖRÜNÜRLÜĞÜ",
     liveTitle: "Saldırının boyutu tek bakışta anlaşılır",
     liveLead: "Alev yüksekliği tehdit puanını görselleştirir; ikon, açık seviye metni ve sayısal puan renk dışında da aynı durumu anlatır.",
@@ -237,11 +318,11 @@ const umbrellaTr = {
     homeCta: "Ana sayfa",
   },
   integrations: {
-    metaTitle: "Bağlantı Ekosistemi — We Lock AI",
+    metaTitle: "Bağlantı Ekosistemi — Lumos AI",
     metaDescription:
       "Lumos bağlantı ekosistemi: aktif, foundation ve planlanan bağlantı yüzeyleri ile güvenli yetki sınırları.",
-    eyebrow: "WE LOCK AI · BAĞLANTI EKOSİSTEMİ",
-    title: "We Lock AI Bağlantı Ekosistemi",
+    eyebrow: "LUMOS AI · BAĞLANTI EKOSİSTEMİ",
+    title: "Lumos AI Bağlantı Ekosistemi",
     lead:
       "Lumos'un güvenli bağlantı yüzeyleri; mevcut kapsamı, hazırlık düzeyi ve yetki sınırlarıyla birlikte.",
     statusActive: "Bağlı",
@@ -349,10 +430,10 @@ const umbrellaTr = {
     panelCta: "Panel",
   },
   integrationGuide: {
-    metaTitle: "Lumos entegrasyon kolaylığı ve güvenliği — We Lock AI",
+    metaTitle: "Lumos entegrasyon kolaylığı ve güvenliği — Lumos AI",
     metaDescription:
       "Lumos bağlantı kataloğunun kategori, kapsam ve doğrulanmış destek durumlarıyla tek rehber görünümü.",
-    eyebrow: "WE LOCK AI · LUMOS BAĞLANTILARI",
+    eyebrow: "LUMOS AI · LUMOS BAĞLANTILARI",
     title: "Bağlantı kolaylığı, görünür güvenlik",
     lead:
       "Lumos, uygulama ve cihaz bağlamını tek yerde toplarken her bağlantının yetkisini ve gerçek durumunu görünür tutar.",
@@ -545,10 +626,10 @@ const umbrellaTr = {
     },
   },
   github: {
-    metaTitle: "GitHub entegrasyonu — We Lock AI",
+    metaTitle: "GitHub entegrasyonu — Lumos AI",
     metaDescription:
       "Lumos GitHub bağlantısı: issue/PR metadata ve CI özeti okuma; yazma onaylı; silme varsayılan kapalı.",
-    eyebrow: "WE LOCK AI · GITHUB",
+    eyebrow: "LUMOS AI · GITHUB",
     title: "GitHub",
     lead:
       "Lumos, GitHub'dan görev bağlamı için issue, PR ve CI durumu özeti okur. Yorum, label ve assign gibi yazmalar işlem bazlı onay gerektirir; merge ve silme yüksek risk kapısındadır.",
@@ -568,10 +649,10 @@ const umbrellaTr = {
     homeCta: "Ana sayfa",
   },
   google: {
-    metaTitle: "Google entegrasyonu — We Lock AI",
+    metaTitle: "Google entegrasyonu — Lumos AI",
     metaDescription:
       "Lumos Google bağlantısı: Drive, Calendar ve Gmail — read-first politika, yazma onaylı, silme özel izin.",
-    eyebrow: "WE LOCK AI · GOOGLE",
+    eyebrow: "LUMOS AI · GOOGLE",
     title: "Google (Drive, Calendar, Gmail)",
     lead:
       "Google entegrasyonları read-first ilkesiyle çalışır: önce metadata ve özet; tam içerik arşivi veya onaysız dış etki yok. Gmail varsayılan kapalıdır.",
@@ -588,10 +669,10 @@ const umbrellaTr = {
     homeCta: "Ana sayfa",
   },
   mail: {
-    metaTitle: "Mail (Gmail) entegrasyonu — We Lock AI",
+    metaTitle: "Mail (Gmail) entegrasyonu — Lumos AI",
     metaDescription:
       "Lumos Mail bağlantısı: Gmail read-only Dar v1 — inbox özeti ve thread metadata; varsayılan kapalı.",
-    eyebrow: "WE LOCK AI · MAIL",
+    eyebrow: "LUMOS AI · MAIL",
     title: "Mail (Gmail)",
     lead:
       "Lumos, iletişim kanallarında OD-031 Dar v1 kapsamında Gmail inbox özeti ve thread metadata okur. Gönderme ve silme bu sürümde yok; OSS stub read-only.",
@@ -610,10 +691,10 @@ const umbrellaTr = {
     panelCta: "Panel",
   },
   linear: {
-    metaTitle: "Linear entegrasyonu — We Lock AI",
+    metaTitle: "Linear entegrasyonu — Lumos AI",
     metaDescription:
       "Lumos Linear bağlantısı: OD-033 Katman 3 planned — issue bağlamı okuma; yazma onaylı.",
-    eyebrow: "WE LOCK AI · LINEAR",
+    eyebrow: "LUMOS AI · LINEAR",
     title: "Linear",
     lead:
       "Linear, OD-033 çalışma araçları watchlist'inde Katman 3 adayıdır. GitHub connector pilotu sonrası görev motoru çakışma analizi ile değerlendirilir.",

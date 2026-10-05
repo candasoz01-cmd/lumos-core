@@ -209,10 +209,10 @@ const panelModules = {
       canDo2: "Cihaz içi ayarlardan okur.",
       wontDoSection: "Yapmam",
       wontDo1: "Komut çalıştırmaz.",
-      wontDo2: "Onaysız kalıcı işlem yapmaz.",
+      wontDo2: "Onay katmanı açık değilse kalıcı işlem için ayrı onay istemez.",
     },
     security: {
-      approval: "Kalıcı işlemler için onay ister.",
+      approval: "Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED açıkken listelenen kalıcı işlemler için onay ister.",
       secret: "Cihaz içinde çalışır; gizli bilgileri sohbete yazma.",
       debugBridge: "Yerel köprü bağlı. Ses ve görev işlemleri bu cihaz üzerinden yürütülür.",
       devicePerms: "Kamera ve mikrofon cihaz iznine bağlıdır.",
@@ -762,19 +762,19 @@ const panelModules = {
   },
   ai: {
     intro:
-      "Bu sekme, Lumos’un yapay zekâyı kullanıcı adına karar veren bir otorite olarak değil; bağlamı toparlayan, seçenekleri düzenleyen ve karar sürecini daha görünür hale getiren bir yardımcı katman olarak ele alma yaklaşımını özetler.",
+      "Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse özet ayrı hafıza servisine yazılır. Yanıtta sağlayıcı adı yoktur. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.",
     c1Title: "Bağlamı Toplama",
     c1Body:
       "Lumos, kullanıcının isteğini, mevcut çalışma alanını ve ilgili bilgileri birlikte değerlendirerek daha anlaşılır bir görev bağlamı oluşturmayı hedefler.",
     c2Title: "Öneri ve Seçenekler",
     c2Body:
       "Yapay zekâ tek bir sonucu kesin doğru gibi dayatmaz; mümkün olan seçenekleri, belirsizlikleri ve dikkat edilmesi gereken noktaları görünür kılar.",
-    c3Title: "Karar Kullanıcıda",
+    c3Title: "Sohbet onayı",
     c3Body:
-      "Lumos öneri sunabilir, yolu kısaltabilir ve karmaşayı azaltabilir; ancak nihai karar kullanıcının iradesinde kalmalıdır.",
-    c4Title: "Riskli İşlem Duraklatma",
+      "Barındırılan sohbet yanıtı ayrı bir onay adımı beklemez. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.",
+    c4Title: "Görev motorunda durma",
     c4Body:
-      "Kalıcı, maliyetli veya geri dönüşü zor işlemlerde yapay zekâ otomatik ilerlemek yerine kullanıcıyı bilgilendirmeli ve açık onay beklemelidir.",
+      "Görev motoru, SECURITY_NEVER_AUTO ile eşleşen adımı durdurur. Motor dalı permanent_delete üyesini bu kontrolün dışında tutar. Bu durdurma sohbet yanıtına bağlı değildir.",
     c5Title: "Belirsizlik Bildirimi",
     c5Body:
       "Eksik veri, düşük güven veya çelişkili bilgi varsa Lumos bunu saklamaz; hangi noktada emin olmadığını kullanıcıya açıkça göstermeyi hedefler.",
