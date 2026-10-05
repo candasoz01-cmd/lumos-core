@@ -326,10 +326,41 @@ def consume_pending_record(path: Path, record: dict[str, Any]) -> dict[str, Any]
     return record
 
 
+def _approval_request_matches(record: dict[str, Any], request: dict[str, Any]) -> bool:
+    """Compare full execution scope, preserving JSON types and array order."""
+    fields = ("approval_id", "command", "arguments", "target_device")
+    approved = {key: record.get(key) for key in fields}
+    expected = {key: request.get(key) for key in fields}
+
+    def is_json_value(value: Any) -> bool:
+        if isinstance(value, dict):
+            return all(isinstance(key, str) and is_json_value(item) for key, item in value.items())
+        if isinstance(value, list):
+            return all(is_json_value(item) for item in value)
+        return value is None or type(value) in (str, bool, int, float)
+
+    try:
+        for scope in (approved, expected):
+            if not isinstance(scope["arguments"], dict) or not is_json_value(scope):
+                return False
+            if any(
+                not isinstance(scope[key], str) or not scope[key]
+                for key in fields if key != "arguments"
+            ):
+                return False
+        return json.dumps(approved, sort_keys=True, separators=(",", ":"), allow_nan=False) == json.dumps(
+            expected, sort_keys=True, separators=(",", ":"), allow_nan=False,
+        )
+    except (TypeError, ValueError, RecursionError):
+        return False
+
+
 def try_consume_approval_token(
     repo_root: Path,
     approval_id: str,
     token: str,
+    *,
+    expected_request: dict[str, Any] | None = None,
 ) -> tuple[bool, str, dict[str, Any] | None]:
     """
     Validate approved token and mark ``used=True`` before stub execute (replay guard).
@@ -338,6 +369,10 @@ def try_consume_approval_token(
     Kilit, JSON dosyasının kendisinde değil sabit bir ``<name>.json.lock`` sidecar
     dosyasında tutulur: kayıt ``os.replace`` ile atomik yenilendiğinden inode değişir,
     JSON üzerindeki flock ikinci okuyucuyu serileştiremezdi.
+
+    Execution callers pass ``expected_request``: its approval ID, command, full
+    arguments and target device must match the fresh record before consumption.
+    Omission preserves token-only consumption for existing non-execution callers.
 
     Windows: ``fcntl`` is unavailable — falls back to validate + write without an
     exclusive lock. Concurrent double-execute is possible on Windows until a
@@ -375,6 +410,8 @@ def try_consume_approval_token(
                 ok, reason, _ = _validate_record_for_execute(fresh, tok)
                 if not ok:
                     return False, reason, None
+                if expected_request is not None and not _approval_request_matches(fresh, expected_request):
+                    return False, "approval_request_mismatch", None
                 fresh["used"] = True
                 fresh["consumed_at"] = _iso(_utc_now())
                 _atomic_write_json(path, fresh)
@@ -387,6 +424,8 @@ def try_consume_approval_token(
         return False, reason, None
     if bool(record.get("used")):
         return False, "approval_already_used", None
+    if expected_request is not None and not _approval_request_matches(record, expected_request):
+        return False, "approval_request_mismatch", None
     return True, "", consume_pending_record(path, record)
 
 
