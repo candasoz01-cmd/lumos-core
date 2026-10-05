@@ -48,9 +48,18 @@ def repo(tmp_path):
     return root
 
 
-def expect(root, report_id):
+def expect(root, report_id, extra=("note.txt",), base=None):
     commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip()
-    return {"task_id": "KA-1", "report_id": report_id, "commit": commit, "run_attempt": "2"}
+    scope = {"worktree": True, "extra": list(extra), "head": commit}
+    if base is not None:
+        scope["base"] = base
+    return {
+        "task_id": "KA-1",
+        "report_id": report_id,
+        "commit": commit,
+        "run_attempt": "2",
+        "scope": scope,
+    }
 
 
 def archived(tmp_path, report_id="report-1", **kwargs):
@@ -527,7 +536,10 @@ def test_symlinks_are_excluded_not_followed(tmp_path):
     # The symlink exclusion is verified by the observer: a real file in its place is a change.
     (root / "in-repo-link").unlink()
     (root / "in-repo-link").write_text("now a regular file\n")
-    changed = observe_archive(root, tmp_path / "archive" / "report-1", expect=expect(root, "report-1"))
+    changed = observe_archive(
+        root, tmp_path / "archive" / "report-1",
+        expect=expect(root, "report-1", extra=["dir-link/kept.txt"]),
+    )
     assert changed["status"] == "SOURCE_CHANGED"
 
 
@@ -608,6 +620,29 @@ def test_failed_archive_is_never_recorded_as_saved(tmp_path, monkeypatch):
     assert result[0]["error"]["code"] == "evidence_unverified"
 
 
+def _omit(archive, path):
+    manifest_path = archive / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    kept_files = []
+    for entry in manifest["files"]:
+        if entry["path"] == path:
+            payload = archive / "payload" / entry["sha256"]
+            if payload.exists():
+                payload.unlink()
+        else:
+            kept_files.append(entry)
+    manifest["files"] = kept_files
+    manifest["excluded"] = [entry for entry in manifest["excluded"] if entry["path"] != path]
+    manifest["expected_paths"] = [entry["path"] for entry in kept_files]
+    manifest["scope_sha256"] = "0" * 64
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    return manifest
+
+
+def _members(verdict):
+    return {item["path"] for item in verdict["files"]} | {item["path"] for item in verdict["excluded"]}
+
+
 def test_verified_archive_is_still_recorded_as_saved(tmp_path, monkeypatch):
     from core.evidence_continuity import OUTCOME_OK, PHASE_RESULT
 
@@ -616,3 +651,346 @@ def test_verified_archive_is_still_recorded_as_saved(tmp_path, monkeypatch):
     assert status["status"] == "completed"
     assert last["status"] == "ok" and last["evidence"]["verified"] is True
     assert [record["outcome"] for record in records if record["phase"] == PHASE_RESULT] == [OUTCOME_OK]
+
+
+# --- scope omission: E comes from the caller, M must equal E -----------------------------
+
+
+def _omitted(tmp_path, root, path, extra=("note.txt",)):
+    verdict = _archive(root, tmp_path, extra_paths=list(extra))
+    assert verdict["status"] == "VERIFIED", verdict
+    assert path in _members(verdict)
+    archive = tmp_path / "archive" / "report-1"
+    _omit(archive, path)
+    again = observe_archive(root, archive, expect=expect(root, "report-1", extra=extra))
+    assert again["status"] == "SCOPE_INCOMPLETE" and again["verified"] is False
+    stored = json.loads((archive / "manifest.json").read_text(encoding="utf-8"))
+    assert path not in {item["path"] for item in stored["files"]} | {
+        item["path"] for item in stored["excluded"]
+    }
+    assert stored["scope_sha256"] == "0" * 64  # writable manifest metadata is not the expectation
+
+
+def test_unstaged_modification_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    (root / "note.txt").write_text("changed\n")
+    _omitted(tmp_path, root, "note.txt")
+
+
+def test_staged_modification_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    (root / "note.txt").write_text("changed\n")
+    git(root, "add", "note.txt")
+    _omitted(tmp_path, root, "note.txt")
+
+
+def test_untracked_addition_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    (root / "added.txt").write_text("new\n")
+    _omitted(tmp_path, root, "added.txt")
+
+
+def test_staged_addition_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    (root / "added.txt").write_text("new\n")
+    git(root, "add", "--", "added.txt")
+    _omitted(tmp_path, root, "added.txt")
+
+
+def test_unstaged_deletion_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    (root / "note.txt").unlink()
+    _omitted(tmp_path, root, "note.txt")
+
+
+def test_staged_deletion_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    git(root, "rm", "note.txt")
+    _omitted(tmp_path, root, "note.txt")
+
+
+def _rename(root):
+    (root / "old-name.txt").write_text("renamed content\n")
+    git(root, "add", "old-name.txt")
+    git(root, "commit", "-m", "old")
+    git(root, "mv", "old-name.txt", "new-name.txt")
+
+
+def test_rename_old_end_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    _rename(root)
+    _omitted(tmp_path, root, "old-name.txt", extra=())
+
+
+def test_rename_new_end_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    _rename(root)
+    _omitted(tmp_path, root, "new-name.txt", extra=())
+
+
+def test_content_secret_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    (root / "plain.txt").write_text("token = None\n")
+    verdict = _archive(root, tmp_path, extra_paths=["note.txt"])
+    assert verdict["verified"] is False  # listed content exclusion is still not success
+    archive = tmp_path / "archive" / "report-1"
+    _omit(archive, "plain.txt")
+    again = observe_archive(root, archive, expect=expect(root, "report-1"))
+    assert again["status"] == "SCOPE_INCOMPLETE" and again["verified"] is False
+
+
+def test_filename_secret_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    (root / ".env").write_text("api_key=fixture-value\n")
+    _omitted(tmp_path, root, ".env")
+    payload = tmp_path / "archive" / "report-1" / "payload"
+    blob = b"".join(path.read_bytes() for path in payload.iterdir()) if payload.is_dir() else b""
+    assert b"fixture-value" not in blob
+
+
+def test_symlink_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    (root / "in-repo-link").symlink_to("note.txt")
+    _omitted(tmp_path, root, "in-repo-link")
+
+
+def test_clean_extra_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    (root / "added.txt").write_text("dirty\n")
+    _omitted(tmp_path, root, "note.txt")
+
+
+def test_committed_modification_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    base = expect(root, "report-1", extra=())["commit"]
+    (root / "note.txt").write_text("committed change\n")
+    git(root, "add", "note.txt")
+    git(root, "commit", "-m", "change note")
+    verdict = _archive(root, tmp_path, extra_paths=[])
+    assert verdict["status"] == "VERIFIED" and verdict["files"] == []
+    again = observe_archive(root, tmp_path / "archive" / "report-1", expect=expect(root, "report-1", extra=(), base=base))
+    assert again["status"] == "SCOPE_INCOMPLETE" and again["verified"] is False
+
+
+def test_committed_deletion_omission_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    base = expect(root, "report-1", extra=())["commit"]
+    git(root, "rm", "note.txt")
+    git(root, "commit", "-m", "delete note")
+    verdict = _archive(root, tmp_path, extra_paths=[])
+    assert verdict["status"] == "VERIFIED" and verdict["excluded"] == []
+    again = observe_archive(root, tmp_path / "archive" / "report-1", expect=expect(root, "report-1", extra=(), base=base))
+    assert again["status"] == "SCOPE_INCOMPLETE" and again["verified"] is False
+
+
+def test_partial_manifest_subset_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    (root / "added.txt").write_text("one\n")
+    (root / "other.txt").write_text("two\n")
+    _omitted(tmp_path, root, "other.txt", extra=())
+
+
+def test_untracked_file_arriving_during_observe_is_incomplete(tmp_path, monkeypatch):
+    import lumos_board.evidence_archive as archive_mod
+
+    root = repo(tmp_path)
+    (root / "added.txt").write_text("one\n")
+    verdict = _archive(root, tmp_path, extra_paths=[])
+    assert verdict["status"] == "VERIFIED"
+    real = archive_mod._caller_scope
+    state = {"n": 0}
+
+    def wrapped(repo_path, scope):
+        state["n"] += 1
+        if state["n"] == 2:
+            (root / "later.txt").write_text("later\n")
+        return real(repo_path, scope)
+
+    monkeypatch.setattr(archive_mod, "_caller_scope", wrapped)
+    again = observe_archive(root, tmp_path / "archive" / "report-1", expect=expect(root, "report-1", extra=()))
+    assert again["status"] == "SCOPE_INCOMPLETE" and again["verified"] is False
+
+
+def test_git_status_error_is_not_an_empty_verified_scope(tmp_path, monkeypatch):
+    import lumos_board.evidence_archive as archive_mod
+
+    root = repo(tmp_path)
+    verdict = _archive(root, tmp_path, extra_paths=[])
+    assert verdict["status"] == "VERIFIED" and verdict["files"] == [] and verdict["excluded"] == []
+    monkeypatch.setattr(archive_mod, "_worktree_paths", lambda _repo: (_ for _ in ()).throw(archive_mod._ScopeError("status")))
+    again = observe_archive(root, tmp_path / "archive" / "report-1", expect=expect(root, "report-1", extra=()))
+    assert again["status"] == "SCOPE_INCOMPLETE" and again["verified"] is False
+
+
+def test_literal_backslash_path_is_not_collapsed_into_a_slash_path(tmp_path):
+    root = repo(tmp_path)
+    (root / "dir").mkdir()
+    (root / "dir" / "file.txt").write_text("slash\n")
+    (root / "dir\\file.txt").write_text("backslash\n")
+    verdict = _archive(root, tmp_path, extra_paths=[])
+    assert verdict["status"] == "VERIFIED"
+    assert {"dir/file.txt", "dir\\file.txt"} <= _members(verdict)
+    archive = tmp_path / "archive" / "report-1"
+    _omit(archive, "dir\\file.txt")
+    again = observe_archive(root, archive, expect=expect(root, "report-1", extra=()))
+    assert again["status"] == "SCOPE_INCOMPLETE" and again["verified"] is False
+
+
+def test_empty_scope_verifies(tmp_path):
+    root = repo(tmp_path)
+    verdict = _archive(root, tmp_path, extra_paths=[])
+    assert verdict["status"] == "VERIFIED" and verdict["verified"] is True
+    assert verdict["files"] == [] and verdict["excluded"] == []
+
+
+def test_rename_and_untracked_file_verify_together(tmp_path):
+    root = repo(tmp_path)
+    _rename(root)
+    (root / "added.txt").write_text("untracked\n")
+    verdict = _archive(root, tmp_path, extra_paths=[])
+    assert verdict["status"] == "VERIFIED" and verdict["verified"] is True
+    assert {"old-name.txt", "new-name.txt", "added.txt"} <= _members(verdict)
+
+
+def test_manifest_scope_metadata_cannot_authorize_a_smaller_set(tmp_path):
+    root = repo(tmp_path)
+    (root / "added.txt").write_text("one\n")
+    (root / "other.txt").write_text("two\n")
+    _omitted(tmp_path, root, "other.txt", extra=())
+
+
+def test_duplicate_manifest_path_is_corrupt(tmp_path):
+    root = repo(tmp_path)
+    (root / "added.txt").write_text("one\n")
+    verdict = _archive(root, tmp_path, extra_paths=[])
+    assert verdict["status"] == "VERIFIED"
+    archive = tmp_path / "archive" / "report-1"
+    manifest_path = archive / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"].append(dict(manifest["files"][0]))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    again = observe_archive(root, archive, expect=expect(root, "report-1", extra=()))
+    assert again["status"] == "ARCHIVE_CORRUPT" and again["verified"] is False
+
+
+def test_overlapping_file_and_exclusion_is_corrupt(tmp_path):
+    root = repo(tmp_path)
+    (root / "added.txt").write_text("one\n")
+    verdict = _archive(root, tmp_path, extra_paths=[])
+    archive = tmp_path / "archive" / "report-1"
+    manifest_path = archive / "manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["excluded"].append({"path": manifest["files"][0]["path"], "reason": "deleted"})
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    again = observe_archive(root, archive, expect=expect(root, "report-1", extra=()))
+    assert again["status"] == "ARCHIVE_CORRUPT" and again["verified"] is False
+    assert verdict["status"] == "VERIFIED"
+
+
+def test_mismatched_base_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    tree = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD^{tree}"], text=True).strip()
+    unrelated = subprocess.check_output(
+        ["git", "-C", str(root), "commit-tree", tree, "-m", "unrelated"], text=True,
+    ).strip()
+    verdict = _archive(root, tmp_path, extra_paths=[])
+    assert verdict["verified"] is True
+    missing = observe_archive(
+        root, tmp_path / "archive" / "report-1",
+        expect=expect(root, "report-1", extra=(), base="0" * 40),
+    )
+    assert missing["status"] == "SCOPE_INCOMPLETE" and missing["verified"] is False
+    foreign = observe_archive(
+        root, tmp_path / "archive" / "report-1",
+        expect=expect(root, "report-1", extra=(), base=unrelated),
+    )
+    assert foreign["status"] == "SCOPE_INCOMPLETE" and foreign["verified"] is False
+
+
+def test_multi_commit_range_is_not_replaced_by_head_parent(tmp_path):
+    root = repo(tmp_path)
+    base = expect(root, "full", extra=())["commit"]
+    (root / "first.txt").write_text("first\n")
+    git(root, "add", "first.txt")
+    git(root, "commit", "-m", "first")
+    (root / "second.txt").write_text("second\n")
+    git(root, "add", "second.txt")
+    git(root, "commit", "-m", "second")
+    partial = _archive(root, tmp_path, report_id="partial", extra_paths=["second.txt"])
+    assert partial["status"] == "VERIFIED"
+    assert "first.txt" not in _members(partial)
+    again = observe_archive(
+        root, tmp_path / "archive" / "partial",
+        expect=expect(root, "partial", extra=(), base=base),
+    )
+    assert again["status"] == "SCOPE_INCOMPLETE" and again["verified"] is False
+    full = _archive(root, tmp_path, report_id="full", extra_paths=[], scope_base=base)
+    assert full["status"] == "VERIFIED"
+    assert {"first.txt", "second.txt"} <= _members(full)
+
+
+def test_literal_newline_and_leading_dash_paths_stay_distinct(tmp_path):
+    root = repo(tmp_path)
+    newline = "line\nname.txt"
+    dash = "-leading.txt"
+    (root / newline).write_text("newline\n")
+    (root / dash).write_text("dash\n")
+    verdict = _archive(root, tmp_path, extra_paths=[])
+    assert verdict["status"] == "VERIFIED"
+    assert {newline, dash} <= _members(verdict)
+    archive = tmp_path / "archive" / "report-1"
+    _omit(archive, newline)
+    again = observe_archive(root, archive, expect=expect(root, "report-1", extra=()))
+    assert again["status"] == "SCOPE_INCOMPLETE" and again["verified"] is False
+
+
+def test_head_change_during_observe_is_not_verified(tmp_path, monkeypatch):
+    import lumos_board.evidence_archive as archive_mod
+
+    root = repo(tmp_path)
+    (root / "added.txt").write_text("one\n")
+    assert _archive(root, tmp_path, extra_paths=[])["status"] == "VERIFIED"
+    real = archive_mod.head_commit
+    state = {"n": 0}
+
+    def wrapped(repo_path):
+        state["n"] += 1
+        value = real(repo_path)
+        if state["n"] >= 3:
+            return "f" * 40
+        return value
+
+    monkeypatch.setattr(archive_mod, "head_commit", wrapped)
+    again = observe_archive(root, tmp_path / "archive" / "report-1", expect=expect(root, "report-1", extra=()))
+    assert again["verified"] is False
+    assert again["status"] in {"SOURCE_CHANGED", "SCOPE_INCOMPLETE"}
+
+
+def test_scope_query_error_during_observe_is_not_verified(tmp_path, monkeypatch):
+    import lumos_board.evidence_archive as archive_mod
+
+    root = repo(tmp_path)
+    (root / "added.txt").write_text("one\n")
+    assert _archive(root, tmp_path, extra_paths=[])["status"] == "VERIFIED"
+    real = archive_mod._worktree_paths
+    state = {"n": 0}
+
+    def wrapped(repo_path):
+        state["n"] += 1
+        if state["n"] >= 2:
+            raise archive_mod._ScopeError("status failed")
+        return real(repo_path)
+
+    monkeypatch.setattr(archive_mod, "_worktree_paths", wrapped)
+    again = observe_archive(root, tmp_path / "archive" / "report-1", expect=expect(root, "report-1", extra=()))
+    assert again["status"] == "SCOPE_INCOMPLETE" and again["verified"] is False
+
+
+def test_observe_without_authorized_scope_is_incomplete(tmp_path):
+    root = repo(tmp_path)
+    verdict = _archive(root, tmp_path, extra_paths=[])
+    assert verdict["verified"] is True
+    bare = expect(root, "report-1", extra=())
+    del bare["scope"]
+    again = observe_archive(root, tmp_path / "archive" / "report-1", expect=bare)
+    assert again["status"] == "SCOPE_INCOMPLETE" and again["verified"] is False

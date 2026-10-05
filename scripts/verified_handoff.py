@@ -170,6 +170,8 @@ def main():
     p.add_argument('--report', required=True)
     p.add_argument('--commit', required=True)
     p.add_argument('--run-attempt', default='local')
+    p.add_argument('--extra', action='append', default=[])
+    p.add_argument('--base', default='')
     p = sub.add_parser('inventory')
     p.add_argument('--archive', required=True)
     args = vars(parser.parse_args())
@@ -185,10 +187,18 @@ def main():
                 )
             elif command == 'verify':
                 # checkpoint, manifest'i <archive>/<report>/ altına yazar; aynı --archive burada da çalışır.
+                scope = {
+                    'worktree': True,
+                    'extra': list(args.get('extra') or []),
+                    'head': args['commit'],
+                }
+                if args.get('base'):
+                    scope['base'] = args['base']
                 result = archive.observe_archive(
                     Path(args['repo']), archive.archive_dir_for(Path(args['archive']), args['report']),
                     expect={'task_id': args['task'], 'report_id': archive.safe_report_id(args['report']),
-                            'commit': args['commit'], 'run_attempt': args['run_attempt']},
+                            'commit': args['commit'], 'run_attempt': args['run_attempt'],
+                            'scope': scope},
                 )
             else:
                 result = archive.inventory(Path(args['archive']))

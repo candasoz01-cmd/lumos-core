@@ -153,39 +153,136 @@ def transfer_window(
     }
 
 
-def _worktree_paths(repo: Path) -> list[str]:
-    try:
-        out = _git(repo, "status", "--porcelain", "-z", "--untracked-files=all").stdout
-    except (OSError, subprocess.CalledProcessError):
+class _ScopeError(Exception):
+    """The caller scope could not be read without loss. Never an empty success."""
+
+
+def _git_bytes(repo: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
+    return subprocess.run(
+        ["git", "--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-C", str(repo), *args],
+        check=False,
+        capture_output=True,
+        env=_git_env(),
+    )
+
+
+def _decode_git_path(raw: bytes) -> str:
+    # surrogateescape keeps every byte. Universal-newline text mode would not.
+    return raw.decode("utf-8", "surrogateescape")
+
+
+def _parse_status_z(out: bytes) -> list[str]:
+    """Porcelain v1 -z, both rename ends, no backslash folding and no dropped record."""
+    if not out:
         return []
+    if not out.endswith(b"\0"):
+        raise _ScopeError("truncated git status")
+    fields = out[:-1].split(b"\0")
     paths: list[str] = []
-    fields = out.split("\0")
     index = 0
     while index < len(fields):
-        entry = fields[index]
+        entry = _decode_git_path(fields[index])
         index += 1
-        if len(entry) < 4:
-            continue
+        if len(entry) < 4 or entry[2] != " ":
+            raise _ScopeError("unreadable git status record")
         status, relative = entry[:2], entry[3:]
+        if relative.endswith("/"):
+            raise _ScopeError("git status collapsed a directory")
         if "R" in status or "C" in status:
-            # Rename/copy: the next NUL field is the origin path and has no status prefix.
-            origin = fields[index] if index < len(fields) else ""
+            if index >= len(fields):
+                raise _ScopeError("truncated rename record")
+            origin = _decode_git_path(fields[index])
             index += 1
-            if "R" in status and origin:
-                paths.append(origin)  # renamed away: the old name is now a deletion
-        if relative and not relative.endswith("/"):
-            paths.append(relative)
+            if not origin:
+                raise _ScopeError("empty rename origin")
+            paths.append(origin)
+        if not relative:
+            raise _ScopeError("empty git status path")
+        paths.append(relative)
     return paths
 
 
-def _scope(repo: Path, extra: list[str] | None) -> list[str]:
-    seen: list[str] = []
-    for relative in [*_worktree_paths(repo), *(extra or [])]:
-        relative = relative.replace("\\", "/").lstrip("/")
-        if not relative or relative.startswith(".git/") or relative in seen:
+def _parse_name_status_z(out: bytes) -> list[str]:
+    if not out:
+        return []
+    if not out.endswith(b"\0"):
+        raise _ScopeError("truncated git diff")
+    fields = out[:-1].split(b"\0")
+    paths: list[str] = []
+    index = 0
+    while index < len(fields):
+        status = _decode_git_path(fields[index])
+        index += 1
+        if status[:1] in {"R", "C"}:
+            if index + 1 >= len(fields):
+                raise _ScopeError("truncated rename diff")
+            old = _decode_git_path(fields[index])
+            new = _decode_git_path(fields[index + 1])
+            index += 2
+            if not old or not new:
+                raise _ScopeError("empty rename diff path")
+            paths.extend((old, new))
             continue
-        seen.append(relative)
-    return seen
+        if index >= len(fields) or not status:
+            raise _ScopeError("truncated git diff")
+        path = _decode_git_path(fields[index])
+        index += 1
+        if not path:
+            raise _ScopeError("empty git diff path")
+        paths.append(path)
+    return paths
+
+
+def _worktree_paths(repo: Path) -> list[str]:
+    result = _git_bytes(repo, "status", "--porcelain", "-z", "--untracked-files=all")
+    if result.returncode != 0:
+        raise _ScopeError("git status failed")
+    return _parse_status_z(result.stdout)
+
+
+def _range_paths(repo: Path, base: str, head: str) -> list[str]:
+    """Paths changed between the caller's pinned base and head. Not HEAD^."""
+    for rev in (base, head):
+        if _git(repo, "cat-file", "-e", f"{rev}^{{commit}}", check=False).returncode != 0:
+            raise _ScopeError("missing git object")
+    if _git(repo, "merge-base", "--is-ancestor", base, head, check=False).returncode != 0:
+        raise _ScopeError("base is not an ancestor of head")
+    result = _git_bytes(
+        repo, "diff", "--name-status", "--find-renames", "-z", base, head,
+    )
+    if result.returncode != 0:
+        raise _ScopeError("git diff failed")
+    return _parse_name_status_z(result.stdout)
+
+
+def _caller_scope(repo: Path, scope: dict) -> set[str]:
+    """Expected path set from the caller. Manifest fields are not an input."""
+    if not isinstance(scope, dict) or not scope.get("worktree") and "extra" not in scope and "base" not in scope:
+        raise _ScopeError("no authorized scope")
+    head = head_commit(repo)
+    if head == "UNKNOWN":
+        raise _ScopeError("head unreadable")
+    pinned = scope.get("head")
+    if pinned is not None and str(pinned) != head:
+        raise _ScopeError("head mismatch")
+    paths: list[str] = []
+    if scope.get("worktree"):
+        paths.extend(_worktree_paths(repo))
+    base = scope.get("base")
+    if base is not None:
+        if pinned is None:
+            raise _ScopeError("range requires the caller's head")
+        if not isinstance(base, str) or not base:
+            raise _ScopeError("base missing")
+        paths.extend(_range_paths(repo, base, str(pinned)))
+    extra = scope.get("extra", [])
+    if extra is None:
+        extra = []
+    if not isinstance(extra, list) or any(not isinstance(item, str) or item == "" for item in extra):
+        raise _ScopeError("extra paths are not a caller list")
+    # Keep the caller's spelling. Do not turn a backslash, absolute path, or `..` into another file.
+    paths.extend(extra)
+    return set(paths)
 
 
 def _tracked_in_head(repo: Path, relative: str) -> bool:
@@ -278,6 +375,7 @@ def archive_report(
     run_attempt: str,
     report: dict | None = None,
     extra_paths: list[str] | None = None,
+    scope_base: str | None = None,
     now: datetime | None = None,
     policy_days: int | None = None,
     object_expires_at: datetime | None = None,
@@ -299,10 +397,22 @@ def archive_report(
     destination = archive_root / report_key
     if destination.exists():
         raise FileExistsError("archive report already exists; corrections are new events")
+    commit = head_commit(repo)
+    caller_scope = {
+        "worktree": True,
+        "extra": list(extra_paths or []),
+        "head": commit,
+    }
+    if scope_base is not None:
+        caller_scope["base"] = scope_base
+    try:
+        expected_paths = _caller_scope(repo, caller_scope)
+    except _ScopeError:
+        return _stopped(archive_root, "SCOPE_INCOMPLETE", {})
     files: list[dict[str, object]] = []
     excluded: list[dict[str, str]] = []
     payloads = destination / "payload"
-    for relative in _scope(repo, extra_paths):
+    for relative in sorted(expected_paths):
         reason, data = _read_file(repo, relative)
         if reason != "ok" or data is None:
             excluded.append({"path": relative, "reason": reason})
@@ -313,7 +423,6 @@ def archive_report(
         digest = sha256_bytes(data)
         _write_bytes(payloads / digest, data)
         files.append({"path": relative, "size": len(data), "sha256": digest})
-    commit = head_commit(repo)
     manifest = {
         "schema": SCHEMA,
         "task_id": str(task_id or "UNKNOWN"),
@@ -342,6 +451,8 @@ def archive_report(
             "report_id": report_key,
             "commit": commit,
             "run_attempt": manifest["run_attempt"],
+            # The caller's extra list and live git query. Not a field of manifest.json.
+            "scope": caller_scope,
         },
     )
     _touch_checkpoint(archive_root, now)
@@ -383,7 +494,7 @@ def checkpoint_due(
     return now - last >= interval
 
 
-def observe_archive(repo: Path, archive_dir: Path, *, expect: dict[str, str]) -> dict[str, object]:
+def observe_archive(repo: Path, archive_dir: Path, *, expect: dict) -> dict[str, object]:
     """Read-only. Compares source bytes with archive bytes. Writes nothing."""
     repo = Path(repo).resolve()
     archive_dir = Path(archive_dir).resolve()
@@ -406,7 +517,21 @@ def _snapshot(root: Path) -> tuple:
     return tuple(rows)
 
 
-def _observe(repo: Path, archive_dir: Path, expect: dict[str, str]) -> dict[str, object]:
+def _manifest_member_paths(entries: list) -> list[str] | None:
+    found: list[str] = []
+    for item in entries:
+        if not isinstance(item, dict):
+            return None
+        path = item.get("path")
+        if not isinstance(path, str) or path == "":
+            return None
+        found.append(path)
+    if len(found) != len(set(found)):
+        return None
+    return found
+
+
+def _observe(repo: Path, archive_dir: Path, expect: dict) -> dict[str, object]:
     manifest_path = archive_dir / "manifest.json"
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -425,6 +550,20 @@ def _observe(repo: Path, archive_dir: Path, expect: dict[str, str]) -> dict[str,
     excluded = manifest.get("excluded") or []
     if not isinstance(files, list) or not isinstance(excluded, list):
         return _stopped(archive_dir, "ARCHIVE_CORRUPT", manifest)
+    file_paths = _manifest_member_paths(files)
+    excluded_paths = _manifest_member_paths(excluded)
+    if file_paths is None or excluded_paths is None or set(file_paths) & set(excluded_paths):
+        return _stopped(archive_dir, "ARCHIVE_CORRUPT", manifest)
+    scope = expect.get("scope") if isinstance(expect, dict) else None
+    if not isinstance(scope, dict):
+        return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
+    try:
+        expected = _caller_scope(repo, scope)
+    except _ScopeError:
+        return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
+    # Exact set equality. A subset, a count, or a scope field inside the manifest is not proof.
+    if set(file_paths) | set(excluded_paths) != expected:
+        return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
     for item in excluded:
         reason = item.get("reason") if isinstance(item, dict) else None
         if reason == "secret":
@@ -463,6 +602,13 @@ def _observe(repo: Path, archive_dir: Path, expect: dict[str, str]) -> dict[str,
         if sha256_bytes(archived) != expected_hash or len(archived) != expected_size or archived != data:
             return _stopped(archive_dir, "ARCHIVE_CORRUPT", manifest)
         checked.append({"path": relative, "size": len(data), "sha256": actual})
+    try:
+        if head_commit(repo) != manifest.get("commit"):
+            return _stopped(archive_dir, "SOURCE_CHANGED", manifest)
+        if _caller_scope(repo, scope) != expected:
+            return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
+    except _ScopeError:
+        return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
     return {
         "schema": SCHEMA,
         "status": "VERIFIED",
