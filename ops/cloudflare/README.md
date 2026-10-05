@@ -4,7 +4,7 @@ Bu dizin mevcut Astro kaynaklarından `https://lumosai.company` ürün sitesini 
 
 ## Kaynak ve kapsam
 
-`build_company.py` yayın kapısını çalıştırır, Astro'yu derler, yalnız ana sayfa, accessibility, education, lab, integrations, privacy, terms ve data-and-trust sayfalarını ve kullandıkları assetleri paketler; ardından oluşturulan paketi yeniden tarar. API/backend veya panel pakete alınmaz. Önceki çıktı `.generated/previous-*` altında korunur. Üretilen dosyalar, node_modules ve Wrangler durumu Git'e alınmaz.
+`build_company.py` yayın kapısını çalıştırır, Astro'yu derler, yalnız ana sayfa, accessibility, education, lab, integrations, privacy, terms, data-and-trust, slack, cyber ve connect/mac sayfalarını ve kullandıkları assetleri paketler; ardından oluşturulan paketi yeniden tarar. Ürün tanıtım bağlantıları bu domain içinde kalır. Giriş, panel ve uygulama entegrasyon yolları uygulama domainine bağlanır; bilinmeyen yollar topluca uygulamaya yönlendirilmez. API/backend veya panel pakete alınmaz. Önceki çıktı `.generated/previous-*` altında korunur. Üretilen dosyalar, node_modules ve Wrangler durumu Git'e alınmaz.
 
 Worker yalnız tam `/auth` ve `/panel` yollarını uygulama domainine yönlendirir. API, callback ve benzer önekli bilinmeyen yollar asset katmanında404 kalır. Mevcut kayıtlı privacy/terms ve OAuth callback adresleri değiştirilmez.
 

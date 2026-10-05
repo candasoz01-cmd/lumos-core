@@ -15,7 +15,7 @@ DIST = ROOT / 'ui/dist'
 SITE = HERE / '.generated/site'
 ORIGIN = 'https://lumosai.company'
 APP = 'https://app.lumosai.company'
-PAGES = ('/', '/accessibility', '/education', '/lab', '/integrations', '/privacy', '/terms', '/data-and-trust')
+PAGES = ('/', '/accessibility', '/education', '/lab', '/integrations', '/privacy', '/terms', '/data-and-trust', '/slack', '/cyber', '/connect/mac')
 MEDIA = {'.svg', '.png', '.jpg', '.jpeg', '.webp', '.gif', '.ico', '.woff', '.woff2', '.mp4', '.webm'}
 
 
@@ -78,7 +78,8 @@ def prepare_html(text, route):
         def attr(m):
             url = m[2]
             path = urlsplit(url).path.rstrip('/') or '/'
-            if url.startswith('/') and not url.startswith('//') and path not in PAGES:
+            is_app_path = path in {'/auth', '/panel'} or path.startswith(('/auth/', '/api/', '/integrations/'))
+            if url.startswith('/') and not url.startswith('//') and path not in PAGES and is_app_path:
                 return m[1] + APP + url + '"'
             return m[0]
         return re.sub(r'((?:href|action)=")([^"]+)"', attr, tag)
