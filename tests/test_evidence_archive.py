@@ -94,6 +94,76 @@ def test_uncommitted_file_is_verified_and_secret_is_not_copied(tmp_path):
     assert any(item["reason"] == "secret" for item in verdict["excluded"])
 
 
+@pytest.mark.parametrize("body", [
+    "token = None\n",
+    "api_key = None\n",
+    "password = None\n",
+    "secret = None\n",
+])
+def test_content_exclusion_of_normal_file_is_incomplete(tmp_path, body):
+    root = repo(tmp_path)
+    (root / "plain.txt").write_text(body)
+    verdict = archive_report(
+        root, tmp_path / "archive", task_id="KA-1", report_id="report-1",
+        report_kind="interim", run_attempt="2", extra_paths=["note.txt"],
+        now=NOW, policy_days=14, object_expires_at=NOW + timedelta(days=30),
+        retry_margin=timedelta(hours=1),
+    )
+    assert verdict["status"] == "SCOPE_INCOMPLETE"
+    assert verdict["verified"] is False
+    assert any(
+        item.get("path") == "plain.txt" and item.get("reason") == "secret"
+        for item in verdict["excluded"]
+    )
+    payload = tmp_path / "archive" / "report-1" / "payload"
+    copied = b"".join(path.read_bytes() for path in payload.iterdir()) if payload.is_dir() else b""
+    assert body.encode() not in copied
+
+
+def test_forged_secret_exclusion_without_payload_is_incomplete(tmp_path):
+    root, verdict = archived(tmp_path)
+    assert verdict["status"] == "VERIFIED"
+    archive = tmp_path / "archive" / "report-1"
+    manifest_path = archive / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest["excluded"] = [
+        *(manifest.get("excluded") or []),
+        *[{"path": entry["path"], "reason": "secret"} for entry in manifest["files"]],
+    ]
+    manifest["files"] = []
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    payload = archive / "payload"
+    for path in payload.iterdir():
+        path.unlink()
+    again = observe_archive(root, archive, expect=expect(root, "report-1"))
+    assert again["status"] == "SCOPE_INCOMPLETE"
+    assert again["verified"] is False
+
+
+def test_one_forged_secret_exclusion_keeps_the_archive_incomplete(tmp_path):
+    root, verdict = archived(tmp_path)
+    assert verdict["status"] == "VERIFIED"
+    archive = tmp_path / "archive" / "report-1"
+    manifest_path = archive / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    kept = []
+    forged = list(manifest.get("excluded") or [])
+    payload = archive / "payload"
+    for entry in manifest["files"]:
+        if entry["path"] == "new.txt":
+            forged.append({"path": entry["path"], "reason": "secret"})
+            (payload / entry["sha256"]).unlink()
+        else:
+            kept.append(entry)
+    assert kept and len(forged) == 1
+    manifest["files"] = kept
+    manifest["excluded"] = forged
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    again = observe_archive(root, archive, expect=expect(root, "report-1"))
+    assert again["status"] == "SCOPE_INCOMPLETE"
+    assert again["verified"] is False
+
+
 def test_corrupt_copy_stops_verification(tmp_path):
     root, verdict = archived(tmp_path)
     assert verdict["verified"] is True

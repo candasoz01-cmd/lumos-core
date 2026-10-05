@@ -428,7 +428,14 @@ def _observe(repo: Path, archive_dir: Path, expect: dict[str, str]) -> dict[str,
     for item in excluded:
         reason = item.get("reason") if isinstance(item, dict) else None
         if reason == "secret":
-            continue
+            # Re-read the source. Only the filename policy (.env, key material,
+            # known secret names) can omit bytes. A content-scan hit on an
+            # ordinary path is an incomplete archive, not a verified one.
+            relative = str(item.get("path") or "") if isinstance(item, dict) else ""
+            read_reason, data = _read_file(repo, relative)
+            if secret_path(relative) and read_reason == "ok" and data is not None:
+                continue
+            return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
         if reason in {"symlink", "deleted"}:
             # The observer checks the exclusion itself instead of trusting the manifest.
             if _read_file(repo, str(item.get("path") or ""))[0] != reason:
