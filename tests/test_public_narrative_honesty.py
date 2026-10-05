@@ -278,4 +278,6 @@ def test_local_cleanup_capabilities_are_not_claimed_as_applied_controls():
     for name in ("cleanup_audit_logs", "delete_audit_logs", "Memory.delete_all"):
         assert name not in applied
         assert name in capabilities
-    assert "Varsayılan 14 günlük saklama süresi bugün otomatik uygulanmaz." in capabilities
+    assert (
+        "Varsayılan 14 günlük saklama süresi bugün otomatik uygulanmaz." in capabilities
+    )
