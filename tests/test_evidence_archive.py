@@ -593,7 +593,7 @@ def test_verify_cli_accepts_the_checkpoint_archive_directory(tmp_path):
 # --- the verified outcome must exist before any "saved" artifact is written -----------------
 
 
-def _run_job(tmp_path, monkeypatch, report):
+def _run_job(tmp_path, monkeypatch, report, *, pipeline=None, evidence=True, remote=""):
     from core.evidence_continuity import evidence_continuity_path
     from kando.agent_runner import start_agent_job
 
@@ -602,8 +602,19 @@ def _run_job(tmp_path, monkeypatch, report):
     outbox.mkdir()
     (tmp_path / "evidence").mkdir()
     monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path))
-    monkeypatch.setenv("LUMOS_WALL_EVIDENCE_DIR", str(tmp_path / "evidence"))
-    with patch("kando.agent_runner.run_agent_pipeline", return_value=report), patch(
+    if evidence:
+        monkeypatch.setenv("LUMOS_WALL_EVIDENCE_DIR", str(tmp_path / "evidence"))
+    else:
+        monkeypatch.delenv("LUMOS_WALL_EVIDENCE_DIR", raising=False)
+    if remote:
+        monkeypatch.setenv("LUMOS_WALL_EVIDENCE_REMOTE", remote)
+    else:
+        monkeypatch.delenv("LUMOS_WALL_EVIDENCE_REMOTE", raising=False)
+
+    def return_report(*_args, **_kwargs):
+        return report
+
+    with patch("kando.agent_runner.run_agent_pipeline", side_effect=pipeline or return_report), patch(
         "kando.agent_runner._copy_cursor_bridge_snapshots_to_outbox"
     ):
         job_id = start_agent_job("goal", False, repo_root=work, outbox_dir=outbox)
@@ -667,6 +678,166 @@ def test_verified_archive_is_still_recorded_as_saved(tmp_path, monkeypatch):
     assert status["status"] == "completed"
     assert last["status"] == "ok" and last["evidence"]["verified"] is True
     assert [record["outcome"] for record in records if record["phase"] == PHASE_RESULT] == [OUTCOME_OK]
+
+
+def _ok_report(**overrides):
+    report = {"status": "ok", "task": "goal", "changed_files": [], "errors": []}
+    report.update(overrides)
+    return report
+
+
+def _call_phase(report, before_phase=None):
+    def pipeline(goal, *, auto_approve_safe, repo_root, on_phase=None):
+        if before_phase is not None:
+            before_phase(repo_root, on_phase)
+        elif on_phase is not None:
+            on_phase("repo_scan")
+        return report
+
+    return pipeline
+
+
+def _result_records(records):
+    from core.evidence_continuity import PHASE_RESULT
+
+    return [record for record in records if record["phase"] == PHASE_RESULT]
+
+
+def _secret_during_checkpoint(repo_root, on_phase):
+    note = Path(repo_root) / "note.txt"
+    note.write_text("password = hunter2\n")
+    on_phase("repo_scan")
+    note.write_text("keep this\n")
+
+
+def test_checkpoint_phase_keeps_required_on_an_incomplete_archive(tmp_path, monkeypatch):
+    from lumos_board.evidence_archive import checkpoint_phase
+
+    root = repo(tmp_path)
+    (root / "note.txt").write_text("password = hunter2\n")
+    monkeypatch.setenv("LUMOS_WALL_EVIDENCE_DIR", str(tmp_path / "evidence"))
+    monkeypatch.delenv("LUMOS_WALL_EVIDENCE_REMOTE", raising=False)
+    verdict = checkpoint_phase(repo=root, job_id="job", phase="repo_scan")
+    assert verdict["required"] is True
+    assert verdict["verified"] is False
+    assert verdict["status"] == "SCOPE_INCOMPLETE"
+
+
+def test_verified_checkpoint_stays_a_completed_delivery(tmp_path, monkeypatch):
+    from core.evidence_continuity import OUTCOME_OK
+
+    monkeypatch.setenv("LUMOS_EVIDENCE_CHECKPOINT_SECONDS", "0")
+    report = _ok_report()
+    status, last, records = _run_job(tmp_path, monkeypatch, report, pipeline=_call_phase(report))
+    assert status["status"] == "completed"
+    assert status["errors"] == []
+    assert last["status"] == "ok" and last["errors"] == []
+    assert last["evidence"]["verified"] is True and last["evidence"]["required"] is True
+    assert status["final_report"]["errors"] == []
+    assert [record["outcome"] for record in _result_records(records)] == [OUTCOME_OK]
+
+
+def test_required_checkpoint_failure_survives_a_later_verified_delivery(tmp_path, monkeypatch):
+    from core.evidence_continuity import OUTCOME_ERROR
+
+    monkeypatch.setenv("LUMOS_EVIDENCE_CHECKPOINT_SECONDS", "0")
+    report = _ok_report()
+    status, last, records = _run_job(
+        tmp_path, monkeypatch, report, pipeline=_call_phase(report, _secret_during_checkpoint),
+    )
+    marker = "evidence_checkpoint_SCOPE_INCOMPLETE"
+    assert status["status"] == "failed"
+    assert last["status"] == "partial"
+    assert last["evidence"]["verified"] is True
+    assert status["errors"] == [marker]
+    assert status["final_report"]["errors"] == [marker]
+    assert last["errors"] == [marker]
+    result = _result_records(records)
+    assert [record["outcome"] for record in result] == [OUTCOME_ERROR]
+    assert result[0]["error"]["code"] == marker
+
+
+def test_checkpoint_failure_is_kept_beside_other_report_errors(tmp_path, monkeypatch):
+    from core.evidence_continuity import OUTCOME_ERROR
+
+    monkeypatch.setenv("LUMOS_EVIDENCE_CHECKPOINT_SECONDS", "0")
+    report = _ok_report(errors=["verify_failed"])
+    status, last, records = _run_job(
+        tmp_path, monkeypatch, report, pipeline=_call_phase(report, _secret_during_checkpoint),
+    )
+    expected = ["verify_failed", "evidence_checkpoint_SCOPE_INCOMPLETE"]
+    assert status["status"] == "failed"
+    assert last["status"] == "partial"
+    assert status["errors"] == expected
+    assert status["final_report"]["errors"] == expected
+    assert last["errors"] == expected
+    result = _result_records(records)
+    assert [record["outcome"] for record in result] == [OUTCOME_ERROR]
+    assert result[0]["error"]["code"] == "verify_failed"
+
+
+def test_checkpoint_failure_is_kept_when_final_bind_fails(tmp_path, monkeypatch):
+    from core.evidence_continuity import OUTCOME_ERROR
+
+    monkeypatch.setenv("LUMOS_EVIDENCE_CHECKPOINT_SECONDS", "0")
+    report = _ok_report(changed_files=["ghost.txt"], errors=["verify_failed"])
+    status, last, records = _run_job(
+        tmp_path, monkeypatch, report, pipeline=_call_phase(report, _secret_during_checkpoint),
+    )
+    expected = ["verify_failed", "evidence_unverified", "evidence_checkpoint_SCOPE_INCOMPLETE"]
+    assert status["status"] == "failed"
+    assert last["status"] == "partial"
+    assert last["evidence"]["verified"] is False
+    assert status["errors"] == expected
+    assert status["final_report"]["errors"] == expected
+    assert last["errors"] == expected
+    result = _result_records(records)
+    assert [record["outcome"] for record in result] == [OUTCOME_ERROR]
+    assert result[0]["error"]["code"] == "verify_failed"
+
+
+def test_remote_only_checkpoint_is_not_a_completed_pass(tmp_path, monkeypatch):
+    from core.evidence_continuity import OUTCOME_ERROR
+
+    report = _ok_report()
+    status, last, records = _run_job(
+        tmp_path,
+        monkeypatch,
+        report,
+        pipeline=_call_phase(report),
+        evidence=False,
+        remote="https://example.invalid/lumos-wall-evidence.git",
+    )
+    marker = "evidence_checkpoint_REMOTE_ONLY_NOT_A_LOCAL_CHECKPOINT"
+    assert status["status"] == "failed"
+    assert last["status"] == "partial"
+    assert status["errors"] == [marker]
+    assert status["final_report"]["errors"] == [marker]
+    assert last["errors"] == [marker]
+    result = _result_records(records)
+    assert [record["outcome"] for record in result] == [OUTCOME_ERROR]
+    assert result[0]["error"]["code"] == marker
+
+
+def test_not_due_checkpoint_does_not_fail_a_verified_delivery(tmp_path, monkeypatch):
+    from core.evidence_continuity import OUTCOME_OK
+
+    monkeypatch.delenv("LUMOS_EVIDENCE_CHECKPOINT_SECONDS", raising=False)
+
+    def stamp_then_phase(_repo_root, on_phase):
+        evidence = Path(os.environ["LUMOS_WALL_EVIDENCE_DIR"])
+        (evidence / "last_checkpoint_at").write_text(datetime.now(timezone.utc).isoformat() + "\n")
+        on_phase("repo_scan")
+
+    report = _ok_report()
+    status, last, records = _run_job(
+        tmp_path, monkeypatch, report, pipeline=_call_phase(report, stamp_then_phase),
+    )
+    assert status["status"] == "completed"
+    assert status["errors"] == []
+    assert last["status"] == "ok" and last["errors"] == []
+    assert last["evidence"]["verified"] is True
+    assert [record["outcome"] for record in _result_records(records)] == [OUTCOME_OK]
 
 
 # --- scope omission: E comes from the caller, M must equal E -----------------------------

@@ -1008,7 +1008,7 @@ def checkpoint_phase(*, repo: Path, job_id: str, phase: str) -> dict | None:
     root = Path(destination)
     if not checkpoint_due(root, interval=interval):
         return {"status": "NOT_DUE", "verified": False, "required": True}
-    return archive_report(
+    verdict = archive_report(
         repo,
         root,
         task_id=job_id,
@@ -1016,3 +1016,8 @@ def checkpoint_phase(*, repo: Path, job_id: str, phase: str) -> dict | None:
         report_kind="interim",
         run_attempt=os.environ.get("GITHUB_RUN_ATTEMPT") or "local",
     )
+    # The runner records an interim failure only when this flag is present.
+    # archive_report does not set it; the other checkpoint returns do.
+    if "required" not in verdict:
+        verdict["required"] = True
+    return verdict

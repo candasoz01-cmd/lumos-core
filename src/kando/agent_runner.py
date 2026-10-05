@@ -298,6 +298,20 @@ def _write_json(path: Path, data: dict[str, Any]) -> None:
     tmp.replace(path)
 
 
+def _carry_checkpoint_errors(report: dict[str, Any], prior: list[str]) -> dict[str, Any]:
+    """Publish interim checkpoint failures together with the final report errors."""
+    carried = dict(report)
+    merged: list[str] = []
+    for item in list(carried.get("errors") or []) + list(prior):
+        text = str(item)
+        if text not in merged:
+            merged.append(text)
+    carried["errors"] = merged
+    if carried.get("status") == "ok" and any(text.startswith("evidence_checkpoint") for text in merged):
+        carried["status"] = "partial"
+    return carried
+
+
 def _cursor_bridge_source_dir(repo_root: Path) -> Path:
     """
     Bridge yazımı LUMOS_BASE_DIR altındadır; outbox sync aynı kökü kullanmalı (repo_root/.lumos ile drift olmasın).
@@ -511,6 +525,8 @@ def start_agent_job(
                 errors = list(fr.get("errors") or [])
                 errors.append(f"evidence_unverified:{exc}"[:200])
                 fr["errors"] = errors
+            # Checkpoint failures are merged before any completion artifact is written.
+            fr = _carry_checkpoint_errors(fr, state.errors)
             # Sıralama sözleşmesi: status dosyasındaki "completed" yayın noktasıdır —
             # evidence journal ve diğer tamamlanma artefaktları ondan ÖNCE yazılır,
             # böylece "completed" gören her gözlemci journal'daki result kaydını bulur.
@@ -526,10 +542,12 @@ def start_agent_job(
             state.final_report = fr
             evidence = fr.get("evidence") or {}
             blocked = evidence.get("required") is True and evidence.get("verified") is not True
-            state.status = "failed" if blocked else "completed"
+            checkpoint_failed = any(
+                str(item).startswith("evidence_checkpoint") for item in (fr.get("errors") or [])
+            )
+            state.status = "failed" if blocked or checkpoint_failed else "completed"
             state.phase = "done"
-            if fr.get("errors"):
-                state.errors = list(fr["errors"])
+            state.errors = [str(item) for item in (fr.get("errors") or [])]
             done_payload = {
                 "job_id": job_id,
                 "phase": "done",
