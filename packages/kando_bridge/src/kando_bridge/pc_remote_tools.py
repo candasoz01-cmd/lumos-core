@@ -543,7 +543,17 @@ def execute_tool_stub(
             found = find_pending_by_token(repo_root, tok)
             if found is not None:
                 aid = str(found[1].get("approval_id") or found[0].stem)
-        ok, reason, approved_rec = try_consume_approval_token(repo_root, aid, tok)
+        ok, reason, approved_rec = try_consume_approval_token(
+            repo_root,
+            aid,
+            tok,
+            expected_request={
+                "approval_id": aid,
+                "command": command,
+                "arguments": arguments,
+                "target_device": target_device,
+            },
+        )
         if not ok or approved_rec is None:
             _audit_execute_rejected(
                 repo_root,

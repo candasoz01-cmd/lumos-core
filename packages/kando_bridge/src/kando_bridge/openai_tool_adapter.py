@@ -141,7 +141,13 @@ def _item_to_tool_call(item: Any) -> ParsedToolCall | None:
 
 
 def parse_openai_tool_calls(response_or_item: Any) -> list[ParsedToolCall]:
-    """Extract bridge tool calls from Responses API output (flexible shapes)."""
+    """Extract calls, deduplicating repeated projections within this payload.
+
+    Different call IDs are separate requests even when their payloads match.
+    The same ID must describe the same name and canonical arguments; conflicting
+    reuse rejects the batch before dispatch. Anonymous calls retain legacy
+    payload deduplication. This is not cross-response execution/replay authority.
+    """
     if response_or_item is None:
         return []
 
@@ -168,12 +174,18 @@ def parse_openai_tool_calls(response_or_item: Any) -> list[ParsedToolCall]:
             items.append(response_or_item)
 
     out: list[ParsedToolCall] = []
-    seen: set[tuple[str, str]] = set()
+    seen: set[tuple[str, str, str]] = set()
+    identified: dict[str, tuple[str, str]] = {}
     for item in items:
         parsed = _item_to_tool_call(item)
         if parsed is None:
             continue
-        key = (parsed.name, json.dumps(parsed.arguments, sort_keys=True))
+        payload = (parsed.name, json.dumps(parsed.arguments, sort_keys=True))
+        if parsed.call_id:
+            previous = identified.setdefault(parsed.call_id, payload)
+            if previous != payload:
+                raise ValueError("conflicting_tool_call_id")
+        key = (parsed.call_id, *payload)
         if key in seen:
             continue
         seen.add(key)
@@ -254,6 +266,7 @@ def approve_and_reexecute(
     approval_token = str(pending.get("approval_token") or "").strip()
     if not approval_id or not approval_token:
         return 400, {
+            "call_id": tool_call.call_id,
             "ok": False,
             "stage": "approve",
             "error": "pending_missing_tokens",
@@ -264,6 +277,7 @@ def approve_and_reexecute(
     approve_out = approve(approval_id, approval_token)
     if not approve_out.get("accepted"):
         return int(approve_out.get("http_status") or 403), {
+            "call_id": tool_call.call_id,
             "ok": False,
             "stage": "approve",
             "error": approve_out.get("error") or "approval_rejected",
@@ -278,6 +292,7 @@ def approve_and_reexecute(
     )
     status, execute_out = post_tools_execute(body, http_fn=http_fn)
     return status, {
+        "call_id": tool_call.call_id,
         "ok": bool(execute_out.get("ok")),
         "stage": "executed",
         "approve": approve_out,
@@ -297,10 +312,12 @@ def run_tool_call_loop(
     Single tool call: bridge execute → pending (if needed) → approve → stub execute.
 
     Default ``auto_approve=False`` — user must approve via mobile web UI or CLI.
-    Returns a summary dict with ``stage`` in (direct, pending, executed, error).
+    Returns a summary with input ``call_id`` (empty when absent) and ``stage``
+    in (direct, pending, executed, error). Call IDs never grant execution rights.
     """
     if tool_call.name not in ALL_COMMANDS:
         return {
+            "call_id": tool_call.call_id,
             "ok": False,
             "stage": "error",
             "error": "unknown_command",
@@ -312,7 +329,10 @@ def run_tool_call_loop(
     status, first = post_tools_execute(body, http_fn=http_fn)
 
     if first.get("status") == "stub" and first.get("ok"):
-        return {"ok": True, "stage": "direct", "execute": first, "http_status": status}
+        return {
+            "call_id": tool_call.call_id,
+            "ok": True, "stage": "direct", "execute": first, "http_status": status,
+        }
 
     if status == 0 or first.get("error") in (
         "connection_failed",
@@ -320,6 +340,7 @@ def run_tool_call_loop(
         "invalid_response",
     ):
         return {
+            "call_id": tool_call.call_id,
             "ok": False,
             "stage": "error",
             "error": first.get("error") or "bridge_unreachable",
@@ -330,6 +351,7 @@ def run_tool_call_loop(
 
     if first.get("status") != "pending_approval":
         return {
+            "call_id": tool_call.call_id,
             "ok": False,
             "stage": "error",
             "error": first.get("error") or first.get("status") or "execute_failed",
@@ -340,6 +362,7 @@ def run_tool_call_loop(
 
     if not auto_approve or not dev_auto_approve_allowed():
         out: dict[str, Any] = {
+            "call_id": tool_call.call_id,
             "ok": False,
             "stage": "pending",
             "pending": first,
