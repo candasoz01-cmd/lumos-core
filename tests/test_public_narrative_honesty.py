@@ -242,3 +242,40 @@ def test_privacy_page_and_messages_stay_in_sync():
         if key.endswith("Cta"):
             continue
         assert value == tr[key], key
+
+
+def test_local_cleanup_capabilities_are_not_claimed_as_applied_controls():
+    for path, retention_gap, explicit_call, unavailable, forbidden in (
+        (
+            PRIVACY_TR,
+            "Varsayılan 14 günlük saklama süresi bugün otomatik uygulanmaz.",
+            "açıkça çağrılması gerekir",
+            "panel/API üzerinden sunulan silme işlemleri değildir",
+            ("yerel günlük temizliği", "yerel not silme"),
+        ),
+        (
+            PRIVACY_EN,
+            "The default 14-day retention is not automatically enforced today.",
+            "require an explicit call",
+            "not automatically applied controls or deletion actions exposed in the panel or API",
+            ("local log cleanup", "local note deletion"),
+        ),
+    ):
+        messages = _privacy_messages(path)
+        assert retention_gap in messages["qHowLongBody"]
+        assert explicit_call in messages["qDeleteBody"]
+        assert unavailable in messages["qDeleteBody"]
+        for name in ("Memory.delete_all", "delete_audit_logs"):
+            assert name in messages["qDeleteBody"]
+        for phrase in forbidden:
+            assert phrase not in messages["assuranceBody"]
+
+    inventory = _read(ROOT / "docs" / "data-and-trust.md")
+    applied = inventory.split("## Uygulanan\n", 1)[1].split("\n## ", 1)[0]
+    capabilities = inventory.split(
+        "## Mevcut yetenekler — otomatik uygulanan kontrol değil\n", 1
+    )[1].split("\n## ", 1)[0]
+    for name in ("cleanup_audit_logs", "delete_audit_logs", "Memory.delete_all"):
+        assert name not in applied
+        assert name in capabilities
+    assert "Varsayılan 14 günlük saklama süresi bugün otomatik uygulanmaz." in capabilities

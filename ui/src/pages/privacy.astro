@@ -93,7 +93,7 @@ const DATA_DOC = "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/da
 
       <h2 data-i18n="umbrella.privacy.qHowLongTitle">Ne kadar tutuluyor?</h2>
       <p data-i18n="umbrella.privacy.qHowLongBody">
-        Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. Hafıza servisindeki özetlerin süresi bu koddan belli değildir. cleanup_audit_logs, .lumos/logs dosya adındaki tarihe göre LUMOS_LOG_RETENTION_DAYS (varsayılan 14) günden eski günlükleri siler; append_audit_log bunu her yazımda çağırmaz. LUMOS_MEMORY_TTL_SECONDS doluysa yeni yerel nota o süre yazılır. ttl_seconds boşsa not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.
+        Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. Hafıza servisindeki özetlerin süresi bu koddan belli değildir. cleanup_audit_logs açıkça çağrıldığında, .lumos/logs dosya adındaki tarihe göre LUMOS_LOG_RETENTION_DAYS (varsayılan 14) günden eski günlükleri siler. append_audit_log bunu kendiliğinden çağırmaz; çalışma zamanı, panel veya API yollarında da çağrılmaz. Varsayılan 14 günlük saklama süresi bugün otomatik uygulanmaz. LUMOS_MEMORY_TTL_SECONDS doluysa yeni yerel nota o süre yazılır. ttl_seconds boşsa not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.
       </p>
 
       <h2 data-i18n="umbrella.privacy.qWhoTitle">Kim erişebilir?</h2>
@@ -113,12 +113,12 @@ const DATA_DOC = "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/da
 
       <h2 data-i18n="umbrella.privacy.qDeleteTitle">Nasıl silerim?</h2>
       <p data-i18n="umbrella.privacy.qDeleteBody">
-        Çıkış çerezi siler ve session_version değerini artırır. Yerel notlarda delete_all kayıtlı notları siler. delete_audit_logs .lumos/logs altındaki günlük dosyalarını siler. Hafıza silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. Sağlayıcı kopyası, kayıttaki deletion_api_supported false olduğu sürece bu kodla silinmiş sayılmaz. Meta belirteci için “Meta bağlantısını kaldırma” bölümüne bakın. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.
+        Çıkış çerezi siler ve session_version değerini artırır. Kodda, kilit açıkken kayıtlı yerel notları silen Memory.delete_all ve .lumos/logs günlük dosyalarını silen delete_audit_logs fonksiyonları vardır. Bu fonksiyonların açıkça çağrılması gerekir; çalışma zamanı, panel veya API yollarında çağrılmazlar. Bunlar mevcut kod yetenekleridir; otomatik uygulanan kontroller veya panel/API üzerinden sunulan silme işlemleri değildir. Hafıza silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. Sağlayıcı kopyası, kayıttaki deletion_api_supported false olduğu sürece bu kodla silinmiş sayılmaz. Meta belirteci için “Meta bağlantısını kaldırma” bölümüne bakın. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.
       </p>
 
       <h2 data-i18n="umbrella.privacy.assuranceTitle">Lumos güvencesi</h2>
       <p data-i18n="umbrella.privacy.assuranceBody">
-        Bu ad, yukarıda yazılan uygulanmış kontrollerin ortak adıdır: oturum kontrolü, belirtecin çereze yazılmaması, karakter sınırları, OpenAI isteğindeki store: false, yanıttan sağlayıcı adının çıkarılması, hafızanın onaysız yazılmaması, gözlem allowlist’i, görev motorunda SECURITY_NEVER_AUTO eşleşmesinde durma, model metnindeki bilinen e-posta, telefon ve kimlik benzeri dizilerin değiştirilmesi, ülke profili kapısı, session_version kontrolü, yerel günlük temizliği ve yerel not silme.
+        Bu ad, yukarıda yazılan uygulanmış kontrollerin ortak adıdır: oturum kontrolü, belirtecin çereze yazılmaması, karakter sınırları, OpenAI isteğindeki store: false, yanıttan sağlayıcı adının çıkarılması, hafızanın onaysız yazılmaması, gözlem allowlist’i, görev motorunda SECURITY_NEVER_AUTO eşleşmesinde durma, model metnindeki bilinen e-posta, telefon ve kimlik benzeri dizilerin değiştirilmesi, ülke profili kapısı ve session_version kontrolü.
       </p>
 
       <h2 data-i18n="umbrella.privacy.missingTitle">Eksik olanlar</h2>

@@ -34,10 +34,17 @@ Bu belge ve `/privacy` sayfası teknik envanterdir; hukuki gizlilik bildirimi de
 | Yerel dosya geçmişi | `ui/src/components/panel/PanelRuntime.astro` | Yükleme özeti `localStorage` içinde, en fazla 5 kayıt. |
 | Görev motoru durdurma | `src/task_engine/engine.py`, `profiles.py` | `SECURITY_NEVER_AUTO` ile eşleşen adım durdurulur. Motor dalı `permanent_delete` üyesini bu kontrolün dışında tutar. |
 | Onay kapısı | `src/policy/confirmation_policy.py` | `LUMOS_ENV` veya `LUMOS_PRODUCT_ENV` `production` veya `prod` iken `is_confirmation_enabled` açıktır. Bu ortamlar dışında yalnız `LUMOS_CONFIRMATION_ENABLED` değeri `1`, `true` veya `yes` ise açıktır. Barındırılan sohbet yanıtı ayrı onay beklemez. |
-| Yerel günlük süresi | `cleanup_audit_logs`, `delete_audit_logs` | `.lumos/logs` dosya adındaki tarihe göre `LUMOS_LOG_RETENTION_DAYS` (varsayılan 14) günden eski dosyalar silinir. `append_audit_log` bunu her yazımda çağırmaz. `delete_audit_logs` günlük dosyalarını siler. |
-| Yerel not silme | `Memory.delete_all` | Kilit açıkken kayıtlı notları siler. `LUMOS_MEMORY_TTL_SECONDS` doluysa yeni nota o süre yazılır. |
 | Toplantı botu saklama şartı | `src/representative/meeting_ingress.py` | `retention` açıkça verilmeden bot isteği oluşturulmaz. Bu kural yalnız o yoldadır. |
 | Dönüş ayıklama | `api/_lib/chat_visible_markup.js` | Model metnindeki `TextReference` işaretleri ayıklanır. Bu bir güvenlik filtresi değildir. |
+
+## Mevcut yetenekler — otomatik uygulanan kontrol değil
+
+Aşağıdaki fonksiyonlar kodda vardır, ancak çalışma zamanı, panel veya API tarafından çağrılmaz. Açıkça çağrılmaları gerekir; “Lumos güvencesi” kapsamındaki uygulanan kontroller arasında sayılmazlar.
+
+| Yetenek | Nerede | Çağrıldığında ne yapar |
+| --- | --- | --- |
+| Yerel günlük temizleme ve silme | `cleanup_audit_logs`, `delete_audit_logs` | `cleanup_audit_logs`, `.lumos/logs` dosya adındaki tarihe göre `LUMOS_LOG_RETENTION_DAYS` (varsayılan 14) günden eski günlükleri siler. `append_audit_log` bunu kendiliğinden çağırmaz. Varsayılan 14 günlük saklama süresi bugün otomatik uygulanmaz. `delete_audit_logs` aynı dizindeki `.log` dosyalarını siler. |
+| Yerel not silme | `Memory.delete_all` | Kilit açıkken kayıtlı yerel notları siler. Panel/API üzerinden sunulan veya otomatik işletilen bir silme işlemi değildir. `LUMOS_MEMORY_TTL_SECONDS` doluysa yeni nota o süre yazılır; bu ayrı davranış `delete_all` çağrıldığı anlamına gelmez. |
 
 ## Model isteğine giren veriler
 
@@ -100,6 +107,7 @@ Hafıza, sohbet işleyicisinden ayrı bir saklama ve işleme katmanıdır (`call
 
 | Konu | Durum |
 | --- | --- |
+| Otomatik yerel günlük saklama ve yerel silme bağlantısı | `cleanup_audit_logs`, `delete_audit_logs` ve `Memory.delete_all` çalışma zamanı, panel veya API tarafından çağrılmaz. Varsayılan 14 günlük günlük saklama süresi otomatik uygulanmaz. |
 | Ülkeye göre hukuk motoru, saklama yeri veya yurt dışı aktarım kuralı | Yok. Yalnız ülke kodu profili vardır; `XX` hukuki belirleme değildir. |
 | Tam maskeleme sistemi | Yok. Yalnız e-posta, ayırıcılı telefon ve 9–12 haneli dizi değişimi vardır. |
 | Gemini çağrısında `store: false` karşılığı | `buildGeminiRequest` bu alanı koymaz. Anahtar varsa istek `generativelanguage.googleapis.com` adresine gider. |
