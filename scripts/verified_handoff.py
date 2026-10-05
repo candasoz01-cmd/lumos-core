@@ -163,6 +163,8 @@ def main():
     p.add_argument('--report', required=True)
     p.add_argument('--kind', choices=('interim', 'delivery'), required=True)
     p.add_argument('--run-attempt', default='local')
+    p.add_argument('--extra', action='append', default=[])
+    p.add_argument('--base', default='')
     p = sub.add_parser('verify')
     p.add_argument('--repo', required=True)
     p.add_argument('--archive', required=True)
@@ -180,26 +182,87 @@ def main():
         from lumos_board import evidence_archive as archive
         try:
             if command == 'checkpoint':
+                base = args.get('base') or None
                 result = archive.archive_report(
                     Path(args['repo']), Path(args['archive']),
                     task_id=args['task'], report_id=args['report'], report_kind=args['kind'],
                     run_attempt=args['run_attempt'],
+                    extra_paths=list(args.get('extra') or []),
+                    scope_base=base,
                 )
+                if result.get('verified') is True and isinstance(result.get('frozen_paths'), list):
+                    # Caller binding, outside manifest.json. Verify reloads this exact list.
+                    archive.remember_scope(
+                        Path(args['archive']),
+                        task_id=args['task'], report_id=args['report'],
+                        commit=str(result.get('commit') or ''),
+                        run_attempt=args['run_attempt'],
+                        paths=list(result['frozen_paths']),
+                        base=base,
+                    )
             elif command == 'verify':
                 # checkpoint, manifest'i <archive>/<report>/ altına yazar; aynı --archive burada da çalışır.
-                scope = {
-                    'worktree': True,
-                    'extra': list(args.get('extra') or []),
-                    'head': args['commit'],
-                }
-                if args.get('base'):
-                    scope['base'] = args['base']
-                result = archive.observe_archive(
-                    Path(args['repo']), archive.archive_dir_for(Path(args['archive']), args['report']),
-                    expect={'task_id': args['task'], 'report_id': archive.safe_report_id(args['report']),
-                            'commit': args['commit'], 'run_attempt': args['run_attempt'],
-                            'scope': scope},
+                # Kapsam manifestten veya güncel status'tan tahmin edilmez.
+                report_key = archive.safe_report_id(args['report'])
+                binding = archive.recall_scope(
+                    Path(args['archive']),
+                    task_id=args['task'], report_id=report_key,
+                    commit=args['commit'], run_attempt=args['run_attempt'],
                 )
+                report_dir = archive.archive_dir_for(Path(args['archive']), args['report'])
+                if binding is None:
+                    if not (report_dir / 'manifest.json').is_file():
+                        result = archive.observe_archive(
+                            Path(args['repo']), report_dir,
+                            expect={
+                                'task_id': args['task'], 'report_id': report_key,
+                                'commit': args['commit'], 'run_attempt': args['run_attempt'],
+                                'scope': {
+                                    'paths': [], 'worktree': False, 'head': args['commit'],
+                                    'task_id': args['task'], 'report_id': report_key,
+                                    'commit': args['commit'], 'run_attempt': args['run_attempt'],
+                                },
+                            },
+                        )
+                    else:
+                        result = {
+                            'schema': archive.SCHEMA, 'status': 'SCOPE_INCOMPLETE',
+                            'verified': False, 'scope_complete': False,
+                            'archive': str(report_dir), 'task_id': args['task'],
+                            'report_id': report_key, 'commit': args['commit'],
+                            'run_attempt': args['run_attempt'], 'files': [], 'excluded': [],
+                        }
+                else:
+                    supplied_base = args.get('base') or ''
+                    stored_base = binding.get('base') or ''
+                    if stored_base and supplied_base and supplied_base != stored_base:
+                        result = {
+                            'schema': archive.SCHEMA, 'status': 'SCOPE_INCOMPLETE',
+                            'verified': False, 'scope_complete': False,
+                            'archive': str(report_dir), 'task_id': args['task'],
+                            'report_id': report_key, 'commit': args['commit'],
+                            'run_attempt': args['run_attempt'], 'files': [], 'excluded': [],
+                        }
+                    else:
+                        scope = {
+                            'paths': list(binding['paths']),
+                            'worktree': True,
+                            'extra': list(args.get('extra') or []),
+                            'head': args['commit'],
+                            'task_id': args['task'],
+                            'report_id': report_key,
+                            'commit': args['commit'],
+                            'run_attempt': args['run_attempt'],
+                        }
+                        base = stored_base or supplied_base
+                        if base:
+                            scope['base'] = base
+                        result = archive.observe_archive(
+                            Path(args['repo']), report_dir,
+                            expect={'task_id': args['task'], 'report_id': report_key,
+                                    'commit': args['commit'], 'run_attempt': args['run_attempt'],
+                                    'scope': scope},
+                        )
             else:
                 result = archive.inventory(Path(args['archive']))
             print(json.dumps(result, ensure_ascii=False))

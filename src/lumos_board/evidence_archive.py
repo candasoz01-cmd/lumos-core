@@ -202,13 +202,15 @@ def _parse_status_z(out: bytes) -> list[str]:
     return paths
 
 
-def _parse_name_status_z(out: bytes) -> list[str]:
+def _parse_name_status_z(out: bytes) -> tuple[list[str], set[str]]:
+    """Every changed path, plus deletions and rename sources. Copy sources stay present."""
     if not out:
-        return []
+        return [], set()
     if not out.endswith(b"\0"):
         raise _ScopeError("truncated git diff")
     fields = out[:-1].split(b"\0")
     paths: list[str] = []
+    deleted: set[str] = set()
     index = 0
     while index < len(fields):
         status = _decode_git_path(fields[index])
@@ -222,6 +224,8 @@ def _parse_name_status_z(out: bytes) -> list[str]:
             if not old or not new:
                 raise _ScopeError("empty rename diff path")
             paths.extend((old, new))
+            if status[:1] == "R":
+                deleted.add(old)
             continue
         if index >= len(fields) or not status:
             raise _ScopeError("truncated git diff")
@@ -230,7 +234,9 @@ def _parse_name_status_z(out: bytes) -> list[str]:
         if not path:
             raise _ScopeError("empty git diff path")
         paths.append(path)
-    return paths
+        if status[:1] == "D":
+            deleted.add(path)
+    return paths, deleted
 
 
 def _worktree_paths(repo: Path) -> list[str]:
@@ -240,7 +246,7 @@ def _worktree_paths(repo: Path) -> list[str]:
     return _parse_status_z(result.stdout)
 
 
-def _range_paths(repo: Path, base: str, head: str) -> list[str]:
+def _range_paths(repo: Path, base: str, head: str) -> tuple[list[str], set[str]]:
     """Paths changed between the caller's pinned base and head. Not HEAD^."""
     for rev in (base, head):
         if _git(repo, "cat-file", "-e", f"{rev}^{{commit}}", check=False).returncode != 0:
@@ -255,17 +261,48 @@ def _range_paths(repo: Path, base: str, head: str) -> list[str]:
     return _parse_name_status_z(result.stdout)
 
 
+class _RangeProof:
+    """Deletion evidence for one pinned base..head. Absent when the caller pinned no base."""
+
+    def __init__(self, base: str | None, head: str | None, deleted: frozenset[str]):
+        self.base = base
+        self.head = head
+        self.deleted = deleted
+
+
+def _range_proof(repo: Path, scope: dict) -> _RangeProof:
+    base = scope.get("base")
+    if base is None:
+        return _RangeProof(None, None, frozenset())
+    pinned = scope.get("head")
+    if pinned is None or not isinstance(base, str) or not base:
+        raise _ScopeError("range requires the caller's head")
+    _names, deleted = _range_paths(repo, base, str(pinned))
+    return _RangeProof(base, str(pinned), frozenset(deleted))
+
+
 def _caller_scope(repo: Path, scope: dict) -> set[str]:
-    """Expected path set from the caller. Manifest fields are not an input."""
-    if not isinstance(scope, dict) or not scope.get("worktree") and "extra" not in scope and "base" not in scope:
-        raise _ScopeError("no authorized scope")
+    """Frozen caller paths, plus live additions. Manifest fields are not an input.
+
+    `paths` is the snapshot taken at capture. A live worktree query can add paths
+    that appeared later. It cannot drop a path that the snapshot already required.
+    """
+    if not isinstance(scope, dict) or "paths" not in scope:
+        raise _ScopeError("no frozen scope")
+    frozen = scope.get("paths")
+    if frozen is None or not isinstance(frozen, list) or any(
+        not isinstance(item, str) or item == "" for item in frozen
+    ):
+        raise _ScopeError("frozen paths are not a caller list")
+    if len(frozen) != len(set(frozen)):
+        raise _ScopeError("duplicate frozen path")
     head = head_commit(repo)
     if head == "UNKNOWN":
         raise _ScopeError("head unreadable")
     pinned = scope.get("head")
     if pinned is not None and str(pinned) != head:
         raise _ScopeError("head mismatch")
-    paths: list[str] = []
+    paths: list[str] = list(frozen)
     if scope.get("worktree"):
         paths.extend(_worktree_paths(repo))
     base = scope.get("base")
@@ -274,7 +311,8 @@ def _caller_scope(repo: Path, scope: dict) -> set[str]:
             raise _ScopeError("range requires the caller's head")
         if not isinstance(base, str) or not base:
             raise _ScopeError("base missing")
-        paths.extend(_range_paths(repo, base, str(pinned)))
+        names, _deleted = _range_paths(repo, base, str(pinned))
+        paths.extend(names)
     extra = scope.get("extra", [])
     if extra is None:
         extra = []
@@ -303,7 +341,33 @@ def _deleted_in_head(repo: Path, relative: str) -> bool:
     return previous.returncode == 0 and previous.stdout.strip() == "blob"
 
 
-def _read_file(repo: Path, relative: str) -> tuple[str, bytes | None]:
+def _blob_at(repo: Path, rev: str, relative: str) -> bool:
+    kind = _git(repo, "cat-file", "-t", f"{rev}:{relative}", check=False)
+    return kind.returncode == 0 and kind.stdout.strip() == "blob"
+
+
+def _absent_from_tree(repo: Path, rev: str, relative: str) -> bool:
+    """True only when the tree object reads and the path is not in it."""
+    if _git(repo, "cat-file", "-e", f"{rev}^{{tree}}", check=False).returncode != 0:
+        return False
+    listed = _git(
+        repo, "--literal-pathspecs", "ls-tree", "-z", rev, "--", relative, check=False,
+    )
+    return listed.returncode == 0 and not listed.stdout
+
+
+def _deleted_in_range(repo: Path, relative: str, proof: _RangeProof) -> bool:
+    """A file removed inside the caller's pinned base..head, not older history."""
+    if proof.base is None or proof.head is None or relative not in proof.deleted:
+        return False
+    if not _blob_at(repo, proof.base, relative):
+        return False
+    return _absent_from_tree(repo, proof.head, relative)
+
+
+def _read_file(
+    repo: Path, relative: str, proof: _RangeProof | None = None,
+) -> tuple[str, bytes | None]:
     root = Path(repo).resolve()
     if PurePosixPath(relative).is_absolute():
         return "outside_repo", None
@@ -321,11 +385,15 @@ def _read_file(repo: Path, relative: str) -> tuple[str, bytes | None]:
     except ValueError:
         return "outside_repo", None
     if not path.is_file():
-        # Accept worktree deletions and file deletions proved by the delivery commit.
-        if not path.exists() and (
-            _tracked_in_head(root, relative) or _deleted_in_head(root, relative)
-        ):
-            return "deleted", None
+        # A file, symlink, or directory that is still here is not a deletion.
+        if not path.exists():
+            if proof is not None and proof.base is not None:
+                # Pinned range: history evidence is only that base..head. Worktree
+                # deletions of files still in HEAD stay on the first-parent-free check.
+                if _deleted_in_range(root, relative, proof) or _tracked_in_head(root, relative):
+                    return "deleted", None
+            elif _tracked_in_head(root, relative) or _deleted_in_head(root, relative):
+                return "deleted", None
         return "missing", None
     try:
         return "ok", path.read_bytes()
@@ -398,7 +466,10 @@ def archive_report(
     if destination.exists():
         raise FileExistsError("archive report already exists; corrections are new events")
     commit = head_commit(repo)
+    # Discovery starts from an explicit empty snapshot. The result of this query
+    # is what later observers must keep; they do not run discovery again.
     caller_scope = {
+        "paths": [],
         "worktree": True,
         "extra": list(extra_paths or []),
         "head": commit,
@@ -407,13 +478,14 @@ def archive_report(
         caller_scope["base"] = scope_base
     try:
         expected_paths = _caller_scope(repo, caller_scope)
+        proof = _range_proof(repo, caller_scope)
     except _ScopeError:
         return _stopped(archive_root, "SCOPE_INCOMPLETE", {})
     files: list[dict[str, object]] = []
     excluded: list[dict[str, str]] = []
     payloads = destination / "payload"
     for relative in sorted(expected_paths):
-        reason, data = _read_file(repo, relative)
+        reason, data = _read_file(repo, relative, proof)
         if reason != "ok" or data is None:
             excluded.append({"path": relative, "reason": reason})
             continue
@@ -443,6 +515,20 @@ def archive_report(
     _record(destination / "manifest.json", manifest)
     if window["status"] == "RETENTION_TOO_SHORT":
         return _stopped(destination, "RETENTION_TOO_SHORT", manifest)
+    frozen_paths = sorted(expected_paths)
+    observe_scope = {
+        # Full capture snapshot. Not a field of manifest.json.
+        "paths": frozen_paths,
+        "worktree": True,
+        "extra": [],
+        "head": commit,
+        "task_id": manifest["task_id"],
+        "report_id": report_key,
+        "commit": commit,
+        "run_attempt": manifest["run_attempt"],
+    }
+    if scope_base is not None:
+        observe_scope["base"] = scope_base
     verdict = observe_archive(
         repo,
         destination,
@@ -451,10 +537,10 @@ def archive_report(
             "report_id": report_key,
             "commit": commit,
             "run_attempt": manifest["run_attempt"],
-            # The caller's extra list and live git query. Not a field of manifest.json.
-            "scope": caller_scope,
+            "scope": observe_scope,
         },
     )
+    verdict["frozen_paths"] = frozen_paths
     _touch_checkpoint(archive_root, now)
     return verdict
 
@@ -557,8 +643,12 @@ def _observe(repo: Path, archive_dir: Path, expect: dict) -> dict[str, object]:
     scope = expect.get("scope") if isinstance(expect, dict) else None
     if not isinstance(scope, dict):
         return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
+    for key in ("task_id", "report_id", "commit", "run_attempt"):
+        if key not in scope or str(scope.get(key)) != str(expect.get(key)):
+            return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
     try:
         expected = _caller_scope(repo, scope)
+        proof = _range_proof(repo, scope)
     except _ScopeError:
         return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
     # Exact set equality. A subset, a count, or a scope field inside the manifest is not proof.
@@ -571,13 +661,13 @@ def _observe(repo: Path, archive_dir: Path, expect: dict) -> dict[str, object]:
             # known secret names) can omit bytes. A content-scan hit on an
             # ordinary path is an incomplete archive, not a verified one.
             relative = str(item.get("path") or "") if isinstance(item, dict) else ""
-            read_reason, data = _read_file(repo, relative)
+            read_reason, data = _read_file(repo, relative, proof)
             if secret_path(relative) and read_reason == "ok" and data is not None:
                 continue
             return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
         if reason in {"symlink", "deleted"}:
             # The observer checks the exclusion itself instead of trusting the manifest.
-            if _read_file(repo, str(item.get("path") or ""))[0] != reason:
+            if _read_file(repo, str(item.get("path") or ""), proof)[0] != reason:
                 return _stopped(archive_dir, "SOURCE_CHANGED", manifest)
             continue
         return _stopped(archive_dir, "SCOPE_INCOMPLETE", manifest)
@@ -588,7 +678,7 @@ def _observe(repo: Path, archive_dir: Path, expect: dict) -> dict[str, object]:
         relative = str(entry.get("path") or "")
         expected_hash = str(entry.get("sha256") or "")
         expected_size = entry.get("size")
-        reason, data = _read_file(repo, relative)
+        reason, data = _read_file(repo, relative, proof)
         if reason == "missing" or data is None:
             return _stopped(archive_dir, "SOURCE_MISSING", manifest)
         actual = sha256_bytes(data)
@@ -863,6 +953,100 @@ def _archive_still_matches(archive_dir: Path, verification: dict) -> bool:
 
 def archive_required() -> bool:
     return bool(os.environ.get(ENV_DIR) or os.environ.get(ENV_REMOTE))
+
+
+_SCOPE_STORE = "caller-scope.json"
+_SCOPE_STORE_SCHEMA = "lumos.caller_scope.v1"
+
+
+def scope_store_dir(archive: Path, report_id: str) -> Path:
+    """Caller binding lives beside the archive, not inside manifest.json.
+
+    ``verify --archive`` may name the archive root or the per-report directory.
+    """
+    archive = Path(archive)
+    report_key = safe_report_id(report_id)
+    if (archive / "manifest.json").is_file() and archive.name == report_key:
+        return archive.parent
+    return archive
+
+
+def _scope_identity(task_id: str, report_id: str, commit: str, run_attempt: str) -> dict[str, str]:
+    return {
+        "task_id": str(task_id),
+        "report_id": safe_report_id(report_id),
+        "commit": str(commit),
+        "run_attempt": str(run_attempt),
+    }
+
+
+def _load_scope_store(path: Path) -> dict:
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError):
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def remember_scope(
+    archive: Path,
+    *,
+    task_id: str,
+    report_id: str,
+    commit: str,
+    run_attempt: str,
+    paths: list[str],
+    base: str | None = None,
+) -> None:
+    """Record the capture snapshot once. A later smaller list is refused."""
+    if not isinstance(paths, list) or any(not isinstance(item, str) or item == "" for item in paths):
+        raise ValueError("frozen paths are not a caller list")
+    if len(paths) != len(set(paths)):
+        raise ValueError("duplicate frozen path")
+    folder = scope_store_dir(archive, report_id)
+    path = folder / _SCOPE_STORE
+    store = _load_scope_store(path) if path.is_file() else {}
+    entries = store.get("entries")
+    if not isinstance(entries, list):
+        entries = []
+    identity = _scope_identity(task_id, report_id, commit, run_attempt)
+    frozen = sorted(paths)
+    base_value = base or None
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        if all(entry.get(key) == value for key, value in identity.items()):
+            if entry.get("paths") != frozen or (entry.get("base") or None) != base_value:
+                raise ValueError("frozen scope cannot change")
+            return
+    entries.append({**identity, "paths": frozen, "base": base_value})
+    _record(path, {"schema": _SCOPE_STORE_SCHEMA, "entries": entries})
+
+
+def recall_scope(
+    archive: Path,
+    *,
+    task_id: str,
+    report_id: str,
+    commit: str,
+    run_attempt: str,
+) -> dict | None:
+    """The snapshot bound to this task, report, commit, and attempt. Manifest is not read."""
+    path = scope_store_dir(archive, report_id) / _SCOPE_STORE
+    if not path.is_file():
+        return None
+    identity = _scope_identity(task_id, report_id, commit, run_attempt)
+    for entry in _load_scope_store(path).get("entries") or []:
+        if not isinstance(entry, dict):
+            continue
+        if not all(entry.get(key) == value for key, value in identity.items()):
+            continue
+        paths = entry.get("paths")
+        if not isinstance(paths, list) or any(not isinstance(item, str) for item in paths):
+            return None
+        base = entry.get("base")
+        return {"paths": list(paths), "base": base if isinstance(base, str) and base else None}
+    return None
 
 
 def bind_report(report: dict, *, repo: Path, job_id: str, kind: str = "delivery") -> dict:
