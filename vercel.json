@@ -65,6 +65,12 @@
       "permanent": true
     },
     {
+      "source": "/",
+      "has": [{ "type": "host", "value": "welockai.com" }],
+      "destination": "/company/",
+      "permanent": false
+    },
+    {
       "source": "/(.*)",
       "has": [
         {
