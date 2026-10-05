@@ -62,12 +62,13 @@ def _git_env() -> dict[str, str]:
     env = {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
     env["GIT_CONFIG_NOSYSTEM"] = "1"
     env["GIT_CONFIG_GLOBAL"] = os.devnull
+    env["GIT_GRAFT_FILE"] = os.devnull
     return env
 
 
 def _git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        ["git", "-c", "core.hooksPath=/dev/null", "-C", str(repo), *args],
+        ["git", "--no-replace-objects", "-c", "core.hooksPath=/dev/null", "-C", str(repo), *args],
         check=check,
         capture_output=True,
         text=True,
@@ -191,6 +192,20 @@ def _tracked_in_head(repo: Path, relative: str) -> bool:
     return _git(repo, "cat-file", "-e", f"HEAD:{relative}", check=False).returncode == 0
 
 
+def _deleted_in_head(repo: Path, relative: str) -> bool:
+    """Prove a file deletion against this commit's first parent, not arbitrary history."""
+    commit = head_commit(repo)
+    current = _git(
+        repo, "--literal-pathspecs", "ls-tree", "-z", commit, "--", relative, check=False,
+    )
+    # An unreadable tree is not evidence that a path is absent.
+    if current.returncode != 0 or current.stdout:
+        return False
+    previous = _git(repo, "cat-file", "-t", f"{commit}^:{relative}", check=False)
+    # Missing parent/history and paths that were directories are not file evidence.
+    return previous.returncode == 0 and previous.stdout.strip() == "blob"
+
+
 def _read_file(repo: Path, relative: str) -> tuple[str, bytes | None]:
     root = Path(repo).resolve()
     if PurePosixPath(relative).is_absolute():
@@ -209,8 +224,10 @@ def _read_file(repo: Path, relative: str) -> tuple[str, bytes | None]:
     except ValueError:
         return "outside_repo", None
     if not path.is_file():
-        # A tracked file that is gone is a verifiable deletion; anything else is just missing.
-        if not path.exists() and _tracked_in_head(root, relative):
+        # Accept worktree deletions and file deletions proved by the delivery commit.
+        if not path.exists() and (
+            _tracked_in_head(root, relative) or _deleted_in_head(root, relative)
+        ):
             return "deleted", None
         return "missing", None
     try:

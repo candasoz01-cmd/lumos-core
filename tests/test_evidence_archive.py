@@ -294,6 +294,124 @@ def test_unverifiable_missing_paths_stay_incomplete(tmp_path):
         assert verdict["status"] == "SCOPE_INCOMPLETE"
 
 
+def test_committed_deletion_verifies_and_reappearing_file_stops(tmp_path):
+    root = repo(tmp_path)
+    git(root, "rm", "note.txt")
+    git(root, "commit", "-m", "delete note")
+    verdict = _archive(root, tmp_path, extra_paths=["note.txt"])
+    assert verdict["status"] == "VERIFIED"
+    assert {"path": "note.txt", "reason": "deleted"} in verdict["excluded"]
+    archive = tmp_path / "archive" / "report-1"
+    assert observe_archive(root, archive, expect=expect(root, "report-1"))["verified"]
+    (root / "note.txt").write_text("reappeared\n")
+    assert observe_archive(root, archive, expect=expect(root, "report-1"))["status"] == "SOURCE_CHANGED"
+
+
+def test_bind_report_after_delete_commit_stays_successful(tmp_path, monkeypatch):
+    root = repo(tmp_path)
+    git(root, "rm", "note.txt")
+    git(root, "commit", "-m", "delete note")
+    monkeypatch.setenv("LUMOS_WALL_EVIDENCE_DIR", str(tmp_path / "archive"))
+    monkeypatch.delenv("LUMOS_WALL_EVIDENCE_REMOTE", raising=False)
+    bound = bind_report(
+        {"status": "ok", "task": "KA-1", "changed_files": ["note.txt"]},
+        repo=root, job_id="committed-delete",
+    )
+    assert bound["status"] == "ok"
+    assert bound["evidence"]["required"] is True
+    assert bound["evidence"]["verified"] is True
+
+
+@pytest.mark.parametrize("relative", ["note.txt", "never-existed.txt", "removed-dir"])
+def test_missing_paths_are_not_proved_by_unrelated_history(tmp_path, relative):
+    root = repo(tmp_path)
+    (root / "removed-dir").mkdir()
+    (root / "removed-dir" / "child.txt").write_text("child\n")
+    git(root, "add", ".")
+    git(root, "commit", "-m", "add directory")
+    git(root, "rm", "note.txt")
+    git(root, "commit", "-m", "earlier deletion")
+    git(root, "rm", "-r", "removed-dir")
+    git(root, "commit", "-m", "unrelated directory deletion")
+    verdict = _archive(root, tmp_path, extra_paths=[relative])
+    assert verdict["status"] == "SCOPE_INCOMPLETE"
+    assert verdict["verified"] is False
+
+
+def test_committed_delete_with_literal_filename_and_later_head_change(tmp_path):
+    root = repo(tmp_path)
+    relative = "literal [x] ü\nfile.txt"
+    (root / relative).write_text("tracked\n")
+    git(root, "add", "--", relative)
+    git(root, "commit", "-m", "add literal path")
+    git(root, "rm", "--", relative)
+    git(root, "commit", "-m", "delete literal path")
+    wanted = expect(root, "report-1")
+    assert _archive(root, tmp_path, extra_paths=[relative])["verified"] is True
+    git(root, "commit", "--allow-empty", "-m", "later commit")
+    result = observe_archive(root, tmp_path / "archive" / "report-1", expect=wanted)
+    assert result["status"] == "SOURCE_CHANGED"
+
+
+def test_replacement_cannot_reclassify_old_deletion(tmp_path):
+    root = repo(tmp_path)
+    original = expect(root, "report-1")["commit"]
+    git(root, "rm", "note.txt")
+    git(root, "commit", "-m", "delete note")
+    deleted = expect(root, "report-1")["commit"]
+    git(root, "commit", "--allow-empty", "-m", "unrelated later commit")
+    current = expect(root, "report-1")["commit"]
+    git(root, "replace", "--graft", current, original)
+    raw = subprocess.check_output(
+        ["git", "-C", str(root), "--no-replace-objects", "cat-file", "-p", current], text=True,
+    )
+    assert f"parent {deleted}\n" in raw
+    verdict = _archive(root, tmp_path, extra_paths=["note.txt"])
+    assert verdict["commit"] == current
+    assert verdict["status"] == "SCOPE_INCOMPLETE"
+    assert verdict["verified"] is False
+
+
+def test_legacy_graft_cannot_reclassify_old_deletion(tmp_path):
+    root = repo(tmp_path)
+    original = expect(root, "report-1")["commit"]
+    git(root, "rm", "note.txt")
+    git(root, "commit", "-m", "delete note")
+    deleted = expect(root, "report-1")["commit"]
+    git(root, "commit", "--allow-empty", "-m", "unrelated later commit")
+    current = expect(root, "report-1")["commit"]
+    (root / ".git" / "info" / "grafts").write_text(f"{current} {original}\n")
+    raw = subprocess.check_output(
+        ["git", "-C", str(root), "--no-replace-objects", "cat-file", "-p", current], text=True,
+    )
+    assert f"parent {deleted}\n" in raw
+    verdict = _archive(root, tmp_path, extra_paths=["note.txt"])
+    assert verdict["commit"] == current
+    assert verdict["status"] == "SCOPE_INCOMPLETE"
+    assert verdict["verified"] is False
+
+
+def test_unreadable_current_tree_cannot_prove_deletion(tmp_path):
+    root = repo(tmp_path)
+    # Keep the deletion commit's tree nonempty: Git can synthesize the empty tree.
+    (root / "kept.txt").write_text("keep\n")
+    git(root, "add", "kept.txt")
+    git(root, "commit", "-m", "keep another file")
+    git(root, "rm", "note.txt")
+    git(root, "commit", "-m", "delete note")
+    tree = subprocess.check_output(
+        ["git", "-C", str(root), "rev-parse", "HEAD^{tree}"], text=True,
+    ).strip()
+    # Only corrupt this disposable fixture's loose tree object, never the product repository.
+    (root / ".git" / "objects" / tree[:2] / tree[2:]).unlink()
+    assert subprocess.run(
+        ["git", "-C", str(root), "ls-tree", "HEAD"], capture_output=True,
+    ).returncode != 0
+    verdict = _archive(root, tmp_path, extra_paths=["note.txt"])
+    assert verdict["status"] == "SCOPE_INCOMPLETE"
+    assert verdict["verified"] is False
+
+
 # --- rename records carry a second, un-prefixed path ----------------------------------------
 
 
