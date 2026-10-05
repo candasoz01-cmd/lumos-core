@@ -3,7 +3,7 @@ import type umbrellaTr from "./tr";
 
 const umbrellaEn: typeof umbrellaTr = {
   nav: {
-    aria: "We Lock AI site",
+    aria: "Lumos AI site",
     home: "Home",
     connect: "Connect",
     integrations: "Integrations",
@@ -16,6 +16,7 @@ const umbrellaEn: typeof umbrellaTr = {
     lab: "Lab",
     education: "Education",
     privacy: "Privacy",
+    dataTrust: "Technical data and trust inventory",
   },
   accessibility: {
     eyebrow: "LUMOS · ACCESSIBLE", title: "Accessible use",
@@ -27,7 +28,7 @@ const umbrellaEn: typeof umbrellaTr = {
     panelCta: "Open Lumos", educationCta: "Go to education",
   },
   lab: {
-    eyebrow: "WE LOCK AI · LUMOS LAB", title: "Corporate research and validation",
+    eyebrow: "LUMOS AI · LUMOS LAB", title: "Corporate research and validation",
     lead: "Lumos Lab turns AI, quantum-readiness, accessibility, and safe-interaction approaches into measurable reports.",
     visual: "Every study states its scope, method, evidence, limitations, and recommended next steps.",
     servicesTitle: "Lab service areas",
@@ -81,29 +82,30 @@ const umbrellaEn: typeof umbrellaTr = {
   ecosystem: {
     title: "Trust and ecosystem",
     lead:
-      "Multi-AI providers, integrations, and the device ecosystem sit inside one security boundary — permission and risk stay visible before action.",
+      "Connection and device shelves are separate. A model call happens only when a key is set. Country rules and masking are not on this surface.",
     securityTitle: "Security status",
     securityPill: "Independently monitored",
     securityRow1: "Independent Cyber layer: risk stays visible apart from integrations.",
     securityRow2: "Integration permissions become readable before the action runs.",
     securityRow3: "Permanent deletion is never automatic; trash/undo comes first.",
     securityRow4: "Payments, domain purchases, and sending mail never happen without user approval.",
-    aiTitle: "Multi-AI",
-    aiSub: "Provider routing and fallback",
+    aiTitle: "Model call",
+    aiSub: "No key, no call",
+    aiBody: "The trimmed message, the name from the session, and permitted memory summaries are sent. The response has no provider name. Detail is on the Technical data and trust inventory page.",
     integrationsTitle: "Integrations",
     integrationsSub: "Permission matrix and status",
     deviceTitle: "Device ecosystem",
     deviceSub: "Home, audio, and smart device connections",
   },
   footer: {
-    tagline: "We Lock AI · welockai.com — Lumos product family",
+    tagline: "Lumos AI · A We Lock AI product",
     rights: "Open-source core on GitHub; official services use controlled access.",
   },
   privacy: {
-    metaTitle: "Privacy Notice — We Lock AI · Lumos",
+    metaTitle: "Privacy Notice — Lumos Company · Lumos",
     metaDescription:
-      "Privacy notice explaining data use, connection permissions, and user controls across We Lock AI and Lumos surfaces.",
-    eyebrow: "WE LOCK AI · LUMOS",
+      "Privacy notice explaining data use, connection permissions, and user controls across Lumos Company and Lumos surfaces.",
+    eyebrow: "LUMOS COMPANY · LUMOS",
     title: "Privacy notice",
     lead:
       "This notice explains the boundaries for data processing across welockai.com and Lumos connection flows.",
@@ -142,11 +144,90 @@ const umbrellaEn: typeof umbrellaTr = {
     googleControlsCta: "Manage Google access",
     integrationsCta: "Connection ecosystem",
   },
+  dataTrust: {
+    metaTitle: "Technical data and trust inventory — Lumos",
+    metaDescription:
+      "What this repository's Lumos code sends to a model, the memory service, and the browser today, and what it does not keep. This is not a legal privacy notice.",
+    eyebrow: "LUMOS · TECHNICAL DATA INVENTORY",
+    title: "Technical data and trust inventory",
+    lead:
+      "Lumos is not a new artificial intelligence. It does not run its own model. This page describes data paths in source version 39effc6, verified as the live application source on 5 October 2026. Environment settings and external service behavior have not been independently verified.",
+    updated: "Last updated: October 5, 2026",
+    legalTitle: "This page is not a legal privacy notice",
+    legalBody:
+      "This page is a technical inventory. The data controller, a contact and request channel, a deletion-request process, the legal basis, and rights under KVKK/GDPR are not published here. They await a separate legal and policy decision; this inventory does not replace them.",
+    scopeTitle: "Scope",
+    scopeBody:
+      "The paths described are hosted chat, the Google session cookie, calls to the Lumos memory service, the Gmail read-only path, Meta (Facebook, Instagram, Pages, WhatsApp) connections, the local task log, and browser file history. If another deployment, or an operator layer that is not in this repository, adds a service, this page does not cover it.",
+    notTitle: "What Lumos does not do",
+    notBody:
+      "It does not run a per-country legal engine. It does not verify that a provider refrains from storing or training on inputs. There is no full masking system.",
+    flowTitle: "Hosted chat flow",
+    flowBody:
+      "User message → 401 without a session → 409 on identity mismatch → memory service lookup → if the message starts with “remember”, remember is attempted and Lumos answers itself; the message does not go to a model → “who am I” and time questions are also answered without a model call → if no model key is set, 503 and no model call → character limits → Responses API if an OpenAI key is set → if the OpenAI call returns an error, throws, or returns an empty reply and a Gemini key is set, generateContent → 502 if neither produces a reply → provider and model names are removed from the response → user.",
+    qCollectTitle: "What is collected?",
+    qCollectBody:
+      "Google sign-in writes sid, lumos_id, sub, email, name, picture, door, provider, package, and expiry into the cookie. The Google access token is not written. A chat request carries the message, history, and an optional image. If a memory service is configured, lumos_id goes to it on every request.",
+    qWhyTitle: "Why?",
+    qWhyBody:
+      "The session identifies the same person on the next request. The model request produces a reply; the name and memory summaries are added so the reply fits the signed-in user. A memory summary is written only if the user asked to remember it and the service has consent.",
+    qModelTitle: "What is sent to a model API?",
+    qModelBody:
+      "Every model request carries: a fixed system instruction; the name from the session (or “name not loaded”); the account provider (for example google_web) and connected state; the memory status (loaded, empty, not_granted, or unavailable); if memory is loaded, up to 12 permitted summaries of at most 1000 characters each; the message, at most 8000 characters; the last 12 turns including earlier Lumos replies, at most 4000 characters per turn; and an optional image of at most 380000 characters. This version’s chat path does not automatically replace email, phone or ID-like text. The email address and lumos_id are not added as separate fields. If an OpenAI key is set, the request has store: false; that flag is not proof the provider kept no copy. The Gemini request has no store field. The JSON returned to the user does not include provider or model.",
+    memoryTitle: "Lumos memory service",
+    memoryBody:
+      "Memory is a storage and processing layer separate from the chat handler. Its address is LUMOS_MEMORY_LOOKUP_URL; if that is unset, /memory/hosted/lookup under BRIDGE_UPSTREAM_URL is used. The token is LUMOS_MEMORY_SERVICE_TOKEN, or KANDO_BRIDGE_SECRET if that is unset. Without an address or token no call is made. Every chat request performs a lookup with lumos_id, even when no model call follows. If the message starts with “hatırla”, “unutma”, or “remember” and consent exists, the remember call sends a summary of at most 1000 characters and the account provider to the service. The service itself is not in this repository; where and for how long it keeps data cannot be verified from this code.",
+    gmailTitle: "Gmail read-only path",
+    gmailBody:
+      "The code defines the gmail.readonly scope. On Google's side that scope permits reading the mailbox; the code in this repository uses it only to request the unread message list (at most 20) and each message's Subject, From, and Date headers, not the message body. The subject is cut at 120 characters and the sender at 80. What comes back is only an unread-mail summary. The token is read from the vault adapter; if the vault has no token, the request stops. A live Gmail API call is made only when LUMOS_GMAIL_SMOKE is 1, true, or yes; otherwise sample data is returned. The result goes back to the calling integration step; this path does not write it to disk, send it to a model API, or pass it to an advertising or sale service. The Gmail OAuth consent and callback handler is not in this repository. welockai.com Google sign-in requests only openid, email, and profile.",
+    metaConnectionsTitle: "Meta connections (Facebook, Instagram, Pages, WhatsApp)",
+    metaBody:
+      "A connection starts only when the user starts it. Requested permissions: public_profile for Facebook; instagram_business_basic for Instagram; pages_show_list for Pages; business_management and whatsapp_business_management for WhatsApp. On callback the code is exchanged for an access token, extended to a long-lived token, and the account ID and name or username are read. The token, its expiry, the account ID, and lumos_id are written to a separate vault service set by LUMOS_CREDENTIAL_VAULT_WRITE_URL; the token is not written to a cookie. Connection listing and sync read: for Instagram the ID, username, account type, and media count; for Pages the page ID and name; for WhatsApp the business ID and name, the WhatsApp Business Account ID and name, the phone number ID, the display phone number, and the verified name. Page and WhatsApp connection records are also written to the vault service. Meta webhook events whose signature verifies are forwarded with their full payload to the service at LUMOS_META_WEBHOOK_SINK_URL; that payload can carry message content. The vault and webhook services are not in this repository; their retention and location cannot be verified from this code. This path does not send Meta data to a model API.",
+    metaDeleteTitle: "Removing a Meta connection",
+    metaDeleteBody:
+      "“Remove connection” tries to revoke permissions at Meta (DELETE /me/permissions), then deletes the token from the vault service. If the Meta request fails, the token is still deleted and the response is revoked_local, showing that the permission at Meta was not removed. This does not delete page and WhatsApp connection records or events already forwarded to the webhook service. This repository has no endpoint for Meta's data deletion callback or deauthorize callback.",
+    qWhereTitle: "Where is it kept?",
+    qWhereBody:
+      "The session is a browser cookie. The hosted chat handler itself does not write the message to a database or file; a “remember” summary is written to the memory service. If bridge telemetry runs, the user message is written on that machine under .lumos/logs. File upload summaries stay in this browser's localStorage, at most 5 entries. No code chooses a storage place from a per-country rule.",
+    qHowLongTitle: "How long?",
+    qHowLongBody:
+      "The session cookie lasts 7 days (604800 seconds). The OAuth state cookie lasts 10 minutes. How long the memory service keeps summaries is not determined by this code. cleanup_audit_logs is a helper called only by tests; it has no runtime, UI, or API connection. If explicitly called, it deletes .lumos/logs files whose filename date is older than LUMOS_LOG_RETENTION_DAYS (default 14). Automatic log retention is not implemented. If LUMOS_MEMORY_TTL_SECONDS is set, a new local note receives that TTL; expired notes are filtered when Memory.cleanup is called. A note with an empty ttl_seconds remains. The meeting-bot path refuses to create a request without retention; that rule does not apply to other data.",
+    qWhoTitle: "Who can access it?",
+    qWhoBody:
+      "The cookie is HttpOnly. If a Sentry or Axiom key is set, allowlisted technical fields and the error stack go to that service; email and access_token are not on the allowlist. lumosId can be sent.",
+    logoutTitle: "What does logout do?",
+    logoutBody:
+      "Logout deletes the session cookie and bridge proxy cookie in this browser. This source version does not increment session_version or invalidate all copied session tokens on logout. Logout does not delete logs, memory, or a copy held by a model provider.",
+    qNotTitle: "What is not kept?",
+    qNotBody:
+      "The Google access token is not in the session. If the memory service or consent is missing, a “remember” sentence is not saved. This repository has no advertising tag and no data-sale integration. The model provider's and the memory service's own records are outside that sentence.",
+    qDeleteTitle: "How do I delete it?",
+    qDeleteBody:
+      "Logout clears cookies in this browser; it does not invalidate all copied session tokens. Memory.delete_all and delete_audit_logs are helpers called only by tests; they have no runtime, UI, or API connection. They are not available product controls for deleting local notes or logs. Deletion in the separate memory service requires action delete and confirm: true; it counts as deleted only if the service returns ok. Deletion of a provider-held copy is not verified by this code. For a Meta token, see “Removing a Meta connection”. Google account access can be removed from Google’s connections page.",
+    assuranceTitle: "Lumos assurance",
+    assuranceBody:
+      "This name covers only the controls listed above: session checks, not writing the access token into the cookie, character limits, store: false on the OpenAI request, stripping provider and model from the response, not writing memory without consent, the observability allowlist, stopping a task-engine step that matches SECURITY_NEVER_AUTO.",
+    missingTitle: "What is missing",
+    missingBody:
+      "Provider retention, training use and deletion practices are not verified by this code. This version’s chat path has no country-profile gate, provider-policy registry or automatic personal-data masking. The Gemini request has no store field. The retention period and location of the memory service, the Meta vault, and the Meta webhook service cannot be verified from this code. This repository has no Meta data deletion callback and does not delete Meta connection records. Server-side session-version invalidation on logout is not implemented. The user is not shown which API was called. The confirmation layer runs only when LUMOS_CONFIRMATION_ENABLED is 1, true, or yes. A production environment name alone does not enable it; the live value of this setting was not verified. SECURITY_NEVER_AUTO is unchanged. A hosted chat reply is not held for a separate approval step.",
+    countryTitle: "Country rules",
+    countryBody:
+      "There is no per-country legal engine. This version’s chat path has no profile gate that blocks provider calls by country code. This does not place the operator outside the law.",
+    multiTitle: "More than one infrastructure",
+    multiBody:
+      "Hosted chat makes at most two model calls: the OpenAI key first, then the Gemini key if that call errors, throws, or returns nothing. This version does not implement a country-profile or provider-registry gate before the call. The task engine stop is not attached to this chat reply.",
+    changesTitle: "Changes",
+    changesBody:
+      "When the code changes, this technical page and docs/data-and-trust.md change together. The privacy notice at the registered /privacy address remains separate; this inventory does not replace it.",
+    docCta: "Technical inventory",
+    googleControlsCta: "Manage Google access",
+    integrationsCta: "Connection ecosystem",
+  },
   slack: {
-    metaTitle: "Lumos in Slack — We Lock AI",
+    metaTitle: "Lumos in Slack — Lumos AI",
     metaDescription:
       "Lumos as a Slack workplace companion: Organization → Project → Topic context, controlled notifications, and approval — no OAuth started here.",
-    eyebrow: "WE LOCK AI · SLACK",
+    eyebrow: "LUMOS AI · SLACK",
     title: "Lumos in Slack",
     lead:
       "Slack is one of Lumos's workplace surfaces aligned with Organization → Project → Topic. Topic summaries, mention/thread context, and controlled notifications are planned; full organization private-area archive or unapproved posting is not the goal.",
@@ -171,10 +252,10 @@ const umbrellaEn: typeof umbrellaTr = {
     homeCta: "Home",
   },
   mac: {
-    metaTitle: "Lumos Mac — Universal Links — We Lock AI",
+    metaTitle: "Lumos Mac — Universal Links — Lumos AI",
     metaDescription:
       "The Lumos Mac app, direct chat entry, Universal Links on welockai.com, and Apple App Site Association.",
-    eyebrow: "WE LOCK AI · MAC",
+    eyebrow: "LUMOS AI · MAC",
     title: "Mac and Apple links",
     lead:
       "The Lumos Mac app opens the chat workspace directly; tasks, files, and approvals use the existing secure bridge contract.",
@@ -188,10 +269,10 @@ const umbrellaEn: typeof umbrellaTr = {
     homeCta: "Home",
   },
   cyber: {
-    metaTitle: "Lumos Cyber — We Lock AI",
+    metaTitle: "Lumos Cyber — Lumos AI",
     metaDescription:
-      "Lumos Cyber: an independent We Lock AI layer for security, risk visibility, defense, and controlled approval.",
-    eyebrow: "WE LOCK AI · CYBER",
+      "Lumos Cyber: an independent Lumos AI layer for security, risk visibility, defense, and controlled approval.",
+    eyebrow: "LUMOS AI · CYBER",
     title: "Lumos Cyber",
     lead:
       "Lumos Cyber is the planned We Lock AI variant for security operations, risk visibility, and policy-focused work. It is not a cyberpunk UI — it is a professional control layer.",
@@ -200,7 +281,7 @@ const umbrellaEn: typeof umbrellaTr = {
     focusTitle: "Focus",
     focus1: "Keeping risk and policy summaries visible in the panel.",
     focus2: "Extra approval and audit trail for high-impact steps.",
-    focus3: "Enterprise policy aligned with the We Lock AI private layer (in production).",
+    focus3: "Enterprise policy aligned with the Lumos AI private layer (in production).",
     liveEyebrow: "LIVE THREAT VISIBILITY",
     liveTitle: "Understand attack scale at a glance",
     liveLead: "Flame height visualizes the threat score; an icon, explicit level label, and numeric score communicate the same state beyond color.",
@@ -239,11 +320,11 @@ const umbrellaEn: typeof umbrellaTr = {
     homeCta: "Home",
   },
   integrations: {
-    metaTitle: "Connection Ecosystem — We Lock AI",
+    metaTitle: "Connection Ecosystem — Lumos AI",
     metaDescription:
       "The Lumos connection ecosystem: active, foundation, and planned connection surfaces with secure authority boundaries.",
-    eyebrow: "WE LOCK AI · CONNECTION ECOSYSTEM",
-    title: "We Lock AI Connection Ecosystem",
+    eyebrow: "LUMOS AI · CONNECTION ECOSYSTEM",
+    title: "Lumos AI Connection Ecosystem",
     lead:
       "Lumos connection surfaces, presented with their current scope, readiness, and authority boundaries.",
     statusActive: "Connected",
@@ -351,10 +432,10 @@ const umbrellaEn: typeof umbrellaTr = {
     panelCta: "Panel",
   },
   integrationGuide: {
-    metaTitle: "Lumos integration ease and security — We Lock AI",
+    metaTitle: "Lumos integration ease and security — Lumos AI",
     metaDescription:
       "A single guide view of the Lumos connection catalog with categories, scope, and verified support status.",
-    eyebrow: "WE LOCK AI · LUMOS CONNECTIONS",
+    eyebrow: "LUMOS AI · LUMOS CONNECTIONS",
     title: "Connection ease, visible security",
     lead:
       "Lumos brings app and device context together while keeping each connection's authority and real status visible.",
@@ -547,10 +628,10 @@ const umbrellaEn: typeof umbrellaTr = {
     },
   },
   github: {
-    metaTitle: "GitHub integration — We Lock AI",
+    metaTitle: "GitHub integration — Lumos AI",
     metaDescription:
       "Lumos GitHub connection: read issue/PR metadata and CI summary; write needs approval; delete off by default.",
-    eyebrow: "WE LOCK AI · GITHUB",
+    eyebrow: "LUMOS AI · GITHUB",
     title: "GitHub",
     lead:
       "Lumos reads issues, PRs, and CI status summaries from GitHub for task context. Comments, labels, and assigns need per-action approval; merge and delete sit behind high-risk gates.",
@@ -570,10 +651,10 @@ const umbrellaEn: typeof umbrellaTr = {
     homeCta: "Home",
   },
   google: {
-    metaTitle: "Google integration — We Lock AI",
+    metaTitle: "Google integration — Lumos AI",
     metaDescription:
       "Lumos Google connection: Drive, Calendar, and Gmail — read-first policy, approved write, special-permission delete.",
-    eyebrow: "WE LOCK AI · GOOGLE",
+    eyebrow: "LUMOS AI · GOOGLE",
     title: "Google (Drive, Calendar, Gmail)",
     lead:
       "Google integrations follow a read-first policy: metadata and summary first; no full-content archive or unapproved external effect. Gmail is off by default.",
@@ -590,10 +671,10 @@ const umbrellaEn: typeof umbrellaTr = {
     homeCta: "Home",
   },
   mail: {
-    metaTitle: "Mail (Gmail) integration — We Lock AI",
+    metaTitle: "Mail (Gmail) integration — Lumos AI",
     metaDescription:
       "Lumos Mail connection: Gmail read-only Dar v1 — inbox summary and thread metadata; off by default.",
-    eyebrow: "WE LOCK AI · MAIL",
+    eyebrow: "LUMOS AI · MAIL",
     title: "Mail (Gmail)",
     lead:
       "Lumos reads Gmail inbox summary and thread metadata under OD-031 Dar v1. Send and delete are not in this release; the OSS stub is read-only.",
@@ -612,10 +693,10 @@ const umbrellaEn: typeof umbrellaTr = {
     panelCta: "Panel",
   },
   linear: {
-    metaTitle: "Linear integration — We Lock AI",
+    metaTitle: "Linear integration — Lumos AI",
     metaDescription:
       "Lumos Linear connection: OD-033 Layer 3 planned — read issue context; approved write.",
-    eyebrow: "WE LOCK AI · LINEAR",
+    eyebrow: "LUMOS AI · LINEAR",
     title: "Linear",
     lead:
       "Linear is a Layer 3 candidate on the OD-033 work-tools watchlist. It will be evaluated after the GitHub connector pilot with task-engine conflict analysis.",

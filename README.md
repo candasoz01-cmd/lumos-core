@@ -28,11 +28,17 @@ runtime code.
 
 Turkish: [README.tr.md](README.tr.md) · [docs/tr/](docs/tr/)
 
-**Lumos** is the primary product focus. It is a human-centered artificial intelligence **control and assistant layer**: it helps people understand, steer, and safely manage actions across devices, digital workflows, and connected systems—without replacing their judgment.
+**Lumos** is not a new artificial intelligence. It does not run its own model. Hosted chat sends the trimmed message, the signed-in name, and permitted memory summaries to a model API when a key is set. The chat handler itself does not write the message to a database; a “remember” summary is written to a separate memory service whose retention this repository cannot verify. The response does not include a provider or model name.
+
+The public data inventory is [docs/data-and-trust.md](docs/data-and-trust.md) and [https://welockai.com/data-and-trust](https://welockai.com/data-and-trust). The reviewed hosted-chat path does not implement automatic email, phone or ID masking, a country-profile gate, or provider-retention verification. The confirmation layer runs only when `LUMOS_CONFIRMATION_ENABLED` is `1`, `true`, or `yes`. A chat reply is not held for a separate approval step.
+
+“Lumos assurance” is the name for the controls that exist in this repository (session check, access token not stored in the session cookie, character limits, `store: false` on the OpenAI request, provider name removed from the response, memory not written without consent, observability allowlist, task-engine stop on `SECURITY_NEVER_AUTO`). Missing items are listed in the inventory and are not part of that name.
 
 Developed under the **We Lock AI** umbrella as an **independent** product and direction—not owned, branded, or operated by any large language model vendor as their first-party product. Learn more: **[https://welockai.com/](https://welockai.com/)**
 
 ## Principles
+
+These are product principles and design goals. Implemented controls and current limits are listed in [the technical inventory](docs/data-and-trust.md).
 
 - **User decision first:** Lumos does not decide on behalf of the user.
 - **Explicit approval** for actions that are permanent, sensitive, costly, or affect other people.
@@ -45,13 +51,7 @@ Where AI-assisted reasoning is useful, Lumos may use **external model services w
 
 ## What is Lumos?
 
-Lumos helps users interact with devices, digital actions, home automation, vehicles, applications, and connected systems through a clearer and safer control layer.
-
-The goal is not to hide complexity, but to make complex actions easier to understand, review, and approve.
-
-In many areas, the user may express what they want through voice. Lumos can then break that intent into safer, clearer, and more controlled steps.
-
-Final approval remains with the user for actions that are permanent, sensitive, costly, or affect other people.
+Lumos is the control path in this repository around a configured model call, a sealed session cookie, an optional memory service, local task logs, and browser file history. It does not apply per-country data rules and it does not verify what a third party retains.
 
 ## Current Status
 
@@ -62,7 +62,7 @@ The current version includes:
 - A public landing page foundation
 - A static panel structure
 - Product-language module definitions
-- Core principles for user control, privacy, identity, consent, and safety
+- The data inventory in [docs/data-and-trust.md](docs/data-and-trust.md)
 - Early backend foundations for memory, state, and orchestration
 
 The current panel defines visible modules and product direction without claiming unfinished active functionality.
@@ -171,13 +171,15 @@ Paid or official service access is managed separately from open-source code, via
 
 ## Philosophy
 
+The sentences below are intent. They are not the list of controls that run today. That list is [docs/data-and-trust.md](docs/data-and-trust.md).
+
 AI should not become an invisible authority between humans and their own decisions.
 
 It should help users see what is happening, understand possible risks, and move forward with clearer control.
 
 ## Why Lumos?
 
-Lumos is aimed at a practical problem: keeping identity, consent, and intelligent systems understandable and steerable, with the user's judgment in the loop rather than replaced.
+Lumos is aimed at a practical problem: keeping identity, consent, and intelligent systems understandable. Hosted chat does not wait for a separate approval before it returns a reply.
 
 ## Development Focus
 

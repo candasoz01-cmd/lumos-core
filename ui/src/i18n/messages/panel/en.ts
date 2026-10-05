@@ -209,10 +209,10 @@ const panel: typeof panelTr = {
       canDo2: "Read on-device settings.",
       wontDoSection: "I won't",
       wontDo1: "Run commands.",
-      wontDo2: "Act permanently without approval.",
+      wontDo2: "Ask for separate approval of permanent actions unless the confirmation layer is on.",
     },
     security: {
-      approval: "Asks for approval before permanent actions.",
+      approval: "The confirmation layer asks before the listed permanent actions only when LUMOS_CONFIRMATION_ENABLED is on.",
       secret: "Runs on-device; do not paste secrets into chat.",
       debugBridge: "Local bridge connected. Voice and task actions run on this device.",
       devicePerms: "Camera and microphone depend on device permissions.",
@@ -766,19 +766,19 @@ const panel: typeof panelTr = {
   },
   ai: {
     intro:
-      "This tab summarizes treating AI not as an authority that decides for you, but as a helper layer that gathers context, organizes options, and makes the decision process clearer.",
+      "Lumos is not a new artificial intelligence and does not run its own model. Hosted chat sends the trimmed message and the signed-in name to a model API when a key is set; the chat handler itself does not write it to a database, and a “remember” summary goes to the separate memory service. The response has no provider name. The confirmation layer runs only when LUMOS_CONFIRMATION_ENABLED is on.",
     c1Title: "Gathering context",
     c1Body:
       "Lumos aims to build a clearer task context by weighing your request together with the current workspace and related information.",
     c2Title: "Suggestions and options",
     c2Body:
       "AI does not present a single outcome as unquestionably correct; it surfaces options, uncertainties, and points that need attention.",
-    c3Title: "Decision with the user",
+    c3Title: "Chat approval",
     c3Body:
-      "Lumos may suggest, shorten paths, and reduce confusion; the final decision still belongs to you.",
-    c4Title: "Pausing risky actions",
+      "A hosted chat reply is not held for a separate approval step. The confirmation layer runs only when LUMOS_CONFIRMATION_ENABLED is on.",
+    c4Title: "Task engine stop",
     c4Body:
-      "For permanent, costly, or hard-to-reverse steps, AI should inform rather than auto-advance, and wait for explicit approval.",
+      "The task engine stops a step that matches SECURITY_NEVER_AUTO. Its engine branch keeps permanent_delete outside that check. That stop is not attached to the chat reply.",
     c5Title: "Surfacing uncertainty",
     c5Body:
       "When data is missing, confidence is low, or information conflicts, Lumos aims not to hide that, but to show where it is unsure.",

@@ -1,0 +1,12 @@
+{
+  "name": "lumos-company-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "python3 build_company.py",
+    "test": "node --test company-worker.test.mjs",
+    "dev": "wrangler dev --ip 127.0.0.1 --port 8795",
+    "check": "wrangler deploy --dry-run"
+  },
+  "devDependencies": {"wrangler": "4.137.0"}
+}

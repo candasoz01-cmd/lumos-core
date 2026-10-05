@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  Canonical We Lock AI / Lumos compact mark.
+  Canonical Lumos Company / Lumos compact mark.
   Layers: tree = core identity, crescent = supporting field, star = quantum core.
   Service variants must keep this geometry intact and add only a secondary badge/accent.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="lumos-tree-logo-title">
-  <title id="lumos-tree-logo-title">We Lock AI · Lumos</title>
+  <title id="lumos-tree-logo-title">Lumos Company · Lumos</title>
   <defs>
     <linearGradient id="brand-gold" x1="14" y1="7" x2="48" y2="57" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#fff4cf"/>
