@@ -41,18 +41,38 @@ class SecureNotesStore:
                 out.append(getattr(n, "__dict__", {"value": str(n)}))
         return json.dumps({"v": 1, "notes": out}, ensure_ascii=False).encode("utf-8")
 
-    def _from_plain(self, b: bytes) -> List[dict]:
+    def _from_plain(self, b: bytes, *, strict: bool = False) -> List[dict]:
         data = json.loads(b.decode("utf-8"))
+        if strict and (
+            not isinstance(data, dict)
+            or type(data.get("v")) is not int
+            or data["v"] != 1
+            or not isinstance(data.get("notes"), list)
+        ):
+            raise ValueError("Invalid notes plaintext schema")
         return list(data.get("notes", []))
 
-    def load(self, root_key: bytes) -> List[dict]:
-        if not self.path.exists():
+    def load(self, root_key: bytes, *, strict: bool = False) -> List[dict]:
+        """Strict post-write reads require a readable, valid version-1 store.
+
+        Default reads retain legacy absent-file/schema compatibility. Strict reads
+        never treat missing or inaccessible files as empty; read errors propagate.
+        """
+        if not strict and not self.path.exists():
             return []
         data = json.loads(self.path.read_text(encoding="utf-8"))
+        if strict and (
+            not isinstance(data, dict)
+            or type(data.get("v")) is not int
+            or data["v"] != 1
+            or data.get("cipher") != "aesgcm"
+            or data.get("aad") != "lumos-notes-v1"
+        ):
+            raise ValueError("Invalid notes envelope schema")
         nonce = b64d(data["nonce_b64"])
         ct = b64d(data["ct_b64"])
         plain = aesgcm_decrypt(root_key, nonce, ct, aad=self.aad)
-        return self._from_plain(plain)
+        return self._from_plain(plain, strict=True) if strict else self._from_plain(plain)
 
     def save(self, root_key: bytes, notes: List[Any]) -> None:
         plain = self._to_plain(notes)

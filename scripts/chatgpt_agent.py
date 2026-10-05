@@ -2,24 +2,26 @@
 """
 ChatGPT (OpenAI Responses API, varsayılan streaming) → relay → bridge → Kando outbox özeti.
 
-Çalıştırma: depo kökünden (bridge ve watcher ile aynı .lumos yolu için).
+Çalıştırma: depo kökünden (bridge ile aynı .lumos yolu için).
 """
 from __future__ import annotations
 
 import os
 import sys
-import time
 
 from kando.relay_outbox_client import (
+    RelayResultError,
     env_float,
     expected_goal_inbox,
     mtime,
+    outbox_bytes_mark,
     outbox_paths,
     post_relay,
     print_summary,
     relay_url,
     repo_root_from_kando_file,
-    wait_for_new_outbox,
+    tag_request,
+    wait_for_relay_result,
 )
 
 _DEFAULT_MODEL = "gpt-4.1-mini"
@@ -216,9 +218,9 @@ def _call_openai(user_text: str) -> str:
     return _call_openai_sync(user_text)
 
 
-def _post_relay_or_exit(url: str, goal_text: str) -> None:
+def _post_relay_or_exit(url: str, goal_text: str) -> dict[str, object] | None:
     try:
-        post_relay(url, goal_text)
+        return post_relay(url, goal_text)
     except RuntimeError as e:
         print(str(e), file=sys.stderr)
         sys.exit(4)
@@ -249,7 +251,7 @@ def main() -> None:
             continue
 
         goal = _normalize_llm_goal(_call_openai(line))
-        goal = f"{goal} [{int(time.time())}]"
+        goal = tag_request(goal)
         print("\n… Kando görev metni (relay JSON \"goal\" alanında; köprüde görev: öneki eklenir)\n")
 
         if _skip_relay():
@@ -258,22 +260,41 @@ def main() -> None:
 
         prev_e = mtime(_OUT_EXEC)
         prev_r = mtime(_OUT_RESULT)
+        mark_e = outbox_bytes_mark(_OUT_EXEC)
+        mark_r = outbox_bytes_mark(_OUT_RESULT)
 
         print("[durum] Kando'ya gönderiliyor …", flush=True)
-        _post_relay_or_exit(relay, goal)
+        receipt = _post_relay_or_exit(relay, goal)
 
         print("[durum] sonuç bekleniyor …", flush=True)
-        if not wait_for_new_outbox(prev_e, prev_r, goal, wait_sec, root=_ROOT):
+        try:
+            snapshot = wait_for_relay_result(
+                receipt,
+                prev_e,
+                prev_r,
+                goal,
+                wait_sec,
+                root=_ROOT,
+                prev_exec_mark=mark_e,
+                prev_res_mark=mark_r,
+            )
+        except RelayResultError as e:
+            print(str(e), file=sys.stderr)
+            sys.exit(e.exit_code)
+        if snapshot is None:
             print(
                 f"Zaman aşımı ({wait_sec:.0f}s): outbox bu istek için güncellenmedi veya "
-                f"execution.goal beklenen ile eşleşmedi ({expected_goal_inbox(goal)}). "
-                "kando_watch ve bridge çalışıyor mu? Aynı görev metni tekrar gönderilirse "
-                "watcher dedup ile yeni çalıştırma yapmayabilir.",
+                f"paketler eşleşmedi ({expected_goal_inbox(goal)}). "
+                "Teslim belirsiz; otomatik yeniden gönderilmedi. "
+                "Yeniden göndermeden önce sonucu inceleyin.",
                 file=sys.stderr,
             )
             sys.exit(5)
 
-        print_summary(root=_ROOT)
+        print_summary(snapshot=snapshot)
+        if not snapshot.succeeded:
+            print("Sonuç alındı; görev başarıyla tamamlanmadı. Otomatik yeniden gönderilmedi.", file=sys.stderr)
+            sys.exit(6)
 
 
 if __name__ == "__main__":
