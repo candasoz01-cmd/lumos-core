@@ -32,8 +32,8 @@ const en: MessageTree = {
     ecosystem: "Trust",
     panel: "Open Lumos",
     github: "GitHub",
-    brandAria: "We Lock AI — top of page",
-    brandTitle: "We Lock AI",
+    brandAria: "Lumos AI — top of page",
+    brandTitle: "Lumos AI",
     brandSub: "AI ECOSYSTEM",
   },
   hero: {

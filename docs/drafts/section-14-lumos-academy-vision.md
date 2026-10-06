@@ -4,7 +4,7 @@
 
 > **Taslak notu**
 >
-> - Bu belge `docs/drafts/` altında yaşayan bir taslaktır; henüz `lumos-book-outline.md` ana iskeletine işlenmemiştir.
+> - Bu dosya arşivdir. Metin `docs/lumos-book-outline.md` Belge §14'e işlenmiştir; ikinci yaşayan kaynak değildir.
 > - **Durum:** ⚪ Uzun vadeli vizyon — **V1 kapsamı dışı**
 > - **Dil:** Pusula ve hedef yön; ürün vaadi değil (§11 ile uyumlu)
 
@@ -134,7 +134,7 @@ Bu bölümün hiçbir cümlesi şu anlama gelmez:
 - «Worlds eğitim senaryoları kullanıma açık»
 - «3B simülasyonla öğretim mevcut»
 
-Web okuma sürümü, PDF/ePub veya Referans Kütüphanesi'nde yayımlanmadan önce §11 dört kontrolden geçer. GitHub taslak kaynağı yaşayan belge olabilir; durum etiketi zorunludur.
+Web okuma sürümü, PDF/ePub veya Referans Kütüphanesi'nde yayımlanmadan önce §11 altı kontrolden geçer. GitHub taslak kaynağı yaşayan belge olabilir; durum etiketi zorunludur.
 
 **Lansman kuralı:** Academy görselleri veya örnek diyalogları tek başına «mevcut özellik» algısı yaratmaz. Tüm maddeler **⚪ Araştırma / uzun vadeli** etiketiyle geçer; ana lansman §12 (Life) omurgasındadır.
 
@@ -228,7 +228,7 @@ Life şimdiki omurgadır. Academy ile ortak nokta: 📚 bilgi engeli (metin sade
 >
 > **Ana omurga:** §12 Lumos Life (🟢 / 🟡)
 >
-> **Yayımlama:** Web okuma sürümü veya kitap olarak sunulmadan önce §11 dört kontrolden geçer. Bu GitHub taslak dosyası yaşayan belgedir; «okuma sürümü» sayılmaz.
+> **Yayımlama:** Web okuma sürümü veya kitap olarak sunulmadan önce §11 altı kontrolden geçer. Bu GitHub arşiv dosyası yaşayan belge değildir; «okuma sürümü» sayılmaz.
 >
 > Bu kutudaki hiçbir ifade ürün vaadi, tarih taahhüdü veya «yakında geliyor» iddiası değildir.
 
@@ -239,5 +239,5 @@ Life şimdiki omurgadır. Academy ile ortak nokta: 📚 bilgi engeli (metin sade
 ## Paylaşım notu
 
 - Kaynak: `docs/drafts/section-14-lumos-academy-vision.md`
-- Ana iskelet: `docs/lumos-book-outline.md` (§12, §13 — bu taslak onları değiştirmez)
+- Ana iskelet: `docs/lumos-book-outline.md` Belge §14. Bu arşiv §12 ve §13'ü değiştirmez.
 - Resmî yayın değildir; taslak olarak repo üzerinden izlenebilir.

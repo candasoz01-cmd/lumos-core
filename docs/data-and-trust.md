@@ -2,13 +2,13 @@
 
 | Alan | Değer |
 | --- | --- |
-| Durum | Kod envanteri — 2026-09-29 |
+| Durum | PR #903 aday kod envanteri — 2026-10-06; üretim doğrulaması değildir |
 | Kapsam | Bu depoda okunan yollar. Başka bir kurulum ek servis bağlarsa bu sayfa onu kapsamaz. |
-| Public özet | [`ui/src/pages/privacy.astro`](../ui/src/pages/privacy.astro) |
+| Public özet | [`ui/src/pages/data-and-trust.astro`](../ui/src/pages/data-and-trust.astro) |
 
 Bu belge, Lumos’un bugün yaptığı veri işlemlerini dosya ve işlev adıyla yazar. Kodda olmayan bir mekanizma burada “uygulanır” denmez.
 
-Bu belge ve `/privacy` sayfası teknik envanterdir; hukuki gizlilik bildirimi değildir. Veri sorumlusu, iletişim ve başvuru kanalı, silme talebi süreci, hukuki dayanak ve KVKK/GDPR hakları burada yayımlanmadı. Bunlar ayrı bir hukuk ve politika kararı bekler.
+Bu belge ve `/data-and-trust` sayfası teknik envanterdir; hukuki gizlilik bildirimi değildir. Veri sorumlusu, iletişim ve başvuru kanalı, silme talebi süreci, hukuki dayanak ve KVKK/GDPR hakları burada yayımlanmadı. Bunlar ayrı bir hukuk ve politika kararı bekler.
 
 “Lumos güvencesi”, aşağıdaki **uygulanan** kontrollerin ortak adıdır. Eksik satırlar güvencenin parçası değildir.
 
@@ -44,7 +44,7 @@ Aşağıdaki fonksiyonlar kodda vardır, ancak çalışma zamanı, panel veya AP
 | Yetenek | Nerede | Çağrıldığında ne yapar |
 | --- | --- | --- |
 | Yerel günlük temizleme ve silme | `cleanup_audit_logs`, `delete_audit_logs` | `cleanup_audit_logs`, `.lumos/logs` dosya adındaki tarihe göre `LUMOS_LOG_RETENTION_DAYS` (varsayılan 14) günden eski günlükleri siler. `append_audit_log` bunu kendiliğinden çağırmaz. Varsayılan 14 günlük saklama süresi bugün otomatik uygulanmaz. `delete_audit_logs` aynı dizindeki `.log` dosyalarını siler. |
-| Yerel not silme | `Memory.delete_all` | Kilit açıkken kayıtlı yerel notları siler. Panel/API üzerinden sunulan veya otomatik işletilen bir silme işlemi değildir. `LUMOS_MEMORY_TTL_SECONDS` doluysa yeni nota o süre yazılır; bu ayrı davranış `delete_all` çağrıldığı anlamına gelmez. |
+| Yerel not silme | `Memory.delete_all` | Kilit açıkken yerel notları siler; bağlı depoya boş liste yazıp yeniden okuyarak doğrular. Hata halinde istisna döner ve RAM korunur; yedeklerin silindiğini kanıtlamaz. Panel/API üzerinden sunulan veya otomatik işletilen bir silme işlemi değildir. `LUMOS_MEMORY_TTL_SECONDS` doluysa yeni nota o süre yazılır; bu ayrı davranış `delete_all` çağrıldığı anlamına gelmez. |
 
 ## Model isteğine giren veriler
 
@@ -153,3 +153,7 @@ Kullanıcı iletisi
 ## Şifreli notlar
 
 `src/memory/secure_store.py`, kilit açıkken notları `src/.lumos/notes.enc.json` dosyasına AES-GCM ile yazar. `Memory.cleanup` yalnız `ttl_seconds` dolu notları süresinde düşürür. `LUMOS_MEMORY_TTL_SECONDS` doluysa yeni nota o süre yazılır; boşsa süresiz not kalır. `Memory.delete_all` kilit açıkken kayıtlı notları siler.
+
+## Mevcut gizlilik bildirimi için açık politika işleri (2026-10-03)
+
+`/privacy` sayfası ve TR/EN `umbrella.privacy` metinleri, kayıtlı URL korunması için `ca258cfc` sürümündeki haliyle tutulur. Bu koruma, bildirimin hukuki veya teknik yeterliliğinin doğrulandığı anlamına gelmez. Bildirimde son güncelleme 15 Temmuz 2026'dır; silme/destek kanalı hâlâ canlı OAuth öncesinde yayımlanacak olarak anlatılır. Somut başvuru kanalı ve veri sorumlusu iletişim ayrıntıları, kesin saklama süreleri ve veri türlerine göre silme süreci bu metinde yer almaz. Hukuki dayanak ve hakların kullanımı ayrıca politika incelemesi gerektirir. Veri satışı/eğitim kullanımı hakkındaki mevcut kurumsal beyanlar bu kod envanterinin doğrulayabildiği davranışlardan ayrıdır; burada yeni hukuki vaat veya uygulama kanıtı üretilmez.

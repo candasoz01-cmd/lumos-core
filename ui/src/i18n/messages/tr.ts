@@ -31,8 +31,8 @@ const tr = {
     ecosystem: "Güven",
     panel: "Lumos’u Aç",
     github: "GitHub",
-    brandAria: "We Lock AI — sayfa başı",
-    brandTitle: "We Lock AI",
+    brandAria: "Lumos AI — sayfa başı",
+    brandTitle: "Lumos AI",
     brandSub: "AI EKOSİSTEMİ",
   },
   hero: {

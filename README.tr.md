@@ -4,7 +4,7 @@ Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Barındır
 
 Onay katmanı `LUMOS_ENV` veya `LUMOS_PRODUCT_ENV` `production` veya `prod` iken açıktır. Bu ortamlar dışında yalnız `LUMOS_CONFIRMATION_ENABLED` değeri `1`, `true` veya `yes` iken çalışır. Sohbet yanıtı ayrı bir onay adımı beklemez. Ülkeye göre hukuk motoru yoktur. Tam bir maskeleme sistemi yoktur. Sağlayıcı saklamasının doğrulanması `provider verification pending` durumundadır.
 
-Aynı envanter: [docs/data-and-trust.md](docs/data-and-trust.md) · sitede `/privacy`.
+Aynı envanter: [docs/data-and-trust.md](docs/data-and-trust.md) · sitede `/data-and-trust`.
 
 > **Not:** Tam Türkçe belgeler planlanıyor. Şimdilik İngilizce kaynaklar geçerlidir. Kurulum adımları aşağıdadır. Ürün cümleleri bu dosyada Türkçedir ve [README.md](README.md) ile aynı sınırı söyler.
 

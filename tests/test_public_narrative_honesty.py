@@ -14,7 +14,7 @@ PUBLIC = [
     ROOT / "docs" / "PRODUCT_SUMMARY.md",
     ROOT / "docs" / "app-store-product-safety-privacy.md",
     PAGES / "index.astro",
-    PAGES / "privacy.astro",
+    PAGES / "data-and-trust.astro",
     PAGES / "trust.astro",
     PAGES / "help.astro",
     PAGES / "terms.astro",
@@ -79,10 +79,6 @@ BANNED = (
     # The confirmation layer is off by default; no status reads as an active gate.
     "Kapı aktif",
     "Gate active",
-    # /privacy is a technical inventory, not a legal privacy notice.
-    'href="/privacy">Gizlilik Politikası<',
-    'href="/privacy">Gizlilik<',
-    'href="/privacy">Privacy Policy<',
     # Meta data deletion and deauthorize callbacks do not exist.
     "Meta verileriniz silinir",
     "Meta data is deleted",
@@ -96,28 +92,36 @@ MODEL_INPUT_SUMMARIES = {
     PAGES / "help.astro": "hafıza özetleri",
 }
 
-PRIVACY_LINK_TR = "Teknik veri ve güven envanteri"
+DATA_TRUST_LINK_TR = "Teknik veri ve güven envanteri"
 
-PRIVACY_TR = MESSAGES / "umbrella" / "tr.ts"
-PRIVACY_EN = MESSAGES / "umbrella" / "en.ts"
-PRIVACY_PAGE = PAGES / "privacy.astro"
+UMBRELLA_TR = MESSAGES / "umbrella" / "tr.ts"
+UMBRELLA_EN = MESSAGES / "umbrella" / "en.ts"
+DATA_TRUST_PAGE = PAGES / "data-and-trust.astro"
 
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
 
 
-def _privacy_messages(path: Path) -> dict[str, str]:
+def _message_block(text: str, name: str) -> str:
+    start = text.index(f"  {name}: {{\n")
+    end = text.index("\n  },\n", start) + len("\n  },")
+    return text[start:end]
+
+
+def _data_trust_messages(path: Path) -> dict[str, str]:
     text = _read(path)
-    start = text.index("  privacy: {\n")
+    start = text.index("  dataTrust: {\n")
     end = text.index("\n  },\n", start)
-    return dict(re.findall(r'(\w+):\s*"([^"]*)"', text[start:end]))
+    pairs = re.findall(r'(\w+):\s*"([^"]*)"', text[start:end])
+    assert len(pairs) == len(dict(pairs)), "duplicate technical inventory message key"
+    return dict(pairs)
 
 
-def _privacy_page_text() -> dict[str, str]:
+def _data_trust_page_text() -> dict[str, str]:
     pairs = re.findall(
-        r'data-i18n="umbrella\.privacy\.(\w+)">\s*(.*?)\s*</',
-        _read(PRIVACY_PAGE),
+        r'data-i18n="umbrella\.dataTrust\.(\w+)">\s*(.*?)\s*</',
+        _read(DATA_TRUST_PAGE),
         flags=re.DOTALL,
     )
     return {key: " ".join(value.split()) for key, value in pairs}
@@ -126,6 +130,11 @@ def _privacy_page_text() -> dict[str, str]:
 def test_public_narrative_does_not_name_chat_products_or_unverifiable_promises():
     for path in PUBLIC:
         text = _read(path)
+        # Preserve the registered legal notice verbatim; it is not an
+        # implementation claim. Only the privacy namespace is excluded; the
+        # separate route contract below keeps it distinct from the inventory.
+        if path in (UMBRELLA_TR, UMBRELLA_EN):
+            text = text.replace(_message_block(text, "privacy"), "", 1)
         for phrase in BANNED:
             assert phrase not in text, f"{path.relative_to(ROOT)} contains {phrase!r}"
 
@@ -149,9 +158,9 @@ def test_inventory_states_implemented_limits_and_gaps():
         assert needle in inventory, needle
 
 
-def test_privacy_page_states_model_inputs_memory_gmail_logout_and_fallback():
-    tr = " ".join(_privacy_messages(PRIVACY_TR).values())
-    en = " ".join(_privacy_messages(PRIVACY_EN).values())
+def test_technical_page_states_model_inputs_memory_gmail_logout_and_fallback():
+    tr = " ".join(_data_trust_messages(UMBRELLA_TR).values())
+    en = " ".join(_data_trust_messages(UMBRELLA_EN).values())
     for needle in (
         "Kendi modelini çalıştırmaz",
         "LUMOS_CONFIRMATION_ENABLED",
@@ -188,7 +197,7 @@ def test_privacy_page_states_model_inputs_memory_gmail_logout_and_fallback():
         "not a legal privacy notice",
     ):
         assert needle in en, needle
-    for text in (tr, en, _read(PRIVACY_PAGE)):
+    for text in (tr, en, _read(DATA_TRUST_PAGE)):
         assert "garanti" not in text.lower()
         assert "guarantee" not in text.lower()
 
@@ -198,20 +207,36 @@ def test_short_model_input_copy_keeps_memory_summaries():
         assert needle in _read(path), f"{path.relative_to(ROOT)} omits {needle!r}"
 
 
-def test_privacy_links_use_the_page_title():
-    title = _privacy_messages(PRIVACY_TR)["title"]
-    assert title == PRIVACY_LINK_TR
-    for path in PUBLIC:
-        for label in re.findall(r'href="/privacy"[^>]*>([^<]*)<', _read(path)):
-            assert label == PRIVACY_LINK_TR, (
-                f"{path.relative_to(ROOT)} links /privacy as {label!r}"
-            )
+def test_technical_links_use_a_separate_route_and_title():
+    title = _data_trust_messages(UMBRELLA_TR)["title"]
+    assert title == DATA_TRUST_LINK_TR
+    for path in PAGES.rglob("*.astro"):
+        for href, label in re.findall(
+            r'href="(/privacy|/data-and-trust)"[^>]*>([^<]*)<', _read(path)
+        ):
+            if label == DATA_TRUST_LINK_TR:
+                assert href == "/data-and-trust", path
+            if href == "/data-and-trust":
+                assert label == DATA_TRUST_LINK_TR, path
+    footer = _read(ROOT / "ui/src/components/WeLockSiteFooter.astro")
+    assert 'href="/privacy" data-i18n="umbrella.nav.privacy">Gizlilik</a>' in footer
+    assert 'href="/data-and-trust" data-i18n="umbrella.nav.dataTrust">' in footer
+    for path, privacy_label, inventory_label in (
+        (UMBRELLA_TR, "Gizlilik", DATA_TRUST_LINK_TR),
+        (UMBRELLA_EN, "Privacy", "Technical data and trust inventory"),
+    ):
+        nav = _message_block(_read(path), "nav")
+        assert f'privacy: "{privacy_label}"' in nav
+        assert f'dataTrust: "{inventory_label}"' in nav
+    technical = _read(DATA_TRUST_PAGE)
+    assert 'href="https://welockai.com/data-and-trust"' in technical
+    assert "umbrella.privacy." not in technical
 
 
 def test_meta_connection_path_is_documented():
     inventory = _read(ROOT / "docs" / "data-and-trust.md")
-    tr = " ".join(_privacy_messages(PRIVACY_TR).values())
-    en = " ".join(_privacy_messages(PRIVACY_EN).values())
+    tr = " ".join(_data_trust_messages(UMBRELLA_TR).values())
+    en = " ".join(_data_trust_messages(UMBRELLA_EN).values())
     scopes = (
         "public_profile",
         "instagram_business_basic",
@@ -231,11 +256,11 @@ def test_meta_connection_path_is_documented():
     assert "veri silme geri çağrısı" in inventory
 
 
-def test_privacy_page_and_messages_stay_in_sync():
-    tr = _privacy_messages(PRIVACY_TR)
-    en = _privacy_messages(PRIVACY_EN)
+def test_technical_page_and_messages_stay_in_sync():
+    tr = _data_trust_messages(UMBRELLA_TR)
+    en = _data_trust_messages(UMBRELLA_EN)
     assert tr.keys() == en.keys()
-    page = _privacy_page_text()
+    page = _data_trust_page_text()
     assert page
     for key, value in page.items():
         assert key in tr, key
@@ -244,24 +269,50 @@ def test_privacy_page_and_messages_stay_in_sync():
         assert value == tr[key], key
 
 
+def test_registered_privacy_route_remains_a_legal_notice():
+    legal = _read(PAGES / "privacy.astro")
+    assert 'href="https://welockai.com/privacy"' in legal
+    assert 'umbrella.privacy.title">Gizlilik bildirimi<' in legal
+    assert "umbrella.dataTrust." not in legal
+    assert "hukuki gizlilik bildirimi değildir" not in legal
+    assert "TEKNİK VERİ ENVANTERİ" not in legal
+    for path, title in (
+        (UMBRELLA_TR, "Gizlilik bildirimi"),
+        (UMBRELLA_EN, "Privacy notice"),
+    ):
+        body = _message_block(_read(path), "privacy")
+        assert f'title: "{title}"' in body
+        assert "not a legal privacy notice" not in body
+        assert "hukuki gizlilik bildirimi değildir" not in body
+        assert "cleanup_audit_logs" not in body
+        for key in (
+            "googleBody",
+            "sharingBody",
+            "retentionBody",
+            "controlsTitle",
+            "googleControlsCta",
+        ):
+            assert f"{key}:" in body
+
+
 def test_local_cleanup_capabilities_are_not_claimed_as_applied_controls():
     for path, retention_gap, explicit_call, unavailable, forbidden in (
         (
-            PRIVACY_TR,
+            UMBRELLA_TR,
             "Varsayılan 14 günlük saklama süresi bugün otomatik uygulanmaz.",
             "açıkça çağrılması gerekir",
             "panel/API üzerinden sunulan silme işlemleri değildir",
             ("yerel günlük temizliği", "yerel not silme"),
         ),
         (
-            PRIVACY_EN,
+            UMBRELLA_EN,
             "The default 14-day retention is not automatically enforced today.",
             "require an explicit call",
             "not automatically applied controls or deletion actions exposed in the panel or API",
             ("local log cleanup", "local note deletion"),
         ),
     ):
-        messages = _privacy_messages(path)
+        messages = _data_trust_messages(path)
         assert retention_gap in messages["qHowLongBody"]
         assert explicit_call in messages["qDeleteBody"]
         assert unavailable in messages["qDeleteBody"]
@@ -281,3 +332,14 @@ def test_local_cleanup_capabilities_are_not_claimed_as_applied_controls():
     assert (
         "Varsayılan 14 günlük saklama süresi bugün otomatik uygulanmaz." in capabilities
     )
+
+
+def test_candidate_inventory_keeps_implemented_security_controls_and_release_scope():
+    inventory = _read(ROOT / "docs/data-and-trust.md")
+    assert "PR #903 aday kod envanteri" in inventory
+    assert "üretim doğrulaması değildir" in inventory
+    assert "session_version" in inventory
+    assert "prepareProviderPayload" in inventory
+    for path in (UMBRELLA_TR, UMBRELLA_EN):
+        messages = _data_trust_messages(path)
+        assert "session_version" in " ".join(messages.values())

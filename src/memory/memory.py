@@ -77,11 +77,24 @@ class Memory:
         return ctx
 
     def delete_all(self) -> int:
+        """Clear local notes; verify an attached store before returning a count.
+
+        Locked returns zero without writing. Without a store, only RAM is cleared.
+        Store errors propagate; failed verification raises RuntimeError. On failure
+        RAM is retained, but disk may have changed: no retry or rollback is attempted.
+        Read-back confirms the current store contents, not crash durability or erasure
+        of backups. The count is the number of local notes cleared by this call.
+        """
         if not self._is_unlocked:
             return 0
         removed = len(self.notes)
+        if self.store is not None:
+            if not self.root_key:
+                raise RuntimeError("Memory deletion requires the store key")
+            self.store.save(self.root_key, [])
+            if self.store.load(self.root_key, strict=True) != []:
+                raise RuntimeError("Memory deletion could not be verified")
         self.notes = []
-        self._save_to_store()
         return removed
 
     def add(self, note: MemoryNote) -> None:
@@ -106,4 +119,3 @@ def _default_ttl_seconds() -> Optional[int]:
     except ValueError:
         return None
     return value if value > 0 else None
-

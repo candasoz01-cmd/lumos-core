@@ -6,7 +6,7 @@
 > - Henüz nihai kitap değildir.
 > - **Tek kaynak:** GitHub'daki bu dosya yaşayan belgedir.
 > - **Okuma ve kitap sürümleri** aynı kaynaktan üretilir; ayrı metin yönetilmez (bkz. Belge §10).
-> - Web/kitap yayımlamadan önce **Belge §11 — Tamamlanmadan yayımlama** dört kontrolden geçer.
+> - Web/kitap yayımlamadan önce **Belge §11 — Tamamlanmadan yayımlama** altı kontrolden geçer.
 
 ### Numaralandırma (iki sistem)
 
@@ -19,21 +19,23 @@ Bu belgede iki numara dizisi vardır; referans verirken karıştırılmamalıdı
 
 Örnek: **Kitap §7** = Panel dili; **Belge §7** = Kurucu hikâye notları. **Kitap §14** = Açık kaynak çekirdek; **Belge §14** = Lumos Academy vizyonu.
 
-## 1. Kitabin calisma adi
+## 1. Kitabın adı
 
-**Lumos: Kontrol Kullanicida**
+**Lumos — Dream it. Approve it. Done.**
 
-Alt calisma cumlesi: **Izinli, seffaf ve guvenilir yapay zeka yardimi icin bir urun dusuncesi.**
+Alt açıklama: **İzinli, şeffaf ve güvenilir yapay zekâ yardımı için bir ürün düşüncesi.**
+
+*Nihai başlık kararıdır (2026-09-30, Belge §6 #10); önceki çalışma adı «Lumos: Kontrol Kullanıcıda» kapanmıştır. «Done», ürünün tamamen bitmiş olduğu iddiası değildir; Lumos'un iş akışı ilkesidir. Neyin bugün var olduğu, neyin planlı veya vizyon olduğu Belge §12–§14 durum etiketleriyle okunur.*
 
 ## 2. Ana fikir
 
-Bu kitap, Lumos'u kontrolsuz otonom bir ajan olarak degil, kullanicinin kararini merkeze alan guvenilir bir yardimci ve kontrol katmani olarak anlatir.
+Bu kitap, Lumos'u kontrolsüz otonom bir ajan olarak değil, kullanıcının kararını merkeze alan güvenilir bir yardımcı ve kontrol katmanı olarak anlatır.
 
-Ana tez: Lumos kullanicinin niyetini anlamaya, daginik isleri parcalamaya, riskleri gorunur kilmaya ve uygulanabilir sonraki adimi onermeye calisir; kalici, hassas, dis etkili veya geri donusu zor adimlarda son karar kullanicidadir.
+Ana tez: Lumos kullanıcının niyetini anlamaya, dağınık işleri parçalamaya, riskleri görünür kılmaya ve uygulanabilir sonraki adımı önermeye çalışır; kalıcı, hassas, dış etkili veya geri dönüşü zor adımlarda son karar kullanıcıdadır.
 
-Kitap; urun felsefesi, karar sozlesmesi, panel dili, guvenlik/onay sinirlari, entegrasyon yaklasimi ve uzun vadeli arastirma alanlarini ayni hikayede toplar. Amac pazarlama metni degil; Lumos'un neden boyle davranmasi gerektigini aciklayan kurucu bir taslak omurga olusturmaktir.
+Kitap; ürün felsefesi, karar sözleşmesi, panel dili, güvenlik/onay sınırları, entegrasyon yaklaşımı ve uzun vadeli araştırma alanlarını aynı hikâyede toplar. Amaç pazarlama metni değil; Lumos'un neden böyle davranması gerektiğini açıklayan kurucu bir taslak omurga oluşturmaktır.
 
-### Onsoz icin niyet beyani
+### Önsöz için niyet beyanı
 
 Bu kitap yalnızca ticari kazanç amacıyla değil, Lumos'un gelişimini ve toplumsal faydayı desteklemek amacıyla hazırlanmıştır. Lumos vizyonuyla uyumlu bir dernek veya vakıf yapısı oluştuğunda, aşağıdaki gelirlerin toplumsal fayda projelerine yönlendirilmesi hedeflenir:
 
@@ -49,151 +51,155 @@ Lumos'tan doğan değerin yalnızca teknoloji üretmesi değil, insanlara geri d
 
 Bu ifade bugün hukuki bir taahhüt değil, niyet beyanıdır. Gelecekte kurulacak dernek, vakıf veya benzeri yapı tarafından resmîleştirilebilir. Kurucu ekip, Lumos'un sürdürülebilirliğini sağlayacak makul işletme giderlerini ayırabilir; kalan kaynakların büyük bölümünün toplumsal faydaya yönlendirilmesi hedeflenir.
 
-### Kitabin uc katmani
+### Kitabın üç katmanı
 
-1. **Hikaye:** Lumos fikrinin nasil dogdugu, hangi problemleri gordugu ve neden klasik bir yapay zeka kitabi olmayacagi.
-2. **Ilkeler:** Karar sozlesmesi, guvenlik, karakter, kullanici kontrolu, gizlilik ve onay mantigi.
-3. **Mimari:** Cekirdek, dal ajanlar, guvenlik katmanlari, entegrasyon sinirlari ve sistemin neden bu sekilde tasarlandigi.
+1. **Hikâye:** Lumos fikrinin nasıl doğduğu, hangi problemleri gördüğü ve neden klasik bir yapay zekâ kitabı olmayacağı.
+2. **İlkeler:** Karar sözleşmesi, güvenlik, karakter, kullanıcı kontrolü, gizlilik ve onay mantığı.
+3. **Mimari:** Çekirdek, dal ajanlar, güvenlik katmanları, entegrasyon sınırları ve sistemin neden bu şekilde tasarlandığı.
 
-## 3. Bolum listesi
+## 3. Bölüm listesi
 
-### Katman 1 — Hikaye
+*Biçim: kısa bir kurucu mektubu girişi açar; arkasından aşağıdaki bölümlü kitap gelir (Belge §6).*
+
+### Katman 1 — Hikâye
 
 1. Neden Lumos?
-2. Lumos fikri hangi problemden dogdu?
-3. Kullanici karari neden merkezde?
+2. Lumos fikri hangi problemden doğdu?
+3. Kullanıcı kararı neden merkezde?
 
-### Katman 2 — Ilkeler
+### Katman 2 — İlkeler
 
 4. Lumos'un karakteri
-5. Tek yuz: kullanici Lumos ile konusur
-6. Niyeti parcalamak ve isi baslatmak
-7. Panel dili ve guven veren arayuz
-8. Onay, yetki ve karar sozlesmesi
-9. Gizlilik, audit ve veri sinirlari
+5. Tek yüz: kullanıcı Lumos ile konuşur
+6. Niyeti parçalamak ve işi başlatmak
+7. Panel dili ve güven veren arayüz
+8. Onay, yetki ve karar sözleşmesi
+9. Gizlilik, audit ve veri sınırları
 
 ### Katman 3 — Mimari
 
-10. Cekirdek, dal ajanlar ve sozlesmeyle korunan kok
-11. Entegrasyonlar: araclarin verisine saygi
-12. Yerel calisma, cihazlar ve kopru mantigi
-13. Quantum Readiness ve arastirma disiplini
-14. Acik kaynak cekirdek ve ticari omurga
-15. Yol haritasi: kontrollu gelisen Lumos
+10. Çekirdek, dal ajanlar ve sözleşmeyle korunan kök
+11. Entegrasyonlar: araçların verisine saygı
+12. Yerel çalışma, cihazlar ve köprü mantığı
+13. Quantum Readiness ve araştırma disiplini
+14. Açık kaynak çekirdek ve ticari omurga
+15. Yol haritası: kontrollü gelişen Lumos
 
-## 4. Her bolum icin kisa aciklama
+## 4. Her bölüm için kısa açıklama
 
 ### 1. Neden Lumos?
 
-Lumos'un cikis problemini anlatir: yapay zekanin kullanici yerine karar veren gorunmez bir otoriteye donusmesi yerine, kullaniciya durum, risk ve secenek gosteren bir yardimci olmasi. Bu bolum urun vaadini sade bir dille kurar.
+Lumos'un çıkış problemini anlatır: yapay zekânın kullanıcı yerine karar veren görünmez bir otoriteye dönüşmesi yerine, kullanıcıya durum, risk ve seçenek gösteren bir yardımcı olması. Bu bölüm ürün vaadini sade bir dille kurar.
 
-**Taslak acilis (Kitap metni — ana kaynak Belge §7):**
+**Taslak açılış (Kitap metni — ana kaynak Belge §7):**
 
-> Yalnizlik bana dusunmeyi ogretti. Suphe ise korku degil, dogrulamayi ogretti. Lumos bu ikisinin arasindaki dengeyi arayan bir fikirdi.
+> Yalnızlık bana düşünmeyi öğretti. Şüphe ise korku değil, doğrulamayı öğretti. Lumos bu ikisinin arasındaki dengeyi arayan bir fikirdi.
 
-### 2. Lumos fikri hangi problemden dogdu?
+### 2. Lumos fikri hangi problemden doğdu?
 
-Lumos'un sadece teknik bir arac olarak degil, kullanicinin yorgunlugunu, daginik is akisini, guvenlik kaygisini ve kontrol ihtiyacini ayni anda ele alan bir fikir olarak nasil dogdugunu anlatir. Bu bolum kitabin hikaye katmanini kurar.
+Lumos'un sadece teknik bir araç olarak değil, kullanıcının yorgunluğunu, dağınık iş akışını, güvenlik kaygısını ve kontrol ihtiyacını aynı anda ele alan bir fikir olarak nasıl doğduğunu anlatır. Bu bölüm kitabın hikâye katmanını kurar.
 
-### 3. Kullanici karari neden merkezde?
+### 3. Kullanıcı kararı neden merkezde?
 
-Kalici, hassas, maliyetli veya baskalarini etkileyen islemlerde son karar merciinin kullanici oldugunu aciklar. "Yardim" ile "yerine karar verme" arasindaki fark kitabin temel ekseni olarak yerlesir.
+Kalıcı, hassas, maliyetli veya başkalarını etkileyen işlemlerde son karar merciinin kullanıcı olduğunu açıklar. "Yardım" ile "yerine karar verme" arasındaki fark kitabın temel ekseni olarak yerleşir.
 
 ### 4. Lumos'un karakteri
 
-Lumos'un guven veren ama manipule etmeyen, emin olmadiginda kesin konusmayan, once gozlemleyen sonra oneride bulunan karakterini tanimlar. Bu bolum karakterin uzun promptlarla degil; sozlesme, kod ve urun diliyle korundugunu anlatir. Uzun vadeli urun ifadesi (Companion) icin bkz. Belge §7 «Companion: karakter ve urun», Belge §13.
+Lumos'un güven veren ama manipüle etmeyen, emin olmadığında kesin konuşmayan, önce gözlemleyen sonra önerede bulunan karakterini tanımlar. Bu bölüm karakterin uzun promptlarla değil; sözleşme, kod ve ürün diliyle korunduğunu anlatır. Uzun vadeli ürün ifadesi (Companion) için bkz. Belge §7 «Companion: karakter ve ürün», Belge §13.
 
-### 5. Tek yuz: kullanici Lumos ile konusur
+### 5. Tek yüz: kullanıcı Lumos ile konuşur
 
-Son kullanici deneyiminde gorunen dis yuzun Lumos oldugunu anlatir. Arka plandaki teknik veya operasyonel katmanlar kullaniciya marka karmasasi olarak tasinmaz; sonuc, soru ve onay Lumos diliyle gelir.
+Son kullanıcı deneyiminde görünen dış yüzün Lumos olduğunu anlatır. Arka plandaki teknik veya operasyonel katmanlar kullanıcıya marka karmaşası olarak taşınmaz; sonuç, soru ve onay Lumos diliyle gelir.
 
-### 6. Niyeti parcalamak ve isi baslatmak
+### 6. Niyeti parçalamak ve işi başlatmak
 
-Uzun, daginik veya komut gibi yazilmamis isteklerin nasil uygulanabilir parcalara ayrilacagini aciklar. Net ve dusuk riskli istekte Lumos'un pasif kalmamasini; riskli veya belirsiz durumda ise durup net soru sormasini isler.
+Uzun, dağınık veya komut gibi yazılmamış isteklerin nasıl uygulanabilir parçalara ayrılacağını açıklar. Net ve düşük riskli istekte Lumos'un pasif kalmamasını; riskli veya belirsiz durumda ise durup net soru sormasını işler.
 
-### 7. Panel dili ve guven veren arayuz
+### 7. Panel dili ve güven veren arayüz
 
-Panelin bir reklam veya tuketim yuzeyi degil, guvenli calisma ve kontrol alani oldugunu anlatir. Dil ilkesi: kisa ozet, ne anladim, ne yapacagiz, gerekirse tek kritik soru.
+Panelin bir reklam veya tüketim yüzeyi değil, güvenli çalışma ve kontrol alanı olduğunu anlatır. Dil ilkesi: kısa özet, ne anladım, ne yapacağız, gerekirse tek kritik soru.
 
-### 8. Onay, yetki ve karar sozlesmesi
+### 8. Onay, yetki ve karar sözleşmesi
 
-Karar katmanlarini merkez bolum olarak aciklar: sadece cevap ver, analiz et, oner ama bekle, acik onayla uygula, asla dokunma. Kalici silme, dis yazma, kritik sistem ayari ve geri donussuz islemlerin neden otomatik yapilamayacagini anlatir.
+Karar katmanlarını merkez bölüm olarak açıklar: sadece cevap ver, analiz et, öner ama bekle, açık onayla uygula, asla dokunma. Kalıcı silme, dış yazma, kritik sistem ayarı ve geri dönüşsüz işlemlerin neden otomatik yapılamayacağını anlatır.
 
-### 9. Gizlilik, audit ve veri sinirlari
+### 9. Gizlilik, audit ve veri sınırları
 
-Kullanici verisinin urun malzemesi olmadigini; reklam, veri satisi ve gereksiz ariv mantigindan uzak durulmasi gerektigini aciklar. Audit'in amaci kullaniciyi izlemek degil, sistemin soz verdigi sinirlarda durdugunu kanitlamaktir.
+Kullanıcı verisinin ürün malzemesi olmadığını ve satılmadığını (veri satmama bir ilkedir) ve gereksiz arşiv mantığından uzak durulması gerektiğini açıklar. Reklamsızlık ise mutlak bir ilke değil, mevcut tercih/stratejidir; ileride ekip tarafından etik sınırlar içinde yeniden değerlendirilebilir, karar değişmese bile bilinçli biçimde yeniden teyit edilir. Audit'in amacı kullanıcıyı izlemek değil, sistemin söz verdiği sınırlarda durduğunu kanıtlamaktır.
 
-### 10. Cekirdek, dal ajanlar ve sozlesmeyle korunan kok
+### 10. Çekirdek, dal ajanlar ve sözleşmeyle korunan kök
 
-Lumos'un yalnizca konusan bir arayuz degil, sozlesmeyle korunan bir cekirdek etrafinda buyuyen sistem olarak neden tasarlandigini anlatir. Dal ajanlarin kok olmadigini; kokun karakter, karar sozlesmesi, guvenlik ve audit ilkeleriyle korundugunu aciklar.
+Lumos'un yalnızca konuşan bir arayüz değil, sözleşmeyle korunan bir çekirdek etrafında büyüyen sistem olarak neden tasarlandığını anlatır. Dal ajanların kök olmadığını; kökün karakter, karar sözleşmesi, güvenlik ve audit ilkeleriyle korunduğunu açıklar.
 
-Sik tekrarlanan ve baglama gore uzmanlik isteyen islerde **tek odakli dal ajan** modeli kullanilir. Ornegin marka baglam ajani; yuzeyin anlamina gore logo bicimi, renk, boyut ve bosluk onerisi uretir. Bu ajan:
+Sık tekrarlanan ve bağlama göre uzmanlık isteyen işlerde **tek odaklı dal ajan** modeli kullanılır. Örneğin marka bağlam ajanı; yüzeyin anlamına göre logo biçimi, renk, boyut ve boşluk önerisi üretir. Bu ajan:
 
-- Yalnizca kullanicidan veya Lumos Orkestrator'den gorev alir; baska bir ajandan emir kabul etmez.
-- Ana marka geometrisini veya karar sozlesmesini degistiremez; yalnizca onayli kurallardan varyant onerir.
-- Dosya yayini, dis paylasim veya kalici degisiklik yapmaz; sonucu tek merkez kontrol noktasina iletir.
-- Karar, risk, uygulama durumu ve gerekceyi ana merkezdeki bildirim duvarina standart olay olarak birakir.
-- Bildirim duvari icra makami degildir; kullaniciya ve Orkestrator'e gorunurluk saglar.
+- Yalnızca kullanıcıdan veya Lumos Orkestratör'den görev alır; başka bir ajandan emir kabul etmez.
+- Ana marka geometrisini veya karar sözleşmesini değiştiremez; yalnızca onaylı kurallardan varyant önerir.
+- Dosya yayını, dış paylaşım veya kalıcı değişiklik yapmaz; sonucu tek merkez kontrol noktasına iletir.
+- Karar, risk, uygulama durumu ve gerekçeyi ana merkezdeki bildirim duvarına standart olay olarak bırakır.
+- Bildirim duvarı icra makamı değildir; kullanıcıya ve Orkestratör'e görünürlük sağlar.
 
-Akis: **Kullanici / Lumos Orkestrator -> tek odakli ajan -> merkez kontrol noktasi -> bildirim duvari -> onayli uygulama**. Bu desen, `Karşılıklı denetim, sıfır kontrol` ilkesini korur; ajanlar birbirini yonetmez.
+Akış: **Kullanıcı / Lumos Orkestratör -> tek odaklı ajan -> merkez kontrol noktası -> bildirim duvarı -> onaylı uygulama**. Bu desen, `Karşılıklı denetim, sıfır kontrol` ilkesini korur; ajanlar birbirini yönetmez.
 
-### 11. Entegrasyonlar: araclarin verisine saygi
+### 11. Entegrasyonlar: araçların verisine saygı
 
-GitHub, Slack, Google, Gmail, Calendar gibi araclarin kendi verisinin sahibi oldugunu anlatir. Lumos yalnizca kullanici izni ve politika kapsaminda gerekli ozeti, metadata'yi veya eylemi isler; tam kopya, sessiz senkron veya onaysiz dis yazma varsayilan degildir.
+GitHub, Slack, Google, Gmail ve Calendar'daki verinin kaynak sistemde kaldığını ve Lumos'un bu veriyi sahiplenmediğini anlatır. Kaynak sistem ve veri hakları korunur. Lumos yalnızca kullanıcı izni ve politika kapsamında gerekli özeti, metadata'yi veya eylemi işler; tam kopya, sessiz senkron veya onaysız dış yazma varsayılan değildir.
 
-### 12. Yerel calisma, cihazlar ve kopru mantigi
+### 12. Yerel çalışma, cihazlar ve köprü mantığı
 
-Lumos'un yerel calisma, panel, CLI, cihaz ve kopru baglamlarini nasil dusundugunu anlatir. Offline modda dis ag yoktur; online modda kimlik, kilit, consent ve onay zinciri devrededir.
+Lumos'un yerel çalışma, panel, CLI, cihaz ve köprü bağlamlarını nasıl düşündüğünü anlatır. Offline modda dış ağ yoktur; online modda kimlik, kilit, consent ve onay zinciri devrededir.
 
-### 13. Quantum Readiness ve arastirma disiplini
+### 13. Quantum Readiness ve araştırma disiplini
 
-Kuantum alanini abartili "quantum powered" iddialarindan ayirir. Lumos Quantum Readiness'in yerel, salt okunur, kanitli bir hazirlik tarayicisi olarak konumlanmasini; arastirma ile urun iddiasi arasindaki siniri anlatir.
+Kuantum alanını abartılı "quantum powered" iddialarından ayırır. Lumos Quantum Readiness'in yerel, salt okunur, kanıtlı bir hazırlık tarayıcısı olarak konumlanmasını; araştırma ile ürün iddiası arasındaki sınırı anlatır. «Lumos Quantum» (Labs) bu bölümün konusu değildir; gelecek araştırma/vizyon alanı olarak ayrı durur (Belge §13, ⚪).
 
-### 14. Acik kaynak cekirdek ve ticari omurga
+### 14. Açık kaynak çekirdek ve ticari omurga
 
-Public Lumos cekirdegi ile ticari guven/politika katmaninin ayrimini anlatir. Acik kaynak repo demo-safe foundation tasir; production credential, faturalama, kurumsal orkestrasyon ve operasyonel backend ayridir.
+Public Lumos çekirdeği ile ticari güven/politika katmanının ayrımını anlatır. Açık kaynak repo demo-safe foundation taşır; production credential, faturalama, kurumsal orkestrasyon ve operasyonel backend ayrıdır.
 
-### 15. Yol haritasi: kontrollu gelisen Lumos
+### 15. Yol haritası: kontrollü gelişen Lumos
 
-Lumos'un tek hamlede her seyi yapan bir sistem degil, kontrollu gelisen bir panel ve yardimci oldugunu anlatir. Faz A gorev/plan omurgasindan baslayarak entegrasyon, cihaz, mobil onay, quantum readiness ve daha ileri arastirma alanlarina nasil genisleyebilecegini toparlar.
+Lumos'un tek hamlede her şeyi yapan bir sistem değil, kontrollü gelişen bir panel ve yardımcı olduğunu anlatır. Faz A görev/plan omurgasından başlayarak entegrasyon, cihaz, mobil onay, quantum readiness ve daha ileri araştırma alanlarına nasıl genişleyebileceğini toparlar.
 
-## 5. Toplanacak kaynak notlari
+## 5. Toplanacak kaynak notları
 
-- `README.md`: Lumos'un genel vaadi, prensipleri, mevcut durum ve modul listesi.
-- `docs/PRODUCT_SUMMARY.md`: erken faz, ne yapar/ne yapmaz, kontrollu gelisen panel fikri.
-- `docs/lumos-urun-vizyon-ve-arastirma-cercevesi.md`: urun karakteri, sessiz arastirma siniri, yuzeye cikarma kriterleri.
-- `docs/lumos-kullanici-akisi.md`: tek yuz ilkesi, normal sohbet, panodaki metni iletme ve gorev detayindan iletme akislari.
-- `docs/lumos-persona-layers.md`: kullaniciya gorunmeyen ic katmanlar ve tek dis gecit prensibi.
-- `docs/lumos-karar-sozlesmesi.md`: karar katmanlari, dokunulmaz cekirdek alanlar, acik onay ve asla otomatik yapilmayan isler.
-- `docs/lumos-karar-motoru.md`: basit/orta/urunsel is siniflandirmasi, risk ve hazir cozum akisi.
-- `docs/lumos-uzun-istek-isleme.md`: uzun istegi ayrisitirma, parcalama, kritik soru stratejisi.
-- `docs/lumos-konusmadan-gorev-cikarma.md`: acik komut yokken is sinyali yakalama ve guvenli baslatma.
-- `docs/lumos-panel-dili-rehberi.md`: panel dili, cevap sirasi, sade Turkce ve guven veren ton.
-- `docs/security-architecture.md`: onay, trash, offline, secret ve public repo guvenlik sinirlari.
-- `docs/analysis/lumos-privacy-manifesto-draft.md`: veri satisi yok, reklam yok, audit/gizlilik dengesi.
-- `docs/integrations-overview.md`: entegrasyon yuzeyleri, read/write/delete izin modeli, OSS/private ayrimi.
-- `docs/analysis/welockai-charter-draft.md`: Lumos ile ticari omurga arasindaki rol ayrimi.
-- `docs/analysis/welockai-trust-model-draft.md`: rol, yetki, onay zinciri ve trust boundary notlari.
-- `docs/analysis/lumos-approved-naming-registry.md`: onayli isimler, roller, yuzeyler ve demo-safe adlandirma.
-- `docs/ARCHITECTURE.md` ve `docs/ARCHITECTURE_MAP.md`: teknik omurga, karar/pipeline, workspace ve panel kontratlari.
-- `docs/decisions/ADR-013-lumos-quantum-security-readiness.md`: Quantum Readiness tanimi, kapsam disi iddialar ve rapor alanlari.
-- `docs/analysis/lumos-quantum-first-companion.md`: Qiskit/Aer'in arastirma onceligi ve otomatik baglanti olmadigi siniri.
+- `README.md`: Lumos'un genel vaadi, prensipleri, mevcut durum ve modül listesi.
+- `docs/PRODUCT_SUMMARY.md`: erken faz, ne yapar/ne yapmaz, kontrollü gelişen panel fikri.
+- `docs/lumos-urun-vizyon-ve-arastirma-cercevesi.md`: ürün karakteri, sessiz araştırma sınırı, yüzeye çıkarma kriterleri.
+- `docs/lumos-kullanici-akisi.md`: tek yüz ilkesi, normal sohbet, panodaki metni iletme ve görev detayından iletme akışları.
+- `docs/lumos-persona-layers.md`: kullanıcıya görünmeyen iç katmanlar ve tek dış geçit prensibi.
+- `docs/lumos-karar-sozlesmesi.md`: karar katmanları, dokunulmaz çekirdek alanlar, açık onay ve asla otomatik yapılmayan işler.
+- `docs/lumos-karar-motoru.md`: basit/orta/ürünsel iş sınıflandırması, risk ve hazır çözüm akışı.
+- `docs/lumos-uzun-istek-isleme.md`: uzun isteği ayrıştırma, parçalama, kritik soru stratejisi.
+- `docs/lumos-konusmadan-gorev-cikarma.md`: açık komut yokken iş sinyali yakalama ve güvenli başlatma.
+- `docs/lumos-panel-dili-rehberi.md`: panel dili, cevap sırası, sade Türkçe ve güven veren ton.
+- `docs/security-architecture.md`: onay, trash, offline, secret ve public repo güvenlik sınırları.
+- `docs/analysis/lumos-privacy-manifesto-draft.md`: veri satışı yok (ilke), reklam yok (kaynak taslak; kitapta mevcut tercih/strateji olarak ele alınır, Kitap §9), audit/gizlilik dengesi.
+- `docs/integrations-overview.md`: entegrasyon yüzeyleri, read/write/delete izin modeli, OSS/private ayrımı.
+- `docs/analysis/welockai-charter-draft.md`: Lumos ile ticari omurga arasındaki rol ayrımı.
+- `docs/analysis/welockai-trust-model-draft.md`: rol, yetki, onay zinciri ve trust boundary notları.
+- `docs/analysis/lumos-approved-naming-registry.md`: onaylı isimler, roller, yüzeyler ve demo-safe adlandırma.
+- `docs/ARCHITECTURE.md` ve `docs/ARCHITECTURE_MAP.md`: teknik omurga, karar/pipeline, workspace ve panel kontratları.
+- `docs/decisions/ADR-013-lumos-quantum-security-readiness.md`: Quantum Readiness tanımı, kapsam dışı iddialar ve rapor alanları.
+- `docs/analysis/lumos-quantum-first-companion.md`: Qiskit/Aer'in araştırma önceliği ve otomatik bağlantı olmadığı sınırı.
 
-Kaynak notlari toplanirken dikkat: kitabin kullaniciya donuk ana metninde Lumos dis yuz olarak kalmali; ic teknik katman adlari gerekiyorsa kaynak notu veya mimari dipnot seviyesinde tutulmali.
+Kaynak notları toplanırken dikkat: kitabın kullanıcıya dönük ana metninde Lumos dış yüz olarak kalmalı; iç teknik katman adları gerekiyorsa kaynak notu veya mimari dipnot seviyesinde tutulmalı.
 
-## 6. Henuz belirsiz kalan sorular
+## 6. Karara bağlanan sorular
 
-- Kitap bir public manifesto mu, ic urun kitabi mi, yoksa gelistirici rehberiyle karisik bir kurucu metin mi olacak?
-- Birincil hedef kitle kim: son kullanici, gelistirici, yatirimci/partner, kurumsal musteri, yoksa ekip ici karar okuyucusu mu?
-- Dil yalnizca Turkce mi olacak, yoksa Turkce ana metin + Ingilizce ozet/terim sozlugu mu hazirlanacak?
-- WeLockAI ticari omurgasi kitapta ne kadar gorunur olacak; hangi bolumlerde yalnizca arka plan siniri olarak kalacak? → **Referans yayininda cozuldu (Belge §10):** WeLockAI yayınci/on planda; kitap icinde Lumos urun sesi agirlikta, WeLockAI ticari omurga **Kitap §14** ve dipnotlarda.
-- Teknik detay derinligi ne olacak: kod/pipeline anlatimi mi, yoksa urun ilkeleri ve ornek senaryolar mi agirlikta olacak?
-- Quantum Readiness bolumu arastirma disiplini olarak mi kalacak, yoksa ayri bir gelecek vizyonu bolumu mu olacak?
-- Gizlilik ve audit iddialari icin hukuki/uyum kontrolu gerekecek mi?
-- Bolumlerde gercek kullanici senaryolari, panel ekranlari veya vaka calismalari kullanilacak mi?
-- Kitap kisa bir "founder letter + ilkeler" metni mi, yoksa uzun soluklu bolumlu kitap mi olacak?
-- Son baslik "Lumos: Kontrol Kullanicida" olarak mi kalacak, yoksa daha sicak/insani bir calisma adina mi evrilecek?
-- **Lansman / yayın tarihi:** Belge §10 «Lansman türleri» — Life ve ticari için **TBD**; referans web/PDF Belge §11 sonrası; dış kamu AI haberleri Lumos takvimi değildir.
+> **Kapanış notu (2026-09-30):** Bu bölümdeki sorular kurucu kararlarıyla kapatıldı; karar her sorunun yanında yazılıdır. Nihai başlık sonradan karara bağlandı (#10, güncel karar); bilerek açık kalan nokta yayın tarihidir (TBD, koşullu). Dondurma sahibi onayı: kararlar `lumos-book-v0.1` iskeletine yalnız açık bırakılmış karar noktalarının kapatılması olarak işlendi; yeni fikir, yeni kapsam veya tarih eklenmedi.
+
+- Kitap bir public manifesto mu, iç ürün kitabı mi, yoksa geliştirici rehberiyle karışık bir kurucu metin mi olacak? → **Karar (kurucu, 2026-09-30):** Karışık kurucu metin. Manifesto ruhunu taşır ama yalnız manifesto değildir; ürünün nedenini, ilkelerini ve nasıl çalıştığını anlatır.
+- Birincil hedef kitle kim: son kullanıcı, geliştirici, yatırımcı/partner, kurumsal müşteri, yoksa ekip içi karar okuyucusu mu? → **Karar:** Tek birincil kitle seçilmez. Kitap erken kullanıcı, geliştirici/teknik okuyucu ve kurumsal/partner okuyucu tarafından anlaşılabilir olur; yatırımcıya özel bir kitaba dönüşmez. Öncelik sırası metne yazılmaz.
+- Dil yalnızca Türkçe mi olacak, yoksa Türkçe ana metin + İngilizce özet/terim sözlüğü mu hazırlanacak? → **Karar:** Türkçe tek kaynak metindir; diğer diller sabit bir Türkçe sürümden türetilir. İlk uluslararası türev İngilizce olabilir. Mimari: LUMOS-0020 (çok dilli yayın mimarisi), candasoz01-cmd/lumos-core#895 ile `main`'e alındı (merge commit `ca258cfc`, 2026-10-01).
+- WeLockAI ticari omurgası kitapta ne kadar görünür olacak; hangi bölümlerde yalnızca arka plan sınırı olarak kalacak? → **Referans yayınında çözüldü (Belge §10):** WeLockAI yayıncı/ön planda; kitap içinde Lumos ürün sesi ağırlıkta, WeLockAI ticari omurga **Kitap §14** ve dipnotlarda. **Kurucu (2026-09-30): kapalı; yeniden açılmaz, Belge §10 kararı geçerlidir.**
+- Teknik detay derinliği ne olacak: kod/pipeline anlatımı mi, yoksa ürün ilkeleri ve örnek senaryolar mi ağırlıkta olacak? → **Karar:** İlke ağırlıklı ana metin; gerektiğinde teknik dipnot veya ayrı teknik ek. Gövde pipeline ve kodla yüklenmez; teknik iddialar dayanaksız bırakılmaz.
+- Quantum Readiness bölümü araştırma disiplini olarak mi kalacak, yoksa ayrı bir gelecek vizyonu bölümü mu olacak? → **Karar:** İkisi ayrı kalır. Kitap §13 araştırma disiplini/readiness olarak kalır; Belge §13'teki «Lumos Quantum» (Labs) açıkça gelecek araştırma/vizyon alanı olarak ayrı durur. Mevcut olmayan yetenek iddiası (ör. «quantum powered») yapılmaz.
+- Gizlilik ve audit iddiaları için hukuki/uyum kontrolü gerekecek mi? → **Karar:** İddia içeren bölümler için gerekli. Kurucu kararlar bu kontrolle yeniden açılmaz. Hukuk tarafı, gizlilik, audit, veri işleme ve uyum kararlarının uygulama biçimini ve kamusal ifade ile uyum gerekliliklerini inceler. Kitabın tamamı için hukuki redaksiyon gerekmez (bkz. Belge §11, madde 5).
+- Bölümlerde gerçek kullanıcı senaryoları, panel ekranları veya vaka çalışmaları kullanılacak mi? → **Karar:** Karışık. Vizyon senaryoları açıkça «vizyon» diye etiketlenir; gerçek ürün ekranı veya gerçek davranış gösteriliyorsa kanıtlanabilir mevcut sürümden gelir. Vizyon ile çalışan ürün karıştırılmaz (bkz. Belge §11, madde 6).
+- Kitap kısa bir "founder letter + ilkeler" metni mi, yoksa uzun soluklu bölümlü kitap mi olacak? → **Karar:** İkisi de. Kısa bir kurucu mektubu giriş olur; arkasından bölümlü kitap gelir.
+- Son başlık "Lumos: Kontrol Kullanıcıda" olarak mi kalacak, yoksa daha sıcak/insani bir çalışma adına mi evrilecek? → **Karar (güncel, 2026-09-30):** Nihai başlık «Lumos — Dream it. Approve it. Done.» olur; çalışma adı kapanmıştır. «Done» ürünün tamamlandığı iddiası değil, iş akışı ilkesidir (bkz. Belge §1). Önceki karar (çalışma adı kalır, başlık yayın öncesi dondurulur) bu kararla yürürlükten kalkar.
+- **Lansman / yayın tarihi:** Belge §10 «Lansman türleri». Referans web/PDF için tarih **TBD** kalır; Life ve ticari lansmanların kendi tarihleri de yoktur. Dış kamu AI haberleri Lumos takvimi değildir. → **Karar:** Tarih konmaz. §6 kararları, nihai başlık, §11 sadeleştirmesi ve çok dilli mimari (#895, `main`'e indi) kapanmıştır. Tarih için hâlâ açık olanlar: Belge §11 kontrollerinin yayın sürümünde geçmesi ve yayın sürümünün hazır olması. Takvim için içerik sıkıştırılmaz.
 
 ## 7. Kurucu hikâye notları
 
@@ -323,10 +329,10 @@ Ayrıntılar aşağıda alt başlıklarda; burada tekrarlanmaz.
 ### 3. Sınırları (neleri içermez?)
 
 - **Ürün özellik vaadi** — erişilebilirlik, eğitim, Labs içeriği → Belge §12–§14.
-- **Yayımlama kalite kapısı** (dört kontrol, «tamamlanmadan yayımlama») → **Belge §11**; bu bölüm yalnızca referans verir.
+- **Yayımlama kalite kapısı** (altı kontrol, «tamamlanmadan yayımlama») → **Belge §11**; bu bölüm yalnızca referans verir.
 - **Kurucu pusula ve vizyon dalları** → Belge §8, §13.
 - **Ticari aşama planı** (Alpha / Beta / Commercial giriş kriterleri) → `docs/analysis/pre-commercial-release-plan.md`.
-- **Otomasyon / CI / build pipeline** — henüz kurulmadı; bu belge hedef mimariyi tanımlar, uygulama taahhüdü değildir.
+- **Kitabın web/PDF/ePub üretim ve yayın otomasyonu** — henüz kurulmadı; bu belge hedef mimariyi tanımlar, uygulama taahhüdü değildir. Bu ifade, mevcut repo CI ve uygulama build süreçlerinin eksik olduğu anlamına gelmez.
 - **Takvim taahhüdü** — TBD; ayrı yazılı karar + onay olmadan eklenmez (Belge §11).
 
 ### 4. V1 / yakın gelecek / uzun vadeli
@@ -334,10 +340,10 @@ Ayrıntılar aşağıda alt başlıklarda; burada tekrarlanmaz.
 | Dönem | Ne | Durum |
 |-------|-----|--------|
 | **Şimdi (V1 / erken faz)** | GitHub kaynak (`docs/lumos-book-outline.md`); taslak; diff açık | ✅ Yaşayan belge |
-| **Yakın gelecek** | Referans 1 web okuma sürümü; §11 dört kontrol; basit GitHub Pages veya welockai.com/referanslar/1 | 🟢 planlı — otomasyon TBD |
+| **Yakın gelecek** | Referans 1 web okuma sürümü; §11 altı kontrol; basit GitHub Pages veya welockai.com/referanslar/1 | 🟢 planlı — otomasyon TBD |
 | **Yakın gelecek** | PDF/ePub aynı kaynaktan türetim (tek omurga) | 🟢 planlı |
 | **Yakın gelecek** | Referans 2–5 ayrı iskeletler; kütüphane indeksi | planlı |
-| **Uzun vadeli** | Tam referans kütüphanesi; çoklu dil; otomatik üç yüz pipeline | ⚪ |
+| **Uzun vadeli** | Tam referans kütüphanesi; çoklu dil (mimari kararı: LUMOS-0020, #895 ile `main`'de); otomatik üç yüz pipeline | ⚪ |
 
 **Not:** Panel v1 kapanışı (**2026-06-12**) iç mühendislik kapısıdır; referans web yayını değildir.
 
@@ -345,7 +351,7 @@ Ayrıntılar aşağıda alt başlıklarda; burada tekrarlanmaz.
 
 | Bölüm | Bağlantı |
 |-------|----------|
-| **Belge §11** | Web/PDF/indeks «yayımlandı» sayılmadan önce dört kontrol |
+| **Belge §11** | Web/PDF/indeks «yayımlandı» sayılmadan önce altı kontrol |
 | **Belge §8** | Pusula; şeffaflık ve kanıt önceliği |
 | **Belge §12** | Life **ürün** lansmanı; tarih TBD — §10 yalnızca tür haritası |
 | **Belge §13–§14** | Vizyon; referans yayını kapsam dışı |
@@ -411,7 +417,7 @@ Altında zamanla oluşan belgeler — kullanıcı «GitHub deposu»na değil, **
 
 Bu model Lumos'un «kontrol kullanıcıda», şeffaflık ve kanıt önceliği ilkesiyle uyumludur: kaynak açık, okuma deneyimi insancıl, sürüm geçmişi izlenebilir.
 
-Web ve kitap sürümüne çıkmadan önce Belge §11 dört kontrolden geçilir; GitHub'daki taslak kaynak yaşayan belge olabilir ancak «okuma sürümü» olarak sunulmaz.
+Web ve kitap sürümüne çıkmadan önce Belge §11 altı kontrolden geçilir; GitHub'daki taslak kaynak yaşayan belge olabilir ancak «okuma sürümü» olarak sunulmaz.
 
 ### Lansman türleri (karıştırma notu) {#lansman-türleri-karıştırma-notu}
 
@@ -419,7 +425,7 @@ Bu belgede **«lansman»** tek anlama gelmez. Dış haberler (ör. başka ülkel
 
 | Tür | Ne | Tarih (repo) | Ana kaynak |
 |-----|-----|--------------|------------|
-| **Referans yayını** | Kurucu kitap / Referanslar web veya PDF | **TBD** — Belge §11 onayı sonrası | Belge §10 |
+| **Referans yayını** | Kurucu kitap / Referanslar web veya PDF | **TBD** — tarih yok; açık koşullar Belge §6 yayın tarihi kararında | Belge §10 |
 | **Life lansmanı** | Erişilebilirlik omurgası; 🟢🟡 özellik tanıtımı | **TBD** — taahhüt tarihi yok | Belge §12 |
 | **Ticari lansman** | Open Beta → Commercial Launch | **TBD** — Pre-Alpha; `docs/analysis/pre-commercial-release-plan.md` | Repo plan belgeleri |
 | **İç mühendislik kapısı** | Panel v1 kapanışı | **2026-06-12** (`LUMOS_V1_READINESS.md`) | Halka lansman değil |
@@ -430,7 +436,7 @@ Bu belgede **«lansman»** tek anlama gelmez. Dış haberler (ör. başka ülkel
 
 **İlke:** Tamamlanmadan yayımlama.
 
-Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub veya «Referanslar» kütüphanesinde okuyucuya açılan sürüm — yayımlanmadan önce şu **dört kontrolden** geçer:
+Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub veya «Referanslar» kütüphanesinde okuyucuya açılan sürüm — yayımlanmadan önce şu **altı kontrolden** geçer:
 
 ### 1. Doğruluk
 
@@ -452,6 +458,16 @@ Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub vey
 - En az bir kez baştan sona okunur.
 - Bağlantılar, başlıklar, dil ve kaynaklar kontrol edilir.
 
+### 5. Hukuki ve uyum kontrolü
+
+- Gizlilik, audit, veri işleme ve uyum iddiası taşıyan yerlerde uygulama biçimi ile kamusal ifade ve uyum gereklilikleri yayımlanmadan önce kontrol edilir. Kurucu kararlar bu kontrolle yeniden açılmaz.
+- Bu kontrol kitabın tamamını bir hukuk onayına bağlamak için değildir; iddia taşıyan yerlerin uygulanması ve kamusal ifadesi içindir.
+
+### 6. Vizyon ve gerçek ayrımı
+
+- Gerçek ekran veya davranış, kanıtlı sürümden gelir.
+- Vizyon açıkça vizyon diye etiketlenir.
+
 **Amaç:** Kusursuzluk değil; **yarım kalmış düşünceleri tamamlanmış gibi sunmamaktır.**
 
 | Sürüm | Bu ilkeye tabi mi? |
@@ -461,7 +477,7 @@ Her yeni belge, referans veya mimari karar — web okuma sürümü, PDF/ePub vey
 | PDF / ePub | Evet |
 | Referans Kütüphanesi indeksinde «yayımlandı» | Evet |
 
-**Referans:** `docs/lumos-karar-sozlesmesi.md` (cevap disiplini, emin değil); Belge §6 belirsiz sorular (açık işaretleme).
+**Referans:** `docs/lumos-karar-sozlesmesi.md` (cevap disiplini, emin değil); Belge §6 karara bağlanan sorular (yayın tarihi TBD).
 
 ## 12. Lumos Life — Erişilebilirlik Platformu ve Toplumsal Katkı
 
@@ -651,7 +667,7 @@ Hiçbiri V1 veya erken faz omurgasında değildir. Tanıtımda yalnızca **vizyo
 | 🧬 **Lumos Bio** | Hücre içi; DNA kopyalanması (3B); kan dolaşımı; bağışıklık simülasyonu | Eğitim simülasyonu |
 | 🫀 **Lumos Med** | Sanal ameliyat simülasyonu; organ modelleri; hastalık ilerlemesi gözlemi | **Yalnızca eğitim** — gerçek tıbbi tavsiye yerine geçmez |
 | 🚀 **Lumos Space** | Mars; kara deliğe yaklaşma; ışık hızı etkileri (simülasyon) | Bilimsel model + sadeleştirme |
-| ⚛️ **Lumos Quantum** | Qubit deneyleri; devre sürükle-bırak; sonuç görselleştirme | ADR-013 / Quantum Readiness ile hizalı araştırma sınırı |
+| ⚛️ **Lumos Quantum** | Qubit deneyleri; devre sürükle-bırak; sonuç görselleştirme | ADR-013 / Quantum Readiness ile hizalı araştırma sınırı; Kitap §13 (Quantum Readiness) ile karıştırılmaz, mevcut yetenek iddiası değildir |
 | 🏛️ **Lumos History** | Roma, Göbeklitepe, Ayasofya dönemleri — karşılaştırmalı gezinti | Tarihsel model + belirsizlik işaretleme |
 | 🌊 **Lumos Ocean** | Okyanus dibi (~11 km); basınç ve canlılar simülasyonu | Eğitim / keşif |
 
@@ -707,10 +723,17 @@ Erken fazda yalnızca «Yapar» ve sınırlı «Anlatır» katmanları gerçekç
 
 ### Gömülü eğitim — örnekler ve vakalar
 
-Lumos bir modülde bir işi yapabiliyorsa, aynı bağlamda o işin mantığını anlatmayı ve öğretmeyi de hedefler:
+Lumos bir modülde bir işi yapabiliyorsa, aynı bağlamda o işin mantığını anlatmayı ve öğretmeyi de hedefler. Aşağıdaki örnekler öğrenme alanlarını gösterir; her satırın Lumos panelinde uygulanmış veya doğrulanmış olduğu anlamına gelmez.
 
-| Yapabildiği | Öğretebilmeyi hedeflediği |
+**Testin kaynağı ve kapsamı:** Altyapı sağlayıcılarının yayımladığı değerlendirmeler, bizim bu sağlayıcıların ortamlarında yürüttüğümüz testler ve Lumos panelinde yapılan uçtan uca denemeler ayrı kanıt türleridir. Bu ayrım, söz konusu testlerin yapılmış olduğu anlamına gelmez; her biri kendi kaydıyla doğrulanır. Bir sonuç aktarılırken kaynak, testi yürüten taraf, ortam, sürüm ve sınanan davranış belirtilir. Sağlayıcı ortamında bir testin koşması, sağlayıcının Lumos'u bağımsız olarak test ettiği veya onayladığı anlamına gelmez; sağlayıcı/model düzeyindeki bir sonuç da tek başına Lumos panelindeki özelliği doğrulamaz.
+
+**Bu bölümde doğrulanabilen dar örnek:** Repodaki [simülatör bağlantı prototipi](../src/integrations/quantum_aer_connect.py), tek qubit ve tek ölçümlük bir deneme içerir. [Bağlantı testindeki](../tests/test_quantum_aer_connect.py) başarı senaryosu, simülatör sonucunu taklit ederek bağlantı akışını sınar; gerçek simülatör çalıştırmasını veya Academy eğitim arayüzünü kanıtlamaz. Aşağıdaki öğrenme örnekleri için bu bölümde doğrulanmış bir altyapı sağlayıcısı test raporu ya da Lumos panelinde uçtan uca kullanım kaydı gösterilmemiştir. Böyle bir kanıt eklendiğinde yalnız doğruladığı kapsam için «çalışıyor» denir.
+
+| Örnek görev / öğrenme alanı | Öğretebilmeyi hedeflediği |
 |-------------|---------------------------|
+| Matematik problemi | Çözüm adımları, gerekçe ve farklı çözüm yolları |
+| Fizik ve devre problemi | Model, varsayımlar, birimler ve hesaplama mantığı |
+| İstatistik ve veri yorumlama | Olasılık, belirsizlik ve sonuçların sınırları |
 | Muhasebe işlemi | Muhasebe mantığı |
 | Kod yazma / düzenleme | Kodlama ve karar gerekçesi |
 | Şirket / süreç yönetimi | Yöneticilik ve önceliklendirme |
@@ -804,7 +827,7 @@ Belge §8 Pusula (değişmez ilke)
 - «Worlds eğitim senaryoları kullanıma açık»
 - «3B simülasyonla öğretim mevcut»
 
-Academy görselleri veya örnek diyalogları tek başına «mevcut özellik» algısı yaratmaz; tüm maddeler **⚪** ile geçer; ana lansman Belge §12 omurgasındadır. Web okuma sürümü veya kitap yayımlanmadan önce Belge §11 dört kontrolden geçer.
+Academy görselleri veya örnek diyalogları tek başına «mevcut özellik» algısı yaratmaz; tüm maddeler **⚪** ile geçer; ana lansman Belge §12 omurgasındadır. Web okuma sürümü veya kitap yayımlanmadan önce Belge §11 altı kontrolden geçer.
 
 ⸻
 
@@ -819,7 +842,7 @@ Academy görselleri veya örnek diyalogları tek başına «mevcut özellik» al
 > | Öğretmen / uzman ikamesi | Bilgi engelini azaltan yardım katmanı |
 > | Labs/Worlds'in yerine geçen ürün | Academy + Labs gelecek entegrasyonu |
 >
-> **Durum etiketi:** ⚪ Araştırma / uzun vadeli · **Ana omurga:** Belge §12 · **Yayımlama:** Belge §11 dört kontrol
+> **Durum etiketi:** ⚪ Araştırma / uzun vadeli · **Ana omurga:** Belge §12 · **Yayımlama:** Belge §11 altı kontrol
 >
 > Bu kutudaki hiçbir ifade ürün vaadi, tarih taahhüdü veya «yakında geliyor» iddiası değildir.
 

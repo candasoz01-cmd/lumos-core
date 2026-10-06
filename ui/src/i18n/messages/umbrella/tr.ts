@@ -1,7 +1,7 @@
 /** WeLockAI umbrella — product surfaces (TR) */
 const umbrellaTr = {
   nav: {
-    aria: "We Lock AI site",
+    aria: "Lumos AI site",
     home: "Ana sayfa",
     connect: "Bağlan",
     integrations: "Entegrasyonlar",
@@ -13,7 +13,8 @@ const umbrellaTr = {
     accessibility: "Engelsiz",
     lab: "Lab",
     education: "Eğitim",
-    privacy: "Teknik veri ve güven envanteri",
+    privacy: "Gizlilik",
+    dataTrust: "Teknik veri ve güven envanteri",
   },
   accessibility: {
     eyebrow: "LUMOS · ENGELSİZ", title: "Engelsiz kullanım",
@@ -25,7 +26,7 @@ const umbrellaTr = {
     panelCta: "Lumos'u aç", educationCta: "Eğitime geç",
   },
   lab: {
-    eyebrow: "WE LOCK AI · LUMOS LAB", title: "Kurumsal araştırma ve doğrulama alanı",
+    eyebrow: "LUMOS AI · LUMOS LAB", title: "Kurumsal araştırma ve doğrulama alanı",
     lead: "Lumos Lab; yapay zekâ, kuantum hazırlığı, erişilebilirlik ve güvenli etkileşim yaklaşımlarını ölçülebilir raporlara dönüştüren araştırma katmanıdır.",
     visual: "Her çalışma kapsam, yöntem, kanıt, sınırlama ve önerilen sonraki adımla sunulur.",
     servicesTitle: "Lab hizmet alanları",
@@ -95,10 +96,53 @@ const umbrellaTr = {
     deviceSub: "Ev, ses ve akıllı cihaz bağlantıları",
   },
   footer: {
-    tagline: "We Lock AI · welockai.com — Lumos ürün ailesi",
+    tagline: "Lumos AI · We Lock AI ürünü",
     rights: "Açık kaynak çekirdek GitHub'da; resmi servisler kontrollü erişimle.",
   },
   privacy: {
+    metaTitle: "Gizlilik Bildirimi — Lumos Company · Lumos",
+    metaDescription:
+      "Lumos Company ve Lumos yüzeylerinde verilerin hangi amaçlarla işlendiğini, bağlantı izinlerini ve kullanıcı denetimlerini açıklayan gizlilik bildirimi.",
+    eyebrow: "LUMOS COMPANY · LUMOS",
+    title: "Gizlilik bildirimi",
+    lead:
+      "Bu bildirim, welockai.com ve Lumos bağlantı akışlarında verilerin hangi sınırlar içinde işlendiğini açıklar.",
+    updated: "Son güncelleme: 15 Temmuz 2026",
+    scopeTitle: "Kapsam",
+    scopeBody:
+      "Bu bildirim welockai.com, Lumos web ve masaüstü yüzeyleri ile kullanıcının isteğiyle açılan üçüncü taraf bağlantıları kapsar. Henüz canlı olmayan entegrasyonlar veri erişimi sağlamaz.",
+    dataTitle: "Hangi veriler işlenebilir?",
+    data1: "Kullanıcının doğrudan verdiği görev, dosya ve onay bilgileri.",
+    data2:
+      "Bir hesap bağlandığında temel hesap kimliği, bağlantı durumu ve yalnızca onaylanan kapsamların izin verdiği içerik veya metadata.",
+    data3: "Güvenlik, hata ayıklama ve denetlenebilirlik için gerekli sınırlı teknik kayıtlar.",
+    googleTitle: "Google ve YouTube verileri",
+    googleBody:
+      "Google veya YouTube bağlantısı açıldığında Lumos yalnızca kullanıcı tarafından seçilen ve Google onay ekranında gösterilen kapsamları ister. Veriler, istenen görevi yerine getirmek ve bağlantı durumunu göstermek için kullanılır; reklam hedefleme, satış veya genel amaçlı model eğitimi için kullanılmaz.",
+    useTitle: "Verileri neden kullanırız?",
+    use1: "Kullanıcının istediği görevi yerine getirmek ve sonucu Lumos'ta göstermek.",
+    use2: "Bağlantı, izin ve açık onay durumlarını yönetmek.",
+    use3: "Kötüye kullanımı önlemek, sorunları gidermek ve güvenlik olaylarını incelemek.",
+    sharingTitle: "Paylaşım",
+    sharingBody:
+      "Veriler satılmaz. Yalnızca kullanıcının istediği işlemi sunmak, yasal yükümlülükleri karşılamak veya sistemi korumak için gerekli hizmet sağlayıcılarla ve ilgili platformlarla sınırlı biçimde paylaşılabilir.",
+    retentionTitle: "Saklama ve silme",
+    retentionBody:
+      "Bağlantı belirteçleri bağlantı kesilene veya geçerliliğini yitirene kadar; teknik kayıtlar ise güvenlik ve işletim için gerekli olan sınırlı süre boyunca tutulur. Canlı OAuth kullanıma açılmadan önce silme ve destek kanalı bu sayfada yayımlanacaktır.",
+    controlsTitle: "Kullanıcı denetimi",
+    controls1: "Bağlantıları Lumos içinden kapatabilir ve ilgili sağlayıcının hesap ayarlarından erişimi geri alabilirsiniz.",
+    controls2: "Google erişimi Google Hesabı bağlantılar sayfasından ayrıca kaldırılabilir.",
+    controls3: "Dış etkili paylaşım ve yayınlama işlemleri açık onay olmadan yapılmaz.",
+    securityTitle: "Güvenlik",
+    securityBody:
+      "Erişim kapsamını dar tutmak, sırları kullanıcı arayüzüne taşımamak ve dış etkili işlemleri onaya bağlamak temel güvenlik ilkeleridir. Hiçbir çevrimiçi sistem mutlak güvenlik garantisi vermez.",
+    changesTitle: "Değişiklikler",
+    changesBody:
+      "Bu bildirim ürün ve bağlantı kapsamı değiştikçe güncellenebilir. Önemli değişikliklerde güncelleme tarihi ve ilgili yüzeyler yenilenir.",
+    googleControlsCta: "Google erişimini yönet",
+    integrationsCta: "Bağlantı ekosistemi",
+  },
+  dataTrust: {
     metaTitle: "Teknik Veri ve Güven Envanteri — Lumos",
     metaDescription:
       "Bu depodaki Lumos kodunun bugün modele, hafıza servisine ve tarayıcıya gönderdiği ve saklamadığı veriler. Hukuki gizlilik bildirimi değildir.",
@@ -106,7 +150,7 @@ const umbrellaTr = {
     title: "Teknik veri ve güven envanteri",
     lead:
       "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Bu sayfa, bu depodaki kodun bugün yaptığı veri işlemlerini yazar.",
-    updated: "Son güncelleme: 29 Eylül 2026",
+    updated: "PR #903 aday kodu — 6 Ekim 2026; üretim doğrulaması değildir",
     legalTitle: "Bu sayfa hukuki gizlilik bildirimi değildir",
     legalBody:
       "Bu sayfa teknik bir envanterdir. Veri sorumlusu, iletişim ve başvuru kanalı, silme talebi süreci, hukuki dayanak ve KVKK/GDPR kapsamındaki haklar burada yayımlanmadı. Bunlar ayrı bir hukuk ve politika kararı bekliyor; bu envanter onların yerine geçmez.",
@@ -134,7 +178,7 @@ const umbrellaTr = {
     gmailTitle: "Gmail salt-okuma yolu",
     gmailBody:
       "Kod gmail.readonly iznini tanımlar. Google tarafında bu izin posta kutusunu okumaya yetki verir; bu depodaki kod bundan yalnız okunmamış iletilerin listesini (en fazla 20) ve her iletinin Subject, From ve Date başlığını ister, ileti gövdesini istemez. Konu 120, gönderen 80 karakterde kesilir. Dönen veri yalnız okunmamış posta özetidir. Belirteç kasa bağdaştırıcısından okunur; kasada belirteç yoksa istek durur. Canlı Gmail API çağrısı yalnız LUMOS_GMAIL_SMOKE değeri 1, true veya yes iken yapılır; aksi halde örnek veri döner. Sonuç çağıran entegrasyon adımına döner; bu yol onu diske yazmaz, bir model API’sine göndermez, reklam veya satış için bir hizmete iletmez. Gmail OAuth onay ve geri çağrı işleyicisi bu depoda yoktur. welockai.com Google girişi yalnız openid, email ve profile ister.",
-    metaTitle: "Meta bağlantıları (Facebook, Instagram, Pages, WhatsApp)",
+    metaConnectionsTitle: "Meta bağlantıları (Facebook, Instagram, Pages, WhatsApp)",
     metaBody:
       "Bağlantı kullanıcı başlatınca açılır. İstenen izinler: Facebook için public_profile; Instagram için instagram_business_basic; Pages için pages_show_list; WhatsApp için business_management ve whatsapp_business_management. Geri çağrıda kod erişim belirtecine çevrilir, uzun süreli belirtece uzatılır ve hesap kimliği ile adı veya kullanıcı adı okunur. Belirteç, süresi, hesap kimliği ve lumos_id, LUMOS_CREDENTIAL_VAULT_WRITE_URL ile verilen ayrı kasa servisine yazılır; belirteç çereze yazılmaz. Bağlantı listesi ve eşitleme şunları okur: Instagram için kimlik, kullanıcı adı, hesap türü ve medya sayısı; Pages için sayfa kimliği ve adı; WhatsApp için işletme kimliği ve adı, WhatsApp işletme hesabı kimliği ve adı, telefon numarası kimliği, görünen telefon numarası ve doğrulanmış ad. Sayfa ve WhatsApp bağlantı kayıtları da kasa servisine yazılır. İmzası doğrulanan Meta webhook olayları, yükün tamamıyla LUMOS_META_WEBHOOK_SINK_URL servisine iletilir; bu yük ileti içeriği taşıyabilir. Kasa ve webhook servisi bu depoda değildir; saklama süresi ve konumu bu koddan doğrulanamaz. Bu yol Meta verisini bir model API’sine göndermez.",
     metaDeleteTitle: "Meta bağlantısını kaldırma",
@@ -178,10 +222,10 @@ const umbrellaTr = {
     integrationsCta: "Bağlantı ekosistemi",
   },
   slack: {
-    metaTitle: "Lumos in Slack — We Lock AI",
+    metaTitle: "Lumos in Slack — Lumos AI",
     metaDescription:
       "Lumos'un Slack içi çalışma arkadaşı yüzeyi: Kuruluş → Proje → Konu bağlamı, kontrollü bildirim ve onay — OAuth burada başlatılmaz.",
-    eyebrow: "WE LOCK AI · SLACK",
+    eyebrow: "LUMOS AI · SLACK",
     title: "Lumos in Slack",
     lead:
       "Slack, Lumos'un Kuruluş → Proje → Konu hiyerarşisiyle hizalı iş yeri yüzeylerinden biridir. Konu özeti, mention/thread bağlamı ve kontrollü bildirimler planlanır; Kuruluş özel alanının tam arşivi veya onaysız mesaj gönderimi hedeflenmez.",
@@ -206,10 +250,10 @@ const umbrellaTr = {
     homeCta: "Ana sayfa",
   },
   mac: {
-    metaTitle: "Lumos Mac — Universal Links — We Lock AI",
+    metaTitle: "Lumos Mac — Universal Links — Lumos AI",
     metaDescription:
       "Lumos Mac uygulaması, doğrudan sohbet girişi, welockai.com Universal Links ve Apple App Site Association.",
-    eyebrow: "WE LOCK AI · MAC",
+    eyebrow: "LUMOS AI · MAC",
     title: "Mac ve Apple bağlantıları",
     lead:
       "Lumos Mac uygulaması doğrudan sohbet çalışma alanını açar; görev, dosya ve onay akışları mevcut güvenli köprü sözleşmesini kullanır.",
@@ -223,10 +267,10 @@ const umbrellaTr = {
     homeCta: "Ana sayfa",
   },
   cyber: {
-    metaTitle: "Lumos Cyber — We Lock AI",
+    metaTitle: "Lumos Cyber — Lumos AI",
     metaDescription:
-      "Lumos Cyber: güvenlik, risk görünürlüğü, savunma ve kontrollü onay için bağımsız We Lock AI katmanı.",
-    eyebrow: "WE LOCK AI · CYBER",
+      "Lumos Cyber: güvenlik, risk görünürlüğü, savunma ve kontrollü onay için bağımsız Lumos AI katmanı.",
+    eyebrow: "LUMOS AI · CYBER",
     title: "Lumos Cyber",
     lead:
       "Lumos Cyber, We Lock AI çatısı altında güvenlik operasyonları, risk görünürlüğü ve politika odaklı çalışma için planlanan varyanttır. Ayrı bir cyberpunk arayüz değil; profesyonel kontrol katmanıdır.",
@@ -235,7 +279,7 @@ const umbrellaTr = {
     focusTitle: "Odak",
     focus1: "Risk ve politika özetlerinin panelde görünür tutulması.",
     focus2: "Yüksek etkili adımlarda ek onay ve audit izi.",
-    focus3: "We Lock AI private katmanıyla hizalı kurumsal politika (üretimde).",
+    focus3: "Lumos AI private katmanıyla hizalı kurumsal politika (üretimde).",
     liveEyebrow: "CANLI TEHDİT GÖRÜNÜRLÜĞÜ",
     liveTitle: "Saldırının boyutu tek bakışta anlaşılır",
     liveLead: "Alev yüksekliği tehdit puanını görselleştirir; ikon, açık seviye metni ve sayısal puan renk dışında da aynı durumu anlatır.",
@@ -274,11 +318,11 @@ const umbrellaTr = {
     homeCta: "Ana sayfa",
   },
   integrations: {
-    metaTitle: "Bağlantı Ekosistemi — We Lock AI",
+    metaTitle: "Bağlantı Ekosistemi — Lumos AI",
     metaDescription:
       "Lumos bağlantı ekosistemi: aktif, foundation ve planlanan bağlantı yüzeyleri ile güvenli yetki sınırları.",
-    eyebrow: "WE LOCK AI · BAĞLANTI EKOSİSTEMİ",
-    title: "We Lock AI Bağlantı Ekosistemi",
+    eyebrow: "LUMOS AI · BAĞLANTI EKOSİSTEMİ",
+    title: "Lumos AI Bağlantı Ekosistemi",
     lead:
       "Lumos'un güvenli bağlantı yüzeyleri; mevcut kapsamı, hazırlık düzeyi ve yetki sınırlarıyla birlikte.",
     statusActive: "Bağlı",
@@ -386,10 +430,10 @@ const umbrellaTr = {
     panelCta: "Panel",
   },
   integrationGuide: {
-    metaTitle: "Lumos entegrasyon kolaylığı ve güvenliği — We Lock AI",
+    metaTitle: "Lumos entegrasyon kolaylığı ve güvenliği — Lumos AI",
     metaDescription:
       "Lumos bağlantı kataloğunun kategori, kapsam ve doğrulanmış destek durumlarıyla tek rehber görünümü.",
-    eyebrow: "WE LOCK AI · LUMOS BAĞLANTILARI",
+    eyebrow: "LUMOS AI · LUMOS BAĞLANTILARI",
     title: "Bağlantı kolaylığı, görünür güvenlik",
     lead:
       "Lumos, uygulama ve cihaz bağlamını tek yerde toplarken her bağlantının yetkisini ve gerçek durumunu görünür tutar.",
@@ -582,10 +626,10 @@ const umbrellaTr = {
     },
   },
   github: {
-    metaTitle: "GitHub entegrasyonu — We Lock AI",
+    metaTitle: "GitHub entegrasyonu — Lumos AI",
     metaDescription:
       "Lumos GitHub bağlantısı: issue/PR metadata ve CI özeti okuma; yazma onaylı; silme varsayılan kapalı.",
-    eyebrow: "WE LOCK AI · GITHUB",
+    eyebrow: "LUMOS AI · GITHUB",
     title: "GitHub",
     lead:
       "Lumos, GitHub'dan görev bağlamı için issue, PR ve CI durumu özeti okur. Yorum, label ve assign gibi yazmalar işlem bazlı onay gerektirir; merge ve silme yüksek risk kapısındadır.",
@@ -605,10 +649,10 @@ const umbrellaTr = {
     homeCta: "Ana sayfa",
   },
   google: {
-    metaTitle: "Google entegrasyonu — We Lock AI",
+    metaTitle: "Google entegrasyonu — Lumos AI",
     metaDescription:
       "Lumos Google bağlantısı: Drive, Calendar ve Gmail — read-first politika, yazma onaylı, silme özel izin.",
-    eyebrow: "WE LOCK AI · GOOGLE",
+    eyebrow: "LUMOS AI · GOOGLE",
     title: "Google (Drive, Calendar, Gmail)",
     lead:
       "Google entegrasyonları read-first ilkesiyle çalışır: önce metadata ve özet; tam içerik arşivi veya onaysız dış etki yok. Gmail varsayılan kapalıdır.",
@@ -625,10 +669,10 @@ const umbrellaTr = {
     homeCta: "Ana sayfa",
   },
   mail: {
-    metaTitle: "Mail (Gmail) entegrasyonu — We Lock AI",
+    metaTitle: "Mail (Gmail) entegrasyonu — Lumos AI",
     metaDescription:
       "Lumos Mail bağlantısı: Gmail read-only Dar v1 — inbox özeti ve thread metadata; varsayılan kapalı.",
-    eyebrow: "WE LOCK AI · MAIL",
+    eyebrow: "LUMOS AI · MAIL",
     title: "Mail (Gmail)",
     lead:
       "Lumos, iletişim kanallarında OD-031 Dar v1 kapsamında Gmail inbox özeti ve thread metadata okur. Gönderme ve silme bu sürümde yok; OSS stub read-only.",
@@ -647,10 +691,10 @@ const umbrellaTr = {
     panelCta: "Panel",
   },
   linear: {
-    metaTitle: "Linear entegrasyonu — We Lock AI",
+    metaTitle: "Linear entegrasyonu — Lumos AI",
     metaDescription:
       "Lumos Linear bağlantısı: OD-033 Katman 3 planned — issue bağlamı okuma; yazma onaylı.",
-    eyebrow: "WE LOCK AI · LINEAR",
+    eyebrow: "LUMOS AI · LINEAR",
     title: "Linear",
     lead:
       "Linear, OD-033 çalışma araçları watchlist'inde Katman 3 adayıdır. GitHub connector pilotu sonrası görev motoru çakışma analizi ile değerlendirilir.",

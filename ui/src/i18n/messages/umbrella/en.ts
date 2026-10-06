@@ -3,7 +3,7 @@ import type umbrellaTr from "./tr";
 
 const umbrellaEn: typeof umbrellaTr = {
   nav: {
-    aria: "We Lock AI site",
+    aria: "Lumos AI site",
     home: "Home",
     connect: "Connect",
     integrations: "Integrations",
@@ -15,7 +15,8 @@ const umbrellaEn: typeof umbrellaTr = {
     accessibility: "Accessible",
     lab: "Lab",
     education: "Education",
-    privacy: "Technical data and trust inventory",
+    privacy: "Privacy",
+    dataTrust: "Technical data and trust inventory",
   },
   accessibility: {
     eyebrow: "LUMOS · ACCESSIBLE", title: "Accessible use",
@@ -27,7 +28,7 @@ const umbrellaEn: typeof umbrellaTr = {
     panelCta: "Open Lumos", educationCta: "Go to education",
   },
   lab: {
-    eyebrow: "WE LOCK AI · LUMOS LAB", title: "Corporate research and validation",
+    eyebrow: "LUMOS AI · LUMOS LAB", title: "Corporate research and validation",
     lead: "Lumos Lab turns AI, quantum-readiness, accessibility, and safe-interaction approaches into measurable reports.",
     visual: "Every study states its scope, method, evidence, limitations, and recommended next steps.",
     servicesTitle: "Lab service areas",
@@ -97,10 +98,53 @@ const umbrellaEn: typeof umbrellaTr = {
     deviceSub: "Home, audio, and smart device connections",
   },
   footer: {
-    tagline: "We Lock AI · welockai.com — Lumos product family",
+    tagline: "Lumos AI · A We Lock AI product",
     rights: "Open-source core on GitHub; official services use controlled access.",
   },
   privacy: {
+    metaTitle: "Privacy Notice — Lumos Company · Lumos",
+    metaDescription:
+      "Privacy notice explaining data use, connection permissions, and user controls across Lumos Company and Lumos surfaces.",
+    eyebrow: "LUMOS COMPANY · LUMOS",
+    title: "Privacy notice",
+    lead:
+      "This notice explains the boundaries for data processing across welockai.com and Lumos connection flows.",
+    updated: "Last updated: July 15, 2026",
+    scopeTitle: "Scope",
+    scopeBody:
+      "This notice covers welockai.com, Lumos web and desktop surfaces, and third-party connections opened at the user's request. Integrations that are not yet live do not provide data access.",
+    dataTitle: "What data may be processed?",
+    data1: "Tasks, files, and approval details provided directly by the user.",
+    data2:
+      "When an account is connected, basic account identity, connection status, and only the content or metadata allowed by approved scopes.",
+    data3: "Limited technical records required for security, troubleshooting, and auditability.",
+    googleTitle: "Google and YouTube data",
+    googleBody:
+      "When a Google or YouTube connection is enabled, Lumos requests only the scopes selected by the user and displayed on Google's consent screen. Data is used to perform the requested task and show connection status; it is not used for advertising, sale, or general-purpose model training.",
+    useTitle: "Why we use data",
+    use1: "Perform the task requested by the user and show the result in Lumos.",
+    use2: "Manage connection, permission, and explicit approval states.",
+    use3: "Prevent misuse, troubleshoot problems, and investigate security incidents.",
+    sharingTitle: "Sharing",
+    sharingBody:
+      "Data is not sold. It may be shared in a limited way with relevant platforms and service providers only when required to provide the requested operation, comply with law, or protect the system.",
+    retentionTitle: "Retention and deletion",
+    retentionBody:
+      "Connection tokens are retained until disconnected or expired; technical records are retained only for the limited period needed for security and operations. A deletion and support channel will be published here before live OAuth access is launched.",
+    controlsTitle: "User controls",
+    controls1: "You can disconnect integrations in Lumos and revoke access in the relevant provider's account settings.",
+    controls2: "Google access can also be removed from the Google Account connections page.",
+    controls3: "Externally visible sharing and publishing actions require explicit approval.",
+    securityTitle: "Security",
+    securityBody:
+      "Core security principles include narrow scopes, keeping secrets out of the user interface, and requiring approval for external effects. No online system can guarantee absolute security.",
+    changesTitle: "Changes",
+    changesBody:
+      "This notice may be updated as the product and connection scope evolve. Material changes will update the date and the relevant product surfaces.",
+    googleControlsCta: "Manage Google access",
+    integrationsCta: "Connection ecosystem",
+  },
+  dataTrust: {
     metaTitle: "Technical data and trust inventory — Lumos",
     metaDescription:
       "What this repository's Lumos code sends to a model, the memory service, and the browser today, and what it does not keep. This is not a legal privacy notice.",
@@ -136,7 +180,7 @@ const umbrellaEn: typeof umbrellaTr = {
     gmailTitle: "Gmail read-only path",
     gmailBody:
       "The code defines the gmail.readonly scope. On Google's side that scope permits reading the mailbox; the code in this repository uses it only to request the unread message list (at most 20) and each message's Subject, From, and Date headers, not the message body. The subject is cut at 120 characters and the sender at 80. What comes back is only an unread-mail summary. The token is read from the vault adapter; if the vault has no token, the request stops. A live Gmail API call is made only when LUMOS_GMAIL_SMOKE is 1, true, or yes; otherwise sample data is returned. The result goes back to the calling integration step; this path does not write it to disk, send it to a model API, or pass it to an advertising or sale service. The Gmail OAuth consent and callback handler is not in this repository. welockai.com Google sign-in requests only openid, email, and profile.",
-    metaTitle: "Meta connections (Facebook, Instagram, Pages, WhatsApp)",
+    metaConnectionsTitle: "Meta connections (Facebook, Instagram, Pages, WhatsApp)",
     metaBody:
       "A connection starts only when the user starts it. Requested permissions: public_profile for Facebook; instagram_business_basic for Instagram; pages_show_list for Pages; business_management and whatsapp_business_management for WhatsApp. On callback the code is exchanged for an access token, extended to a long-lived token, and the account ID and name or username are read. The token, its expiry, the account ID, and lumos_id are written to a separate vault service set by LUMOS_CREDENTIAL_VAULT_WRITE_URL; the token is not written to a cookie. Connection listing and sync read: for Instagram the ID, username, account type, and media count; for Pages the page ID and name; for WhatsApp the business ID and name, the WhatsApp Business Account ID and name, the phone number ID, the display phone number, and the verified name. Page and WhatsApp connection records are also written to the vault service. Meta webhook events whose signature verifies are forwarded with their full payload to the service at LUMOS_META_WEBHOOK_SINK_URL; that payload can carry message content. The vault and webhook services are not in this repository; their retention and location cannot be verified from this code. This path does not send Meta data to a model API.",
     metaDeleteTitle: "Removing a Meta connection",
@@ -180,10 +224,10 @@ const umbrellaEn: typeof umbrellaTr = {
     integrationsCta: "Connection ecosystem",
   },
   slack: {
-    metaTitle: "Lumos in Slack — We Lock AI",
+    metaTitle: "Lumos in Slack — Lumos AI",
     metaDescription:
       "Lumos as a Slack workplace companion: Organization → Project → Topic context, controlled notifications, and approval — no OAuth started here.",
-    eyebrow: "WE LOCK AI · SLACK",
+    eyebrow: "LUMOS AI · SLACK",
     title: "Lumos in Slack",
     lead:
       "Slack is one of Lumos's workplace surfaces aligned with Organization → Project → Topic. Topic summaries, mention/thread context, and controlled notifications are planned; full organization private-area archive or unapproved posting is not the goal.",
@@ -208,10 +252,10 @@ const umbrellaEn: typeof umbrellaTr = {
     homeCta: "Home",
   },
   mac: {
-    metaTitle: "Lumos Mac — Universal Links — We Lock AI",
+    metaTitle: "Lumos Mac — Universal Links — Lumos AI",
     metaDescription:
       "The Lumos Mac app, direct chat entry, Universal Links on welockai.com, and Apple App Site Association.",
-    eyebrow: "WE LOCK AI · MAC",
+    eyebrow: "LUMOS AI · MAC",
     title: "Mac and Apple links",
     lead:
       "The Lumos Mac app opens the chat workspace directly; tasks, files, and approvals use the existing secure bridge contract.",
@@ -225,10 +269,10 @@ const umbrellaEn: typeof umbrellaTr = {
     homeCta: "Home",
   },
   cyber: {
-    metaTitle: "Lumos Cyber — We Lock AI",
+    metaTitle: "Lumos Cyber — Lumos AI",
     metaDescription:
-      "Lumos Cyber: an independent We Lock AI layer for security, risk visibility, defense, and controlled approval.",
-    eyebrow: "WE LOCK AI · CYBER",
+      "Lumos Cyber: an independent Lumos AI layer for security, risk visibility, defense, and controlled approval.",
+    eyebrow: "LUMOS AI · CYBER",
     title: "Lumos Cyber",
     lead:
       "Lumos Cyber is the planned We Lock AI variant for security operations, risk visibility, and policy-focused work. It is not a cyberpunk UI — it is a professional control layer.",
@@ -237,7 +281,7 @@ const umbrellaEn: typeof umbrellaTr = {
     focusTitle: "Focus",
     focus1: "Keeping risk and policy summaries visible in the panel.",
     focus2: "Extra approval and audit trail for high-impact steps.",
-    focus3: "Enterprise policy aligned with the We Lock AI private layer (in production).",
+    focus3: "Enterprise policy aligned with the Lumos AI private layer (in production).",
     liveEyebrow: "LIVE THREAT VISIBILITY",
     liveTitle: "Understand attack scale at a glance",
     liveLead: "Flame height visualizes the threat score; an icon, explicit level label, and numeric score communicate the same state beyond color.",
@@ -276,11 +320,11 @@ const umbrellaEn: typeof umbrellaTr = {
     homeCta: "Home",
   },
   integrations: {
-    metaTitle: "Connection Ecosystem — We Lock AI",
+    metaTitle: "Connection Ecosystem — Lumos AI",
     metaDescription:
       "The Lumos connection ecosystem: active, foundation, and planned connection surfaces with secure authority boundaries.",
-    eyebrow: "WE LOCK AI · CONNECTION ECOSYSTEM",
-    title: "We Lock AI Connection Ecosystem",
+    eyebrow: "LUMOS AI · CONNECTION ECOSYSTEM",
+    title: "Lumos AI Connection Ecosystem",
     lead:
       "Lumos connection surfaces, presented with their current scope, readiness, and authority boundaries.",
     statusActive: "Connected",
@@ -388,10 +432,10 @@ const umbrellaEn: typeof umbrellaTr = {
     panelCta: "Panel",
   },
   integrationGuide: {
-    metaTitle: "Lumos integration ease and security — We Lock AI",
+    metaTitle: "Lumos integration ease and security — Lumos AI",
     metaDescription:
       "A single guide view of the Lumos connection catalog with categories, scope, and verified support status.",
-    eyebrow: "WE LOCK AI · LUMOS CONNECTIONS",
+    eyebrow: "LUMOS AI · LUMOS CONNECTIONS",
     title: "Connection ease, visible security",
     lead:
       "Lumos brings app and device context together while keeping each connection's authority and real status visible.",
@@ -584,10 +628,10 @@ const umbrellaEn: typeof umbrellaTr = {
     },
   },
   github: {
-    metaTitle: "GitHub integration — We Lock AI",
+    metaTitle: "GitHub integration — Lumos AI",
     metaDescription:
       "Lumos GitHub connection: read issue/PR metadata and CI summary; write needs approval; delete off by default.",
-    eyebrow: "WE LOCK AI · GITHUB",
+    eyebrow: "LUMOS AI · GITHUB",
     title: "GitHub",
     lead:
       "Lumos reads issues, PRs, and CI status summaries from GitHub for task context. Comments, labels, and assigns need per-action approval; merge and delete sit behind high-risk gates.",
@@ -607,10 +651,10 @@ const umbrellaEn: typeof umbrellaTr = {
     homeCta: "Home",
   },
   google: {
-    metaTitle: "Google integration — We Lock AI",
+    metaTitle: "Google integration — Lumos AI",
     metaDescription:
       "Lumos Google connection: Drive, Calendar, and Gmail — read-first policy, approved write, special-permission delete.",
-    eyebrow: "WE LOCK AI · GOOGLE",
+    eyebrow: "LUMOS AI · GOOGLE",
     title: "Google (Drive, Calendar, Gmail)",
     lead:
       "Google integrations follow a read-first policy: metadata and summary first; no full-content archive or unapproved external effect. Gmail is off by default.",
@@ -627,10 +671,10 @@ const umbrellaEn: typeof umbrellaTr = {
     homeCta: "Home",
   },
   mail: {
-    metaTitle: "Mail (Gmail) integration — We Lock AI",
+    metaTitle: "Mail (Gmail) integration — Lumos AI",
     metaDescription:
       "Lumos Mail connection: Gmail read-only Dar v1 — inbox summary and thread metadata; off by default.",
-    eyebrow: "WE LOCK AI · MAIL",
+    eyebrow: "LUMOS AI · MAIL",
     title: "Mail (Gmail)",
     lead:
       "Lumos reads Gmail inbox summary and thread metadata under OD-031 Dar v1. Send and delete are not in this release; the OSS stub is read-only.",
@@ -649,10 +693,10 @@ const umbrellaEn: typeof umbrellaTr = {
     panelCta: "Panel",
   },
   linear: {
-    metaTitle: "Linear integration — We Lock AI",
+    metaTitle: "Linear integration — Lumos AI",
     metaDescription:
       "Lumos Linear connection: OD-033 Layer 3 planned — read issue context; approved write.",
-    eyebrow: "WE LOCK AI · LINEAR",
+    eyebrow: "LUMOS AI · LINEAR",
     title: "Linear",
     lead:
       "Linear is a Layer 3 candidate on the OD-033 work-tools watchlist. It will be evaluated after the GitHub connector pilot with task-engine conflict analysis.",
