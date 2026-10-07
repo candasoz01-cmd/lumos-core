@@ -39,7 +39,7 @@ const en: MessageTree = {
   hero: {
     eyebrow: "WE LOCK AI · LUMOS",
     title: "Lumos",
-    subtitle: "AI control layer",
+    subtitle: "Control layer",
     lead1:
       "Lumos is not a new artificial intelligence. It does not run its own model. When a key is set, your message goes to a model API.",
     lead2:

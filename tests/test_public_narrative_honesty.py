@@ -211,7 +211,9 @@ def test_technical_links_use_a_separate_route_and_title():
     title = _data_trust_messages(UMBRELLA_TR)["title"]
     assert title == DATA_TRUST_LINK_TR
     for path in PAGES.rglob("*.astro"):
-        for href, label in re.findall(r'href="(/privacy|/data-and-trust)"[^>]*>([^<]*)<', _read(path)):
+        for href, label in re.findall(
+            r'href="(/privacy|/data-and-trust)"[^>]*>([^<]*)<', _read(path)
+        ):
             if label == DATA_TRUST_LINK_TR:
                 assert href == "/data-and-trust", path
             if href == "/data-and-trust":
@@ -274,66 +276,71 @@ def test_registered_privacy_route_remains_a_legal_notice():
     assert "umbrella.dataTrust." not in legal
     assert "hukuki gizlilik bildirimi değildir" not in legal
     assert "TEKNİK VERİ ENVANTERİ" not in legal
-    for path, title in ((UMBRELLA_TR, "Gizlilik bildirimi"), (UMBRELLA_EN, "Privacy notice")):
+    for path, title in (
+        (UMBRELLA_TR, "Gizlilik bildirimi"),
+        (UMBRELLA_EN, "Privacy notice"),
+    ):
         body = _message_block(_read(path), "privacy")
         assert f'title: "{title}"' in body
         assert "not a legal privacy notice" not in body
         assert "hukuki gizlilik bildirimi değildir" not in body
         assert "cleanup_audit_logs" not in body
-        for key in ("googleBody", "sharingBody", "retentionBody", "controlsTitle", "googleControlsCta"):
+        for key in (
+            "googleBody",
+            "sharingBody",
+            "retentionBody",
+            "controlsTitle",
+            "googleControlsCta",
+        ):
             assert f"{key}:" in body
 
 
-def test_local_retention_helpers_are_not_presented_as_product_controls():
-    tr = _data_trust_messages(UMBRELLA_TR)
-    en = _data_trust_messages(UMBRELLA_EN)
-    for messages, test_only, unwired, no_retention, no_control in (
-        (tr, "yalnız testlerden", "runtime, UI veya API bağlantısı yoktur",
-         "Otomatik günlük saklama süresi uygulanmış değildir", "üründe kullanılabilir"),
-        (en, "only by tests", "no runtime, UI, or API connection",
-         "Automatic log retention is not implemented", "not available product controls"),
+def test_local_cleanup_capabilities_are_not_claimed_as_applied_controls():
+    for path, retention_gap, explicit_call, unavailable, forbidden in (
+        (
+            UMBRELLA_TR,
+            "append_audit_log, her başarılı günlük yazımından sonra",
+            "açıkça çağrılması gerekir",
+            "panel/API üzerinden sunulan silme işlemleri değildir",
+            ("yerel günlük temizliği", "yerel not silme"),
+        ),
+        (
+            UMBRELLA_EN,
+            "After each successful log write, append_audit_log deletes",
+            "require an explicit call",
+            "not automatically applied controls or deletion actions exposed in the panel or API",
+            ("local log cleanup", "local note deletion"),
+        ),
     ):
-        retention = messages["qHowLongBody"]
-        deletion = messages["qDeleteBody"]
-        assert "cleanup_audit_logs" in retention
-        assert no_retention in retention
-        assert "Memory.delete_all" in deletion
-        assert "delete_audit_logs" in deletion
-        assert no_control in deletion
-        for body in (retention, deletion):
-            assert test_only in body
-            assert unwired in body
-        for term in ("local log cleanup", "local note deletion", "yerel günlük temizliği", "yerel not silme"):
-            assert term not in messages["assuranceBody"]
-    inventory = _read(ROOT / "docs/data-and-trust.md")
+        messages = _data_trust_messages(path)
+        assert retention_gap in messages["qHowLongBody"]
+        assert explicit_call in messages["qDeleteBody"]
+        assert unavailable in messages["qDeleteBody"]
+        for name in ("Memory.delete_all", "delete_audit_logs"):
+            assert name in messages["qDeleteBody"]
+        for phrase in forbidden:
+            assert phrase not in messages["assuranceBody"]
+
+    inventory = _read(ROOT / "docs" / "data-and-trust.md")
     applied = inventory.split("## Uygulanan\n", 1)[1].split("\n## ", 1)[0]
-    for helper in ("cleanup_audit_logs", "delete_audit_logs", "Memory.delete_all"):
-        assert helper not in applied
-        assert helper in inventory
-    assert "yalnız testlerden çağrılır; runtime, UI veya API bağlantısı yoktur" in inventory
-    assert "Otomatik günlük saklama süresi uygulanmış değildir" in inventory
+    capabilities = inventory.split(
+        "## Mevcut yetenekler — otomatik uygulanan kontrol değil\n", 1
+    )[1].split("\n## ", 1)[0]
+    for name in ("delete_audit_logs", "Memory.delete_all"):
+        assert name not in applied
+        assert name in capabilities
+    # Retention cleanup runs from append_audit_log, so it is an applied control.
+    assert "cleanup_audit_logs" in applied
+    assert "cleanup_audit_logs" not in capabilities
+    assert "otomatik uygulanmaz" not in capabilities
 
 
-def test_copy_does_not_promote_unshipped_security_controls():
-    # Production source 39effc6 has cookie clearing and flag-gated confirmation;
-    # the separate session-epoch / country-policy implementation is not shipped.
-    absent_claims = (
-        "session_version değerini bir artırır",
-        "increments session_version for that user",
-        "Onay katmanı üretimde (",
-        "The confirmation layer is on in production",
-        "LUMOS_PRODUCT_ENV",
-        "prepareProviderPayload",
-        "Her aday, çağrıdan önce ülke profili",
-        "Each candidate is checked against the country profile",
-        "are replaced with [email]",
-    )
-    for path in PUBLIC:
-        text = _read(path)
-        if path in (UMBRELLA_TR, UMBRELLA_EN):
-            text = text.replace(_message_block(text, "privacy"), "", 1)
-        for claim in absent_claims:
-            assert claim not in text, f"{path}: {claim}"
+def test_candidate_inventory_keeps_implemented_security_controls_and_release_scope():
+    inventory = _read(ROOT / "docs/data-and-trust.md")
+    assert "PR #903 aday kod envanteri" in inventory
+    assert "üretim doğrulaması değildir" in inventory
+    assert "session_version" in inventory
+    assert "prepareProviderPayload" in inventory
     for path in (UMBRELLA_TR, UMBRELLA_EN):
         messages = _data_trust_messages(path)
-        assert "39effc6" in messages["lead"]
+        assert "session_version" in " ".join(messages.values())

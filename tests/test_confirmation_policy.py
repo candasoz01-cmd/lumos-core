@@ -34,6 +34,8 @@ from policy.confirmation_policy import (
 @pytest.fixture(autouse=True)
 def _clear_confirmation_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("LUMOS_CONFIRMATION_ENABLED", raising=False)
+    monkeypatch.delenv("LUMOS_ENV", raising=False)
+    monkeypatch.delenv("LUMOS_PRODUCT_ENV", raising=False)
 
 
 def test_disabled_default_passes_without_grant(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -41,6 +43,19 @@ def test_disabled_default_passes_without_grant(monkeypatch: pytest.MonkeyPatch) 
     result = check_confirmation("create_task", {"task_id": "t1"}, {})
     assert result.allowed
     assert result.reason == REASON_CONFIRMATION_DISABLED
+
+
+def test_production_forces_confirmation_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LUMOS_ENV", "production")
+    assert is_confirmation_enabled()
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "false")
+    assert is_confirmation_enabled()
+    monkeypatch.delenv("LUMOS_ENV", raising=False)
+    monkeypatch.setenv("LUMOS_PRODUCT_ENV", "prod")
+    assert is_confirmation_enabled()
+    monkeypatch.delenv("LUMOS_PRODUCT_ENV", raising=False)
+    monkeypatch.setenv("LUMOS_CONFIRMATION_ENABLED", "0")
+    assert not is_confirmation_enabled()
 
 
 def test_disabled_explicit_false_passes(monkeypatch: pytest.MonkeyPatch) -> None:

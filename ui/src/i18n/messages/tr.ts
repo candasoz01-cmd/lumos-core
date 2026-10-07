@@ -38,7 +38,7 @@ const tr = {
   hero: {
     eyebrow: "WE LOCK AI · LUMOS",
     title: "Lumos",
-    subtitle: "Sen söyle, Lumos hazırlasın. Son karar senin.",
+    subtitle: "Kontrol katmanı",
     lead1:
       "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Anahtar tanımlıysa iletiniz bir model API’sine gider.",
     lead2:

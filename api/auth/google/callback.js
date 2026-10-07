@@ -19,6 +19,7 @@ import {
   verifyState,
 } from "../../_lib/lumos_session.js";
 import { captureError, captureSecurityEvent, logEvent } from "../../_lib/observability.js";
+import { currentEpoch } from "../../_lib/session_epoch.js";
 
 const TOKEN = "https://oauth2.googleapis.com/token";
 const USERINFO = "https://openidconnect.googleapis.com/v1/userinfo";
@@ -176,6 +177,7 @@ export default async function handler(req, res) {
       door: "lumos",
       provider: "google_web",
       package: "base",
+      sv: currentEpoch(lumosId),
       iat: now,
       exp: now + 604800,
     });

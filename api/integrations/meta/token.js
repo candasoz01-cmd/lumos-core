@@ -1,8 +1,6 @@
 /** Meta credential lifecycle: metadata, refresh and revoke. Raw token is never returned. */
 import {
-  COOKIE,
-  openSession,
-  readCookie,
+  openLiveSession,
   sessionLumosId,
 } from "../../_lib/lumos_session.js";
 import {
@@ -29,7 +27,7 @@ function json(res, status, payload) {
 }
 
 function authenticatedLumosId(req) {
-  const claims = openSession(readCookie(req, COOKIE));
+  const claims = openLiveSession(req);
   return claims?.sid ? sessionLumosId(claims) : "";
 }
 

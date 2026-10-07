@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import os
 import time
 from typing import List, Optional
 
@@ -103,6 +104,18 @@ class Memory:
             return
         if note.created_at is None:
             note.created_at = time.time()
+        if note.ttl_seconds is None:
+            note.ttl_seconds = _default_ttl_seconds()
         self.notes.append(note)
         self._save_to_store()
 
+
+def _default_ttl_seconds() -> Optional[int]:
+    raw = (os.environ.get("LUMOS_MEMORY_TTL_SECONDS") or "").strip()
+    if not raw:
+        return None
+    try:
+        value = int(raw)
+    except ValueError:
+        return None
+    return value if value > 0 else None

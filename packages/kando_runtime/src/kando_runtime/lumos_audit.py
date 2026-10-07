@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -178,6 +179,58 @@ def append_audit_log(repo_root: Path, entry: dict[str, Any]) -> None:
     line = json.dumps(entry, ensure_ascii=False, default=str) + "\n"
     with path.open("a", encoding="utf-8") as f:
         f.write(line)
+    # Retention is best-effort: a cleanup failure never undoes or fails a log
+    # write that already succeeded.
+    try:
+        cleanup_audit_logs(repo_root)
+    except Exception:
+        pass
+
+
+def log_retention_days() -> int:
+    raw = (os.environ.get("LUMOS_LOG_RETENTION_DAYS") or "14").strip()
+    try:
+        days = int(raw)
+    except ValueError:
+        return 14
+    return days if days > 0 else 14
+
+
+def cleanup_audit_logs(repo_root: Path, max_age_days: int | None = None) -> list[str]:
+    """Dosya adındaki tarihe göre eski `.lumos/logs` günlüklerini siler.
+
+    `append_audit_log` her başarılı yazımdan sonra bunu en iyi çabayla çağırır;
+    silinemeyen bir dosya diğerlerinin temizlenmesini engellemez.
+    """
+    days = log_retention_days() if max_age_days is None else max_age_days
+    log_dir = repo_root / ".lumos" / "logs"
+    if not log_dir.is_dir() or days < 0:
+        return []
+    cutoff = datetime.now(timezone.utc).date() - timedelta(days=days)
+    removed: list[str] = []
+    for path in log_dir.glob("*.log"):
+        try:
+            file_date = datetime.strptime(path.stem, "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        if file_date < cutoff:
+            try:
+                path.unlink()
+            except OSError:
+                continue
+            removed.append(path.name)
+    return removed
+
+
+def delete_audit_logs(repo_root: Path) -> int:
+    log_dir = repo_root / ".lumos" / "logs"
+    if not log_dir.is_dir():
+        return 0
+    removed = 0
+    for path in log_dir.glob("*.log"):
+        path.unlink()
+        removed += 1
+    return removed
 
 
 CHAT_TURN_TELEMETRY_SCHEMA = "lumos.chat_turn.v1"

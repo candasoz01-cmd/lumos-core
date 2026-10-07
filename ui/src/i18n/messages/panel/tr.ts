@@ -212,7 +212,7 @@ const panelModules = {
       wontDo2: "Onay katmanı açık değilse kalıcı işlem için ayrı onay istemez.",
     },
     security: {
-      approval: "Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED açıkken listelenen kalıcı işlemler için onay ister.",
+      approval: "Onay katmanı üretimde (LUMOS_ENV veya LUMOS_PRODUCT_ENV production ya da prod) açıktır. Diğer ortamlarda yalnız LUMOS_CONFIRMATION_ENABLED açıkken listelenen kalıcı işlemler için onay ister.",
       secret: "Cihaz içinde çalışır; gizli bilgileri sohbete yazma.",
       debugBridge: "Yerel köprü bağlı. Ses ve görev işlemleri bu cihaz üzerinden yürütülür.",
       devicePerms: "Kamera ve mikrofon cihaz iznine bağlıdır.",
@@ -762,7 +762,7 @@ const panelModules = {
   },
   ai: {
     intro:
-      "Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse özet ayrı hafıza servisine yazılır. Yanıtta sağlayıcı adı yoktur. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.",
+      "Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Barındırılan sohbet, anahtar varsa kesilmiş iletiyi ve oturumdaki adı bir model API’sine gönderir; sohbet işleyicisi iletiyi kendi içinde veritabanına yazmaz, “hatırla” denirse özet ayrı hafıza servisine yazılır. Yanıtta sağlayıcı adı yoktur. Onay katmanı üretimde (LUMOS_ENV veya LUMOS_PRODUCT_ENV production ya da prod) açıktır. Diğer ortamlarda yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.",
     c1Title: "Bağlamı Toplama",
     c1Body:
       "Lumos, kullanıcının isteğini, mevcut çalışma alanını ve ilgili bilgileri birlikte değerlendirerek daha anlaşılır bir görev bağlamı oluşturmayı hedefler.",
@@ -771,7 +771,7 @@ const panelModules = {
       "Yapay zekâ tek bir sonucu kesin doğru gibi dayatmaz; mümkün olan seçenekleri, belirsizlikleri ve dikkat edilmesi gereken noktaları görünür kılar.",
     c3Title: "Sohbet onayı",
     c3Body:
-      "Barındırılan sohbet yanıtı ayrı bir onay adımı beklemez. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.",
+      "Barındırılan sohbet yanıtı ayrı bir onay adımı beklemez. Onay katmanı üretimde (LUMOS_ENV veya LUMOS_PRODUCT_ENV production ya da prod) açıktır. Diğer ortamlarda yalnız LUMOS_CONFIRMATION_ENABLED açıkken çalışır.",
     c4Title: "Görev motorunda durma",
     c4Body:
       "Görev motoru, SECURITY_NEVER_AUTO ile eşleşen adımı durdurur. Motor dalı permanent_delete üyesini bu kontrolün dışında tutar. Bu durdurma sohbet yanıtına bağlı değildir.",

@@ -149,8 +149,8 @@ const umbrellaTr = {
     eyebrow: "LUMOS · TEKNİK VERİ ENVANTERİ",
     title: "Teknik veri ve güven envanteri",
     lead:
-      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Bu sayfa, 5 Ekim 2026 tarihinde canlı uygulamanın kaynak sürümü olarak doğrulanan 39effc6 kodundaki veri yollarını açıklar. Ortam ayarları ve harici servislerin davranışı ayrıca doğrulanmış değildir.",
-    updated: "Son güncelleme: 5 Ekim 2026",
+      "Lumos yeni bir yapay zekâ değildir. Kendi modelini çalıştırmaz. Bu sayfa, bu depodaki kodun bugün yaptığı veri işlemlerini yazar.",
+    updated: "PR #903 aday kodu — 6 Ekim 2026; üretim doğrulaması değildir",
     legalTitle: "Bu sayfa hukuki gizlilik bildirimi değildir",
     legalBody:
       "Bu sayfa teknik bir envanterdir. Veri sorumlusu, iletişim ve başvuru kanalı, silme talebi süreci, hukuki dayanak ve KVKK/GDPR kapsamındaki haklar burada yayımlanmadı. Bunlar ayrı bir hukuk ve politika kararı bekliyor; bu envanter onların yerine geçmez.",
@@ -162,16 +162,16 @@ const umbrellaTr = {
       "Ülkeye göre hukuk motoru çalıştırmaz. Sağlayıcının veriyi saklamadığını, eğitmediğini veya sıfır saklama uyguladığını doğrulamaz. Tam bir maskeleme sistemi yoktur.",
     flowTitle: "Barındırılan sohbet akışı",
     flowBody:
-      "Kullanıcı iletisi → oturum yoksa 401 → kimlik uyuşmazsa 409 → hafıza servisinde lookup → ileti “hatırla” ile başlıyorsa remember denenir ve yanıtı Lumos verir, ileti modele gitmez → “ben kimim” ve saat soruları da model çağrısı olmadan yanıtlanır → hiç model anahtarı yoksa 503, model çağrısı yapılmaz → karakter sınırı → OpenAI anahtarı varsa Responses API → OpenAI çağrısı hata dönerse, istisna fırlatırsa veya boş yanıt verirse ve Gemini anahtarı varsa generateContent → ikisi de yanıt üretmezse 502 → provider ve model adı yanıttan çıkarılır → kullanıcı.",
+      "Kullanıcı iletisi → oturum yoksa 401 → kimlik uyuşmazsa 409 → session_version küçükse 401 → hafıza servisinde lookup → ileti “hatırla” ile başlıyorsa remember denenir ve yanıtı Lumos verir, ileti modele gitmez → “ben kimim” ve saat soruları da model çağrısı olmadan yanıtlanır → hiç model anahtarı yoksa 503, model çağrısı yapılmaz → prepareProviderPayload e-posta, ayırıcılı telefon ve 9–12 haneli dizileri [email], [phone] ve [id] ile değiştirir → her sağlayıcı adayı ülke profili ve sağlayıcı kaydıyla ayrı kontrol edilir → ikisi de kapanırsa 403 → karakter sınırı → OpenAI anahtarı varsa Responses API → OpenAI çağrısı hata dönerse, istisna fırlatırsa veya boş yanıt verirse ve Gemini anahtarı varsa generateContent → ikisi de yanıt üretmezse 502 → provider ve model adı yanıttan çıkarılır → kullanıcı.",
     qCollectTitle: "Benden ne toplanıyor?",
     qCollectBody:
-      "Google ile girişte çereze sid, lumos_id, sub, e-posta, ad, resim, door, provider, package ve süre yazılır. Google access_token yazılmaz. Sohbet isteğinde ileti, geçmiş ve isteğe bağlı görsel alınır. Hafıza servisi tanımlıysa her istekte lumos_id o servise gider.",
+      "Google ile girişte çereze sid, lumos_id, sub, e-posta, ad, resim, door, provider, package, sv (session_version) ve süre yazılır. Google access_token yazılmaz. Sohbet isteğinde ileti, geçmiş ve isteğe bağlı görsel alınır. Hafıza servisi tanımlıysa her istekte lumos_id o servise gider.",
     qWhyTitle: "Neden?",
     qWhyBody:
       "Oturum, aynı kişiyi sonraki istekte tanımak içindir. Model isteği yanıt üretmek içindir; ad ve hafıza özetleri yanıtın bağlı kullanıcıya göre verilmesi için eklenir. Hafıza özeti, kullanıcı “hatırla” dediyse ve servis izin verdiyse yazılır.",
     qModelTitle: "Model API’sine ne gönderiliyor?",
     qModelBody:
-      "Her model isteğinde şunlar gider: sabit sistem talimatı; oturumdaki ad (yoksa “ad yüklenmedi”); hesap sağlayıcısı (ör. google_web) ve bağlı durumu; hafıza durumu (loaded, empty, not_granted veya unavailable); hafıza yüklüyse en fazla 12 izinli özet, her biri en fazla 1000 karakter; ileti en fazla 8000 karakter; önceki Lumos yanıtları dahil son 12 tur, tur başına en fazla 4000 karakter; isteğe bağlı görsel en fazla 380000 karakter. Bu sürümün sohbet yolunda e-posta, telefon ve kimlik benzeri diziler otomatik değiştirilmez. E-posta adresi ve lumos_id model isteğine ayrıca konmaz. OpenAI anahtarı varsa istekte store: false vardır; bu, sağlayıcının kopya tutmadığının kanıtı değildir. Gemini isteğinde store alanı yoktur. Kullanıcıya dönen JSON sağlayıcı ve model adını taşımaz.",
+      "Her model isteğinde şunlar gider: sabit sistem talimatı; oturumdaki ad (yoksa “ad yüklenmedi”); hesap sağlayıcısı (ör. google_web) ve bağlı durumu; hafıza durumu (loaded, empty, not_granted veya unavailable); hafıza yüklüyse en fazla 12 izinli özet, her biri en fazla 1000 karakter; ileti en fazla 8000 karakter; önceki Lumos yanıtları dahil son 12 tur, tur başına en fazla 4000 karakter; isteğe bağlı görsel en fazla 380000 karakter. İletideki e-posta, ayırıcılı telefon ve 9–12 haneli diziler [email], [phone] ve [id] ile değiştirilir. E-posta adresi ve lumos_id model isteğine ayrıca konmaz. OpenAI anahtarı varsa istekte store: false vardır; bu, sağlayıcının kopya tutmadığının kanıtı değildir. Gemini isteğinde store alanı yoktur. Kullanıcıya dönen JSON sağlayıcı ve model adını taşımaz.",
     memoryTitle: "Lumos hafıza servisi",
     memoryBody:
       "Hafıza, sohbet işleyicisinden ayrı bir saklama ve işleme katmanıdır. Adres LUMOS_MEMORY_LOOKUP_URL ile verilir; verilmezse BRIDGE_UPSTREAM_URL altındaki /memory/hosted/lookup kullanılır. Belirteç LUMOS_MEMORY_SERVICE_TOKEN, yoksa KANDO_BRIDGE_SECRET değeridir. Adres veya belirteç yoksa çağrı yapılmaz. Her sohbet isteğinde lumos_id ile lookup yapılır; model çağrısı olmasa da yapılır. İleti “hatırla”, “unutma” veya “remember” ile başlıyorsa ve izin varsa remember çağrısı en fazla 1000 karakterlik özeti ve hesap sağlayıcısını servise gönderir. Servisin kendisi bu depoda değildir; verinin nerede ve ne kadar süre tutulduğu bu koddan doğrulanamaz.",
@@ -189,34 +189,34 @@ const umbrellaTr = {
       "Oturum tarayıcı çerezindedir. Barındırılan sohbet işleyicisi iletiyi kendi içinde bir veritabanına veya dosyaya yazmaz; “hatırla” özeti ise hafıza servisine yazılır. Köprü telemetrisi çağrılırsa kullanıcı iletisi o makinede .lumos/logs altına yazılır. Dosya yükleme özeti bu tarayıcının localStorage alanındadır, en fazla 5 kayıt. Saklama yerini ülkeye göre seçen bir kod yoktur.",
     qHowLongTitle: "Ne kadar tutuluyor?",
     qHowLongBody:
-      "Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. Hafıza servisindeki özetlerin süresi bu koddan belli değildir. cleanup_audit_logs yalnız testlerden çağrılan bir yardımcı işlevdir; runtime, UI veya API bağlantısı yoktur. Açıkça çağrılırsa .lumos/logs dosya adındaki tarihe göre LUMOS_LOG_RETENTION_DAYS (varsayılan 14) günden eski günlükleri siler. Otomatik günlük saklama süresi uygulanmış değildir. LUMOS_MEMORY_TTL_SECONDS doluysa yeni yerel nota o süre yazılır; Memory.cleanup çağrıldığında süresi dolan notlar ayıklanır. ttl_seconds boşsa not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.",
+      "Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. Hafıza servisindeki özetlerin süresi bu koddan belli değildir. append_audit_log, her başarılı günlük yazımından sonra .lumos/logs dosya adındaki tarihe göre LUMOS_LOG_RETENTION_DAYS (varsayılan 14) günden eski günlükleri en iyi çabayla siler; silme başarısız olursa yazılan günlük ve istek etkilenmez, eski dosya kalabilir. Bu yalnız yerel günlük dizinini kapsar. LUMOS_MEMORY_TTL_SECONDS doluysa yeni yerel nota o süre yazılır. ttl_seconds boşsa not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.",
     qWhoTitle: "Kim erişebilir?",
     qWhoBody:
       "Çerez HttpOnly’dir. Sentry veya Axiom anahtarı tanımlıysa izinli teknik alanlar ve hata yığını o servise gider; e-posta ve access_token allowlist’te değildir. lumosId gidebilir.",
     logoutTitle: "Çıkış ne yapar?",
     logoutBody:
-      "Çıkış, tarayıcıdaki oturum çerezini ve köprü vekil çerezini siler. Bu kaynak sürümünde session_version artırımı veya kopyalanmış oturum belirteçlerini çıkışla topluca geçersiz kılma uygulanmamıştır. Çıkış günlüğü, hafızayı veya model sağlayıcısındaki kopyayı silmez.",
+      "Çıkış, tarayıcıdaki oturum çerezini ve köprü vekil çerezini siler ve o kullanıcı için session_version değerini bir artırır. Çerezdeki sv bu değerden küçükse sonraki istek 401 döner. Kayıt tek dosyadır (LUMOS_SESSION_EPOCH_PATH veya .lumos/session_epoch.json); paylaşılan çoklu sunucu deposu yoktur. Çıkış günlüğü, hafızayı veya model sağlayıcısındaki kopyayı silmez.",
     qNotTitle: "Ne tutulmuyor?",
     qNotBody:
       "Google access_token oturumda yoktur. Hafıza servisi veya izni yoksa “hatırla” cümlesi kaydedilmez. Bu depoda reklam etiketi ve veri satış entegrasyonu yoktur. Model sağlayıcısının ve hafıza servisinin kendi kaydı bu cümlenin dışındadır.",
     qDeleteTitle: "Nasıl silerim?",
     qDeleteBody:
-      "Çıkış bu tarayıcıdaki çerezleri temizler; kopyalanmış oturum belirteçlerini topluca geçersiz kılmaz. Memory.delete_all ve delete_audit_logs yalnız testlerden çağrılan yardımcı işlevlerdir; runtime, UI veya API bağlantısı yoktur. Bunlar üründe kullanılabilir bir yerel not veya günlük silme denetimi değildir. Ayrı hafıza servisi için silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. Sağlayıcının tuttuğu kopyanın silinmesi bu kodla doğrulanmaz. Meta belirteci için “Meta bağlantısını kaldırma” bölümüne bakın. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.",
+      "Çıkış çerezi siler ve session_version değerini artırır. Kodda, kilit açıkken kayıtlı yerel notları silen Memory.delete_all ve .lumos/logs günlük dosyalarını silen delete_audit_logs fonksiyonları vardır. Bu fonksiyonların açıkça çağrılması gerekir; çalışma zamanı, panel veya API yollarında çağrılmazlar. Bunlar mevcut kod yetenekleridir; otomatik uygulanan kontroller veya panel/API üzerinden sunulan silme işlemleri değildir. Hafıza silme, bellek eyleminde delete ve confirm: true ister; servis ok dönerse silinmiş sayılır. Sağlayıcı kopyası, kayıttaki deletion_api_supported false olduğu sürece bu kodla silinmiş sayılmaz. Meta belirteci için “Meta bağlantısını kaldırma” bölümüne bakın. Google hesap erişimi Google bağlantılar sayfasından kaldırılabilir.",
     assuranceTitle: "Lumos güvencesi",
     assuranceBody:
-      "Bu ad, yukarıda yazılan uygulanmış kontrollerin ortak adıdır: oturum kontrolü, belirtecin çereze yazılmaması, karakter sınırları, OpenAI isteğindeki store: false, yanıttan sağlayıcı adının çıkarılması, hafızanın onaysız yazılmaması, gözlem allowlist’i, görev motorunda SECURITY_NEVER_AUTO eşleşmesinde durma.",
+      "Bu ad, yukarıda yazılan uygulanmış kontrollerin ortak adıdır: oturum kontrolü, belirtecin çereze yazılmaması, karakter sınırları, OpenAI isteğindeki store: false, yanıttan sağlayıcı adının çıkarılması, hafızanın onaysız yazılmaması, gözlem allowlist’i, görev motorunda SECURITY_NEVER_AUTO eşleşmesinde durma, model metnindeki bilinen e-posta, telefon ve kimlik benzeri dizilerin değiştirilmesi, ülke profili kapısı ve session_version kontrolü.",
     missingTitle: "Eksik olanlar",
     missingBody:
-      "Sağlayıcının saklama, eğitim kullanımı ve silme uygulamaları bu kodla doğrulanmaz. Bu sürümün sohbet yolunda ülke profili kapısı, sağlayıcı politika kaydı ve otomatik kişisel veri maskelemesi yoktur. Gemini isteğinde store alanı yoktur. Hafıza servisinin, Meta kasasının ve Meta webhook servisinin saklama süresi ve konumu bu koddan doğrulanamaz. Meta veri silme geri çağrısı ve Meta bağlantı kayıtlarının silinmesi bu depoda yoktur. Sunucu tarafında çıkışa bağlı oturum sürümü iptali yoktur. Sohbette hangi API’nin çağrıldığı kullanıcıya gösterilmez. Onay katmanı yalnız LUMOS_CONFIRMATION_ENABLED=1, true veya yes iken çalışır. Üretim ortamı adı tek başına bu katmanı açmaz; canlı ortamın bu ayarı doğrulanmadı. SECURITY_NEVER_AUTO aynı kalır. Barındırılan sohbet yanıtı ayrı onay beklemez.",
+      "Sağlayıcı kaydında contract_verified, zero_data_retention_supported ve deletion_api_supported false, retention_mode ve training_use unknown değerindedir (provider verification pending). Gemini isteğinde store alanı yoktur. Hafıza servisinin, Meta kasasının ve Meta webhook servisinin saklama süresi ve konumu bu koddan doğrulanamaz. Meta veri silme geri çağrısı ve Meta bağlantı kayıtlarının silinmesi bu depoda yoktur. session_version kaydı tek dosyadır. Sohbette hangi API’nin çağrıldığı kullanıcıya gösterilmez. Onay katmanı LUMOS_ENV veya LUMOS_PRODUCT_ENV production veya prod iken açıktır; bu ortamlar dışında yalnız LUMOS_CONFIRMATION_ENABLED=1, true veya yes iken çalışır. SECURITY_NEVER_AUTO aynı kalır. Barındırılan sohbet yanıtı ayrı onay beklemez.",
     countryTitle: "Ülke kuralları",
     countryBody:
-      "Ülkeye göre hukuk motoru yoktur. Bu sürümün sohbet yolunda ülke koduna göre sağlayıcı çağrısını kapatan bir profil kapısı yoktur. Bu cümle, işletmecinin hukuk dışında olduğu anlamına gelmez.",
+      "Ülkeye göre hukuk motoru yoktur. Ülke kodu boşsa global_safe profili kullanılır. Tanınmayan ülke kodu model çağrısını kapatır. XX kodu yalnız test ve yapılandırma yer tutucusudur; hukuki belirleme değildir. Bu cümle, işletmecinin hukuk dışında olduğu anlamına gelmez.",
     multiTitle: "Birden fazla altyapı",
     multiBody:
-      "Barındırılan sohbet en fazla iki model çağrısı yapar: önce OpenAI anahtarı; o çağrı hata verir, istisna fırlatır veya boş dönerse Gemini anahtarı. Bu sürümde çağrı öncesi ülke profili ve sağlayıcı kaydı kapısı uygulanmamıştır. Görev motorundaki durdurma bu sohbet yanıtına bağlı değildir.",
+      "Barındırılan sohbet en fazla iki model çağrısı yapar: önce OpenAI anahtarı; o çağrı hata verir, istisna fırlatır veya boş dönerse Gemini anahtarı. Her aday, çağrıdan önce ülke profili ve sağlayıcı kaydıyla ayrı kontrol edilir. İkisi de kapanırsa yanıt 403 olur ve sağlayıcı adı taşımaz. Görev motorundaki durdurma bu sohbet yanıtına bağlı değildir.",
     changesTitle: "Değişiklikler",
     changesBody:
-      "Kod değişince bu teknik sayfa ve docs/data-and-trust.md birlikte güncellenir. Kayıtlı /privacy adresindeki gizlilik bildirimi ayrı tutulur; bu envanter onun yerine geçmez.",
+      "Kod değişince bu sayfa ve docs/data-and-trust.md birlikte güncellenir. Önceki gizlilik metnindeki, bu envanterle doğrulanmayan saklama ve eğitim cümleleri kaldırıldı.",
     docCta: "Teknik envanter",
     googleControlsCta: "Google erişimini yönet",
     integrationsCta: "Bağlantı ekosistemi",

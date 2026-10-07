@@ -30,24 +30,11 @@ Turkish: [README.tr.md](README.tr.md) · [docs/tr/](docs/tr/)
 
 **Lumos** is not a new artificial intelligence. It does not run its own model. Hosted chat sends the trimmed message, the signed-in name, and permitted memory summaries to a model API when a key is set. The chat handler itself does not write the message to a database; a “remember” summary is written to a separate memory service whose retention this repository cannot verify. The response does not include a provider or model name.
 
-The public data inventory is [docs/data-and-trust.md](docs/data-and-trust.md) and [https://welockai.com/data-and-trust](https://welockai.com/data-and-trust). The reviewed hosted-chat path does not implement automatic email, phone or ID masking, a country-profile gate, or provider-retention verification. The confirmation layer runs only when `LUMOS_CONFIRMATION_ENABLED` is `1`, `true`, or `yes`. A chat reply is not held for a separate approval step.
+The public data inventory is [docs/data-and-trust.md](docs/data-and-trust.md) and [https://welockai.com/data-and-trust](https://welockai.com/data-and-trust). Hosted chat replaces known email, phone, and id-like runs before a model call, blocks an unverified provider for sensitive classes, and checks a country profile. Provider retention is still `provider verification pending`. The confirmation layer is on when `LUMOS_ENV` or `LUMOS_PRODUCT_ENV` is `production` or `prod`; elsewhere it runs only when `LUMOS_CONFIRMATION_ENABLED` is `1`, `true`, or `yes`. A chat reply is not held for a separate approval step.
 
 “Lumos assurance” is the name for the controls that exist in this repository (session check, access token not stored in the session cookie, character limits, `store: false` on the OpenAI request, provider name removed from the response, memory not written without consent, observability allowlist, task-engine stop on `SECURITY_NEVER_AUTO`). Missing items are listed in the inventory and are not part of that name.
 
-Developed under the **We Lock AI** umbrella as an **independent** product and direction—not owned, branded, or operated by any large language model vendor as their first-party product. Learn more: **[https://welockai.com/](https://welockai.com/)**
-
-## Principles
-
-These are product principles and design goals. Implemented controls and current limits are listed in [the technical inventory](docs/data-and-trust.md).
-
-- **User decision first:** Lumos does not decide on behalf of the user.
-- **Explicit approval** for actions that are permanent, sensitive, costly, or affect other people.
-- **Risk visibility** before action: context and consequences should be easier to see, not hidden.
-- **Data awareness:** clarity about what is used, where it flows, and how it is handled; privacy as a baseline, not a paid add-on.
-- Identity, consent, and authority boundaries stay explicit.
-- Outputs align with the user's intent and choice; the aim is useful support, not dependency.
-
-Where AI-assisted reasoning is useful, Lumos may use **external model services when configured**, in a straightforward, replaceable way—without centering the product on a single vendor or overstating any provider's role.
+Developed under the **We Lock AI** umbrella. Learn more: **[https://welockai.com/](https://welockai.com/)**
 
 ## What is Lumos?
 

@@ -11,9 +11,7 @@
  * kesintidir → 502.
  */
 import {
-  COOKIE,
-  openSession,
-  readCookie,
+  openLiveSession,
   sessionLumosId,
 } from "../../../_lib/lumos_session.js";
 import { enumerateWhatsappNumbers } from "../../../_lib/meta_connections.js";
@@ -40,7 +38,7 @@ export default async function handler(req, res) {
     json(res, 405, { ok: false, error: "method_not_allowed" });
     return;
   }
-  const claims = openSession(readCookie(req, COOKIE));
+  const claims = openLiveSession(req);
   const lumosId = claims?.sid ? sessionLumosId(claims) : "";
   if (!lumosId) {
     json(res, 401, { ok: false, error: "unauthorized" });
