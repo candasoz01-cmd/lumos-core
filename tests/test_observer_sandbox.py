@@ -1,6 +1,7 @@
 """Acceptance tests for Agent Wall observer sandbox MVP (sandbox-v0).
 
-Bubblewrap integration tests skip when `bwrap` is absent. Unit checks for env
+Bubblewrap integration tests skip when `bwrap` is absent or the jail cannot
+start on this host (e.g. unprivileged user namespaces restricted). Unit checks for env
 scrub and launcher construction still run so CI without bwrap is not silent.
 """
 
@@ -31,9 +32,37 @@ from lumos_board.observer_sandbox import (
     scrub_env_for_sandbox,
 )
 
+def _bwrap_jail_unavailable_reason() -> str | None:
+    """Why the real jail cannot start on this host, or None if it can.
+
+    ``bwrap`` on PATH is not enough. Ubuntu 26.04 runner images ship bwrap but
+    keep ``kernel.apparmor_restrict_unprivileged_userns=1``, so the pid-ns
+    reaper's ``unshare --user`` dies with ``write failed /proc/self/uid_map``
+    and every integration test would fail on host setup, not on sandbox
+    behaviour. Probe through the production launch path; only
+    ``SandboxUnavailableError`` (setup failure) counts as unavailable, a
+    started jail with a non-zero payload is still a usable host.
+    """
+    if shutil.which("bwrap") is None:
+        return "bubblewrap (bwrap) required for sandbox MVP tests"
+    from lumos_board.observer_sandbox import _host_bind_roots, _run_bwrap_payload
+
+    try:
+        _run_bwrap_payload(
+            [*_bwrap_isolation_prefix(), *_host_bind_roots([])],
+            ["/usr/bin/env", "true"],
+            timeout=10,
+        )
+    except SandboxUnavailableError as exc:
+        return f"bwrap present but jail cannot start on this host: {str(exc)[:160]}"
+    return None
+
+
+_BWRAP_UNAVAILABLE = _bwrap_jail_unavailable_reason()
+
 needs_bwrap = pytest.mark.skipif(
-    shutil.which("bwrap") is None,
-    reason="bubblewrap (bwrap) required for sandbox MVP tests",
+    _BWRAP_UNAVAILABLE is not None,
+    reason=_BWRAP_UNAVAILABLE or "bubblewrap (bwrap) required for sandbox MVP tests",
 )
 
 
