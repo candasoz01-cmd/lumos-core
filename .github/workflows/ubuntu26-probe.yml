@@ -1,0 +1,27 @@
+# Temporary probe for KA-919-FU: observer sandbox tests on ubuntu-26.04 with
+# unprivileged userns allowed. Branch-only; not for merge.
+name: Ubuntu 26 probe
+
+on:
+  push:
+    branches: [ claude/ubuntu26-probe-verify ]
+
+permissions:
+  contents: read
+
+jobs:
+  sandbox-diagnosis:
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Observer sandbox tests, sysctl=0
+        env:
+          KANDO_MOCK: "1"
+          PYTHONPATH: src:packages/kando_runtime/src:packages/kando_bridge/src
+        run: |
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          python -m pytest -q -rs tests/test_observer_sandbox.py
