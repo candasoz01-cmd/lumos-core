@@ -299,14 +299,14 @@ def test_local_cleanup_capabilities_are_not_claimed_as_applied_controls():
     for path, retention_gap, explicit_call, unavailable, forbidden in (
         (
             UMBRELLA_TR,
-            "Varsayılan 14 günlük saklama süresi bugün otomatik uygulanmaz.",
+            "append_audit_log, her başarılı günlük yazımından sonra",
             "açıkça çağrılması gerekir",
             "panel/API üzerinden sunulan silme işlemleri değildir",
             ("yerel günlük temizliği", "yerel not silme"),
         ),
         (
             UMBRELLA_EN,
-            "The default 14-day retention is not automatically enforced today.",
+            "After each successful log write, append_audit_log deletes",
             "require an explicit call",
             "not automatically applied controls or deletion actions exposed in the panel or API",
             ("local log cleanup", "local note deletion"),
@@ -326,12 +326,13 @@ def test_local_cleanup_capabilities_are_not_claimed_as_applied_controls():
     capabilities = inventory.split(
         "## Mevcut yetenekler — otomatik uygulanan kontrol değil\n", 1
     )[1].split("\n## ", 1)[0]
-    for name in ("cleanup_audit_logs", "delete_audit_logs", "Memory.delete_all"):
+    for name in ("delete_audit_logs", "Memory.delete_all"):
         assert name not in applied
         assert name in capabilities
-    assert (
-        "Varsayılan 14 günlük saklama süresi bugün otomatik uygulanmaz." in capabilities
-    )
+    # Retention cleanup runs from append_audit_log, so it is an applied control.
+    assert "cleanup_audit_logs" in applied
+    assert "cleanup_audit_logs" not in capabilities
+    assert "otomatik uygulanmaz" not in capabilities
 
 
 def test_candidate_inventory_keeps_implemented_security_controls_and_release_scope():

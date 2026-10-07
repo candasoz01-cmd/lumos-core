@@ -179,6 +179,12 @@ def append_audit_log(repo_root: Path, entry: dict[str, Any]) -> None:
     line = json.dumps(entry, ensure_ascii=False, default=str) + "\n"
     with path.open("a", encoding="utf-8") as f:
         f.write(line)
+    # Retention is best-effort: a cleanup failure never undoes or fails a log
+    # write that already succeeded.
+    try:
+        cleanup_audit_logs(repo_root)
+    except Exception:
+        pass
 
 
 def log_retention_days() -> int:
@@ -193,7 +199,8 @@ def log_retention_days() -> int:
 def cleanup_audit_logs(repo_root: Path, max_age_days: int | None = None) -> list[str]:
     """Dosya adındaki tarihe göre eski `.lumos/logs` günlüklerini siler.
 
-    `append_audit_log` bunu kendiliğinden çağırmaz.
+    `append_audit_log` her başarılı yazımdan sonra bunu en iyi çabayla çağırır;
+    silinemeyen bir dosya diğerlerinin temizlenmesini engellemez.
     """
     days = log_retention_days() if max_age_days is None else max_age_days
     log_dir = repo_root / ".lumos" / "logs"
@@ -207,7 +214,10 @@ def cleanup_audit_logs(repo_root: Path, max_age_days: int | None = None) -> list
         except ValueError:
             continue
         if file_date < cutoff:
-            path.unlink()
+            try:
+                path.unlink()
+            except OSError:
+                continue
             removed.append(path.name)
     return removed
 

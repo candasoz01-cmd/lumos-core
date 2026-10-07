@@ -93,7 +93,7 @@ const DATA_DOC = "https://github.com/candasoz01-cmd/lumos-core/blob/main/docs/da
 
       <h2 data-i18n="umbrella.dataTrust.qHowLongTitle">Ne kadar tutuluyor?</h2>
       <p data-i18n="umbrella.dataTrust.qHowLongBody">
-        Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. Hafıza servisindeki özetlerin süresi bu koddan belli değildir. cleanup_audit_logs açıkça çağrıldığında, .lumos/logs dosya adındaki tarihe göre LUMOS_LOG_RETENTION_DAYS (varsayılan 14) günden eski günlükleri siler. append_audit_log bunu kendiliğinden çağırmaz; çalışma zamanı, panel veya API yollarında da çağrılmaz. Varsayılan 14 günlük saklama süresi bugün otomatik uygulanmaz. LUMOS_MEMORY_TTL_SECONDS doluysa yeni yerel nota o süre yazılır. ttl_seconds boşsa not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.
+        Oturum çerezi 7 gündür (604800 saniye). OAuth durum çerezi 10 dakikadır. Hafıza servisindeki özetlerin süresi bu koddan belli değildir. append_audit_log, her başarılı günlük yazımından sonra .lumos/logs dosya adındaki tarihe göre LUMOS_LOG_RETENTION_DAYS (varsayılan 14) günden eski günlükleri en iyi çabayla siler; silme başarısız olursa yazılan günlük ve istek etkilenmez, eski dosya kalabilir. Bu yalnız yerel günlük dizinini kapsar. LUMOS_MEMORY_TTL_SECONDS doluysa yeni yerel nota o süre yazılır. ttl_seconds boşsa not kalır. Toplantı botu yolu, retention verilmeden istek oluşturmaz; bu kural diğer verilere uygulanmaz.
       </p>
 
       <h2 data-i18n="umbrella.dataTrust.qWhoTitle">Kim erişebilir?</h2>
