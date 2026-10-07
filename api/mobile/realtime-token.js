@@ -1,5 +1,5 @@
 import {
-  hostedOpenAIKey,
+  hostedRealtimeKey,
   hostedSessionClaims,
 } from "../_lib/hosted_lumos.js";
 import { sessionLumosId } from "../_lib/lumos_session.js";
@@ -138,7 +138,7 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: "rate_limited" });
   }
 
-  const apiKey = hostedOpenAIKey();
+  const apiKey = hostedRealtimeKey();
   if (!apiKey) {
     return res.status(503).json({ error: "realtime_unconfigured" });
   }

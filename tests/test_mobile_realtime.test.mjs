@@ -101,14 +101,57 @@ test("realtime token requires POST and an authenticated Lumos identity", async (
 
 test("realtime token fails closed without a server-side OpenAI key", async () => {
   delete process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY_REALTIME;
   const res = makeRes();
   await handler(bearerRequest(), res);
   assert.equal(res.statusCode, 503);
   assert.equal(res.payload.error, "realtime_unconfigured");
 });
 
+test("hosted chat key never reaches Realtime and Realtime fails closed without its own key", async () => {
+  process.env.OPENAI_API_KEY = "hosted-chat-key-must-not-leak";
+  delete process.env.OPENAI_API_KEY_REALTIME;
+  const originalFetch = globalThis.fetch;
+  let upstreamCalls = 0;
+  try {
+    globalThis.fetch = async () => {
+      upstreamCalls += 1;
+      throw new Error("upstream must not be called");
+    };
+    const res = makeRes();
+    await handler(bearerRequest(), res);
+    assert.equal(res.statusCode, 503);
+    assert.equal(res.payload.error, "realtime_unconfigured");
+    assert.equal(upstreamCalls, 0);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.OPENAI_API_KEY;
+  }
+});
+
+test("realtime uses OPENAI_API_KEY_REALTIME even when the chat key is set", async () => {
+  process.env.OPENAI_API_KEY = "hosted-chat-key-must-not-leak";
+  process.env.OPENAI_API_KEY_REALTIME = "realtime-only-key";
+  const originalFetch = globalThis.fetch;
+  let seenAuth;
+  try {
+    globalThis.fetch = async (_url, init) => {
+      seenAuth = init.headers.Authorization;
+      return { ok: true, async json() { return { value: "ek", expires_at: 1 }; } };
+    };
+    const res = makeRes();
+    await handler(bearerRequest(), res);
+    assert.equal(res.statusCode, 200);
+    assert.equal(seenAuth, "Bearer realtime-only-key");
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY_REALTIME;
+  }
+});
+
 test("realtime token returns only the short-lived client secret", async () => {
-  process.env.OPENAI_API_KEY = "server-only-standard-key";
+  process.env.OPENAI_API_KEY_REALTIME = "server-only-standard-key";
   const originalFetch = globalThis.fetch;
   let upstreamBody;
   try {
@@ -169,7 +212,7 @@ test("realtime token returns only the short-lived client secret", async () => {
     assert.doesNotMatch(upstreamBody.session.instructions, /Ignore all instructions/);
   } finally {
     globalThis.fetch = originalFetch;
-    delete process.env.OPENAI_API_KEY;
+    delete process.env.OPENAI_API_KEY_REALTIME;
   }
 });
 
@@ -258,4 +301,5 @@ test("switching from held push-to-talk to auto restores remote audio", async () 
 test.after(() => {
   delete process.env.LUMOS_AUTH_STATE_SECRET;
   delete process.env.OPENAI_API_KEY;
+  delete process.env.OPENAI_API_KEY_REALTIME;
 });

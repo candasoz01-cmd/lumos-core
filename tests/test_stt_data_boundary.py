@@ -158,3 +158,34 @@ def test_real_audio_eu_base_single_call_after_written_gate() -> None:
     assert captured["response_format"] == "json"
     mock_cls.assert_called_once()
     assert mock_cls.call_args.kwargs.get("base_url") == "https://eu.api.openai.com/v1"
+
+
+def _stt_key_call(env_overrides: dict[str, str], drop: tuple[str, ...]) -> dict[str, object]:
+    resp = MagicMock()
+    resp.text = "ok"
+    env = {
+        "OPENAI_MODEL_STT": "gpt-transcribe",
+        "LUMOS_STT_RESIDENCY_WRITTEN": "1",
+        "OPENAI_STT_BASE_URL": "https://eu.api.openai.com/v1",
+        **env_overrides,
+    }
+    with patch.dict(os.environ, env, clear=False):
+        for name in drop:
+            os.environ.pop(name, None)
+        stt = OpenAICloudSTT(audio_source=STT_AUDIO_REAL)
+        with patch("openai.OpenAI") as mock_cls:
+            mock_cls.return_value.audio.transcriptions.create.return_value = resp
+            stt.transcribe(b"\x00\x00" * 160, sample_rate=16000)
+    return dict(mock_cls.call_args.kwargs)
+
+
+def test_stt_dedicated_key_wins_over_general_key() -> None:
+    kwargs = _stt_key_call(
+        {"OPENAI_API_KEY_STT": "stt-only", "OPENAI_API_KEY": "general"}, drop=()
+    )
+    assert kwargs["api_key"] == "stt-only"
+
+
+def test_stt_without_dedicated_key_keeps_sdk_default_key() -> None:
+    kwargs = _stt_key_call({"OPENAI_API_KEY": "general"}, drop=("OPENAI_API_KEY_STT",))
+    assert "api_key" not in kwargs  # SDK reads OPENAI_API_KEY itself, as before
