@@ -250,6 +250,26 @@ def _probe_interpreter() -> str:
     return str(Path(sys.executable).resolve())
 
 
+def _probe_interpreter_jail_args(interpreter: str) -> tuple[list[str], list[str]]:
+    """Bind + env args that make `interpreter` runnable inside the probe jail.
+
+    Under /usr or /bin the host binds already cover it. A toolcache or pyenv
+    Python (e.g. /opt/hostedtoolcache/Python/3.12.x/x64 on GitHub runners)
+    lives outside them: without its install prefix the jail cannot exec it
+    and every probe test sees empty stdout / exit 127 — a harness gap, not a
+    sandbox result. Bind the prefix read-only and point the loader at its lib.
+    """
+    if interpreter.startswith(("/usr/", "/bin/")):
+        return [], []
+    prefix = Path(interpreter).parent.parent
+    if prefix == Path("/"):
+        return ["--ro-bind", interpreter, interpreter], []
+    return (
+        ["--ro-bind", str(prefix), str(prefix)],
+        ["--setenv", "LD_LIBRARY_PATH", str(prefix / "lib")],
+    )
+
+
 def _bwrap_probe(inner: list[str], *, timeout: float):
     from lumos_board.observer_sandbox import _bwrap_isolation_prefix, _run_bwrap_payload
 
@@ -257,7 +277,8 @@ def _bwrap_probe(inner: list[str], *, timeout: float):
     for host in ("/usr", "/bin", "/lib", "/lib64"):
         if Path(host).exists():
             cmd += ["--ro-bind", host, host]
-    cmd += ["--clearenv"]
+    binds, env = _probe_interpreter_jail_args(inner[0])
+    cmd += binds + ["--clearenv"] + env
     return _run_bwrap_payload(cmd, inner, timeout=timeout)
 
 
@@ -287,14 +308,15 @@ def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int
     if Path("/lib64").exists():
         cmd += ["--ro-bind", "/lib64", "/lib64"]
     cmd += ["--ro-bind", str(allowed_root), str(allowed_root)]
-    if not (interpreter.startswith("/usr/") or interpreter.startswith("/bin/")):
-        cmd += ["--ro-bind", interpreter, interpreter]
+    binds, env = _probe_interpreter_jail_args(interpreter)
+    cmd += binds
     if unshare_net:
         cmd.append("--unshare-net")
     cmd += [
         "--chdir",
         str(allowed_root),
         "--clearenv",
+        *env,
         "--setenv",
         "PATH",
         "/usr/bin:/bin",
