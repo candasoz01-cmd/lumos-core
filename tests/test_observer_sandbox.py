@@ -32,6 +32,7 @@ from lumos_board.observer_sandbox import (
     scrub_env_for_sandbox,
 )
 
+
 def _bwrap_jail_unavailable_reason() -> str | None:
     """Why the real jail cannot start on this host, or None if it can.
 
@@ -186,8 +187,11 @@ def test_probe_env_does_not_leak_host_secrets(repo: Path) -> None:
 
 
 @needs_bwrap
-def test_non_utf8_git_output_does_not_crash(repo: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_non_utf8_git_output_does_not_crash(
+    repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Bugbot Medium: binary/non-UTF-8 stdout must not UnicodeDecodeError out."""
+
     def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
         # Force the production path (text=False) and inject non-UTF-8 bytes into
         # the bounded regular files used instead of unbounded capture pipes.
@@ -250,18 +254,74 @@ def _probe_interpreter() -> str:
     return str(Path(sys.executable).resolve())
 
 
+_STANDARD_PROBE_ROOTS = ("/usr", "/bin", "/lib", "/lib64")
+
+
+def _path_is_under(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+    except (OSError, ValueError):
+        return False
+    return True
+
+
+def _covered_by_standard_probe_roots(path: Path) -> bool:
+    for name in _STANDARD_PROBE_ROOTS:
+        root = Path(name)
+        if root.exists() and _path_is_under(path, root):
+            return True
+    return False
+
+
+def _ro_binds_for_probe_runtime(prefix: Path, interpreter: Path) -> list[str]:
+    """Mount a Python prefix that lives outside /usr, /bin, and /lib.
+
+    GitHub-hosted runners keep the job interpreter under
+    ``/opt/hostedtoolcache``. Binding only the standard roots, or only the
+    interpreter file, makes exec fail (rc 127, empty stdout) because
+    ``libpython`` is outside the jail. That probe never ran. It is not
+    evidence that a size cap or ``--unshare-net`` failed.
+    """
+    binds: list[str] = []
+    prefix_resolved = prefix.resolve()
+    interpreter_resolved = interpreter.resolve()
+    if not _covered_by_standard_probe_roots(prefix_resolved):
+        text = str(prefix_resolved)
+        binds += ["--ro-bind", text, text]
+    if not _covered_by_standard_probe_roots(
+        interpreter_resolved
+    ) and not _path_is_under(interpreter_resolved, prefix_resolved):
+        text = str(interpreter_resolved)
+        binds += ["--ro-bind", text, text]
+    return binds
+
+
+def _probe_runtime_binds() -> list[str]:
+    return _ro_binds_for_probe_runtime(
+        Path(sys.base_prefix), Path(_probe_interpreter())
+    )
+
+
+def _payload_did_not_run(proc: subprocess.CompletedProcess[bytes]) -> str:
+    err = proc.stderr.decode(errors="replace")[-500:]
+    return f"probe payload did not run (rc={proc.returncode}): {err}"
+
+
 def _bwrap_probe(inner: list[str], *, timeout: float):
-    from lumos_board.observer_sandbox import _bwrap_isolation_prefix, _run_bwrap_payload
+    from lumos_board.observer_sandbox import _run_bwrap_payload
 
     cmd = _bwrap_isolation_prefix()
     for host in ("/usr", "/bin", "/lib", "/lib64"):
         if Path(host).exists():
             cmd += ["--ro-bind", host, host]
+    cmd += _probe_runtime_binds()
     cmd += ["--clearenv"]
     return _run_bwrap_payload(cmd, inner, timeout=timeout)
 
 
-def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int:
+def _bwrap_tcp_probe(
+    port: int, *, unshare_net: bool, allowed_root: Path
+) -> subprocess.CompletedProcess[bytes]:
     """Same bind shape as the MVP motor; optional --unshare-net for contrast."""
     interpreter = _probe_interpreter()
     cmd: list[str] = [
@@ -287,8 +347,7 @@ def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int
     if Path("/lib64").exists():
         cmd += ["--ro-bind", "/lib64", "/lib64"]
     cmd += ["--ro-bind", str(allowed_root), str(allowed_root)]
-    if not (interpreter.startswith("/usr/") or interpreter.startswith("/bin/")):
-        cmd += ["--ro-bind", interpreter, interpreter]
+    cmd += _probe_runtime_binds()
     if unshare_net:
         cmd.append("--unshare-net")
     cmd += [
@@ -310,7 +369,76 @@ def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int
             f"  sys.exit(2)\n"
         ),
     ]
-    return subprocess.run(cmd, capture_output=True, check=False, timeout=15).returncode
+    return subprocess.run(cmd, capture_output=True, check=False, timeout=15)
+
+
+def test_usr_python_prefix_needs_no_extra_bind() -> None:
+    binds = _ro_binds_for_probe_runtime(Path("/usr"), Path("/usr/bin/python3"))
+    assert binds == []
+
+
+def test_external_prefix_is_bound_as_a_tree(tmp_path: Path) -> None:
+    prefix = tmp_path / "hostedtoolcache" / "Python" / "3.12"
+    interpreter = prefix / "bin" / "python"
+    interpreter.parent.mkdir(parents=True)
+    interpreter.write_text("", encoding="utf-8")
+    binds = _ro_binds_for_probe_runtime(prefix, interpreter)
+    resolved = str(prefix.resolve())
+    assert binds == ["--ro-bind", resolved, resolved]
+
+
+def test_interpreter_outside_prefix_is_bound_separately(tmp_path: Path) -> None:
+    prefix = tmp_path / "prefix"
+    prefix.mkdir()
+    interpreter = tmp_path / "elsewhere" / "python"
+    interpreter.parent.mkdir()
+    interpreter.write_text("", encoding="utf-8")
+    binds = _ro_binds_for_probe_runtime(prefix, interpreter)
+    assert binds == [
+        "--ro-bind",
+        str(prefix.resolve()),
+        str(prefix.resolve()),
+        "--ro-bind",
+        str(interpreter.resolve()),
+        str(interpreter.resolve()),
+    ]
+
+
+@needs_bwrap
+def test_external_prefix_script_runs_only_when_the_tree_is_bound(
+    tmp_path: Path,
+) -> None:
+    """The Ubuntu 26 diagnostic rc 127 was an unbound interpreter, not a cap failure."""
+    from lumos_board.observer_sandbox import _run_bwrap_payload
+
+    prefix = tmp_path / "hostedtoolcache" / "Python"
+    tool = prefix / "bin" / "python"
+    tool.parent.mkdir(parents=True)
+    tool.write_text("#!/bin/sh\necho probe-ran\n", encoding="utf-8")
+    tool.chmod(0o755)
+    roots: list[str] = []
+    for host in ("/usr", "/bin", "/lib", "/lib64"):
+        if Path(host).exists():
+            roots += ["--ro-bind", host, host]
+    missing = _run_bwrap_payload(
+        [*_bwrap_isolation_prefix(), *roots, "--clearenv"],
+        [str(tool.resolve())],
+        timeout=30,
+    )
+    assert missing.returncode != 0
+    assert missing.stdout == b""
+    ran = _run_bwrap_payload(
+        [
+            *_bwrap_isolation_prefix(),
+            *roots,
+            *_ro_binds_for_probe_runtime(prefix, tool),
+            "--clearenv",
+        ],
+        [str(tool.resolve())],
+        timeout=30,
+    )
+    assert ran.returncode == 0, ran.stderr
+    assert ran.stdout.decode().strip() == "probe-ran"
 
 
 @needs_bwrap
@@ -341,13 +469,10 @@ def test_network_unshared_fail_closed(repo: Path) -> None:
     t = threading.Thread(target=_accept, daemon=True)
     t.start()
     try:
-        assert _bwrap_tcp_probe(port, unshare_net=False, allowed_root=repo) == 0, (
-            "control bwrap without --unshare-net must reach 127.0.0.1 "
-            "(otherwise this host cannot prove network isolation)"
-        )
-        assert _bwrap_tcp_probe(port, unshare_net=True, allowed_root=repo) != 0, (
-            "--unshare-net must block localhost TCP"
-        )
+        opened = _bwrap_tcp_probe(port, unshare_net=False, allowed_root=repo)
+        assert opened.returncode == 0, _payload_did_not_run(opened)
+        blocked = _bwrap_tcp_probe(port, unshare_net=True, allowed_root=repo)
+        assert blocked.returncode not in {0, 127}, _payload_did_not_run(blocked)
         # Production API path includes --unshare-net (git cannot reach loopback HTTP).
         httpd = HTTPServer(("127.0.0.1", 0), BaseHTTPRequestHandler)
         http_port = httpd.server_address[1]
@@ -531,8 +656,10 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
     def _wrap(*args, **kwargs):  # type: ignore[no-untyped-def]
         cmd = list(args[0] if args else kwargs.get("args") or [])
         stdin = kwargs.get("stdin")
-        stdin_is_pipe = isinstance(stdin, int) and stdin >= 0 and stat.S_ISFIFO(
-            os.fstat(stdin).st_mode
+        stdin_is_pipe = (
+            isinstance(stdin, int)
+            and stdin >= 0
+            and stat.S_ISFIFO(os.fstat(stdin).st_mode)
         )
         seen.append((cmd, stdin, stdin_is_pipe, kwargs.get("preexec_fn")))
         return real_run(*args, **kwargs)
@@ -575,9 +702,7 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
         assert "--unshare-user" in cmd
         assert "--disable-userns" in cmd
         assert cmd.index("--unshare-user") < cmd.index("--disable-userns")
-        remounts = [
-            cmd[i + 1] for i, part in enumerate(cmd) if part == "--remount-ro"
-        ]
+        remounts = [cmd[i + 1] for i, part in enumerate(cmd) if part == "--remount-ro"]
         assert "/dev" in remounts
         assert "/" in remounts
         root_ro = next(
@@ -593,9 +718,7 @@ def test_sandbox_uses_new_session_and_non_tty_stdin(
         assert stdin_is_pipe, f"stdin {stdin!r} is not the sentinel pipe"
         assert preexec is _join_fresh_session_keyring
         wrapper = next(
-            part
-            for part in cmd
-            if isinstance(part, str) and "exec </dev/null" in part
+            part for part in cmd if isinstance(part, str) and "exec </dev/null" in part
         )
         assert ">&0;" in wrapper
 
@@ -895,9 +1018,7 @@ def test_key_seccomp_filter_denies_x32_syscall_bit() -> None:
     keep = _SECCOMP_KEEP
     assert keep is not None
     arr, _prog = keep
-    assert any(
-        ins.code == _BPF_JMP_JSET_K and ins.k == _X32_SYSCALL_BIT for ins in arr
-    )
+    assert any(ins.code == _BPF_JMP_JSET_K and ins.k == _X32_SYSCALL_BIT for ins in arr)
 
 
 def test_x32_keyctl_not_readable_after_preexec() -> None:
@@ -1220,9 +1341,7 @@ def test_probe_hang_degrades_not_block(
         return pid, int(signal.SIGKILL)
 
     monkeypatch.setattr(sandbox.os, "waitpid", _waitpid)
-    monkeypatch.setattr(
-        sandbox.os, "kill", lambda pid, sig: killed.append((pid, sig))
-    )
+    monkeypatch.setattr(sandbox.os, "kill", lambda pid, sig: killed.append((pid, sig)))
 
     def _fake_run(*args, **kwargs):  # type: ignore[no-untyped-def]
         command = list(args[0] if args else kwargs["args"])
@@ -1577,7 +1696,9 @@ def test_tmpfs_is_size_capped(tmp_path: Path) -> None:
         "print(n)\n"
     )
     proc = _bwrap_probe([_probe_interpreter(), "-c", code], timeout=60)
-    written = int(proc.stdout.decode().strip() or "0")
+    text = proc.stdout.decode().strip()
+    assert text, _payload_did_not_run(proc)
+    written = int(text)
     assert 0 < written < attempts, f"tmpfs sınırsız görünüyor: {written}/{attempts}"
 
 
@@ -1597,7 +1718,9 @@ def test_dev_shm_is_size_capped(tmp_path: Path) -> None:
         "print(n)\n"
     )
     proc = _bwrap_probe([_probe_interpreter(), "-c", code], timeout=60)
-    written = int(proc.stdout.decode().strip() or "0")
+    text = proc.stdout.decode().strip()
+    assert text, _payload_did_not_run(proc)
+    written = int(text)
     assert 0 < written < attempts, f"/dev/shm sınırsız görünüyor: {written}/{attempts}"
 
 
@@ -1613,9 +1736,15 @@ def test_setup_failure_is_unavailable_but_git_error_is_a_result(repo: Path) -> N
     from lumos_board.observer_sandbox import _bwrap_isolation_prefix, _run_bwrap_payload
 
     prefix = _bwrap_isolation_prefix() + [
-        "--ro-bind", "/nonexistent-lumos-test-path", "/x",
-        "--ro-bind", "/usr", "/usr",
-        "--ro-bind", "/bin", "/bin",
+        "--ro-bind",
+        "/nonexistent-lumos-test-path",
+        "/x",
+        "--ro-bind",
+        "/usr",
+        "/usr",
+        "--ro-bind",
+        "/bin",
+        "/bin",
     ]
     with pytest.raises(SandboxUnavailableError, match="failed to start"):
         _run_bwrap_payload(prefix, ["/bin/true"], timeout=15)
@@ -1682,7 +1811,9 @@ def test_dev_root_is_readonly_but_device_nodes_still_write(tmp_path: Path) -> No
         "print(dev_write, devnull, shm)\n"
     )
     proc = _bwrap_probe([_probe_interpreter(), "-c", code], timeout=30)
-    assert proc.stdout.decode().split() == ["False", "True", "True"]
+    parts = proc.stdout.decode().split()
+    assert parts, _payload_did_not_run(proc)
+    assert parts == ["False", "True", "True"]
 
 
 @needs_bwrap
@@ -1709,6 +1840,7 @@ def test_jail_root_is_size_capped_and_readonly(tmp_path: Path) -> None:
     )
     proc = _bwrap_probe([_probe_interpreter(), "-c", code], timeout=30)
     parts = proc.stdout.decode().split()
+    assert len(parts) == 3, _payload_did_not_run(proc) if not parts else proc.stdout
     assert parts[0] == "False", proc.stdout
     assert parts[1] == "True", proc.stdout
     assert int(parts[2]) <= _TMPFS_BYTES
@@ -1786,6 +1918,7 @@ def test_observer_runs_when_cgroup_unavailable(
     per-process rlimit'lerle koşmaya devam etmeli — SandboxUnavailableError
     DEĞİL — ve launcher cgroup'a taşınmamalı (cgroup.procs komutta yok).
     """
+
     def _no_cgroup() -> Path:
         raise SandboxUnavailableError("forced: no delegated cgroup for test")
 
@@ -1801,7 +1934,9 @@ def test_observer_runs_when_cgroup_unavailable(
         return real_run(*args, **kwargs)
 
     monkeypatch.setattr(subprocess, "run", _wrap)
-    result = run_git_sandboxed(["status", "--porcelain"], cwd=repo, allowed_roots=[repo])
+    result = run_git_sandboxed(
+        ["status", "--porcelain"], cwd=repo, allowed_roots=[repo]
+    )
     assert result.returncode == 0  # observer çalıştı, tur atlanmadı
     launcher = next((c for c in seen if any("bwrap" in Path(p).name for p in c)), None)
     assert launcher is not None
@@ -1821,7 +1956,9 @@ def test_timeout_after_start_is_result_real_bwrap(repo: Path) -> None:
     _git(repo, "add", "-A")
     _git(repo, "commit", "-m", "hang")
     _git(repo, "config", "filter.sleeper.clean", "sleep 30")
-    (repo / "hangme").write_text("v2\n", encoding="utf-8")  # unstaged: clean filter koşar
+    (repo / "hangme").write_text(
+        "v2\n", encoding="utf-8"
+    )  # unstaged: clean filter koşar
 
     result = run_git_sandboxed(
         ["diff", "--", "hangme"], cwd=repo, allowed_roots=[repo], timeout=3
