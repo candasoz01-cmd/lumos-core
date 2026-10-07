@@ -5,11 +5,15 @@ from __future__ import annotations
 import json
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.client import HTTPException
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 PORT = int(os.environ.get("RELAY_PORT", "8766"))
-BRIDGE_URL = os.environ.get("BRIDGE_URL", "http://localhost:8765")
+_bridge_url = urlsplit((os.environ.get("BRIDGE_URL") or "http://localhost:8765/task").strip())
+# Older local configs specified only the origin; POST / is not a task route.
+BRIDGE_URL = urlunsplit(_bridge_url._replace(path="/task" if _bridge_url.path in ("", "/") else _bridge_url.path))
 
 
 def _preview(s: str, max_len: int = 96) -> str:
@@ -22,6 +26,13 @@ class _RelayHTTPServer(HTTPServer):
 
 
 class Handler(BaseHTTPRequestHandler):
+    def _forward_response(self, status: int, body: bytes, content_type: str) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def log_message(self, format: str, *args: object) -> None:
         print(f"[relay] {self.address_string()} — {format % args}", flush=True)
 
@@ -74,22 +85,24 @@ class Handler(BaseHTTPRequestHandler):
         )
         try:
             with urlopen(req, timeout=120) as resp:
-                if resp.status != 200:
-                    raise OSError(f"bridge HTTP {resp.status}")
-        except (HTTPError, URLError, OSError) as e:
+                status = resp.status
+                body = resp.read()
+                content_type = resp.headers.get("Content-Type", "application/json")
+        except HTTPError as e:
+            self._forward_response(e.code, e.read(), e.headers.get("Content-Type", "application/json"))
+            return
+        except (URLError, OSError, HTTPException) as e:
             self.send_response(502)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.end_headers()
-            msg = f"bridge unreachable: {e}"
+            msg = f"bridge response unavailable; delivery uncertain, not retried: {e}"
             self.wfile.write(msg.encode("utf-8", errors="replace"))
             print(f"[relay] 502 → {BRIDGE_URL} ({e})", flush=True)
             return
 
-        self.send_response(200)
-        self.send_header("Content-Type", "text/plain; charset=utf-8")
-        self.end_headers()
-        self.wfile.write(b"ok")
-        print(f"[relay] ok goal={_preview(goal)} → {BRIDGE_URL}", flush=True)
+        # Preserve accepted/pending/failure/job_id; HTTP 200 is not completion.
+        self._forward_response(status, body, content_type)
+        print(f"[relay] bridge HTTP {status} goal={_preview(goal)} → {BRIDGE_URL}", flush=True)
 
 
 def run() -> None:

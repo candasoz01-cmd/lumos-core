@@ -6,15 +6,15 @@ import umbrella from "./umbrella/en";
 
 const en: MessageTree = {
   meta: {
-    landingTitle: "We Lock AI — Human-Centered AI Ecosystem",
+    landingTitle: "Lumos — control layer",
     description:
-      "We Lock AI is a human-centered AI ecosystem. Lumos is its end-user product for chat, tasks, files, and connected work in one place.",
-    ogTitle: "We Lock AI — Human-Centered AI Ecosystem",
+      "Lumos is not a new artificial intelligence. It does not run its own model. Hosted chat sends the message and the signed-in name to a model API when a key is set; the chat handler itself does not write it to a database, and a “remember” summary goes to the separate memory service.",
+    ogTitle: "Lumos — control layer",
     ogDescription:
-      "We Lock AI is a human-centered AI ecosystem. Lumos is its end-user product for chat, tasks, files, and connected work in one place.",
-    twitterTitle: "We Lock AI — Human-Centered AI Ecosystem",
+      "Lumos is not a new artificial intelligence. It does not run its own model. Hosted chat sends the message and the signed-in name to a model API when a key is set; the chat handler itself does not write it to a database, and a “remember” summary goes to the separate memory service.",
+    twitterTitle: "Lumos — control layer",
     twitterDescription:
-      "We Lock AI is a human-centered AI ecosystem. Lumos is its end-user product for chat, tasks, files, and connected work in one place.",
+      "Lumos is not a new artificial intelligence. It does not run its own model. Hosted chat sends the message and the signed-in name to a model API when a key is set; the chat handler itself does not write it to a database, and a “remember” summary goes to the separate memory service.",
   },
   lang: {
     switchLabel: "Language",
@@ -32,8 +32,8 @@ const en: MessageTree = {
     ecosystem: "Trust",
     panel: "Open Lumos",
     github: "GitHub",
-    brandAria: "We Lock AI — top of page",
-    brandTitle: "We Lock AI",
+    brandAria: "Lumos AI — top of page",
+    brandTitle: "Lumos AI",
     brandSub: "AI ECOSYSTEM",
   },
   hero: {
@@ -41,8 +41,11 @@ const en: MessageTree = {
     title: "Lumos",
     subtitle: "AI control layer",
     lead1:
-      "Lumos isn't another AI. It's the shared layer that runs the AI you already use (ChatGPT, Copilot, and others) safely, auditably, and under your control.",
-    lead2: "The decision stays with you. Lumos makes risk, context, and next steps visible.",
+      "Lumos is not a new artificial intelligence. It does not run its own model. When a key is set, your message goes to a model API.",
+    lead2:
+      "The chat handler itself does not write the message to a database; a “remember” summary goes to the separate memory service. The response does not include a provider or model name.",
+    lead3:
+      "The confirmation layer does not run unless its environment flag is on. A chat reply is not held for a separate approval step.",
     pillar: "One panel · Multiple flows · User control",
     audience: "Right now: open source for developers · on the roadmap for organizations · end-user package coming soon.",
     ctaPanel: "Open Lumos Panel",

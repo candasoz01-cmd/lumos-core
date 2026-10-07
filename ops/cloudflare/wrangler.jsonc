@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "lumos-company",
+  "account_id": "629f2cad718a754d9e96175641afd4a0",
+  "routes": [{"pattern": "lumosai.company", "custom_domain": true}],
+  "main": "company-worker.mjs",
+  "compatibility_date": "2026-09-23",
+  "workers_dev": false,
+  "preview_urls": false,
+  "build": {"command": "python3 build_company.py"},
+  "assets": {
+    "directory": "./.generated/site",
+    "binding": "ASSETS",
+    "run_worker_first": true,
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  },
+  "vars": {"INDEXABLE": "true"}
+}

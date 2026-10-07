@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-ChatGPT → pano / stdin → relay (8766) → bridge → watcher → Kando → outbox özeti.
+ChatGPT → pano / stdin → relay (8766) → bridge → Kando → outbox özeti.
 
 ChatGPT masaüstü veya web uygulaması yerel HTTP ile komut göndermez; doğrudan entegrasyon yoktur.
-Çalışan MVP: panoyu izle (--watch) veya panodan tek sefer (--clipboard); görev satırı KANDO>> ile başlar.
+Panoyu izle (--watch) veya panodan tek sefer (--clipboard); görev satırı CORE>> ile başlar.
 """
 from __future__ import annotations
 
@@ -13,20 +13,23 @@ import sys
 import time
 
 from kando.relay_outbox_client import (
+    RelayResultError,
     env_float,
     expected_goal_inbox,
     macos_notify,
     mtime,
+    outbox_bytes_mark,
     outbox_paths,
     post_relay,
     print_summary,
     relay_url,
     repo_root_from_kando_file,
-    wait_for_new_outbox,
+    tag_request,
+    wait_for_relay_result,
 )
 
 _DEFAULT_WAIT_SEC = 600.0
-_DEFAULT_PREFIX = "KANDO>>"
+_DEFAULT_PREFIX = "CORE>>"
 _MIN_GOAL_LEN = 8
 
 
@@ -55,28 +58,52 @@ def _strip_prefix(raw: str, prefix: str) -> str | None:
 
 
 def _run_pipeline(goal: str, *, root, relay: str, wait_sec: float, notify: bool) -> int:
-    goal_tagged = f"{goal.strip()} [{int(time.time())}]"
+    goal_tagged = tag_request(goal)
     oe, or_ = outbox_paths(root)
     prev_e = mtime(oe)
     prev_r = mtime(or_)
+    mark_e = outbox_bytes_mark(oe)
+    mark_r = outbox_bytes_mark(or_)
     print("[local_chat_relay] relay'e gönderiliyor …", flush=True)
     try:
-        post_relay(relay, goal_tagged)
+        receipt = post_relay(relay, goal_tagged)
     except RuntimeError as e:
         print(str(e), file=sys.stderr)
         if notify:
             macos_notify("Kando relay", f"Hata: {str(e)[:120]}")
         return 4
     print("[local_chat_relay] outbox bekleniyor …", flush=True)
-    if not wait_for_new_outbox(prev_e, prev_r, goal_tagged, wait_sec, root=root):
+    try:
+        snapshot = wait_for_relay_result(
+            receipt,
+            prev_e,
+            prev_r,
+            goal_tagged,
+            wait_sec,
+            root=root,
+            prev_exec_mark=mark_e,
+            prev_res_mark=mark_r,
+        )
+    except RelayResultError as e:
+        print(str(e), file=sys.stderr)
+        if notify:
+            macos_notify("Kando", str(e))
+        return e.exit_code
+    if snapshot is None:
         msg = (
-            f"Zaman aşımı veya goal eşleşmedi ({expected_goal_inbox(goal_tagged)[:80]}…)"
+            f"Zaman aşımı veya ilişkili sonuç yok ({expected_goal_inbox(goal_tagged)}). "
+            "Teslim belirsiz; otomatik yeniden gönderilmedi. Yeniden göndermeden önce sonucu inceleyin."
         )
         print(msg, file=sys.stderr)
         if notify:
             macos_notify("Kando", "Zaman aşımı veya eşleşme yok")
         return 5
-    print_summary(root=root)
+    print_summary(snapshot=snapshot)
+    if not snapshot.succeeded:
+        print("Sonuç alındı; görev başarıyla tamamlanmadı. Otomatik yeniden gönderilmedi.", file=sys.stderr)
+        if notify:
+            macos_notify("Kando", "Görev başarıyla tamamlanmadı; terminalde sonucu inceleyin.")
+        return 6
     if notify:
         macos_notify("Kando", "Görev tamamlandı; terminalde özet var.")
     return 0
@@ -86,7 +113,7 @@ def main() -> int:
     if sys.platform != "darwin":
         print(
             "Bu script pano için macOS (pbpaste) kullanır. "
-            "stdin modu: echo 'KANDO>>...' | PYTHONPATH=src python scripts/local_chat_relay.py --stdin",
+            "stdin modu: echo 'CORE>>...' | PYTHONPATH=src python scripts/local_chat_relay.py --stdin",
             file=sys.stderr,
         )
 
@@ -94,17 +121,17 @@ def main() -> int:
     ap.add_argument(
         "--watch",
         action="store_true",
-        help="Panoyu periyodik oku; KANDO>> ile başlayan yeni içerikte relay tetikle.",
+        help="Panoyu periyodik oku; CORE>> (veya LUMOS_CLIPBOARD_PREFIX) ile başlayan yeni içeriği gönder.",
     )
     ap.add_argument(
         "--clipboard",
         action="store_true",
-        help="Tek sefer pbpaste oku ve gönder (KANDO>> zorunlu).",
+        help="Tek sefer pbpaste oku ve gönder (CORE>> veya LUMOS_CLIPBOARD_PREFIX zorunlu).",
     )
     ap.add_argument(
         "--stdin",
         action="store_true",
-        help="stdin'den tüm metni oku (KANDO>> zorunlu).",
+        help="stdin'den tüm metni oku (CORE>> veya LUMOS_CLIPBOARD_PREFIX zorunlu).",
     )
     ap.add_argument(
         "--no-notify",
@@ -127,7 +154,7 @@ def main() -> int:
         print(
             f"[local_chat_relay] İzleme: pano her {poll:.1f}s; görev '{prefix}' ile başlamalı.\n"
             f"Relay: {relay}\n"
-            "ChatGPT yanıtını kopyalayın; ilk satıra KANDO>> ekleyin, ardından görev metni.\n"
+            f"ChatGPT yanıtını kopyalayın; ilk satıra {prefix} ekleyin, ardından görev metni.\n"
             "Durdurmak: Ctrl+C\n",
             flush=True,
         )
@@ -142,7 +169,10 @@ def main() -> int:
             if goal is None:
                 continue
             print(f"\n[local_chat_relay] Yeni görev algılandı ({len(goal)} karakter)\n", flush=True)
-            _run_pipeline(goal, root=root, relay=relay, wait_sec=wait_sec, notify=notify)
+            code = _run_pipeline(goal, root=root, relay=relay, wait_sec=wait_sec, notify=notify)
+            if code:
+                # Stop the watcher so copying the same uncertain request cannot resend it.
+                return code
 
     elif args.clipboard:
         if sys.platform != "darwin":
@@ -172,7 +202,7 @@ def main() -> int:
     else:
         ap.print_help()
         print(
-            "\nÖrnek: ChatGPT'den yanıtı kopyala (başına KANDO>> ekle), sonra:\n"
+            f"\nÖrnek: ChatGPT'den yanıtı kopyala (başına {prefix} ekle), sonra:\n"
             "  PYTHONPATH=src python scripts/local_chat_relay.py --clipboard\n",
             file=sys.stderr,
         )

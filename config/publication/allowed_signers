@@ -1,9 +1,7 @@
 # Lumos yayın kapısı — onay imzası güven kökü.
 #
-# KAPALI VARSAYILAN (2026-09-18): şu an HİÇBİR imza kökü kayıtlı değildir.
-# Geçerli ve güvenilir onay altyapısı (yalnız insan etkileşimiyle kullanılabilen,
-# ajan erişimi olmayan özel imza anahtarı) kurulana kadar tüm yayın onayı ve
-# istisna talepleri reddedilir.
+# Yayın imza kökü (2026-09-29): aşağıdaki founder satırı Secretive/Secure Enclave
+# içindeki ayrı yayın anahtarıdır. GitHub genel amaçlı anahtarı değildir.
 #
 # Önceki kayıt (kurucunun genel amaçlı GitHub anahtarı,
 # SHA256:fCmMHAEP2k865znMPpzZdBZEdEVSLQVST9WT/hHhNHc) 2026-09-18'de geliştirme
@@ -12,3 +10,4 @@
 # yeniden kaydı kapı bulgusudur.
 #
 # Yeni kök kaydı prosedürü: docs/PUBLICATION_GATE.md § İnsan onayı.
+founder ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBLZ1vTjcInDLj5ZIyBpJVyxFpWYiwNoNGFWAPkDb5ipIXV6fxGCeeOxgfw+UZXiEfSqJ63m3jSUC2SldssFuW50=

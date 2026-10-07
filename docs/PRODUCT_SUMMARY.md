@@ -1,6 +1,8 @@
 # Lumos — Ürün Özeti
 
-Kişisel yapay zekâ paneli; kontrolsüz otonom ajan değil, **kontrollü gelişen panel**. Erken aşamada odak: **Faz A** — görev ve plan.
+Lumos yeni bir yapay zekâ değildir ve kendi modelini çalıştırmaz. Bugünkü veri davranışı [data-and-trust.md](data-and-trust.md) dosyasındadır. Bu özetin geri kalanı ürün yönüdür; orada “uygulanır” denmeyen bir kontrol, sitede de uygulanıyormuş gibi yazılmaz.
+
+Kişisel panel; kontrolsüz otonom ajan değil. Erken aşamada odak: **Faz A** — görev ve plan.
 
 ---
 
@@ -38,7 +40,7 @@ Lumos, kullanıcının çalışma alanında **güvenilir, şeffaf ve izinli** bi
 
 ## Kullanıcı onayı ilkesi
 
-Tüm kalıcı, riskli veya geri dönüşü zor adımlarda **son karar kullanıcıdadır**. Katmanlar: yalnızca cevap → analiz → öner, bekle → açık onayla uygula → asla dokunma. Sessiz araştırma ve not serbesttir; **sessiz uygulama yoktur** — kod, state veya dış sistemde değişiklik için açık onay veya net komut gerekir.
+Onay katmanı yalnız `LUMOS_CONFIRMATION_ENABLED` açıkken çalışır. Barındırılan sohbet yanıtı ayrı onay beklemez. Görev motoru, `SECURITY_NEVER_AUTO` ile eşleşen adımı durdurur; motor dalı `permanent_delete` üyesini bu kontrolün dışında tutar. Sonraki cümle ürün yönüdür, çalışan kontrol listesi değildir: yalnızca cevap, sonra analiz, sonra öneri.
 
 ---
 
