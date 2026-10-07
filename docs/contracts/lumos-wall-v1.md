@@ -290,10 +290,18 @@ eski döndürülmüş dosyalar korunur. Panel ve görev motorunun kanıtlı yaz�
 kanıt parametresi verilmemiş eski yazımlar ayrıca kapsam denetimi gerektirir.
 
 **Uygulama sınırı:** Yerel arşiv ve Git teslimi sağlayıcı snapshot'ını veya
-GitHub admin silmesini engellemez. Bütün dış araç çağrılarını zorunlu olarak
-saran çalışma zamanı geçidi ve otomatik bağımsız uzak arşivleme bu değişiklikte
-yoktur; bu nedenle “sistem çapında aktif” raporlanmaz. Kaynak commit bulunmadan
-metin karşılaştırması byte düzeyinde özgün commit doğrulaması sayılmaz.
+GitHub admin silmesini engellemez. GitHub temizliği 80/90 güne sabitlenmez.
+`layer1a.yml` ve `bridge-llm-observe.yml` artifact `retention-days` değeri
+bugün 14'tür; kurum veya repo politikası okunamazsa UNKNOWN kalır. Nesnenin
+kendi `expires_at` değeri ile bilinen politika tarihinin erken olanı, tekrar
+deneme payı düşülerek kopyanın bitmesi gereken andır. `lumos_board.evidence_archive`
+yazıcı kopyalar; `observe_archive` arşive yazmadan kaynağı ve kopyayı yeniden
+okur. “Kaydedildi” beyanı doğrulama değildir. Uzak hedef
+`candasoz01-cmd/lumos-wall-evidence` yapılandırılmadıkça veya erişilemedikçe
+bu yol sistem çapında aktif değildir. Kaynak silme, bağımsız doğrulama ve
+mevcut kurucu onay kapısı (`deletion_blockers`) geçmeden yapılmaz; arşiv
+kopyası silinmez. Kaynak commit bulunmadan metin karşılaştırması byte
+düzeyinde özgün commit doğrulaması sayılmaz.
 
 Dosya/klasör `move_to_trash` yolu kaynak-hedef, ortak işlem kimliği ve içerik
 manifestini saklar. Aynı dosya sisteminde rename; farklı dosya sisteminde
