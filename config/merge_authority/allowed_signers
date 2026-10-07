@@ -1,0 +1,15 @@
+# Lumos merge-authority — güven kökü (ADR-035, TD-20).
+#
+# KAPALI VARSAYILAN: şu an HİÇBİR imza kökü kayıtlı değildir; doğrulayıcı her
+# onayı NO_ENROLLED_SIGNER ile reddeder.
+#
+# Yayın kapısının kökünden (config/publication/allowed_signers) AYRIDIR: iki
+# ayrı yetki, iki ayrı kök. Aynı insan-kapılı altyapıdan yararlanabilirler ama
+# bir imza öteki namespace'te geçmez.
+#
+# Kayıt yalnız kurucu kararıyla yapılır. Anahtar: yalnız insan etkileşimiyle
+# (biyometri / donanım) kullanılabilen, ajanların erişemediği özel anahtar.
+# Genel amaçlı GitHub anahtarı kök olamaz; iptal listesi
+# src/merge_authority/verify.py REVOKED_SIGNER_FINGERPRINTS.
+#
+# Biçim: principal namespaces="lumos-merge-authority" <anahtar-tipi> <blob>
