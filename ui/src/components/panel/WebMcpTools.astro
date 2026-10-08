@@ -54,6 +54,22 @@
       });
     }
 
+    const TOOL_CLASS = {
+      READ_ONLY: "read-only",
+      MUTATING: "mutating",
+      DESTRUCTIVE: "destructive",
+    };
+
+    /** TD-28: sınıfsız tool kayda girmez (yeni MCP özelliği değil, metadata kilidi). */
+    function toolClassOk(tool) {
+      const c = tool && tool.classification;
+      return (
+        c === TOOL_CLASS.READ_ONLY ||
+        c === TOOL_CLASS.MUTATING ||
+        c === TOOL_CLASS.DESTRUCTIVE
+      );
+    }
+
     /**
      * Panelin görev listesi — okuma da izne bağlıdır.
      *
@@ -64,6 +80,8 @@
      */
     const LIST_TASKS_TOOL = {
       name: "lumos-list-tasks",
+      classification: "read-only",
+      annotations: { readOnlyHint: true, destructiveHint: false },
       description:
         "Lists the tasks in the user's Lumos panel task board (title, priority, "
         + "status, optional schedule). Read-only: it never changes anything. "
@@ -84,6 +102,8 @@
     /** Görev önerisi — panelin insan onay modalinden geçer. */
     const PROPOSE_TASK_TOOL = {
       name: "lumos-propose-task",
+      classification: "mutating",
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description:
         "Proposes a new task for the user's Lumos panel task board. The task is "
         + "NOT created until the user approves it in the panel's own confirmation "
@@ -130,6 +150,8 @@
      */
     const COMPLETE_TASK_TOOL = {
       name: "lumos-complete-task",
+      classification: "mutating",
+      annotations: { readOnlyHint: false, destructiveHint: false },
       description:
         "Marks an existing Lumos panel task as completed. This tool needs the "
         + "user's board-sharing consent BEFORE it does anything: without that "
@@ -193,6 +215,13 @@
     async function registerAll(mc) {
       for (let i = 0; i < TOOLS.length; i++) {
         const tool = TOOLS[i];
+        if (!toolClassOk(tool)) {
+          status.failed.push({
+            name: tool && tool.name ? String(tool.name) : "unnamed",
+            error: "tool_classification_required",
+          });
+          continue;
+        }
         try {
           await mc.registerTool(tool);
           status.registered.push(tool.name);
