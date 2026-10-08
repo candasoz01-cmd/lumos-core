@@ -250,6 +250,26 @@ def _probe_interpreter() -> str:
     return str(Path(sys.executable).resolve())
 
 
+def _probe_interpreter_jail_args(interpreter: str) -> tuple[list[str], list[str]]:
+    """Bind + env args that make `interpreter` runnable inside the probe jail.
+
+    Under /usr or /bin the host binds already cover it. A toolcache or pyenv
+    Python (e.g. /opt/hostedtoolcache/Python/3.12.x/x64 on GitHub runners)
+    lives outside them: without its install prefix the jail cannot exec it
+    and every probe test sees empty stdout / exit 127 — a harness gap, not a
+    sandbox result. Bind the prefix read-only and point the loader at its lib.
+    """
+    if interpreter.startswith(("/usr/", "/bin/")):
+        return [], []
+    prefix = Path(interpreter).parent.parent
+    if prefix == Path("/"):
+        return ["--ro-bind", interpreter, interpreter], []
+    return (
+        ["--ro-bind", str(prefix), str(prefix)],
+        ["--setenv", "LD_LIBRARY_PATH", str(prefix / "lib")],
+    )
+
+
 def _bwrap_probe(inner: list[str], *, timeout: float):
     from lumos_board.observer_sandbox import _bwrap_isolation_prefix, _run_bwrap_payload
 
@@ -257,11 +277,19 @@ def _bwrap_probe(inner: list[str], *, timeout: float):
     for host in ("/usr", "/bin", "/lib", "/lib64"):
         if Path(host).exists():
             cmd += ["--ro-bind", host, host]
-    cmd += ["--clearenv"]
-    return _run_bwrap_payload(cmd, inner, timeout=timeout)
+    binds, env = _probe_interpreter_jail_args(inner[0])
+    cmd += binds + ["--clearenv"] + env
+    proc = _run_bwrap_payload(cmd, inner, timeout=timeout)
+    assert proc.returncode == 0 and proc.stdout.strip(), (
+        f"probe payload failed or produced no output (rc={proc.returncode}): "
+        f"{proc.stderr.decode(errors='replace')[-500:]}"
+    )
+    return proc
 
 
-def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int:
+def _bwrap_tcp_probe(
+    port: int, *, unshare_net: bool, allowed_root: Path
+) -> subprocess.CompletedProcess[bytes]:
     """Same bind shape as the MVP motor; optional --unshare-net for contrast."""
     interpreter = _probe_interpreter()
     cmd: list[str] = [
@@ -287,14 +315,15 @@ def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int
     if Path("/lib64").exists():
         cmd += ["--ro-bind", "/lib64", "/lib64"]
     cmd += ["--ro-bind", str(allowed_root), str(allowed_root)]
-    if not (interpreter.startswith("/usr/") or interpreter.startswith("/bin/")):
-        cmd += ["--ro-bind", interpreter, interpreter]
+    binds, env = _probe_interpreter_jail_args(interpreter)
+    cmd += binds
     if unshare_net:
         cmd.append("--unshare-net")
     cmd += [
         "--chdir",
         str(allowed_root),
         "--clearenv",
+        *env,
         "--setenv",
         "PATH",
         "/usr/bin:/bin",
@@ -310,7 +339,74 @@ def _bwrap_tcp_probe(port: int, *, unshare_net: bool, allowed_root: Path) -> int
             f"  sys.exit(2)\n"
         ),
     ]
-    return subprocess.run(cmd, capture_output=True, check=False, timeout=15).returncode
+    return subprocess.run(cmd, capture_output=True, check=False, timeout=15)
+
+
+@pytest.mark.parametrize("interpreter", ["/usr/bin/python3", "/bin/python3"])
+def test_standard_probe_interpreter_needs_no_extra_bind(interpreter: str) -> None:
+    assert _probe_interpreter_jail_args(interpreter) == ([], [])
+
+
+def test_external_probe_prefix_includes_library_path(tmp_path: Path) -> None:
+    prefix = tmp_path / "hostedtoolcache" / "Python" / "3.12" / "x64"
+    assert _probe_interpreter_jail_args(str(prefix / "bin" / "python")) == (
+        ["--ro-bind", str(prefix), str(prefix)],
+        ["--setenv", "LD_LIBRARY_PATH", str(prefix / "lib")],
+    )
+
+
+@pytest.mark.parametrize("rc, stdout", [(127, b""), (1, b"partial"), (0, b"")])
+def test_probe_rejects_failed_or_silent_payload(
+    monkeypatch: pytest.MonkeyPatch, rc: int, stdout: bytes
+) -> None:
+    monkeypatch.setattr("lumos_board.observer_sandbox._bwrap_isolation_prefix", lambda: [])
+    monkeypatch.setattr(
+        "lumos_board.observer_sandbox._run_bwrap_payload",
+        lambda *args, **kwargs: subprocess.CompletedProcess([], rc, stdout, b"diagnostic"),
+    )
+    with pytest.raises(AssertionError, match=rf"rc={rc}.*diagnostic"):
+        _bwrap_probe(["/usr/bin/python3", "-c", "print(1)"], timeout=1)
+
+
+@pytest.mark.parametrize("rc", [0, 1, 127, -9])
+def test_network_probe_rejects_non_denial_exit(
+    repo: Path, monkeypatch: pytest.MonkeyPatch, rc: int
+) -> None:
+    monkeypatch.setitem(
+        globals(), "_bwrap_tcp_probe",
+        lambda port, *, unshare_net, allowed_root: subprocess.CompletedProcess(
+            [], rc if unshare_net else 0, b"", b"diagnostic"
+        ),
+    )
+    with pytest.raises(AssertionError, match="expected TCP denial from payload"):
+        test_network_unshared_fail_closed(repo)
+
+
+@needs_bwrap
+def test_external_probe_runtime_requires_prefix_tree(tmp_path: Path) -> None:
+    from lumos_board.observer_sandbox import _run_bwrap_payload
+
+    prefix = tmp_path.resolve() / "external-python"
+    tool = prefix / "bin" / "python"
+    tool.parent.mkdir(parents=True)
+    (prefix / "lib").mkdir()
+    (prefix / "lib" / "probe-data").write_text("probe-ran\n")
+    tool.write_text('#!/bin/sh\nexec cat "$LD_LIBRARY_PATH/probe-data"\n')
+    tool.chmod(0o755)
+    roots = [
+        part for host in ("/usr", "/bin", "/lib", "/lib64") if Path(host).exists()
+        for part in ("--ro-bind", host, host)
+    ]
+    jail = [*_bwrap_isolation_prefix(), *roots]
+    missing = _run_bwrap_payload([*jail, "--clearenv"], [str(tool)], timeout=30)
+    assert missing.returncode == 127, missing
+    assert missing.stdout == b""
+    binds, env = _probe_interpreter_jail_args(str(tool))
+    ran = _run_bwrap_payload(
+        [*jail, *binds, "--clearenv", *env], [str(tool)], timeout=30,
+    )
+    assert ran.returncode == 0, ran
+    assert ran.stdout == b"probe-ran\n"
 
 
 @needs_bwrap
@@ -341,13 +437,11 @@ def test_network_unshared_fail_closed(repo: Path) -> None:
     t = threading.Thread(target=_accept, daemon=True)
     t.start()
     try:
-        assert _bwrap_tcp_probe(port, unshare_net=False, allowed_root=repo) == 0, (
-            "control bwrap without --unshare-net must reach 127.0.0.1 "
-            "(otherwise this host cannot prove network isolation)"
-        )
-        assert _bwrap_tcp_probe(port, unshare_net=True, allowed_root=repo) != 0, (
-            "--unshare-net must block localhost TCP"
-        )
+        opened = _bwrap_tcp_probe(port, unshare_net=False, allowed_root=repo)
+        assert opened.returncode == 0, ("control probe failed", opened)
+        blocked = _bwrap_tcp_probe(port, unshare_net=True, allowed_root=repo)
+        # Only the payload's socket-error exit proves isolation; exec/setup errors do not.
+        assert blocked.returncode == 2, ("expected TCP denial from payload", blocked)
         # Production API path includes --unshare-net (git cannot reach loopback HTTP).
         httpd = HTTPServer(("127.0.0.1", 0), BaseHTTPRequestHandler)
         http_port = httpd.server_address[1]
@@ -1577,7 +1671,7 @@ def test_tmpfs_is_size_capped(tmp_path: Path) -> None:
         "print(n)\n"
     )
     proc = _bwrap_probe([_probe_interpreter(), "-c", code], timeout=60)
-    written = int(proc.stdout.decode().strip() or "0")
+    written = int(proc.stdout.decode().strip())
     assert 0 < written < attempts, f"tmpfs sınırsız görünüyor: {written}/{attempts}"
 
 
@@ -1597,7 +1691,7 @@ def test_dev_shm_is_size_capped(tmp_path: Path) -> None:
         "print(n)\n"
     )
     proc = _bwrap_probe([_probe_interpreter(), "-c", code], timeout=60)
-    written = int(proc.stdout.decode().strip() or "0")
+    written = int(proc.stdout.decode().strip())
     assert 0 < written < attempts, f"/dev/shm sınırsız görünüyor: {written}/{attempts}"
 
 

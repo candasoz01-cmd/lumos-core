@@ -156,8 +156,101 @@ def main():
     p = sub.add_parser('check')
     p.add_argument('--repo', required=True)
     p.add_argument('--archive', required=True)
+    p = sub.add_parser('checkpoint')
+    p.add_argument('--repo', required=True)
+    p.add_argument('--archive', required=True)
+    p.add_argument('--task', required=True)
+    p.add_argument('--report', required=True)
+    p.add_argument('--kind', choices=('interim', 'delivery'), required=True)
+    p.add_argument('--run-attempt', default='local')
+    p.add_argument('--extra', action='append', default=[])
+    p.add_argument('--base', default='')
+    p = sub.add_parser('verify')
+    p.add_argument('--repo', required=True)
+    p.add_argument('--archive', required=True)
+    p.add_argument('--task', required=True)
+    p.add_argument('--report', required=True)
+    p.add_argument('--commit', required=True)
+    p.add_argument('--run-attempt', default='local')
+    p.add_argument('--extra', action='append', default=[])
+    p.add_argument('--base', default='')
+    # Absent means no contract. An explicit empty snapshot is --expect-empty, not a missing flag.
+    p.add_argument('--expect-path', action='append', default=None)
+    p.add_argument('--expect-empty', action='store_true')
+    p = sub.add_parser('inventory')
+    p.add_argument('--archive', required=True)
     args = vars(parser.parse_args())
     command = args.pop('command')
+    if command in {'checkpoint', 'verify', 'inventory'}:
+        from lumos_board import evidence_archive as archive
+        try:
+            if command == 'checkpoint':
+                base = args.get('base') or None
+                result = archive.archive_report(
+                    Path(args['repo']), Path(args['archive']),
+                    task_id=args['task'], report_id=args['report'], report_kind=args['kind'],
+                    run_attempt=args['run_attempt'],
+                    extra_paths=list(args.get('extra') or []),
+                    scope_base=base,
+                )
+            elif command == 'verify':
+                # checkpoint, manifest'i <archive>/<report>/ altına yazar; aynı --archive burada da çalışır.
+                # Beklenen küme yalnız bu komutun argümanıdır. Arşivdeki hiçbir dosya kapsam otoritesi değildir.
+                report_key = archive.safe_report_id(args['report'])
+                report_dir = archive.archive_dir_for(Path(args['archive']), args['report'])
+                expect_paths = args.get('expect_path')
+                expect_empty = bool(args.get('expect_empty'))
+                supplied_base = args.get('base') or ''
+                contract = expect_empty or expect_paths is not None
+                if expect_empty and expect_paths is not None:
+                    contract = False
+                if not (report_dir / 'manifest.json').is_file():
+                    result = archive.observe_archive(
+                        Path(args['repo']), report_dir,
+                        expect={
+                            'task_id': args['task'], 'report_id': report_key,
+                            'commit': args['commit'], 'run_attempt': args['run_attempt'],
+                            'scope': {
+                                'paths': [], 'worktree': False, 'head': args['commit'],
+                                'task_id': args['task'], 'report_id': report_key,
+                                'commit': args['commit'], 'run_attempt': args['run_attempt'],
+                            },
+                        },
+                    )
+                elif not contract:
+                    result = {
+                        'schema': archive.SCHEMA, 'status': 'SCOPE_INCOMPLETE',
+                        'verified': False, 'scope_complete': False,
+                        'archive': str(report_dir), 'task_id': args['task'],
+                        'report_id': report_key, 'commit': args['commit'],
+                        'run_attempt': args['run_attempt'], 'files': [], 'excluded': [],
+                    }
+                else:
+                    scope = {
+                        'paths': [] if expect_empty else list(expect_paths),
+                        'worktree': True,
+                        'extra': list(args.get('extra') or []),
+                        'head': args['commit'],
+                        'task_id': args['task'],
+                        'report_id': report_key,
+                        'commit': args['commit'],
+                        'run_attempt': args['run_attempt'],
+                    }
+                    if supplied_base:
+                        scope['base'] = supplied_base
+                    result = archive.observe_archive(
+                        Path(args['repo']), report_dir,
+                        expect={'task_id': args['task'], 'report_id': report_key,
+                                'commit': args['commit'], 'run_attempt': args['run_attempt'],
+                                'scope': scope},
+                    )
+            else:
+                result = archive.inventory(Path(args['archive']))
+            print(json.dumps(result, ensure_ascii=False))
+        except (OSError, ValueError, subprocess.CalledProcessError) as exc:
+            print('DELIVERY_BLOCKED: ' + str(exc), file=sys.stderr)
+            return 2
+        return 0 if result.get('verified', True) else 2
     try:
         print(json.dumps(globals()[command](**args), ensure_ascii=False))
     except (OSError, ValueError, KeyError, subprocess.CalledProcessError) as exc:
