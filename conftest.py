@@ -64,6 +64,7 @@ import pytest
 # the tree and nobody classified it, so this rule cannot drift out of sight.
 _PROVIDER_CREDENTIAL_ENV = (
     "OPENAI_API_KEY",
+    "OPENAI_API_KEY_STT",
     "BRAVE_SEARCH_API_KEY",
     "BING_SEARCH_API_KEY",
     "GOOGLE_SEARCH_API_KEY",

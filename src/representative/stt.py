@@ -111,6 +111,10 @@ class OpenAICloudSTT:
         client_kw: dict[str, str] = {}
         if base_url:
             client_kw["base_url"] = base_url
+        # Dedicated STT key wins; otherwise the SDK falls back to OPENAI_API_KEY.
+        stt_key = (os.getenv("OPENAI_API_KEY_STT") or "").strip()
+        if stt_key:
+            client_kw["api_key"] = stt_key
         client = OpenAI(**client_kw)
         buf = io.BytesIO()
         with wave.open(buf, "wb") as w:
