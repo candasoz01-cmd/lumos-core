@@ -85,6 +85,7 @@ const userTranscript = (text) => ({
 });
 
 for (const command of [
+  "Kapat kendini", "Kapat kendini, bakayım.", "Lumos, lütfen kapat kendini.",
   "Kendini kapat", "Lumos, kendini kapat.", "Lütfen görüşmeyi bitir!",
   "Canlı görüşmeyi kapat", "Konuşmayı bitir", "Canlı sesi kapat",
   "Hoşça kal", "Hoşçakal, görüşürüz.", "Tamam, görüşürüz",
@@ -112,6 +113,8 @@ for (const command of [
 }
 
 for (const text of [
+  "Kapat kendini mi dedin", "Kapat kendini?", '“Kapat kendini”',
+  "Kapatma kendini", "Kapat kendini demedim", "Kapat kendini ama şimdi değil",
   "kendini kapat özelliğin var mı", "kendini kapat?", "görüşmeyi kapatma",
   "kendini kapatma", "görüşmeyi bitirme", "görüşmeyi bitir demedim",
   '"kendini kapat"', "“görüşürüz”", "‘hoşça kal’", "Kendini kapat cümlesini söyle",
