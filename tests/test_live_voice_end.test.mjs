@@ -89,6 +89,9 @@ for (const command of [
   "Canlı görüşmeyi kapat", "Konuşmayı bitir", "Canlı sesi kapat",
   "Hoşça kal", "Hoşçakal, görüşürüz.", "Tamam, görüşürüz",
   "Lumos lütfen kendini kapat", "KENDİNİ KAPAT", "  görüşürüz!  ",
+  "Hadi kendini kapat bakalım.", "Madem buradasın, kendini kapat bakayım.",
+  "Madem oradasın, lütfen görüşmeyi bitir.", "Kendini kapat kendini.",
+  "Tamam Lumos artık kendini kapat", "Şimdi canlı sesi kapat lütfen.",
 ]) {
   test(`spoken end releases microphone and closes the session: ${command}`, async () => {
     const s = await session();
@@ -116,6 +119,9 @@ for (const text of [
   "keşke kendini kapat", "sonra görüşürüz derim", "görüşürüz mü dedin",
   "arkadaşım hoşça kal dedi", "kendini kapat ama şimdi değil",
   "dur", "sus", "yeter", "tamam yeter", "sesi kapat", "oturumu kapat",
+  "Madem buradasın, kendini kapatma", "Hadi kendini kapat dersem ne olur",
+  "Kendini kapat bakalım mı dedin", "Şimdi kendini kapat demiyorum",
+  "Kendini kapat kendini dersem kapanır mısın", "Kendini kapat bakayım ama şimdi değil",
 ]) {
   test(`non-command remains with the existing iOS handler: ${text}`, async () => {
     const s = await session();
