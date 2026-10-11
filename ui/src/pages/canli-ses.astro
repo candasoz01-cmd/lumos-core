@@ -176,9 +176,13 @@ const title = "Canlı ses — Lumos";
         const stop = () => {
           stream?.getTracks().forEach((track) => track.stop());
           stream = null;
+          // Closing the peer must not re-enter stop through its state callback.
+          if (pc) pc.onconnectionstatechange = null;
+          eventsChannel?.close();
           pc?.close();
           pc = null;
           eventsChannel = null;
+          audio.pause();
           audio.muted = false;
           audio.srcObject = null;
           orb.dataset.live = "false";
@@ -188,6 +192,36 @@ const title = "Canlı ses — Lumos";
           modePicker.hidden = true;
           pushToTalkButton.hidden = true;
           setStatus("Yeniden başlatmak için Lumos uygulamasına dön.");
+        };
+
+        const isSpokenEndRequest = (text) => {
+          // Whole utterances only: never treat a mention, question, negation or
+          // quoted instruction as authority to close the microphone.
+          if (typeof text !== "string" || /[?"'“”‘’«»`]/u.test(text)) return false;
+          const normalized = text.trim().normalize("NFKC").toLocaleLowerCase("tr-TR")
+            .normalize("NFD").replace(/\p{M}/gu, "").replace(/ı/g, "i")
+            .replace(/[.!…]+$/u, "").replace(/,/g, " ").trim().replace(/\s+/g, " ");
+          return /^(?:(?:lumos|lutfen|tamam) ){0,2}(?:kendini kapat|(?:canli )?(?:gorusmeyi|konusmayi) (?:bitir|kapat)|canli sesi kapat|hosca ?kal(?: gorusuruz)?|gorusuruz)(?: lutfen)?$/.test(normalized);
+        };
+
+        const handleSpokenEnd = (message) => {
+          if (pc?.connectionState !== "connected") return;
+          let event;
+          try { event = JSON.parse(message.data); } catch { return; }
+          if (event?.type !== "conversation.item.input_audio_transcription.completed"
+              || !event.item_id || !isSpokenEndRequest(event.transcript)) return;
+          // Consume the local command before iOS can create a model response.
+          message.stopImmediatePropagation();
+          stop();
+        };
+
+        // Install before the iOS document-end script wraps this same method.
+        // RTCDataChannel listeners run in registration order, even with capture.
+        const createDataChannel = RTCPeerConnection.prototype.createDataChannel;
+        RTCPeerConnection.prototype.createDataChannel = function (label, options) {
+          const channel = createDataChannel.call(this, label, options);
+          if (label === "oai-events") channel.addEventListener("message", handleSpokenEnd);
+          return channel;
         };
 
         const start = async () => {

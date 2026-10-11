@@ -267,7 +267,7 @@ test("switching from held push-to-talk to auto restores remote audio", async () 
     RTCPeerConnection: class {
       addTrack() {}
       createDataChannel() {
-        return { readyState: "open", send: (message) => sent.push(JSON.parse(message)) };
+        return { readyState: "open", addEventListener() {}, send: (message) => sent.push(JSON.parse(message)) };
       }
       async createOffer() { return { sdp: "test-offer" }; }
       async setLocalDescription() {}
