@@ -84,7 +84,21 @@ const userTranscript = (text) => ({
   item_id: "synthetic-user-turn", transcript: text,
 });
 
+// Intent coverage is independent of the production grammar: permission,
+// imperative, joint decision and explicit request, in both word orders.
+const naturalEndRequests = [
+  "Kendini kapatabilirsin", "Lumos, artık kendini kapatabilirsin.",
+  "Kapatabilirsin kendini", "Tamam, kendini kapatmanı istiyorum.",
+  "Kendini kapatmanı rica ediyorum", "Görüşmeyi bitirebilirsin",
+  "Bitirebilirsin bu görüşmeyi", "Bu görüşmeyi bitirmeni istiyorum",
+  "Lütfen konuşmayı sonlandır", "Sonlandırabilirsin konuşmayı",
+  "Canlı sesi kapatabilirsin", "Bu sesli görüşmeyi sonlandıralım",
+  "Bu görüşmeyi kapatalım", "Lumos, sohbeti bitirelim.",
+  "Şimdi sesli sohbeti sonlandırmanı rica ediyorum",
+];
+
 for (const command of [
+  ...naturalEndRequests,
   "Kapat kendini", "Kapat kendini, bakayım.", "Lumos, lütfen kapat kendini.",
   "Kendini kapat", "Lumos, kendini kapat.", "Lütfen görüşmeyi bitir!",
   "Canlı görüşmeyi kapat", "Konuşmayı bitir", "Canlı sesi kapat",
@@ -112,7 +126,22 @@ for (const command of [
   });
 }
 
+// Every newly accepted intent must remain non-authoritative when quoted,
+// questioned, hypothetical, reported or withdrawn in the same utterance.
+const qualifiedEndRequests = naturalEndRequests.flatMap((command) => [
+  `“${command}”`, `${command}?`, `${command} mi dedin`,
+  `Eğer ${command} dersem ne olur`, `Arkadaşım ${command} dedi`,
+  `${command} ama şimdi değil`, `${command} vazgeçtim`,
+  `${command}. Hayır, kapatma.`,
+]);
+
 for (const text of [
+  ...qualifiedEndRequests,
+  "Kendini kapatamazsın", "Kendini kapatmayabilirsin", "Kendini kapatmanı istemiyorum",
+  "Görüşmeyi bitirmeyelim", "Görüşmeyi sonlandırma", "Kendini kapatabilirsin demedim",
+  "Kendini kapatabilir misin", "Kendini kapatabiliyorsun", "Kendini kapatabilirdin",
+  "Uygulamayı kapatabilirsin", "Kapıyı kapatabilirsin", "Işığı kapat", "Sesi kıs",
+  "Kapatabilirsin", "Bitirebilirsin", "Kendini bitir", "Kendini sonlandır",
   "Kapat kendini mi dedin", "Kapat kendini?", '“Kapat kendini”',
   "Kapatma kendini", "Kapat kendini demedim", "Kapat kendini ama şimdi değil",
   "kendini kapat özelliğin var mı", "kendini kapat?", "görüşmeyi kapatma",
