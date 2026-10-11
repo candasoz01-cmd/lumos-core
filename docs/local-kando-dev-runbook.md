@@ -16,6 +16,16 @@ Panel görev çağrıları (`POST /task`) artık tarayıcıdan doğrudan köprü
 
 `BRIDGE_UPSTREAM_URL` veya proxy auth tanımsızsa proxy **503** döner; proxy auth hatalıysa **401** döner.
 
+### OpenAI anahtar değişkenleri
+
+| Değişken | Kullanan servis | Yoksa |
+|----------|-----------------|-------|
+| `OPENAI_API_KEY` | Hosted sohbet (`api/bridge/chat.js`), köprü/backend, çekirdek motor, runtime, geliştirici betikleri | İlgili sohbet yolu çalışmaz; STT için aşağıya bakın |
+| `OPENAI_API_KEY_REALTIME` | Yalnız mobil canlı ses (`api/mobile/realtime-token.js`, Vercel) | **503 `realtime_unconfigured`** (fail-closed). `OPENAI_API_KEY`'e **düşmez**; sohbet anahtarı Realtime'a geçmez |
+| `OPENAI_API_KEY_STT` | Toplantı STT (`src/representative/stt.py`) | `OPENAI_API_KEY` kullanılır (eski davranış) |
+
+`OPENAI_API_KEY_REALTIME` Vercel ortamına, `OPENAI_API_KEY_STT` STT'yi çalıştıran sürecin ortamına konur. Değerleri depoya yazmayın.
+
 ## Phase 2: medya outbox (`/api/bridge/last-result`)
 
 Medya sekmesindeki “son sonuç” yenileme artık **`GET /api/bridge/last-result`** üzerinden gider; tarayıcı `X-Kando-Token` taşımaz. Proxy `BRIDGE_UPSTREAM_URL/last-result` adresine iletir. `BRIDGE_UPSTREAM_URL` yoksa **503** — görev akışıyla aynı “bağlantı yapılandırılmamış” mesajı.

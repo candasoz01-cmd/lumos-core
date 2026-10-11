@@ -27,7 +27,7 @@ _SCANNED = ("src", "packages")
 
 # Same shape as the re-derivation command documented next to the list.
 _CREDENTIAL_READ = re.compile(
-    r"""os\.(?:getenv|environ\.get)\(\s*["']([A-Z0-9_]*(?:API_KEY|TOKEN))["']"""
+    r"""os\.(?:getenv|environ\.get)\(\s*["']([A-Z0-9_]*(?:API_KEY(?:_[A-Z0-9]+)?|TOKEN))["']"""
 )
 
 
@@ -65,7 +65,10 @@ def test_the_two_lists_do_not_overlap() -> None:
     assert not both, f"credential(s) both stripped and declared local: {sorted(both)}"
 
 
-def test_the_credential_strip_reaches_subprocesses(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.parametrize("credential", ["OPENAI_API_KEY", "OPENAI_API_KEY_STT"])
+def test_the_credential_strip_reaches_subprocesses(
+    monkeypatch: pytest.MonkeyPatch, credential: str
+) -> None:
     """A stripped credential must be gone for children too, not only in-process.
 
     Of the two isolation rules, this is the one that crosses the process
@@ -80,7 +83,7 @@ def test_the_credential_strip_reaches_subprocesses(monkeypatch: pytest.MonkeyPat
     if _live_providers_allowed():
         pytest.skip("provider isolation lifted on purpose; nothing to strip")
 
-    monkeypatch.setenv("OPENAI_API_KEY", "seeded-by-test")
+    monkeypatch.setenv(credential, "seeded-by-test")
     _no_ambient_provider_credentials.__wrapped__(monkeypatch)
 
     report = (

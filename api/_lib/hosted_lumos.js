@@ -217,6 +217,12 @@ export function hostedOpenAIKey() {
   return String(process.env.OPENAI_API_KEY || "").trim();
 }
 
+// Realtime has its own key; deliberately no OPENAI_API_KEY fallback so the
+// hosted-chat key can never mint Realtime client secrets.
+export function hostedRealtimeKey() {
+  return String(process.env.OPENAI_API_KEY_REALTIME || "").trim();
+}
+
 export function readJsonBody(req) {
   if (req.body && typeof req.body === "object" && !Buffer.isBuffer(req.body)) {
     return req.body;
