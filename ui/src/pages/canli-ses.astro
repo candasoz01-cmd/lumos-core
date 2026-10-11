@@ -205,7 +205,7 @@ const title = "Canlı ses — Lumos";
           // matching arbitrary sentences that merely contain an end command.
           return new RegExp(
             "^(?:(?:lumos|lutfen|tamam|hadi|artik|simdi|madem (?:buradasin|oradasin)) ){0,4}"
-            + "(?:kendini kapat(?: kendini)?|(?:canli )?(?:gorusmeyi|konusmayi) (?:bitir|kapat)"
+            + "(?:kendini kapat(?: kendini)?|kapat kendini|(?:canli )?(?:gorusmeyi|konusmayi) (?:bitir|kapat)"
             + "|canli sesi kapat|hosca ?kal(?: gorusuruz)?|gorusuruz)"
             + "(?: (?:lutfen|artik|simdi|bakalim|bakayim)){0,2}$"
           ).test(normalized);
