@@ -201,7 +201,14 @@ const title = "Canlı ses — Lumos";
           const normalized = text.trim().normalize("NFKC").toLocaleLowerCase("tr-TR")
             .normalize("NFD").replace(/\p{M}/gu, "").replace(/ı/g, "i")
             .replace(/[.!…]+$/u, "").replace(/,/g, " ").trim().replace(/\s+/g, " ");
-          return /^(?:(?:lumos|lutfen|tamam) ){0,2}(?:kendini kapat|(?:canli )?(?:gorusmeyi|konusmayi) (?:bitir|kapat)|canli sesi kapat|hosca ?kal(?: gorusuruz)?|gorusuruz)(?: lutfen)?$/.test(normalized);
+          // Allow ordinary address/filler around a complete imperative, without
+          // matching arbitrary sentences that merely contain an end command.
+          return new RegExp(
+            "^(?:(?:lumos|lutfen|tamam|hadi|artik|simdi|madem (?:buradasin|oradasin)) ){0,4}"
+            + "(?:kendini kapat(?: kendini)?|(?:canli )?(?:gorusmeyi|konusmayi) (?:bitir|kapat)"
+            + "|canli sesi kapat|hosca ?kal(?: gorusuruz)?|gorusuruz)"
+            + "(?: (?:lutfen|artik|simdi|bakalim|bakayim)){0,2}$"
+          ).test(normalized);
         };
 
         const handleSpokenEnd = (message) => {
