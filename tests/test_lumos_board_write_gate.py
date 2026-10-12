@@ -8,6 +8,7 @@ from lumos_board.claim_cli import main as claim_cli_main
 from lumos_board.task_claim import TaskClaimStore
 from lumos_board.write_gate import (
     REASON_ALLOWED,
+    REASON_CONSUMED,
     REASON_IDENTITY,
     REASON_NO_CLAIM,
     REASON_NO_CREDENTIAL,
@@ -136,6 +137,37 @@ def test_valid_token_and_claim_allows_in_scope_path(tmp_path: Path) -> None:
     assert decision.allowed is True
     assert decision.reason == REASON_ALLOWED
     assert decision.claim_id == claim.claim_id
+
+
+def test_consumed_token_cannot_be_reused(tmp_path: Path) -> None:
+    claims = TaskClaimStore(tmp_path)
+    claim = claims.claim(
+        task_id="KA-003-WRITE-GATE",
+        repo="lumos-core",
+        branch="x",
+        worktree="/w",
+        owner="claude",
+        scopes=["src/lumos_board"],
+    ).claim
+    assert claim is not None
+    gate = WriteGate(claims, secret=SECRET)
+    token = gate.issue(claim)
+    first = gate.check(
+        token=token,
+        owner="claude",
+        paths=["src/lumos_board/write_gate.py"],
+        consume=True,
+    )
+    assert first.allowed is True
+    assert first.credential_id
+    second = gate.check(
+        token=token,
+        owner="claude",
+        paths=["src/lumos_board/write_gate.py"],
+        consume=True,
+    )
+    assert second.allowed is False
+    assert second.reason == REASON_CONSUMED
 
 
 def test_release_revokes_write_token(tmp_path: Path) -> None:

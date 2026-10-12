@@ -12,11 +12,17 @@ from lumos_board.claim_guard import (
     ATTESTATION_TRAILER,
     REASON_MISSING,
     REASON_OK,
+    REASON_REUSED,
     REASON_TIME,
     REASON_UNCONFIGURED,
     ClaimGuard,
 )
-from lumos_board.task_claim import TaskClaimStore
+from lumos_board.claim_guard_trust import (
+    TrustedClaimGuardMissing,
+    gate_exit_for_missing_base,
+    materialize_trusted_claim_guard,
+)
+from lumos_board.task_claim import ClaimError, TaskClaimStore
 from lumos_board.write_gate import WriteGate
 
 SECRET = "b" * 32
@@ -181,6 +187,126 @@ def test_issued_after_commit_is_rejected(tmp_path: Path) -> None:
     verdict = ClaimGuard(secret=SECRET).verify_range(repo, base=base, head=head)
     assert verdict.allowed is False
     assert verdict.reason == REASON_TIME
+
+
+def test_write_token_cannot_attest_twice(tmp_path: Path) -> None:
+    store = tmp_path / "board"
+    claim_id, token, task_id = _claim_and_token(store, owner="cursor", scope="src")
+    gate = WriteGate(TaskClaimStore(store), secret=SECRET)
+    guard = ClaimGuard(secret=SECRET)
+    first = guard.attest(
+        write_gate=gate,
+        token=token,
+        owner="cursor",
+        paths=["src/a.py"],
+        parent_sha="0" * 40,
+        claim_id=claim_id,
+        task_id=task_id,
+        scopes=["src"],
+    )
+    assert first
+    try:
+        guard.attest(
+            write_gate=gate,
+            token=token,
+            owner="cursor",
+            paths=["src/b.py"],
+            parent_sha="0" * 40,
+            claim_id=claim_id,
+            task_id=task_id,
+            scopes=["src"],
+        )
+    except ClaimError as exc:
+        assert "WRITE_TOKEN_CONSUMED" in str(exc)
+    else:
+        raise AssertionError("reused write token must not mint a second attestation")
+
+
+def test_copied_trailer_is_rejected_as_reuse(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    base = _git(repo, "rev-parse", "HEAD")
+    store = tmp_path / "board"
+    claim_id, token, task_id = _claim_and_token(store, owner="cursor", scope="src")
+    parent = _git(repo, "rev-parse", "HEAD")
+    guard = ClaimGuard(secret=SECRET)
+    attestation = guard.attest(
+        write_gate=WriteGate(TaskClaimStore(store), secret=SECRET),
+        token=token,
+        owner="cursor",
+        paths=["src/ok.py"],
+        parent_sha=parent,
+        claim_id=claim_id,
+        task_id=task_id,
+        scopes=["src"],
+    )
+    _commit(repo, "src/ok.py", "ok\n", f"ok\n\n{ATTESTATION_TRAILER}: {attestation}\n")
+    _commit(repo, "src/copy.py", "copy\n", f"copy\n\n{ATTESTATION_TRAILER}: {attestation}\n")
+    head = _git(repo, "rev-parse", "HEAD")
+    verdict = guard.verify_range(repo, base=base, head=head)
+    assert verdict.allowed is False
+    assert verdict.reason == REASON_REUSED
+    assert verdict.commits[0].allowed is True
+    assert verdict.commits[1].reason == REASON_REUSED
+
+
+def test_workflow_is_pull_request_target_and_secret_stays_on_trusted_step() -> None:
+    import re
+
+    text = (
+        Path(__file__).resolve().parents[1]
+        / ".github"
+        / "workflows"
+        / "claim-guard.yml"
+    ).read_text(encoding="utf-8")
+    assert re.search(r"(?m)^on:\n  pull_request_target:\s*$", text)
+    assert not re.search(r"(?m)^on:\n  pull_request:\s*$", text)
+    assert "github.event.pull_request.base.sha" in text
+    assert "lumos_board.claim_guard_trust" in text
+    assert "persist-credentials: false" in text
+    assert text.count("secrets.LUMOS_WRITE_GATE_SECRET") == 1
+    secret_at = text.index("secrets.LUMOS_WRITE_GATE_SECRET")
+    trusted_python = text.index("runner.temp }}/trusted/src")
+    assert trusted_python < secret_at
+    assert "checkout@v4" in text
+    materialize = text.index("Materialize trusted claim-guard")
+    verify = text.index("Verify commit-bound claim attestations")
+    assert materialize < verify
+    workspace_python = text.index("PYTHONPATH: ${{ github.workspace }}/src")
+    assert workspace_python < secret_at
+
+
+def test_missing_claim_guard_on_base_is_fail_closed(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    base = _git(repo, "rev-parse", "HEAD")
+    try:
+        materialize_trusted_claim_guard(repo, base, tmp_path / "trusted")
+    except TrustedClaimGuardMissing:
+        pass
+    else:
+        raise AssertionError("missing base verifier must fail closed")
+    assert gate_exit_for_missing_base() == 2
+
+
+def test_trojaned_pr_claim_guard_is_not_materialized(tmp_path: Path) -> None:
+    import shutil
+
+    repo = _init_repo(tmp_path)
+    src = Path(__file__).resolve().parents[1] / "src" / "lumos_board"
+    dest = repo / "src" / "lumos_board"
+    shutil.copytree(src, dest, ignore=shutil.ignore_patterns("__pycache__"))
+    _git(repo, "add", "src/lumos_board")
+    _git(repo, "commit", "-m", "trusted verifier")
+    base = _git(repo, "rev-parse", "HEAD")
+    (dest / "claim_guard.py").write_text(
+        "def verify_range(*args, **kwargs):\n    raise SystemExit('pr tree ran')\n",
+        encoding="utf-8",
+    )
+    _git(repo, "add", "src/lumos_board/claim_guard.py")
+    _git(repo, "commit", "-m", "trojan")
+    extracted = materialize_trusted_claim_guard(repo, base, tmp_path / "trusted")
+    trusted = (extracted / "lumos_board" / "claim_guard.py").read_text(encoding="utf-8")
+    assert "pr tree ran" not in trusted
+    assert "class ClaimGuard" in trusted
 
 
 def test_cli_verify_exit_code(tmp_path: Path, monkeypatch: object) -> None:

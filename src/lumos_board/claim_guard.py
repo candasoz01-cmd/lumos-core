@@ -1,8 +1,12 @@
 """Commit-bound claim attestations for the KA-003 claim-guard CI check.
 
 A later claim record cannot authorize an earlier commit: the HMAC payload
-must live in that commit's message and cover that commit's paths, with
-issued_at at or before the committer timestamp.
+must live in that commit's message and cover that commit's paths.
+
+``issued_at`` in the trailer is metadata, not proof of issuance. Proof is
+the HMAC over a one-shot write token (consumed at attest time) plus
+``attestation_id``, ``credential_id``, ``parent_sha``, and the exact path
+list. The signing secret never enters untrusted PR code.
 """
 
 from __future__ import annotations
@@ -10,7 +14,10 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import os
 import subprocess
+import sys
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -43,6 +50,7 @@ REASON_TIME = "CLAIM_GUARD_ISSUED_AFTER_COMMIT"
 REASON_PARENT = "CLAIM_GUARD_PARENT_MISMATCH"
 REASON_PATHS = "CLAIM_GUARD_PATHS_MISMATCH"
 REASON_SCOPE = "CLAIM_GUARD_SCOPE_DENIED"
+REASON_REUSED = "CLAIM_GUARD_ATTESTATION_REUSED"
 
 
 @dataclass(frozen=True)
@@ -91,12 +99,14 @@ class ClaimGuard:
     ) -> str:
         if not self.configured():
             raise ClaimError("claim-guard için LUMOS_WRITE_GATE_SECRET (en az 32 byte) gerekli")
-        decision = write_gate.check(token=token, owner=owner, paths=paths)
+        decision = write_gate.check(token=token, owner=owner, paths=paths, consume=True)
         if not decision.allowed:
             raise ClaimError(f"yazma yetkisi yok: {decision.reason}")
         issued = issued_at or datetime.now(timezone.utc)
         payload = {
             "schema": ATTESTATION_SCHEMA,
+            "attestation_id": str(uuid.uuid4()),
+            "credential_id": _clean_text(decision.credential_id or "", "credential_id"),
             "claim_id": _clean_text(claim_id, "claim_id"),
             "task_id": _clean_text(task_id, "task_id"),
             "owner": _clean_text(owner, "owner"),
@@ -114,20 +124,36 @@ class ClaimGuard:
         commits = _rev_list(repo, base, head)
         if not commits:
             return RangeVerdict(False, REASON_EMPTY, ())
+        seen_ids: set[str] = set()
+        seen_blobs: set[str] = set()
         verdicts: list[CommitVerdict] = []
         for sha in commits:
-            verdicts.append(self._verify_commit(repo, sha))
+            verdicts.append(self._verify_commit(repo, sha, seen_ids, seen_blobs))
         failed = next((item for item in verdicts if not item.allowed), None)
         if failed is not None:
             return RangeVerdict(False, failed.reason, tuple(verdicts))
         return RangeVerdict(True, REASON_OK, tuple(verdicts))
 
-    def _verify_commit(self, repo: Path, sha: str) -> CommitVerdict:
+    def _verify_commit(
+        self,
+        repo: Path,
+        sha: str,
+        seen_ids: set[str],
+        seen_blobs: set[str],
+    ) -> CommitVerdict:
         token = _trailer(repo, sha)
         if token is None:
             return CommitVerdict(sha, False, REASON_MISSING)
+        if token in seen_blobs:
+            return CommitVerdict(sha, False, REASON_REUSED)
+        seen_blobs.add(token)
         try:
             payload = self._open(token)
+            attestation_id = _required_text(payload, "attestation_id")
+            _required_text(payload, "credential_id")
+            if attestation_id in seen_ids:
+                return CommitVerdict(sha, False, REASON_REUSED)
+            seen_ids.add(attestation_id)
             issued_at = _parse_time(_required_text(payload, "issued_at"))
             committer = _committer_time(repo, sha)
             if issued_at - _CLOCK_SKEW > committer:
@@ -227,3 +253,34 @@ def _changed_paths(repo: Path, sha: str) -> tuple[str, ...]:
     if not parts:
         raise ClaimError("commit dosya listesi boş")
     return _normalize_scopes(parts)
+
+
+def _arg(argv: list[str], name: str) -> str:
+    token = f"--{name}"
+    for index, item in enumerate(argv):
+        if item == token and index + 1 < len(argv):
+            return argv[index + 1]
+        if item.startswith(f"{token}="):
+            return item.split("=", 1)[1]
+    return ""
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Trusted CI entry: verify a commit range. Secret comes from the environment."""
+    argv = list(sys.argv[1:] if argv is None else argv)
+    repo = _arg(argv, "repo") or "."
+    base = _arg(argv, "base")
+    head = _arg(argv, "head")
+    if not base or not head:
+        sys.stderr.write("usage: python -m lumos_board.claim_guard --repo DIR --base SHA --head SHA\n")
+        return 2
+    verdict = ClaimGuard(secret=os.environ.get("LUMOS_WRITE_GATE_SECRET")).verify_range(
+        Path(repo), base=base, head=head
+    )
+    sys.stdout.write(json.dumps(verdict.to_dict(), ensure_ascii=False, sort_keys=True) + "\n")
+    return 0 if verdict.allowed else 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+

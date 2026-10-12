@@ -15,13 +15,14 @@ dizesi yetmez.
 
 ## Akış
 
-1. ACTIVE claim kabul edilince, `LUMOS_WRITE_GATE_SECRET` varsa kapı tek
-   kullanımlık gösterilen bir yazma jetonu basar. Diskte yalnız SHA-256 özeti durur.
-2. Yazma öncesi `claim_cli write-check --token --owner --path` jetonu doğrular,
-   claim'in ACTIVE ve sahip eşleşmesini arar, yolların kapsam içinde olduğunu
-   kontrol eder.
-3. Jeton yok, imza bozuk, sahip uyuşmaz, claim yok/EXPIRED veya kapsam dışı
-   ise yazma **red** (`accepted: false`, çıkış 2).
+1. ACTIVE claim kabul edilince, `LUMOS_WRITE_GATE_SECRET` varsa kapı bir
+   yazma jetonu basar (`credential_id` + HMAC). Diskte yalnız SHA-256 özeti
+   ve `issued`/`consumed` durumu durur.
+2. Yazma öncesi `claim_cli write-check --token --owner --path` jetonu doğrular
+   (`consume=false`). Claim ACTIVE, sahip eşleşmeli, yollar kapsam içinde.
+3. `claim-guard attest` aynı jetonu `consume=true` ile yakar. İkinci attest
+   `WRITE_TOKEN_CONSUMED` ile red edilir. Jeton yok, imza bozuk, sahip
+   uyuşmaz, claim yok/EXPIRED veya kapsam dışı ise yazma **red** (çıkış 2).
 4. Secret yokken `write-check` fail-closed (`WRITE_GATE_UNCONFIGURED`). Claim
    alma (KA-002) secret olmadan çalışmaya devam eder.
 
@@ -36,14 +37,23 @@ yazma kontrolü jetona sahip olmayı ister.
 
 PR aralığındaki her non-merge commit, o commit'in mesajında
 `Lumos-Claim-Attestation` trailer'ı taşımalıdır. Trailer HMAC'i
-`LUMOS_WRITE_GATE_SECRET` ile imzalanır; payload o commit'in `parent_sha`,
-dosya listesi, `claim_id`, `owner`, `scopes` ve `issued_at` değerini bağlar.
+`LUMOS_WRITE_GATE_SECRET` ile imzalanır; payload `attestation_id`,
+`credential_id`, `parent_sha`, dosya listesi, `claim_id`, `owner` ve
+`scopes` bağlar.
 
-- `issued_at` committer zamanından sonra ise red.
+- `issued_at` commit mesajındaki zaman **kanıt değildir**. Kanıt, attest
+  anında yakılan tek-kullanımlık jeton + HMAC (sır PR koduna verilmez) +
+  `attestation_id` tekilliğidir. Aynı trailer'ın kopyası
+  `CLAIM_GUARD_ATTESTATION_REUSED` ile red edilir.
 - Trailer'daki yollar o commit'in `--no-renames` diff'i ile birebir uyuşmazsa red.
 - Sonradan açılan claim eski commiti meşrulaştırmaz: kanıt o commit nesnesinin
-  içinde olmalıdır.
+  içinde olmalıdır. `9a113ced` bilinçli olarak trailersızdır; tarih yeniden
+  yazılmaz.
 - CheckRun adı: `claim-guard`. Secret yoksa fail-closed.
+- Orkestratör `pull_request_target`; doğrulayıcı `base.sha` üzerinden
+  `src/lumos_board` extract. PR ağacı checkout edilmez, çalıştırılmaz.
+  Secret yalnız güvenilir PYTHONPATH adımındadır. Bu workflow henüz
+  `main`'de yoksa CheckRun doğmaz veya fail-closed kalır (bootstrap).
 
 CI tek başına insan merge'ini kilitlemez. `claim-guard` GitHub
 `required_status_checks` listesine admin tarafından eklenene kadar fiziksel
@@ -53,9 +63,8 @@ ayarını değiştiremez.
 ## Bilinçli sınır
 
 Dosya sistemine doğrudan yazabilen ayrıcalıklı süreç bu yerel kapıyı atlayabilir
-(single-reader sözleşmesiyle aynı). `pull_request` bootstrap'inde workflow
-PR ağacından koşar; `main`'e indikten sonra `pull_request_target` + base SHA
-doğrulayıcısı ayrı dilimdir. Merkezi görev kontrolcüsü, required check +
-commit-bound kanıt birlikte doğrulanmadan tamamlanmış sayılmaz.
+(single-reader sözleşmesiyle aynı). Merkezi görev kontrolcüsü, required
+check + güvenilir taban + tek-kullanımlık jeton birlikte doğrulanmadan
+tamamlanmış sayılmaz. #935 taslak kalır; merge ve deploy yoktur.
 
 İkinci `TaskClaimStore` veya ikinci claim CLI açılmaz.

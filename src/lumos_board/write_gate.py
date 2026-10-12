@@ -36,6 +36,7 @@ REASON_UNAUTHORIZED = "WRITE_UNAUTHORIZED"
 REASON_IDENTITY = "WRITE_IDENTITY_MISMATCH"
 REASON_NO_CLAIM = "WRITE_NO_CLAIM"
 REASON_SCOPE = "WRITE_SCOPE_DENIED"
+REASON_CONSUMED = "WRITE_TOKEN_CONSUMED"
 
 
 @dataclass(frozen=True)
@@ -43,12 +44,14 @@ class WriteDecision:
     allowed: bool
     reason: str
     claim_id: str | None = None
+    credential_id: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
             "allowed": self.allowed,
             "reason": self.reason,
             "claim_id": self.claim_id,
+            "credential_id": self.credential_id,
         }
 
 
@@ -85,7 +88,9 @@ class WriteGate:
         records[claim.claim_id] = {
             "schema": WRITE_CREDENTIAL_STORE_SCHEMA,
             "claim_id": claim.claim_id,
+            "credential_id": payload["credential_id"],
             "owner": claim.owner,
+            "status": "issued",
             "token_hash": hashlib.sha256(token.encode("ascii")).hexdigest(),
             "issued_at": payload["issued_at"],
         }
@@ -104,6 +109,7 @@ class WriteGate:
         token: str | None,
         owner: str,
         paths: Sequence[str],
+        consume: bool = False,
     ) -> WriteDecision:
         if not self.configured():
             return WriteDecision(False, REASON_UNCONFIGURED)
@@ -112,19 +118,24 @@ class WriteGate:
         try:
             owner = _clean_text(owner, "owner")
             normalized_paths = _normalize_scopes(paths)
-            claim_id, token_owner = self._verify_token(token)
+            claim_id, token_owner, credential_id = self._verify_token(token)
         except ClaimError:
             return WriteDecision(False, REASON_UNAUTHORIZED)
         if token_owner != owner:
-            return WriteDecision(False, REASON_IDENTITY, claim_id)
+            return WriteDecision(False, REASON_IDENTITY, claim_id, credential_id)
         records = self._read_records()
         stored = records.get(claim_id)
         if not isinstance(stored, dict):
-            return WriteDecision(False, REASON_NO_CREDENTIAL, claim_id)
+            return WriteDecision(False, REASON_NO_CREDENTIAL, claim_id, credential_id)
+        if stored.get("status") == "consumed":
+            return WriteDecision(False, REASON_CONSUMED, claim_id, credential_id)
         expected_hash = stored.get("token_hash")
         actual_hash = hashlib.sha256(token.encode("ascii")).hexdigest()
         if not isinstance(expected_hash, str) or not hmac.compare_digest(expected_hash, actual_hash):
-            return WriteDecision(False, REASON_UNAUTHORIZED, claim_id)
+            return WriteDecision(False, REASON_UNAUTHORIZED, claim_id, credential_id)
+        stored_cred = stored.get("credential_id")
+        if isinstance(stored_cred, str) and stored_cred != credential_id:
+            return WriteDecision(False, REASON_UNAUTHORIZED, claim_id, credential_id)
         claim = next(
             (
                 item
@@ -134,14 +145,19 @@ class WriteGate:
             None,
         )
         if claim is None or claim.status is not ClaimStatus.ACTIVE:
-            return WriteDecision(False, REASON_NO_CLAIM, claim_id)
+            return WriteDecision(False, REASON_NO_CLAIM, claim_id, credential_id)
         if claim.owner != owner:
-            return WriteDecision(False, REASON_IDENTITY, claim_id)
+            return WriteDecision(False, REASON_IDENTITY, claim_id, credential_id)
         if not _scopes_within(normalized_paths, claim.scopes):
-            return WriteDecision(False, REASON_SCOPE, claim_id)
-        return WriteDecision(True, REASON_ALLOWED, claim_id)
+            return WriteDecision(False, REASON_SCOPE, claim_id, credential_id)
+        if consume:
+            stored["status"] = "consumed"
+            stored["consumed_at"] = _format_time(datetime.now(timezone.utc))
+            records[claim_id] = stored
+            self._write_records(records)
+        return WriteDecision(True, REASON_ALLOWED, claim_id, credential_id)
 
-    def _verify_token(self, token: str) -> tuple[str, str]:
+    def _verify_token(self, token: str) -> tuple[str, str, str]:
         try:
             encoded_payload, encoded_signature = _clean_text(token, "write_token").split(".", 1)
             payload_bytes = _b64url_decode(encoded_payload)
@@ -159,7 +175,11 @@ class WriteGate:
             now = datetime.now(timezone.utc)
             if issued_at > now or expires_at <= now:
                 raise ClaimError("yazma jetonu süresi geçersiz")
-            return _required_text(payload, "claim_id"), _required_text(payload, "owner")
+            return (
+                _required_text(payload, "claim_id"),
+                _required_text(payload, "owner"),
+                _required_text(payload, "credential_id"),
+            )
         except ClaimError:
             raise
         except (ValueError, TypeError, UnicodeError, json.JSONDecodeError, KeyError) as exc:
