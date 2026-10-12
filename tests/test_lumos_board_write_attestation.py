@@ -250,25 +250,28 @@ def test_copied_trailer_is_rejected_as_reuse(tmp_path: Path) -> None:
 
 
 def test_workflow_is_pull_request_target_and_secret_stays_on_trusted_step() -> None:
-    import re
-
     text = (
         Path(__file__).resolve().parents[1]
         / ".github"
         / "workflows"
         / "claim-guard.yml"
     ).read_text(encoding="utf-8")
-    assert "python -m lumos_board.claim_guard" in text
-    assert "lumos_board.write_attestation" in text
-    assert "lumos_board.claim_guard_trust" in text
-    assert text.count("secrets.LUMOS_WRITE_GATE_SECRET") == 1
-    secret_at = text.index("secrets.LUMOS_WRITE_GATE_SECRET")
-    hmac_job = text.index("write-attestation:")
-    board_job = text.index("claim-guard:")
-    assert board_job < hmac_job < secret_at
+    jobs = text.split("\njobs:\n", 1)[1]
+    assert "python -m lumos_board.claim_guard" in jobs
+    assert "lumos_board.write_attestation" in jobs
+    assert "lumos_board.claim_guard_trust" in jobs
+    assert jobs.count("${{ secrets.LUMOS_WRITE_GATE_SECRET }}") == 1
+    proof_job = jobs.index("\n  write-attestation:\n")
+    trusted_job = jobs.index("\n  write-attestation-trusted:\n")
+    board_job = jobs.index("\n  claim-guard:\n") if "\n  claim-guard:\n" in jobs else jobs.index("  claim-guard:\n")
+    secret_at = jobs.index("${{ secrets.LUMOS_WRITE_GATE_SECRET }}")
+    assert board_job < proof_job < trusted_job < secret_at
     assert "pull_request_target" in text
-    board_check = text.index("Check PR writes against central claims")
-    assert "LUMOS_WRITE_GATE_SECRET" not in text[board_check:hmac_job]
+    assert "lumos-ci-write-attestation-proof-not-prod-32" in jobs
+    assert "Reject commits without HMAC write attestation" in jobs
+    board_check = jobs.index("Check PR writes against central claims")
+    assert "${{ secrets.LUMOS_WRITE_GATE_SECRET }}" not in jobs[board_check:trusted_job]
+    assert "${{ secrets.LUMOS_WRITE_GATE_SECRET }}" not in jobs[proof_job:trusted_job]
 
 
 def test_board_trailers_do_not_satisfy_hmac(tmp_path: Path) -> None:

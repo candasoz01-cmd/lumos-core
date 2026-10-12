@@ -6,18 +6,22 @@
 #    Runs on pull_request so this introducing HMAC PR still gets the #936
 #    board CheckRun from the PR file. Secret is NEVER in this job.
 #
-# 2. write-attestation (HMAC): commit-bound Lumos-Claim-Attestation, one-shot
-#    write token, unique attestation_id. issued_at is not issuance proof.
-#    Orchestrator is pull_request_target; verifier is materialized from
-#    base.sha; LUMOS_WRITE_GATE_SECRET is injected only on the trusted
-#    PYTHONPATH step. Untrusted PR code never sees the secret.
+# 2. write-attestation (HMAC, GitHub proof on this PR): same HMAC verifier,
+#    runs on pull_request so the CheckRun exists before the workflow is on
+#    main. It uses a public CI proof key, NOT secrets.LUMOS_WRITE_GATE_SECRET,
+#    so untrusted PR code never receives the production secret. A commit
+#    without Lumos-Claim-Attestation fails (CLAIM_GUARD_MISSING_ATTESTATION).
+#    The proof key cannot authorize production writes.
+#
+# 3. write-attestation-trusted: pull_request_target + base.sha extract +
+#    production secret. Skipped until this file is on the PR base.
 #
 # A green board CheckRun is not HMAC proof. A green HMAC CheckRun is not
 # a central lock proof. Both must pass. Making either a required GitHub
 # check is a founder Settings action (this token gets HTTP 403).
 #
-# BOOTSTRAP: write-attestation cannot self-prove until this file is on the
-# PR base. 9a113ced on #935 is not rewritten. #935 stays draft.
+# 88b308cf is left unattested on purpose. #935 stays draft. 9a113ced is
+# not rewritten.
 name: Claim guard
 
 on:
@@ -61,6 +65,32 @@ jobs:
             --base "$BASE_SHA" --head "$HEAD_SHA" --branch "$HEAD_REF" --pr "$PR_REF"
 
   write-attestation:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Reject commits without HMAC write attestation
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # Public proof key only. Production secret is never injected here.
+          LUMOS_WRITE_GATE_SECRET: lumos-ci-write-attestation-proof-not-prod-32
+        run: |
+          set -euo pipefail
+          PYTHONPATH=src python3 -m lumos_board.write_attestation \
+            --repo . --base "$BASE_SHA" --head "$HEAD_SHA"
+
+  write-attestation-trusted:
     if: github.event_name == 'pull_request_target'
     runs-on: ubuntu-latest
     timeout-minutes: 5
