@@ -32,11 +32,30 @@ imzalanır (en az 32 byte). Kontrol, çağıranın söylediği `owner` ile jeton
 kimliğin aynı olmasını ister. Bu, self-asserted `owner` alanının yerini tutmaz;
 yazma kontrolü jetona sahip olmayı ister.
 
+## Claim-guard (commit kanıtı)
+
+PR aralığındaki her non-merge commit, o commit'in mesajında
+`Lumos-Claim-Attestation` trailer'ı taşımalıdır. Trailer HMAC'i
+`LUMOS_WRITE_GATE_SECRET` ile imzalanır; payload o commit'in `parent_sha`,
+dosya listesi, `claim_id`, `owner`, `scopes` ve `issued_at` değerini bağlar.
+
+- `issued_at` committer zamanından sonra ise red.
+- Trailer'daki yollar o commit'in `--no-renames` diff'i ile birebir uyuşmazsa red.
+- Sonradan açılan claim eski commiti meşrulaştırmaz: kanıt o commit nesnesinin
+  içinde olmalıdır.
+- CheckRun adı: `claim-guard`. Secret yoksa fail-closed.
+
+CI tek başına insan merge'ini kilitlemez. `claim-guard` GitHub
+`required_status_checks` listesine admin tarafından eklenene kadar fiziksel
+kilit yoktur. Bu ortam Settings API için HTTP 403 verir; ajan koruma
+ayarını değiştiremez.
+
 ## Bilinçli sınır
 
 Dosya sistemine doğrudan yazabilen ayrıcalıklı süreç bu yerel kapıyı atlayabilir
-(single-reader sözleşmesiyle aynı). Git/OS kimliği ve zorunlu pre-commit bağlama
-ayrı dilimdir. Bu dilim merkezi görev kontrolcüsünü tamamlanmış saymaz; yalnız
-yazma API'sinde TD-10 boşluğunu kapatır.
+(single-reader sözleşmesiyle aynı). `pull_request` bootstrap'inde workflow
+PR ağacından koşar; `main`'e indikten sonra `pull_request_target` + base SHA
+doğrulayıcısı ayrı dilimdir. Merkezi görev kontrolcüsü, required check +
+commit-bound kanıt birlikte doğrulanmadan tamamlanmış sayılmaz.
 
 İkinci `TaskClaimStore` veya ikinci claim CLI açılmaz.

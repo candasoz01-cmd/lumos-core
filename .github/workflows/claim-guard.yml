@@ -1,0 +1,47 @@
+# KA-003 claim-guard: every non-merge commit in the PR range must carry a
+# commit-message HMAC attestation covering that commit's paths, issued at or
+# before the committer timestamp. A claim created after the fact cannot
+# authorize an earlier commit because the proof must live in that commit.
+#
+# BOOTSTRAP: this workflow is introduced on a PR whose base does not yet have
+# it, so `pull_request` is required for the CheckRun to exist. After it lands
+# on main, a follow-up must switch to `pull_request_target` + verifier from
+# `base.sha` (same trust root as standing-class). Until then a same-repo PR
+# can rewrite this file.
+#
+# Required GitHub check + LUMOS_WRITE_GATE_SECRET are admin Settings actions.
+# This workflow does not change branch protection. Missing secret → fail-closed.
+#
+# Human-merge lock is NOT in force until `claim-guard` is in
+# required_status_checks. This token cannot read or write that list (HTTP 403).
+name: claim-guard
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  claim-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify commit-bound claim attestations
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+          LUMOS_WRITE_GATE_SECRET: ${{ secrets.LUMOS_WRITE_GATE_SECRET }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          python3 -m lumos_board.claim_cli claim-guard verify \
+            --repo . --base "$BASE_SHA" --head "$HEAD_SHA"

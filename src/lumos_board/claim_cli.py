@@ -19,6 +19,7 @@ from lumos_board.task_claim import (
     OverrideApprovalVerifier,
     TaskClaimStore,
 )
+from lumos_board.claim_guard import ClaimGuard
 from lumos_board.write_gate import WriteGate
 
 
@@ -83,6 +84,21 @@ def _parser() -> argparse.ArgumentParser:
     write_check.add_argument("--token")
     write_check.add_argument("--owner", required=True)
     write_check.add_argument("--path", action="append", required=True, dest="paths")
+
+    claim_guard = subparsers.add_parser("claim-guard")
+    guard_commands = claim_guard.add_subparsers(dest="guard_command", required=True)
+    attest = guard_commands.add_parser("attest")
+    attest.add_argument("--token", required=True)
+    attest.add_argument("--owner", required=True)
+    attest.add_argument("--claim-id", required=True)
+    attest.add_argument("--task", required=True)
+    attest.add_argument("--scope", action="append", required=True)
+    attest.add_argument("--path", action="append", required=True, dest="paths")
+    attest.add_argument("--parent-sha", required=True)
+    verify = guard_commands.add_parser("verify")
+    verify.add_argument("--repo", default=".")
+    verify.add_argument("--base", required=True)
+    verify.add_argument("--head", required=True)
 
     approval = subparsers.add_parser("approval")
     approval_commands = approval.add_subparsers(dest="approval_command", required=True)
@@ -176,6 +192,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             delegation_verifier=delegation_verifier,
         )
         write_gate = WriteGate(store, secret=os.environ.get("LUMOS_WRITE_GATE_SECRET"))
+        if args.command == "claim-guard":
+            guard = ClaimGuard(secret=os.environ.get("LUMOS_WRITE_GATE_SECRET"))
+            if args.guard_command == "verify":
+                verdict = guard.verify_range(
+                    Path(args.repo), base=args.base, head=args.head
+                )
+                print(json.dumps(verdict.to_dict(), ensure_ascii=False, sort_keys=True))
+                return 0 if verdict.allowed else 2
+            token = guard.attest(
+                write_gate=write_gate,
+                token=args.token,
+                owner=args.owner,
+                paths=args.paths,
+                parent_sha=args.parent_sha,
+                claim_id=args.claim_id,
+                task_id=args.task,
+                scopes=args.scope,
+            )
+            print(json.dumps({"attestation": token}, ensure_ascii=False, sort_keys=True))
+            return 0
         if args.command == "write-check":
             decision = write_gate.check(
                 token=args.token, owner=args.owner, paths=args.paths
