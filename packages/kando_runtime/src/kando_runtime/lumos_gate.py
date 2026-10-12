@@ -1488,6 +1488,15 @@ def _plan_steps_mutating(plan: dict[str, Any]) -> bool:
     return False
 
 
+def _human_approved(value: Any) -> bool:
+    """Strict approval fact: only the boolean ``True`` counts.
+
+    Truthy strings (``"false"``, ``"0"``), numbers or other objects from a
+    forged or untyped bundle are never treated as a human approval.
+    """
+    return value is True
+
+
 _CODE_CHANGING_STEP_TYPES = frozenset({"patch", "agent", "agent_auto"})
 _CODE_CHANGING_LEGACY_ACTIONS = frozenset({"direct_patch", "agent", "agent_auto"})
 
@@ -1579,6 +1588,7 @@ def run_lumos_gate_substep(
     """
     Her plan adımı için Lumos kapısı (policy + risk). LLM yeni plan üretmez; adım olduğu gibi kalır.
     """
+    approval_granted = _human_approved(approval_granted)
     mode, pl = _plan_step_to_mode_payload(step)
     ctx = GateContext()
     ctx.ingress_payload = {"is_substep": True, "step_type": step.get("type")}
@@ -1726,7 +1736,7 @@ def _execute_plan_legacy(
         return "direct_patch", ex, None
     if action == "agent":
         # The second argument is the human-approval fact, never a blanket "auto" grant.
-        jid = start_agent(plan.get("goal") or "", bool(approval_granted))
+        jid = start_agent(plan.get("goal") or "", _human_approved(approval_granted))
         if audit is not None:
             _audit_finalize_non_plan(audit, "agent", None, jid, plan)
         return "agent", None, jid
@@ -2003,7 +2013,7 @@ def _execute_plan_steps(
             last_instr_preview = instr[:500]
         elif t == "agent":
             # The second argument is the human-approval fact, never a blanket "auto" grant.
-            jid = start_agent(str(step.get("goal") or ""), bool(approval_granted))
+            jid = start_agent(str(step.get("goal") or ""), _human_approved(approval_granted))
             last_jid = jid
             results.append({"type": "agent", "job_id": jid, "ok": True})
         elif t == "agent_auto":
@@ -2072,6 +2082,7 @@ def execute_plan(
     parent_task: dict[str, Any] | None = None,
     audit: LumosAuditCollector | None = None,
 ) -> tuple[str, dict[str, Any] | None, str | None]:
+    approval_granted = _human_approved(approval_granted)
     if isinstance(plan.get("steps"), list):
         return _execute_plan_steps(
             plan,
@@ -2229,6 +2240,7 @@ def run_lumos_gate(
     görev metni lumos tarafında belirsiz sayılmıyorsa (eylem+nesne / görev yapısı var)
     bu bayrak yok sayılır; aksi halde yürütme yapılmaz, pending_approval + Onaylar akışına düşer.
     """
+    approval_granted = _human_approved(approval_granted)
     if isinstance(mode, dict):
         spec = mode
         if spec.get("is_substep") is True and isinstance(spec.get("task"), dict):
@@ -2877,7 +2889,7 @@ def lumos_gate_execute(
     risk = bundle["risk"]
     mode = bundle["mode"]
     payload = bundle["payload"]
-    approval_granted = bool(bundle.get("approval_granted"))
+    approval_granted = _human_approved(bundle.get("approval_granted"))
     rr = bundle.get("repo_root")
     if rr is None:
         rr = Path.cwd()

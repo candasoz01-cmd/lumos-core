@@ -355,3 +355,112 @@ def test_gate_execute_refuses_unapproved_code_change_bundle(
     record = out.get("pending_approval_record")
     assert isinstance(record, dict)
     assert record.get("approval_reason") == "code_change_requires_human_approval"
+
+
+# --- Codex P1 (#930): only boolean True is a human approval ------------------
+
+_NON_TRUE_APPROVALS = ["false", "False", "true", "0", "1", 1, 1.0, "yes", object(), [True], {"ok": True}]
+
+
+@pytest.mark.parametrize("forged", _NON_TRUE_APPROVALS)
+@pytest.mark.parametrize(
+    "plan",
+    [
+        {"steps": [{"type": "agent", "goal": "g"}]},
+        {"action": "agent", "goal": "g"},
+        {"steps": [{"type": "patch", "file": "a.txt", "content": "# özet\nb"}]},
+        {"action": "direct_patch", "instruction": "TARGET: a.txt\nb"},
+    ],
+)
+def test_gate_execute_rejects_truthy_non_bool_approval(
+    plan: dict[str, Any], forged: Any, tmp_path: Path
+) -> None:
+    started: list[Any] = []
+    bundle = {
+        "_kind": "run",
+        "plan": plan,
+        "ctx": lumos_gate.GateContext(),
+        "norm": {},
+        "reasoning": {"source": "heuristic", "summary": "s"},
+        "risk": "low",
+        "mode": "agent",
+        "payload": "x",
+        "approval_granted": forged,
+        "repo_root": tmp_path,
+        "audit": None,
+    }
+
+    out = lumos_gate.lumos_gate_execute(
+        bundle,
+        run_direct=_explode,
+        start_agent=lambda goal, flag: started.append(flag) or "job",
+        run_agent_auto=_explode,
+    )
+
+    assert started == []
+    record = out.get("pending_approval_record")
+    assert isinstance(record, dict)
+    assert record.get("approval_reason") == "code_change_requires_human_approval"
+
+
+@pytest.mark.parametrize("forged", _NON_TRUE_APPROVALS)
+def test_execute_plan_never_forwards_truthy_non_bool_as_approval(forged: Any, tmp_path: Path) -> None:
+    seen: list[Any] = []
+    lumos_gate.execute_plan(
+        {"action": "agent", "goal": "g"},
+        run_direct=_explode,
+        start_agent=lambda goal, flag: seen.append(flag) or "job",
+        run_agent_auto=None,
+        repo_root=tmp_path,
+        approval_granted=forged,
+    )
+    assert seen == [False]
+
+
+@pytest.mark.parametrize("forged", _NON_TRUE_APPROVALS)
+def test_run_lumos_gate_treats_truthy_non_bool_as_unapproved(
+    forged: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _fake_agent_reasoning(monkeypatch, "low")
+
+    out = lumos_gate.run_lumos_gate(
+        "agent", "kodu analiz et", repo_root=tmp_path, approval_granted=forged
+    )
+
+    assert out.get("_kind") != "run"
+
+
+@pytest.mark.parametrize("forged", _NON_TRUE_APPROVALS)
+def test_substep_gate_treats_truthy_non_bool_as_unapproved(forged: Any, tmp_path: Path) -> None:
+    gate = lumos_gate.run_lumos_gate_substep(
+        {"type": "patch", "file": "a.txt", "content": "# özet: not"},
+        repo_root=tmp_path,
+        approval_granted=forged,
+    )
+    assert gate.get("_substep_gate_ok") is False
+    assert gate.get("execution_mode") == "pending"
+
+
+def test_reported_p1_payload_string_false_cannot_start_agent(tmp_path: Path) -> None:
+    """Exact reproduction of the Codex P1 on #930: approval_granted='false'."""
+    started: list[Any] = []
+    bundle = {
+        "_kind": "run",
+        "plan": {"steps": [{"type": "agent", "goal": "x"}]},
+        "ctx": lumos_gate.GateContext(),
+        "norm": {},
+        "reasoning": {"source": "heuristic", "summary": "s"},
+        "risk": "low",
+        "mode": "agent",
+        "payload": "x",
+        "approval_granted": "false",
+        "repo_root": tmp_path,
+        "audit": None,
+    }
+    lumos_gate.lumos_gate_execute(
+        bundle,
+        run_direct=_explode,
+        start_agent=lambda goal, flag: started.append(flag) or "job",
+        run_agent_auto=None,
+    )
+    assert True not in started
