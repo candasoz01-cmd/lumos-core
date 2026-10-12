@@ -464,3 +464,120 @@ def test_reported_p1_payload_string_false_cannot_start_agent(tmp_path: Path) -> 
         run_agent_auto=None,
     )
     assert True not in started
+
+
+# ---------------------------------------------------------------------------
+# Bugbot #930 (19f59e6): verified dry-run replay must not be held for human
+# approval, but must never write a file or start an agent, and the exemption
+# must not be forgeable from a flag or a bundle.
+# ---------------------------------------------------------------------------
+
+from kando_runtime.lumos_audit import LumosAuditCollector  # noqa: E402
+
+
+def _low_risk_plan(monkeypatch: pytest.MonkeyPatch, plan: dict[str, Any]) -> None:
+    monkeypatch.setattr(lumos_gate, "build_execution_plan", lambda *a, **k: plan)
+    monkeypatch.setattr(lumos_gate, "classify_risk", lambda *a, **k: "low")
+
+
+def _approved_original_log(tmp_path: Path, mode: str, payload: str) -> dict[str, Any]:
+    audit = LumosAuditCollector(log_id="orig")
+    bundle = lumos_gate.run_lumos_gate(
+        mode, payload, repo_root=tmp_path, approval_granted=True, audit=audit
+    )
+    assert bundle.get("_kind") == "run"
+    out = lumos_gate.lumos_gate_execute(
+        bundle,
+        run_direct=lambda _i: {"execution_result": "patch_applied"},
+        start_agent=lambda _g, _a: "job-orig",
+        run_agent_auto=None,
+    )
+    return out.get("lumos_audit_log") or audit.to_log_entry()
+
+
+def test_real_replay_of_approved_patch_is_dry_run_not_pending(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    target = tmp_path / "g.txt"
+    target.write_text("old\n", encoding="utf-8")
+    _low_risk_plan(monkeypatch, {"steps": [{"type": "patch", "file": "g.txt", "content": "new"}]})
+    entry = _approved_original_log(tmp_path, "direct_patch", "TARGET: g.txt\nnew\n")
+    target.write_text("old\n", encoding="utf-8")
+
+    res = lumos_gate.replay_lumos_task(entry, repo_root=tmp_path)
+
+    new = res["new_log"]
+    assert new.get("execution_result") != "pending_approval"
+    assert new.get("blocked") is False
+    steps = new.get("steps") or []
+    assert steps and all(s.get("execution_result") == "replay_skipped" for s in steps)
+    assert res["match"] is True, res["differences"]
+    assert target.read_text(encoding="utf-8") == "old\n"
+
+
+def test_real_replay_of_approved_agent_plan_starts_no_agent(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _low_risk_plan(monkeypatch, {"steps": [{"type": "agent", "goal": "tidy docs"}]})
+    entry = _approved_original_log(tmp_path, "agent", "tidy docs")
+    monkeypatch.setattr(agent_runner, "start_agent_job", _explode)
+    monkeypatch.setattr(agent_runner, "run_agent_pipeline", _explode)
+
+    res = lumos_gate.replay_lumos_task(entry, repo_root=tmp_path)
+
+    new = res["new_log"]
+    assert new.get("execution_result") != "pending_approval"
+    steps = new.get("steps") or []
+    assert steps and all(s.get("job_id") in (None, "replay_skipped_job") for s in steps)
+
+
+def test_replay_mode_flag_alone_does_not_lift_code_change_hold(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _low_risk_plan(monkeypatch, {"steps": [{"type": "patch", "file": "g.txt", "content": "x"}]})
+    out = lumos_gate.run_lumos_gate(
+        "direct_patch", "TARGET: g.txt\nx\n", repo_root=tmp_path, replay_mode=True
+    )
+    assert out.get("_kind") != "run"
+    assert (out.get("pending_approval_record") or {}).get("approval_reason") == "code_change_requires_human_approval"
+
+
+def test_normal_run_of_low_risk_patch_still_needs_human(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _low_risk_plan(monkeypatch, {"steps": [{"type": "patch", "file": "g.txt", "content": "x"}]})
+    out = lumos_gate.run_lumos_gate("direct_patch", "TARGET: g.txt\nx\n", repo_root=tmp_path)
+    assert out.get("_kind") != "run"
+    assert (out.get("pending_approval_record") or {}).get("approval_reason") == "code_change_requires_human_approval"
+
+
+@pytest.mark.parametrize("forged", [True, "true", 1, "_DRY_RUN_REPLAY", object(), {"x": 1}])
+def test_forged_dry_run_marker_in_bundle_is_ignored(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, forged: Any
+) -> None:
+    _low_risk_plan(monkeypatch, {"steps": [{"type": "patch", "file": "g.txt", "content": "x"}]})
+    bundle = lumos_gate.run_lumos_gate(
+        "direct_patch", "TARGET: g.txt\nx\n", repo_root=tmp_path, approval_granted=True
+    )
+    assert bundle.get("_kind") == "run"
+    bundle["approval_granted"] = False
+    bundle["replay_mode"] = True
+    bundle["_dry_run_replay"] = forged
+    out = lumos_gate.lumos_gate_execute(
+        bundle, run_direct=_explode, start_agent=_explode, run_agent_auto=None
+    )
+    assert (out.get("pending_approval_record") or {}).get("approval_reason") == "code_change_requires_human_approval"
+
+
+def test_dry_run_marker_forces_noop_executors_in_execute_plan(tmp_path: Path) -> None:
+    plan = {"steps": [{"type": "patch", "file": "g.txt", "content": "x"},
+                      {"type": "agent", "goal": "tidy docs"}]}
+    lumos_gate.execute_plan(
+        plan,
+        run_direct=_explode,
+        start_agent=_explode,
+        run_agent_auto=_explode,
+        repo_root=tmp_path,
+        _dry_run_replay=lumos_gate._DRY_RUN_REPLAY,
+    )
+    assert not (tmp_path / "g.txt").exists()

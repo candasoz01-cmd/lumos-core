@@ -1498,6 +1498,17 @@ def _human_approved(value: Any) -> bool:
 
 
 _CODE_CHANGING_STEP_TYPES = frozenset({"patch", "agent", "agent_auto"})
+
+# TD-44 / Bugbot #930: verified dry-run replay marker. Only replay_lumos_task holds
+# it; it is an identity-checked module object, so a JSON/HTTP bundle or a plain
+# ``replay_mode=True`` flag can never forge it. It lifts ONLY the "code change
+# needs a human" hold, and only together with replay_mode, where
+# lumos_gate_execute swaps every executor for a no-op (no file write, no agent).
+_DRY_RUN_REPLAY = object()
+
+
+def _is_dry_run_replay(marker: Any, replay_mode: Any) -> bool:
+    return marker is _DRY_RUN_REPLAY and replay_mode is True
 _CODE_CHANGING_LEGACY_ACTIONS = frozenset({"direct_patch", "agent", "agent_auto"})
 
 
@@ -1584,6 +1595,7 @@ def run_lumos_gate_substep(
     *,
     repo_root: Path,
     approval_granted: bool = False,
+    _dry_run_replay: Any = None,
 ) -> dict[str, Any]:
     """
     Her plan adımı için Lumos kapısı (policy + risk). LLM yeni plan üretmez; adım olduğu gibi kalır.
@@ -1625,8 +1637,13 @@ def run_lumos_gate_substep(
             "risk_level": "high",
         }
 
-    if not approval_granted and _plan_step_mutating(step):
+    if (
+        not approval_granted
+        and _plan_step_mutating(step)
+        and not _is_dry_run_replay(_dry_run_replay, True)
+    ):
         # TD-44: a code-changing step never runs on keyword risk alone.
+        # Verified dry-run replay is exempt: its executors are no-ops.
         return {
             "_substep_gate_ok": False,
             "policy_ok": True,
@@ -1768,6 +1785,7 @@ def _execute_plan_steps(
     approval_granted: bool = False,
     parent_task: dict[str, Any] | None = None,
     audit: LumosAuditCollector | None = None,
+    _dry_run_replay: Any = None,
 ) -> tuple[str, dict[str, Any] | None, str | None]:
     steps = plan.get("steps")
     if not isinstance(steps, list):
@@ -1809,6 +1827,7 @@ def _execute_plan_steps(
                 step,
                 repo_root=repo_root,
                 approval_granted=approval_granted,
+                _dry_run_replay=_dry_run_replay,
             )
             sr = classify_step_risk(step)
             pol_allowed = (
@@ -2081,8 +2100,21 @@ def execute_plan(
     approval_granted: bool = False,
     parent_task: dict[str, Any] | None = None,
     audit: LumosAuditCollector | None = None,
+    _dry_run_replay: Any = None,
 ) -> tuple[str, dict[str, Any] | None, str | None]:
     approval_granted = _human_approved(approval_granted)
+    if _dry_run_replay is _DRY_RUN_REPLAY:
+        # Wherever the dry-run exemption reaches, no caller-supplied executor
+        # survives: replay writes no file and starts no agent.
+        def run_direct(instr: str) -> dict[str, Any]:
+            return {"execution_result": "replay_skipped", "detail": "replay_mode"}
+
+        def start_agent(goal: str, auto: bool) -> str:
+            return "replay_skipped_job"
+
+        run_agent_auto = None
+    else:
+        _dry_run_replay = None
     if isinstance(plan.get("steps"), list):
         return _execute_plan_steps(
             plan,
@@ -2093,6 +2125,7 @@ def execute_plan(
             approval_granted=approval_granted,
             parent_task=parent_task,
             audit=audit,
+            _dry_run_replay=_dry_run_replay,
         )
     return _execute_plan_legacy(
         plan,
@@ -2224,6 +2257,7 @@ def run_lumos_gate(
     ingest_user_message: str | None = None,
     client_requires_clarification: bool = False,
     controlled_context: dict[str, Any] | None = None,
+    _dry_run_replay: Any = None,
 ) -> dict[str, Any]:
     """
     Planlama + risk; executor çağrılmaz. Bridge tek kapı: önce bu, sonra lumos_gate_execute.
@@ -2430,7 +2464,8 @@ def run_lumos_gate(
             out["lumos_audit_log"] = audit.to_log_entry()
         return out
 
-    if plan_changes_code(plan) and not approval_granted:
+    dry_run_replay = _is_dry_run_replay(_dry_run_replay, replay_mode)
+    if plan_changes_code(plan) and not approval_granted and not dry_run_replay:
         out = _return_code_change_pending(
             ctx, reasoning, mode, payload, norm, plan=plan, repo_root=repo_root, audit=audit
         )
@@ -2456,6 +2491,7 @@ def run_lumos_gate(
         "repo_root": repo_root,
         "audit": audit,
         "replay_mode": replay_mode,
+        "_dry_run_replay": _DRY_RUN_REPLAY if dry_run_replay else None,
     }
 
 
@@ -2897,6 +2933,8 @@ def lumos_gate_execute(
         rr = Path(str(rr))
     audit = bundle.get("audit")
     replay_mode = bool(bundle.get("replay_mode"))
+    dry_run_marker = bundle.get("_dry_run_replay")
+    dry_run_replay = _is_dry_run_replay(dry_run_marker, replay_mode)
     lumos_base = rr / ".lumos"
     from policy.confirmation_policy import (
         bridge_pending_cu4_fields,
@@ -2933,7 +2971,7 @@ def lumos_gate_execute(
             out["lumos_audit_log"] = audit.to_log_entry()
         return out
 
-    if plan_changes_code(plan) and not approval_granted:
+    if plan_changes_code(plan) and not approval_granted and not dry_run_replay:
         # Defence in depth: a run bundle built outside run_lumos_gate still cannot
         # change code without a human approval.
         return _return_code_change_pending(
@@ -2985,6 +3023,7 @@ def lumos_gate_execute(
         approval_granted=approval_granted,
         parent_task=parent_task,
         audit=audit if isinstance(audit, LumosAuditCollector) else None,
+        _dry_run_replay=_DRY_RUN_REPLAY if dry_run_replay else None,
     )
     if risk == "high" and not approval_granted:
         return _return_high_risk_pending(
@@ -3043,6 +3082,7 @@ def replay_lumos_task(
         approval_granted=False,
         audit=audit,
         replay_mode=True,
+        _dry_run_replay=_DRY_RUN_REPLAY,
     )
     if gate_result.get("_kind") != "run":
         new_entry = gate_result.get("lumos_audit_log") or audit.to_log_entry()
