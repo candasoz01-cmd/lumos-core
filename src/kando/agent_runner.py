@@ -26,6 +26,50 @@ SKIP_TEST_PATHS = True
 EXECUTION_RESULT_PATCH_TRIPLET = ("patch_applied", "no_change", "blocked")
 
 
+def _write_gate_enabled() -> bool:
+    flag = (os.environ.get("LUMOS_WRITE_GATE") or "").strip().lower()
+    if flag in {"0", "off", "false", "no"}:
+        return False
+    if flag in {"1", "on", "true", "yes"}:
+        return True
+    if (os.environ.get("LUMOS_TASK_ID") or "").strip() and (
+        os.environ.get("LUMOS_CLAIM_OWNER") or ""
+    ).strip():
+        return True
+    return False
+
+
+def _enforce_central_claim_lock(rel: str) -> str | None:
+    """Block the agent pipeline when this task/path is not owned on the claim lock.
+
+    Uses the existing Board store (``claims.lock``). No second lease. Tests
+    that do not set ``LUMOS_WRITE_GATE`` / task+owner keep the prior path.
+    """
+    if not _write_gate_enabled():
+        return None
+    task_id = (os.environ.get("LUMOS_TASK_ID") or "").strip()
+    owner = (os.environ.get("LUMOS_CLAIM_OWNER") or "").strip()
+    repo = (os.environ.get("LUMOS_CLAIM_REPO") or "lumos-core").strip()
+    if not task_id or not owner:
+        return "WRITE_WITHOUT_CLAIM"
+    try:
+        from lumos_board.claim_cli import _store_dir
+        from lumos_board.write_gate import assert_write, store_from_dir
+
+        store = store_from_dir(_store_dir(os.environ.get("LUMOS_BOARD_DIR")))
+        assert_write(
+            store,
+            task_id=task_id,
+            owner=owner,
+            repo=repo,
+            scopes=[rel],
+            claim_id=(os.environ.get("LUMOS_CLAIM_ID") or "").strip() or None,
+        )
+    except Exception as exc:
+        return f"claim_lock:{exc}"[:200]
+    return None
+
+
 def _repo_root(explicit: Path | None = None) -> Path:
     if explicit is not None:
         return explicit.resolve()
@@ -429,6 +473,12 @@ def run_agent_pipeline(
     goal_body = f"file: {rel}\ntask: {task}\n"
 
     phase("task_lock")
+    lock_err = _enforce_central_claim_lock(rel)
+    if lock_err:
+        report["status"] = "failed"
+        report["errors"] = [lock_err]
+        report["next_focus"] = "Aynı göreve eşzamanlı yazma yok; merkezi claim kilidi gerekli"
+        return _done()
 
     phase("patch_execute")
     try:

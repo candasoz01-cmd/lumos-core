@@ -209,7 +209,7 @@ Sekiz maddenin KA-002 semantiğiyle (`task_claim.py` / `claim_cli.py`) çelişip
 | Madde | `task_claim.py` / `claim_cli.py` karşılığı | CONSTITUTION karşılığı | Durum |
 | --- | --- | --- | --- |
 | 1. Tek aktif sahip | `DUPLICATE_TASK`, `owner`, sahip-dışı işlem reddi | §3 | **VAR** |
-| 2. Claim zorunluluğu | `claim` komutu, atomik kapı; zorlayıcı engel yok (kooperatif güven sınırı) | §3 | **KISMİ** |
+| 2. Claim zorunluluğu | `claim` + `assert-write` (`write_gate` / `TaskClaimStore.assert_write`); ikinci store yok. Kimlikler hâlâ self-asserted (TD-10) | §3 | **KISMİ** |
 | 3. Çalışma alanı beyanı | `repo/branch/worktree/scopes` zorunlu alanlar | — | **VAR** |
 | 4. Durum makinesi | Claim ekseni tam (`ClaimStatus`); Duvar ekseni (`INBOX`/`TEST`/`FOUNDER_REVIEW`/`PARKED`) hiçbir store'da yok | — (agent-status v1/v2 yalnız projeksiyon) | **KISMİ** |
 | 5. Kanıt zorunluluğu | `attach_pr` (PR kanıtı); commit/test/log kanıt alanı yok | §9 | **KISMİ** |

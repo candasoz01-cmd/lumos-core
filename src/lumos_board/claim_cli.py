@@ -78,6 +78,13 @@ def _parser() -> argparse.ArgumentParser:
     listing = subparsers.add_parser("list")
     listing.add_argument("--all", action="store_true")
 
+    assert_write = subparsers.add_parser("assert-write")
+    assert_write.add_argument("--task", required=True)
+    assert_write.add_argument("--owner", required=True)
+    assert_write.add_argument("--repo", required=True)
+    assert_write.add_argument("--scope", action="append", required=True)
+    assert_write.add_argument("--claim-id")
+
     approval = subparsers.add_parser("approval")
     approval_commands = approval.add_subparsers(dest="approval_command", required=True)
 
@@ -186,6 +193,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             print(json.dumps(result.to_dict(), ensure_ascii=False, sort_keys=True))
             return 0 if result.accepted else 2
+        if args.command == "assert-write":
+            value = store.assert_write(
+                task_id=args.task,
+                owner=args.owner,
+                repo=args.repo,
+                scopes=args.scope,
+                claim_id=args.claim_id,
+            )
+            print(json.dumps({"allowed": True, "claim": value.to_dict()}, ensure_ascii=False, sort_keys=True))
+            return 0
         if args.command == "heartbeat":
             value = store.heartbeat(args.claim_id, owner=args.owner, ttl_seconds=args.ttl)
         elif args.command == "release":
