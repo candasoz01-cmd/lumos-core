@@ -20,15 +20,16 @@ help:
 	@echo "  make check     -> make test ile aynı (CI pytest ortamı)"
 	@echo "  make run       -> run main (interactive)"
 	@echo "  make cleanlog  -> truncate .lumos/logs/log.txt"
-	@echo "  make setup-commit-guard -> git pre-commit: ruff + pytest (bir kez)"
+	@echo "  make setup-commit-guard -> git hook'ları: claim kapısı + ruff + pytest + yayın kapısı (bir kez)"
 
 install:
 	pip install -e .
 
 # Tek komut: commit guard (ruff + pytest). Ayrıntı: docs/dev-commit-guard.md
 setup-commit-guard:
-	chmod +x .githooks/pre-commit .githooks/pre-push 2>/dev/null || true
+	chmod +x .githooks/pre-commit .githooks/commit-msg .githooks/pre-push ops/claim_guard/claim-pre-commit ops/claim_guard/claim-commit-msg ops/claim_guard/hooks/* 2>/dev/null || true
 	git config core.hooksPath .githooks
+	@echo "Claim kapısı aktif: commit öncesi merkezi Lumos Board claim'i (LUMOS_AGENT=<claim sahibi> gerekli)"
 	@echo "Commit guard aktif: her commit öncesi ruff check . && pytest -q"
 	@echo "Push guard aktif: her push öncesi yayın kapısı (ops/publication_gate/gate.py)"
 	@echo "venv: pip install -e . && pip install -U ruff pytest"
