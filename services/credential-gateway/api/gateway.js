@@ -2,6 +2,8 @@
 // Sözleşme, lumos-core api/_lib/meta_vault.js istemcisinden birebir türetildi
 // (v1 kaynağı kayıp; protokolün doğruluk kaynağı istemci sözleşmesi + testler).
 // Fail-closed: token yoksa/yanlışsa 401, depolama yapılandırılmamışsa 503.
+import { createHash, timingSafeEqual } from "node:crypto";
+
 import {
   deleteSecret,
   infisicalConfiguration,
@@ -28,10 +30,18 @@ function json(res, statusCode, body) {
   res.end(JSON.stringify(body));
 }
 
+function digest(value) {
+  return createHash("sha256").update(String(value), "utf8").digest();
+}
+
+// Sabit zamanlı karşılaştırma: iki tarafın SHA-256 özeti timingSafeEqual ile
+// kıyaslanır; ne içerik ne uzunluk zamanlama farkıyla sızar. Boş token → her
+// zaman red (fail-closed). Kabul edilen tek biçim tam olarak "Bearer <token>".
 function authorized(req) {
   const expected = clean(process.env.LUMOS_CREDENTIAL_GATEWAY_TOKEN);
+  if (!expected) return false;
   const header = clean(req.headers?.authorization);
-  return Boolean(expected) && header === `Bearer ${expected}`;
+  return timingSafeEqual(digest(header), digest(`Bearer ${expected}`));
 }
 
 function publicRow(record) {
