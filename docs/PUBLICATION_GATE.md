@@ -71,13 +71,89 @@ kapı bunu `config/publication/allowed_signers` içindeki public anahtarlarla
 > onaylı 1Password SSH agent) ve kurucu eliyle yapılır; genel amaçlı veya
 > ajan-erişilebilir anahtar kabul edilmez.
 
+### Kurucu kararı — biyometrik insan kapısı (2026-09-26)
+
+#858 için kurucu kararıdır. Tasarım burada netleşir. Bu kayıt anahtar
+üretmez, `config/publication/allowed_signers` içine satır eklemez ve kapıyı
+açmaz. Tek seferlik kurulum sonraki ayrı kurucu eylemidir. Çalışan kod veya
+kayıtlı imza kökü değildir; kapalı varsayılan yürürlükte kalır.
+
+Publication gate yeni bir biyometrik sistem kurmaz. İleride gerçek
+insan-varlığı/kurucu doğrulama katmanı "kurucu doğrulandı" ürettiğinde,
+publication gate o sonucu belirli bir yayın yetkisinin kriptografik
+kullanımına bağlar. Bugün o sonucu üreten katman yoktur. İki katman
+birbirinin alternatifi değildir: üstte "kurucu doğrulandı", altta ayrı
+publication key'in SSH imzası.
+
+Akış:
+
+`Lumos insan-varlığı/kimlik katmanı → "kurucu doğrulandı" → exact görev + SHA + eylem → Secure Enclave publication key → imza → publication gate doğrular`
+
+1. Yayın isteği gelir.
+2. İnsan-varlığı/kurucu doğrulama katmanı "kurucu doğrulandı" sonucunu verir.
+   Bu katman bugün bu repoda yoktur; demo presence kilidi onun yerine geçmez.
+3. Lumos bu sonucu exact görev, SHA ve eyleme bağlar.
+4. Secure Enclave içindeki yayın anahtarı yalnız bu bağdan sonra imzayı üretir.
+5. Publication gate imzayı doğrular.
+
+Face ID, Touch ID, donanım güvenlik anahtarı veya ayrı güvenilir cihaz,
+insan-varlığı katmanının cihazdaki yöntemleridir. Publication gate'in kendi
+yüz tanıması değildir. Lumos yüz görüntüsünü görmez, kameradan yüz tanıma
+yapmaz ve biyometrik veri tutmaz. Apple cihazında Face ID bunu donanım ve
+işletim sistemi yapar. Lumos yalnız şu sonucu alır: korunan anahtar, kurucu
+doğrulandıktan sonra kullanılabildi.
+
+2026-09-18 notundaki Secretive, donanım anahtarı ve biyometrik 1Password
+örnekleri varlık katmanı değildir. Onlar anahtarın insan etkileşimiyle
+kullanımına örnektir. Private yarı donanım sınırından çıkıyorsa veya anahtar
+günlük GitHub anahtarıysa kabul edilmezler.
+
+**Bugünkü repo karşılığı (2026-09-26, bu ağaç):** "Daha önce tasarlandı" ile
+"bugün çalışıyor" aynı kayıt değildir.
+
+- Var olan parça `src/security/presence_lock.py` ve CLI kamera menüsüdür.
+  Varsayılan `enabled: False`. Açılınca OpenCV kare okur; `require_face`
+  iken Haar cascade herhangi bir önden yüzün var olup olmadığını söyler.
+  Yüz, ayarlı süre boyunca yoksa kilitler (`device_locked`). [ADR-007](decisions/ADR-007-trust-engine-layer.md)
+  bunu demo düzeyinde presence sinyali sayar. Üretim cihaz presence'ı public
+  sınırın dışındadır (ADR-007 public/private tablosu;
+  `docs/security-architecture.md` SEC-D04).
+- Bu parça kurucuyu yabancıdan ayırmaz. Sen kalkınca yabancı oturursa veya
+  arkadan biri ekranı gözetliyorsa diye bir uyarı/kilit bu repoda yoktur.
+- `src/security/identity.py` cihazın Ed25519 kimliğidir. "Kurucu doğrulandı"
+  hükmü değildir.
+- Publication gate bu sinyallerin hiçbirini tüketmez.
+
+Bu yüzden demo kilit yayın kanıtı sayılmaz ve #858 ikinci bir Face ID
+kurmaz. Entegrasyon noktası şudur: o katman "kurucu doğrulandı" ürettiğinde
+sonuç publication key kullanımına bağlanır. O sonuç bugün bu repoda yoktur.
+
+Anahtar kuralları:
+
+1. Anahtar, ajanların göremediği kurucu makinesinde oluşur. Private yarı
+   repoya, bulut ajana veya bu çalışma ortamına girmez.
+2. Kullanım insan varlığı ister. Anahtar günlük GitHub anahtarı değildir.
+   `~/.ssh/id_ed25519` ve "kurucunun GitHub hesabı anahtarları" güven kökü
+   değildir; bu kalıp iptal edilmiştir. Ayrı publication key kullanılır.
+   Private yarı Secure Enclave veya donanım sınırından çıkmaz. Kullanım,
+   insan-varlığı/kurucu doğrulama katmanının "kurucu doğrulandı" sonucuna
+   bağlanır. O katman bugün yoktur. Publication gate ikinci bir yüz tanıma
+   sistemi kurmaz ve demo presence kilidini bu sonuç saymaz.
+3. Repoya sonra yalnız public satır girer: principal, namespace
+   `lumos-publication`, `ssh-ed25519`. Yük ve namespace değişmez. Parmak izi
+   `REVOKED_SIGNER_FINGERPRINTS` içindeki anahtar olamaz.
+4. O public satır sonraki ayrı kurucu PR'ıdır. O PR gelene kadar
+   `allowed_signers` boş kalır ve kapı kapalı kalır.
+
 - İmza yükü `katman-id \n dosya-yolu \n content_sha256 \n approved_date \n`
   biçimindedir: içerik değişirse imza geçersizleşir; layer1 imzası layer2'de
   kullanılamaz.
 - `ssh-keygen` yoksa, imza çözülemiyorsa veya `allowed_signers` eksikse
   doğrulama BAŞARISIZ sayılır (fail-closed).
-- `allowed_signers` güven köküdür (kaynak: kurucunun GitHub hesabı anahtarları).
-  Bu dosyanın değiştirilmesi güven kökü değişikliğidir; zorlayıcı kilit için
+- `allowed_signers` güven kökünün public yarısıdır: ayrı publication key.
+  Kaynak günlük GitHub anahtarı değildir. Bugün dosyada kayıtlı imzacı satırı
+  yoktur; boşluk kapalı varsayılandır. Bu dosyanın değiştirilmesi güven kökü
+  değişikliğidir; zorlayıcı kilit için
   GitHub tarafında `config/publication/**` + `ops/publication_gate/**` üzerine
   CODEOWNERS + zorunlu inceleme gerekir (kurucu ayarı). O ayar olmadan imza
   şeması denetlenebilir ama tek başına zorlanamaz.
@@ -88,8 +164,13 @@ kapı bunu `config/publication/allowed_signers` içindeki public anahtarlarla
 # 1. Yükü üret (layer1 veya layer2):
 python3 ops/publication_gate/gate.py --payload layer1 ui/src/pages/<dosya>.astro 2026-09-17 > /tmp/onay.payload
 
-# 2. İmzala (private anahtarınla):
-ssh-keygen -Y sign -f ~/.ssh/id_ed25519 -n lumos-publication /tmp/onay.payload
+# 2. İmzala. Private yarı Secure Enclave / donanım sınırında kalır.
+#    Günlük GitHub anahtarı (~/.ssh/id_ed25519) kullanılmaz.
+#    İmza, "kurucu doğrulandı" sonucundan sonra üretilir. Bu sonuç bugün
+#    yoktur; demo presence kilidi onun yerine geçmez. Publication gate
+#    kamera açmaz ve ikinci bir yüz tanıma kurmaz. Anahtar yolu repoda
+#    yoktur. Kurulum yapılana kadar bu adım çalıştırılmaz:
+ssh-keygen -Y sign -f <yayin-anahtari> -n lumos-publication /tmp/onay.payload
 
 # 3. /tmp/onay.payload.sig içeriğini manifest kaydına approval_signature olarak,
 #    hash'i content_sha256 olarak yaz; normal PR akışıyla merge et.
@@ -109,9 +190,16 @@ ssh-keygen -Y sign -f ~/.ssh/id_ed25519 -n lumos-publication /tmp/onay.payload
 
 ## Çözülmemiş sınırlar (dokümante edilmiş ≠ çözülmüş)
 
-1. **Onay altyapısı yok:** İnsan-kapılı imza anahtarı henüz kurulmadı; kapalı
-   varsayılan yürürlükte (hiçbir onay/istisna geçemez). Çözüm yalnız
-   kurucunun anahtar kurulumuyla gelir.
+1. **Kurulum bekliyor (tasarım kararlaştı, 2026-09-26):** Biyometrik insan
+   kapısı yukarıda kurucu kararı olarak kayıtlıdır. Publication gate ikinci
+   bir biyometrik sistem kurmaz. "Kurucu doğrulandı" sonucunu ilerideki
+   insan-varlığı/kurucu doğrulama katmanı üretir. Bugünkü demo presence
+   kilidi (`presence_lock.py`, varsayılan kapalı, herhangi bir yüz) bu
+   sonuç değildir. Anahtar kurulumu o katmanı yaratmaz. Yayın anahtarı
+   henüz kurulmadı; `allowed_signers` boştur; kapalı varsayılan
+   yürürlüktedir (hiçbir onay/istisna geçemez). Bu kayıt anahtar üretmez.
+   Anahtarın çözümü sonraki tek seferlik kurucu kurulumudur. Bu PR'ın
+   geliştirme işi değildir.
 2. **İnsan incelemesi zorlanmıyor:** `require_code_owner_reviews=false`,
    `required_approving_review_count=0`. Tek insan hesabı kendi PR'ını
    onaylayamayacağı için bu ayar ikinci inceleyici hesap olmadan AÇILMAMALIDIR
