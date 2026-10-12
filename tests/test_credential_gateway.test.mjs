@@ -451,3 +451,54 @@ test("Health endpoint stays secret-free", () => {
     schema: "lumos-credential-v2",
   });
 });
+
+test("Gateway bearer check is exact and fails closed (constant-time compare)", async () => {
+  configure();
+  const { fetchImpl } = fakeInfisical();
+  const bridge = gatewayFetch(fetchImpl);
+  const list = JSON.stringify({ operation: "credential.list", owner_lumos_id: "lumos-1" });
+  const callWith = (authorization) =>
+    bridge.call("https://gateway.test/api/gateway", {
+      method: "POST",
+      headers: authorization === undefined ? {} : { Authorization: authorization },
+      body: list,
+    });
+  try {
+    for (const bad of [
+      "Bearer gateway-tokeX", // same length, last byte differs
+      "Bearer gateway-toke", // prefix of the real token
+      "Bearer gateway-token-extra",
+      "bearer gateway-token", // scheme is case-sensitive, as before
+      "gateway-token",
+      "Bearer ",
+      "",
+    ]) {
+      assert.equal((await callWith(bad)).status, 401, `must reject: ${JSON.stringify(bad)}`);
+    }
+    assert.equal((await callWith(undefined)).status, 401);
+    assert.equal((await callWith("  Bearer gateway-token  ")).status, 200);
+    assert.equal((await callWith("Bearer gateway-token")).status, 200);
+
+    // Empty or whitespace-only configured token: always denied, even for "Bearer ".
+    for (const configured of ["", "   "]) {
+      process.env.LUMOS_CREDENTIAL_GATEWAY_TOKEN = configured;
+      assert.equal((await callWith("Bearer ")).status, 401);
+      assert.equal((await callWith(`Bearer ${configured}`)).status, 401);
+    }
+  } finally {
+    bridge.restore();
+    cleanup();
+  }
+});
+
+test("Gateway source uses timingSafeEqual, not a plain string compare, for the bearer", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile(
+    new URL("../services/credential-gateway/api/gateway.js", import.meta.url),
+    "utf8",
+  );
+  const fn = source.slice(source.indexOf("function authorized("), source.indexOf("function publicRow("));
+  assert.match(fn, /timingSafeEqual\(/);
+  assert.doesNotMatch(fn, /===\s*`Bearer/);
+  assert.doesNotMatch(fn, /header\s*===|===\s*header/);
+});
