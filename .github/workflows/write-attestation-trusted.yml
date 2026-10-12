@@ -1,0 +1,64 @@
+# Trusted HMAC verifier. Not a required status check.
+# Isolated from claim-guard.yml so pull_request_target never emits SKIPPED
+# CheckRuns named claim-guard or write-attestation.
+#
+# pull_request_target + base.sha extract + production secret.
+# The secret is only on the verify step after the verifier is materialized
+# from the PR base, never from the untrusted head.
+name: Write attestation trusted
+
+on:
+  pull_request_target:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: write-attestation-trusted-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  write-attestation-trusted:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Materialize trusted verifier from base SHA
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          set -euo pipefail
+          test -n "$BASE_SHA"
+          rm -rf "${RUNNER_TEMP}/trusted"
+          python3 -m lumos_board.claim_guard_trust \
+            --repo . --base-sha "$BASE_SHA" --dest "${RUNNER_TEMP}/trusted"
+
+      - name: Fetch PR head as data
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin \
+            "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head"
+
+      - name: Verify HMAC write attestations
+        env:
+          PYTHONPATH: ${{ runner.temp }}/trusted/src
+          LUMOS_WRITE_GATE_SECRET: ${{ secrets.LUMOS_WRITE_GATE_SECRET }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse refs/remotes/pr/head)"
+          python3 -m lumos_board.write_attestation \
+            --repo . --base "$BASE_SHA" --head "$HEAD_SHA"

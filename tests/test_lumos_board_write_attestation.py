@@ -250,28 +250,29 @@ def test_copied_trailer_is_rejected_as_reuse(tmp_path: Path) -> None:
 
 
 def test_workflow_is_pull_request_target_and_secret_stays_on_trusted_step() -> None:
-    text = (
-        Path(__file__).resolve().parents[1]
-        / ".github"
-        / "workflows"
-        / "claim-guard.yml"
-    ).read_text(encoding="utf-8")
-    jobs = text.split("\njobs:\n", 1)[1]
-    assert "python -m lumos_board.claim_guard" in jobs
-    assert "lumos_board.write_attestation" in jobs
-    assert "lumos_board.claim_guard_trust" in jobs
-    assert jobs.count("${{ secrets.LUMOS_WRITE_GATE_SECRET }}") == 1
-    proof_job = jobs.index("\n  write-attestation:\n")
-    trusted_job = jobs.index("\n  write-attestation-trusted:\n")
-    board_job = jobs.index("\n  claim-guard:\n") if "\n  claim-guard:\n" in jobs else jobs.index("  claim-guard:\n")
-    secret_at = jobs.index("${{ secrets.LUMOS_WRITE_GATE_SECRET }}")
-    assert board_job < proof_job < trusted_job < secret_at
-    assert "pull_request_target" in text
-    assert "lumos-ci-write-attestation-proof-not-prod-32" in jobs
-    assert "Reject commits without HMAC write attestation" in jobs
-    board_check = jobs.index("Check PR writes against central claims")
-    assert "${{ secrets.LUMOS_WRITE_GATE_SECRET }}" not in jobs[board_check:trusted_job]
-    assert "${{ secrets.LUMOS_WRITE_GATE_SECRET }}" not in jobs[proof_job:trusted_job]
+    root = Path(__file__).resolve().parents[1] / ".github" / "workflows"
+    board = (root / "claim-guard.yml").read_text(encoding="utf-8")
+    trusted = (root / "write-attestation-trusted.yml").read_text(encoding="utf-8")
+    board_jobs = board.split("\njobs:\n", 1)[1]
+    trusted_jobs = trusted.split("\njobs:\n", 1)[1]
+    assert "python -m lumos_board.claim_guard" in board_jobs
+    assert "lumos_board.write_attestation" in board_jobs
+    assert "lumos_board.claim_guard_trust" in trusted_jobs
+    assert "${{ secrets.LUMOS_WRITE_GATE_SECRET }}" not in board
+    assert trusted_jobs.count("${{ secrets.LUMOS_WRITE_GATE_SECRET }}") == 1
+    assert "  claim-guard:\n" in board_jobs
+    assert "  write-attestation:\n" in board_jobs
+    assert "  write-attestation-trusted:\n" in trusted_jobs
+    assert "  claim-guard:\n" not in trusted_jobs
+    assert "  write-attestation:\n" not in trusted_jobs
+    assert "if: github.event_name" not in board
+    assert "if: github.event_name" not in trusted
+    assert "\non:\n  pull_request:\n" in board
+    assert "\non:\n  pull_request_target:\n" not in board
+    assert "\non:\n  pull_request_target:\n" in trusted
+    assert "lumos-ci-write-attestation-proof-not-prod-32" in board_jobs
+    assert "Reject commits without HMAC write attestation" in board_jobs
+    assert "Check PR writes against central claims" in board_jobs
 
 
 def test_board_trailers_do_not_satisfy_hmac(tmp_path: Path) -> None:
