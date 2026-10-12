@@ -1,0 +1,41 @@
+#!/bin/sh
+# Adds the Lumos-Claim / Lumos-Agent trailers verified by pre-commit, so
+# claim-guard in CI can attribute every commit to a central claim.
+set -eu
+git_dir=$(git rev-parse --git-dir)
+# Merge commits are exempt in claim-guard; their content is checked via the PR diff.
+if [ -f "$git_dir/MERGE_HEAD" ]; then
+  exit 0
+fi
+case "${LUMOS_AGENT:-}" in
+  "" | *[!A-Za-z0-9._@/-]*)
+    echo "claim-guard: LUMOS_AGENT eksik veya geçersiz" >&2
+    exit 1 ;;
+esac
+ids_file="$git_dir/lumos-claim-ids"
+nochange="$git_dir/lumos-claim-nochange"
+if [ ! -s "$ids_file" ]; then
+  if [ -f "$nochange" ]; then
+    rm -f "$nochange"
+    # Message-only change: no new file is written. Keep it only if the message
+    # already carries this agent's trailers (from the original verified commit).
+    agents=$(git interpret-trailers --parse "$1" | sed -n 's/^Lumos-Agent: //p' | sort -u)
+    if [ "$agents" = "$LUMOS_AGENT" ] && git interpret-trailers --parse "$1" | grep -q '^Lumos-Claim: '; then
+      exit 0
+    fi
+    echo "claim-guard: dosya değişikliği olmayan commit'te bu ajanın Lumos trailer'ları yok; commit engellendi" >&2
+    exit 1
+  fi
+  echo "claim-guard: pre-commit claim doğrulaması yok; commit engellendi" >&2
+  exit 1
+fi
+while IFS= read -r id; do
+  [ -n "$id" ] || continue
+  case "$id" in
+    [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]) ;;
+    *) echo "claim-guard: geçersiz claim kimliği reddedildi" >&2; exit 1 ;;
+  esac
+  git interpret-trailers --in-place --if-exists addIfDifferent --trailer "Lumos-Claim: $id" "$1"
+done < "$ids_file"
+git interpret-trailers --in-place --if-exists replace --trailer "Lumos-Agent: $LUMOS_AGENT" "$1"
+rm -f "$ids_file"

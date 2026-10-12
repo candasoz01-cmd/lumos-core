@@ -1,0 +1,49 @@
+name: Claim guard
+
+# Every PR's writes are checked against the central Lumos Board
+# (refs/heads/claude/lumos-board): each changed file must be inside a claim
+# bound to this PR, no other agent's ACTIVE claim may cover it, and every
+# non-merge commit must be attributed (Lumos-Claim + Lumos-Agent trailers)
+# to a claim owned by that agent or reached by verified delegation.
+# Commit author fields are not used as evidence. Unreadable board = failure.
+#
+# Making this job a required status check is a separate, founder-approved
+# branch-protection change; this file does not change protection.
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: claim-guard-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  claim-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Fetch central board
+        run: git fetch --no-tags origin +refs/heads/claude/lumos-board:refs/remotes/origin/claude/lumos-board
+
+      - name: Check PR writes against central claims
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+          PR_REF: ${{ github.repository }}#${{ github.event.pull_request.number }}
+        run: |
+          PYTHONPATH=src python -m lumos_board.claim_guard \
+            --base "$BASE_SHA" --head "$HEAD_SHA" --branch "$HEAD_REF" --pr "$PR_REF"
