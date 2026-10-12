@@ -78,6 +78,7 @@ def test_execute_plan_fills_audit_single_step(tmp_path: Path) -> None:
         start_agent=lambda g, a: "j",
         run_agent_auto=None,
         repo_root=tmp_path,
+        approval_granted=True,  # TD-44: code-changing steps run only after human approval
         parent_task=None,
         audit=audit,
     )
@@ -129,7 +130,9 @@ def test_replay_skips_real_executor(monkeypatch: object, tmp_path: Path) -> None
             "risk": "low",
             "mode": mode,
             "payload": payload,
-            "approval_granted": False,
+            # TD-44: an unapproved code-changing bundle is held before replay;
+            # this test is about replay skipping the executor of an approved plan.
+            "approval_granted": True,
             "repo_root": tmp_path,
             "audit": audit,
             "replay_mode": replay_mode,
@@ -164,6 +167,7 @@ def test_replay_skips_real_executor(monkeypatch: object, tmp_path: Path) -> None
         start_agent=lambda g, a: "j",
         run_agent_auto=None,
         repo_root=tmp_path,
+        approval_granted=True,  # TD-44: the recorded original run was human-approved
         parent_task=pt,
         audit=orig,
     )

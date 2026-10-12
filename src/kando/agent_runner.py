@@ -1,5 +1,6 @@
 """
-Tek tuş agent akışı: repo tarama → hedef seçimi → file+task ile executor → verify → commit → push → rapor.
+Tek tuş agent akışı: açık insan onayı → repo tarama → hedef seçimi → file+task ile executor → verify → yerel commit → rapor.
+Otomatik git push yoktur; onaysız çağrı ``pending_approval`` ile durur.
 Executor katmanına yalnızca somut `file:\\n...\\ntask:\\n...` hedefi gider (no_target_detected önlenir).
 """
 from __future__ import annotations
@@ -9,6 +10,7 @@ import os
 import re
 import subprocess
 import threading
+import unicodedata
 import uuid
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -46,19 +48,38 @@ def _tokenize_goal(goal: str) -> list[str]:
     return [t for t in re.findall(r"[a-zğüşıöçĞÜŞİÖÇ]{3,}", g) if len(t) >= 3]
 
 
+# Defence in depth only. This list never grants permission: the agent pipeline
+# runs exclusively after an explicit human approval (see run_agent_pipeline).
+# A match blocks the goal even when a human approved it.
+_RISKY_GOAL_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    ("rm -rf", re.compile(r"\brm\s+(?:-[a-z]*\s+)*-[a-z]*(?:r[a-z]*f|f[a-z]*r)[a-z]*\b")),
+    ("rm -r -f", re.compile(r"\brm\s+(?:-[a-z]+\s+)*-r\b.*\s-f\b|\brm\s+(?:-[a-z]+\s+)*-f\b.*\s-r\b")),
+    ("format c:", re.compile(r"\bformat\s+[a-z]:")),
+    ("drop database", re.compile(r"\bdrop\s+(?:database|schema|table)\b")),
+    ("truncate table", re.compile(r"\btruncate\s+table\b")),
+    ("fork bomb", re.compile(r":\s*\(\s*\)\s*\{")),
+    ("mkfs", re.compile(r"\bmkfs(?:\.[a-z0-9]+)?\b")),
+    ("dd if=", re.compile(r"\bdd\s+[^\n]*\bif=")),
+    ("raw disk write", re.compile(r">\s*/dev/(?:sd|nvme|disk|hd)")),
+    ("pipe to shell", re.compile(r"\b(?:curl|wget)\b[^\n|]*\|\s*(?:sudo\s+)?(?:ba|z|da)?sh\b")),
+    ("git push", re.compile(r"\bgit\s+push\b")),
+    ("git history rewrite", re.compile(r"\bgit\s+(?:reset\s+--hard|clean\s+-[a-z]*f[a-z]*|filter-branch|filter-repo)")),
+    ("chmod 777 recursive", re.compile(r"\bchmod\s+-r\s+0?777\b")),
+)
+
+
+def _normalize_goal_for_risk(goal: str) -> str:
+    """Lowercase, drop quoting/escaping noise and collapse whitespace before matching."""
+    text = unicodedata.normalize("NFKC", goal or "").lower()
+    text = re.sub(r"[\"'`\\]", "", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
 def _is_risky_goal(goal: str) -> str | None:
-    low = (goal or "").lower()
-    risky = (
-        "rm -rf",
-        "format c:",
-        "drop database",
-        ":(){",
-        "mkfs",
-        "dd if=",
-    )
-    for r in risky:
-        if r in low:
-            return f"risky_pattern:{r}"
+    low = _normalize_goal_for_risk(goal)
+    for label, pattern in _RISKY_GOAL_PATTERNS:
+        if pattern.search(low):
+            return f"risky_pattern:{label}"
     return None
 
 
@@ -271,15 +292,10 @@ def _commit_files(repo_root: Path, paths: list[str], message: str) -> dict[str, 
     return {"ok": True, "hash": hout.strip()[:40] if hcode == 0 else None, "detail": out[:800]}
 
 
-def _push_repo(repo_root: Path) -> dict[str, Any]:
-    code, out, err = _git_cmd(repo_root, "push", timeout=180.0)
-    ok = code == 0
-    return {"ok": ok, "detail": (out or err)[:2000]}
-
-
 def _default_final_report() -> dict[str, Any]:
     return {
         "status": "failed",
+        "approval": {"human_approved": False},
         "selected_target": "",
         "task": "",
         "changed_files": [],
@@ -360,16 +376,22 @@ _jobs: dict[str, AgentJobState] = {}
 def run_agent_pipeline(
     goal: str,
     *,
-    auto_approve_safe: bool,
+    human_approved: bool,
     repo_root: Path | None,
     on_phase: Callable[[str], None] | None = None,
 ) -> dict[str, Any]:
     """
     Tam zincir: repo_scan → … → final_report.
+
+    ``human_approved`` is the explicit human-approval fact supplied by the Lumos
+    gate (``execute_approved_pending_record``). Without it the pipeline never
+    patches or commits: it stops at ``pending_approval`` and says so in the
+    report. There is no environment switch that replaces this approval.
     """
     rr = _repo_root(repo_root)
     report = _default_final_report()
     report["task"] = (goal or "").strip()
+    report["approval"] = {"human_approved": bool(human_approved)}
 
     def phase(name: str) -> None:
         if on_phase:
@@ -386,6 +408,12 @@ def run_agent_pipeline(
         report["errors"] = [f"blocked:{risky}"]
         return _done()
 
+    if human_approved is not True:
+        report["status"] = "pending_approval"
+        report["errors"] = ["human_approval_required"]
+        report["next_focus"] = "Ajan akışı yalnız açık insan onayından sonra çalışır"
+        return _done()
+
     phase("issue_discovery")
     phase("target_selection")
     rel, task, _meta = select_target_and_task(goal, rr)
@@ -399,8 +427,6 @@ def run_agent_pipeline(
         return _done()
 
     goal_body = f"file: {rel}\ntask: {task}\n"
-    if auto_approve_safe:
-        os.environ["KANDO_AGENT_AUTO_APPROVE"] = "1"
 
     phase("task_lock")
 
@@ -463,7 +489,7 @@ def run_agent_pipeline(
 
 def start_agent_job(
     goal: str,
-    auto_approve_safe: bool,
+    human_approved: bool,
     *,
     repo_root: Path | None,
     outbox_dir: Path,
@@ -508,7 +534,7 @@ def start_agent_job(
             os.chdir(rr)
             fr = run_agent_pipeline(
                 goal,
-                auto_approve_safe=auto_approve_safe,
+                human_approved=human_approved,
                 repo_root=rr,
                 on_phase=on_phase,
             )

@@ -687,7 +687,7 @@ def _ok_report(**overrides):
 
 
 def _call_phase(report, before_phase=None):
-    def pipeline(goal, *, auto_approve_safe, repo_root, on_phase=None):
+    def pipeline(goal, *, human_approved, repo_root, on_phase=None):
         if before_phase is not None:
             before_phase(repo_root, on_phase)
         elif on_phase is not None:
