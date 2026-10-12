@@ -1220,10 +1220,10 @@ def _return_high_risk_pending(
     return out
 
 
-_AGENT_APPROVAL_TAG = "AGENT PIPELINE → açık insan onayı zorunlu"
+_CODE_CHANGE_APPROVAL_TAG = "KOD DEĞİŞİKLİĞİ → açık insan onayı zorunlu"
 
 
-def _return_agent_pipeline_pending(
+def _return_code_change_pending(
     ctx: GateContext,
     reasoning: dict[str, Any],
     mode: str,
@@ -1235,15 +1235,15 @@ def _return_agent_pipeline_pending(
     audit: LumosAuditCollector | None,
     grant_source: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Agent pipeline without human approval: never execute, always wait for a human.
+    """Code-changing plan without human approval: never execute, always wait for a human.
 
-    The pipeline patches files and commits, so it is held at ``pending_approval``
-    regardless of the keyword risk class. The record is visible and auditable;
-    nothing is skipped silently.
+    Patches, the agent pipeline and agent file actions write repository files, so
+    they are held at ``pending_approval`` regardless of the keyword risk class.
+    The record is visible and auditable; nothing is skipped silently.
     """
     rsx = ctx.reasoning_summary
-    if _AGENT_APPROVAL_TAG not in (rsx or ""):
-        ctx.reasoning_summary = f"{rsx} | {_AGENT_APPROVAL_TAG}".strip(" |")
+    if _CODE_CHANGE_APPROVAL_TAG not in (rsx or ""):
+        ctx.reasoning_summary = f"{rsx} | {_CODE_CHANGE_APPROVAL_TAG}".strip(" |")
     out = _return_high_risk_pending(
         ctx,
         reasoning,
@@ -1258,16 +1258,16 @@ def _return_agent_pipeline_pending(
     )
     par = out.get("pending_approval_record")
     if isinstance(par, dict):
-        par["approval_reason"] = "agent_pipeline_requires_human_approval"
+        par["approval_reason"] = "code_change_requires_human_approval"
     hb = out.get("http_body")
     if isinstance(hb, dict):
-        hb["approval_reason"] = "agent_pipeline_requires_human_approval"
+        hb["approval_reason"] = "code_change_requires_human_approval"
     if audit is not None:
         audit.set_plan(plan)
         audit.set_step_results([])
         audit.set_summary(
             blocked=True,
-            reason="agent_pipeline_requires_human_approval",
+            reason="code_change_requires_human_approval",
             execution_result="pending_approval",
             execution_kind="pending_approval",
         )
@@ -1488,19 +1488,36 @@ def _plan_steps_mutating(plan: dict[str, Any]) -> bool:
     return False
 
 
-def plan_starts_agent_pipeline(plan: dict[str, Any]) -> bool:
-    """True when executing ``plan`` would start the repo agent pipeline.
+_CODE_CHANGING_STEP_TYPES = frozenset({"patch", "agent", "agent_auto"})
+_CODE_CHANGING_LEGACY_ACTIONS = frozenset({"direct_patch", "agent", "agent_auto"})
 
-    The agent pipeline patches repository files and creates a local commit.
-    Keyword risk classification is not an approval: such a plan always needs an
-    explicit human approval, whatever its risk class.
-    """
+
+def plan_starts_agent_pipeline(plan: dict[str, Any]) -> bool:
+    """True when executing ``plan`` would start the repo agent pipeline (patch + commit)."""
     if not isinstance(plan, dict):
         return False
     if plan.get("action") == "agent":
         return True
     for s in plan.get("steps") or []:
         if isinstance(s, dict) and s.get("type") == "agent":
+            return True
+    return False
+
+
+def plan_changes_code(plan: dict[str, Any]) -> bool:
+    """True when executing ``plan`` would write repository files.
+
+    Covers file patches (``patch`` / ``direct_patch``), the agent pipeline
+    (``agent``) and local agent file actions (``agent_auto``). Keyword risk
+    classification is not an approval: every such plan needs an explicit human
+    approval, whatever its risk class (TD-44 founder decision, 2026-10-12).
+    """
+    if not isinstance(plan, dict):
+        return False
+    if plan.get("action") in _CODE_CHANGING_LEGACY_ACTIONS:
+        return True
+    for s in plan.get("steps") or []:
+        if isinstance(s, dict) and s.get("type") in _CODE_CHANGING_STEP_TYPES:
             return True
     return False
 
@@ -1596,6 +1613,19 @@ def run_lumos_gate_substep(
             "step": dict(step),
             "execution_mode": "pending",
             "risk_level": "high",
+        }
+
+    if not approval_granted and _plan_step_mutating(step):
+        # TD-44: a code-changing step never runs on keyword risk alone.
+        return {
+            "_substep_gate_ok": False,
+            "policy_ok": True,
+            "gate_complete": True,
+            "error": "step requires approval",
+            "step": dict(step),
+            "execution_mode": "pending",
+            "risk_level": effective_risk,
+            "approval_reason": "code_change_requires_human_approval",
         }
 
     if (
@@ -2388,8 +2418,8 @@ def run_lumos_gate(
             out["lumos_audit_log"] = audit.to_log_entry()
         return out
 
-    if plan_starts_agent_pipeline(plan) and not approval_granted:
-        out = _return_agent_pipeline_pending(
+    if plan_changes_code(plan) and not approval_granted:
+        out = _return_code_change_pending(
             ctx, reasoning, mode, payload, norm, plan=plan, repo_root=repo_root, audit=audit
         )
         out["policy_ok"] = True
@@ -2891,10 +2921,10 @@ def lumos_gate_execute(
             out["lumos_audit_log"] = audit.to_log_entry()
         return out
 
-    if plan_starts_agent_pipeline(plan) and not approval_granted:
+    if plan_changes_code(plan) and not approval_granted:
         # Defence in depth: a run bundle built outside run_lumos_gate still cannot
-        # start the agent pipeline without a human approval.
-        return _return_agent_pipeline_pending(
+        # change code without a human approval.
+        return _return_code_change_pending(
             ctx, reasoning, mode, payload, norm, plan=plan, repo_root=rr, audit=audit,
             grant_source=bundle,
         )

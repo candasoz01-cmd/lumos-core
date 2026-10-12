@@ -101,7 +101,24 @@ def test_run_lumos_gate_dict_substep_api(tmp_path: Path) -> None:
         },
         repo_root=tmp_path,
     )
-    assert gate.get("_substep_gate_ok") is True
+    # TD-44: a code-changing step is never allowed on keyword risk alone.
+    assert gate.get("_substep_gate_ok") is False
+    assert gate.get("execution_mode") == "pending"
+    assert gate.get("approval_reason") == "code_change_requires_human_approval"
+
+    approved = run_lumos_gate(
+        {
+            "is_substep": True,
+            "task": {
+                "type": "patch",
+                "file": "nope.txt",
+                "content": "# özet: kısa not",
+            },
+        },
+        repo_root=tmp_path,
+        approval_granted=True,
+    )
+    assert approved.get("_substep_gate_ok") is True
 
     gate2 = run_lumos_gate(
         {
@@ -167,6 +184,7 @@ def test_llm_substep_reject_blocks_whole_plan_no_executor(
         start_agent=lambda g, a: "job1",
         run_agent_auto=None,
         repo_root=tmp_path,
+        approval_granted=True,  # TD-44: LLM checks still guard an approved plan
         parent_task=_sample_parent_task(),
     )
     assert kind == "plan"
@@ -212,6 +230,7 @@ def test_llm_fallback_marks_result_and_still_executes(
         start_agent=lambda g, a: "job1",
         run_agent_auto=None,
         repo_root=tmp_path,
+        approval_granted=True,  # TD-44: LLM checks still guard an approved plan
         parent_task=_sample_parent_task(),
     )
     assert kind == "plan"
@@ -259,6 +278,7 @@ def test_execution_time_llm_blocks_after_plan_passed_toctou(
         start_agent=lambda g, a: "job1",
         run_agent_auto=None,
         repo_root=tmp_path,
+        approval_granted=True,  # TD-44: LLM checks still guard an approved plan
         parent_task=_sample_parent_task(),
     )
     assert kind == "plan"

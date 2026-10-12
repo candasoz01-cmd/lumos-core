@@ -201,7 +201,7 @@ def test_gate_holds_agent_plan_without_approval_regardless_of_risk(
     assert out.get("gate_complete") is True
     record = out.get("pending_approval_record")
     assert isinstance(record, dict)
-    assert record.get("approval_reason") == "agent_pipeline_requires_human_approval"
+    assert record.get("approval_reason") == "code_change_requires_human_approval"
 
 
 def test_gate_releases_agent_plan_only_with_approval(
@@ -233,4 +233,125 @@ def test_gate_execute_refuses_unapproved_agent_bundle(
 
     record = out.get("pending_approval_record")
     assert isinstance(record, dict)
-    assert record.get("approval_reason") == "agent_pipeline_requires_human_approval"
+    assert record.get("approval_reason") == "code_change_requires_human_approval"
+
+
+# --- TD-44: every code-changing plan needs explicit human approval ----------
+
+
+@pytest.mark.parametrize(
+    "plan",
+    [
+        {"steps": [{"type": "patch", "file": "a.txt", "content": "# özet\nb"}]},
+        {"steps": [{"type": "agent_auto", "agent_blob": "özet ekle"}]},
+        {"steps": [{"type": "agent", "goal": "g"}]},
+        {"action": "direct_patch", "instruction": "TARGET: a.txt\nb"},
+        {"action": "agent_auto", "agent_blob": "özet ekle"},
+        {"action": "agent", "goal": "g"},
+    ],
+)
+def test_plan_changes_code_detection(plan: dict[str, Any]) -> None:
+    assert lumos_gate.plan_changes_code(plan)
+
+
+@pytest.mark.parametrize(
+    "plan",
+    [
+        {"steps": [{"type": "log", "message": "m"}]},
+        {"steps": []},
+        {"action": "noop"},
+        {},
+    ],
+)
+def test_plan_without_code_change_is_not_flagged(plan: dict[str, Any]) -> None:
+    assert not lumos_gate.plan_changes_code(plan)
+
+
+def _fake_patch_reasoning(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    (tmp_path / "a.txt").write_text("a", encoding="utf-8")
+    monkeypatch.setattr(
+        lumos_gate,
+        "reason_task",
+        lambda norm, repo_root, payload: {
+            "ok": True,
+            "source": "heuristic",
+            "llm_mode": "direct_patch",
+            "generated_content": "# özet\nb",
+            "summary": "özet",
+        },
+    )
+    monkeypatch.setattr(lumos_gate, "classify_risk", lambda text, path: "low")
+
+
+def test_low_risk_patch_is_held_without_approval(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _fake_patch_reasoning(monkeypatch, tmp_path)
+
+    out = lumos_gate.run_lumos_gate("direct_patch", "TARGET: a.txt\n# özet\nb\n", repo_root=tmp_path)
+
+    assert out.get("_kind") != "run"
+    record = out.get("pending_approval_record")
+    assert isinstance(record, dict)
+    assert record.get("approval_reason") == "code_change_requires_human_approval"
+    assert (tmp_path / "a.txt").read_text(encoding="utf-8") == "a"
+
+
+def test_low_risk_patch_runs_only_with_approval(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _fake_patch_reasoning(monkeypatch, tmp_path)
+    monkeypatch.setattr(
+        lumos_gate,
+        "validate_substep_with_llm",
+        lambda step, parent, **kw: {"ok": True, "reason": "", "risk_hint": "low"},
+    )
+    calls: list[str] = []
+
+    bundle = lumos_gate.run_lumos_gate(
+        "direct_patch", "TARGET: a.txt\n# özet\nb\n", repo_root=tmp_path, approval_granted=True
+    )
+    assert bundle.get("_kind") == "run"
+    lumos_gate.lumos_gate_execute(
+        bundle,
+        run_direct=lambda instr: calls.append(instr) or {"execution_result": "patch_applied"},
+        start_agent=_explode,
+        run_agent_auto=None,
+    )
+
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize(
+    "plan",
+    [
+        {"steps": [{"type": "patch", "file": "a.txt", "content": "# özet\nb"}]},
+        {"steps": [{"type": "agent_auto", "agent_blob": "özet ekle"}]},
+        {"action": "direct_patch", "instruction": "TARGET: a.txt\nb"},
+        {"action": "agent_auto", "agent_blob": "özet ekle"},
+    ],
+)
+def test_gate_execute_refuses_unapproved_code_change_bundle(
+    plan: dict[str, Any], tmp_path: Path
+) -> None:
+    bundle = {
+        "_kind": "run",
+        "plan": plan,
+        "ctx": lumos_gate.GateContext(),
+        "norm": {"mode": "direct_patch"},
+        "reasoning": {"source": "heuristic", "summary": "s"},
+        "risk": "low",
+        "mode": "direct_patch",
+        "payload": "x",
+        "approval_granted": False,
+        "repo_root": tmp_path,
+        "audit": None,
+    }
+
+    out = lumos_gate.lumos_gate_execute(
+        bundle, run_direct=_explode, start_agent=_explode, run_agent_auto=_explode
+    )
+
+    record = out.get("pending_approval_record")
+    assert isinstance(record, dict)
+    assert record.get("approval_reason") == "code_change_requires_human_approval"
