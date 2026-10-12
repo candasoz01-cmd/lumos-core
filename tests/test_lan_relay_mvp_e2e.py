@@ -216,7 +216,7 @@ def test_lan_relay_mvp_e2e(
     )
     assert status == 200
     assert pending_out["status"] == "pending_approval"
-    approval_token = pending_out["approval_token"]
+    assert "approval_token" not in pending_out
     approval_file = pending_out["approval_file"]
     approval_id = pending_out["approval_id"]
 
@@ -231,6 +231,8 @@ def test_lan_relay_mvp_e2e(
     assert list_payload["count"] == 1
     assert list_payload["pending"][0]["approval_id"] == approval_id
     assert list_payload["pending"][0]["status"] == STATUS_PENDING
+    approval_token = list_payload["pending"][0]["approval_token"]
+    assert approval_token
 
     _, approve_payload = _relay_post(
         port,
@@ -403,15 +405,19 @@ def test_reject_via_relay(relay_server: tuple[int, RelayState, RelayConfig]) -> 
             ensure_ascii=False,
         ).encode("utf-8"),
     )
+    assert "approval_token" not in pending_out
     _, pair_payload = _relay_post(port, "/relay/pair", {"pairing_code": state.pairing_id})
     relay_token = pair_payload["relay_token"]
+    _, listed = _relay_get(port, "/relay/pending", token=relay_token)
+    human_token = listed["pending"][0]["approval_token"]
+    assert human_token
 
     _, reject_payload = _relay_post(
         port,
         "/relay/reject",
         {
             "approval_file": pending_out["approval_file"],
-            "approval_token": pending_out["approval_token"],
+            "approval_token": human_token,
         },
         token=relay_token,
     )

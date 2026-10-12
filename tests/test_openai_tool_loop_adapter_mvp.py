@@ -27,7 +27,11 @@ from kando_bridge.openai_tool_adapter import (
     tool_call_to_execute_body,
 )
 from kando_bridge.pc_remote_tools import CMD_OPEN_URL
-from kando_bridge.pending_approvals import STATUS_APPROVED, find_pending_by_approval_id
+from kando_bridge.pending_approvals import (
+    STATUS_APPROVED,
+    find_pending_by_approval_id,
+    stored_approval_token,
+)
 
 
 def _bridge_handler_stub(*, body: dict[str, Any]) -> Any:
@@ -162,11 +166,17 @@ def test_openai_tool_loop_adapter_mvp_e2e(adapter_bridge_env: Path) -> None:
     assert result["pending"]["status"] == "pending_approval"
 
     pending = result["pending"]
+    assert "approval_token" not in pending
+    token = stored_approval_token(repo, pending["approval_id"])
+    assert token
     calls = parse_openai_tool_calls(payload)
-    approve_out = approve_pending(pending["approval_id"], pending["approval_token"])
+    approve_out = approve_pending(pending["approval_id"], token)
     assert approve_out.get("accepted") is True
 
-    exec_status, loop_out = approve_and_reexecute(calls[0], pending)
+    exec_status, loop_out = approve_and_reexecute(
+        calls[0],
+        {**pending, "approval_token": token},
+    )
     assert loop_out["ok"] is True
     assert loop_out["stage"] == "executed"
 
@@ -186,6 +196,7 @@ def test_openai_tool_loop_default_stays_pending(adapter_bridge_env: Path) -> Non
     result = run_tool_call_loop(calls[0])
     assert result["stage"] == "pending"
     assert result["pending"]["status"] == "pending_approval"
+    assert "approval_token" not in result["pending"]
     assert result.get("ok") is False
 
 
@@ -227,7 +238,8 @@ def test_openai_tool_loop_post_tools_execute_pending(adapter_bridge_env: Path) -
     status, out = post_tools_execute(body)
     assert status == 200
     assert out["status"] == "pending_approval"
-    assert out["approval_token"]
+    assert "approval_token" not in out
+    assert stored_approval_token(adapter_bridge_env, out["approval_id"])
 
 
 def _free_port() -> int:
@@ -344,13 +356,16 @@ def test_openai_tool_loop_via_lan_relay_approve(
     )
     assert status == 200
     assert pending_out["status"] == "pending_approval"
+    assert "approval_token" not in pending_out
+    human_token = stored_approval_token(tmp_path, pending_out["approval_id"])
+    assert human_token
 
     _, approve_payload = _relay_post(
         port,
         "/relay/approve",
         {
             "approval_file": pending_out["approval_file"],
-            "approval_token": pending_out["approval_token"],
+            "approval_token": human_token,
         },
         token=relay_token,
     )
@@ -359,7 +374,7 @@ def test_openai_tool_loop_via_lan_relay_approve(
 
     exec_body = tool_call_to_execute_body(
         calls[0],
-        approval_token=pending_out["approval_token"],
+        approval_token=human_token,
         approval_id=pending_out["approval_id"],
     )
     exec_status, exec_out = bridge_request(
@@ -381,13 +396,16 @@ def test_openai_tool_loop_manual_approve_path(adapter_bridge_env: Path) -> None:
     calls = parse_openai_tool_calls(mock_pc_open_url_response())
     pending_result = run_tool_call_loop(calls[0], auto_approve=False)
     pending = pending_result["pending"]
-    approve_out = approve_pending(pending["approval_id"], pending["approval_token"])
+    assert "approval_token" not in pending
+    token = stored_approval_token(adapter_bridge_env, pending["approval_id"])
+    assert token
+    approve_out = approve_pending(pending["approval_id"], token)
     assert approve_out.get("accepted") is True
 
     exec_status, exec_out = post_tools_execute(
         tool_call_to_execute_body(
             calls[0],
-            approval_token=pending["approval_token"],
+            approval_token=token,
             approval_id=pending["approval_id"],
         )
     )

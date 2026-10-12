@@ -19,6 +19,7 @@ from policy.task_execution_grant import (
     REGISTRY_DIR,
     SCHEMA_REGISTRY,
     KIND_CAPABILITY_DEVIATION,
+    KIND_SCOPE_REVOKED,
     KIND_MISSING_IDENTITY,
     KIND_REPLAY,
     KIND_UNKNOWN_TASK,
@@ -31,6 +32,7 @@ from policy.task_execution_grant import (
     REASON_KEY_NOT_REGISTERED,
     REASON_MALFORMED,
     REASON_MISMATCH,
+    REASON_REVOKED_SCOPE,
     REASON_MISSING,
     REASON_SURFACE_BLOCKED,
     REASON_USED,
@@ -327,7 +329,9 @@ def test_file_read_grant_cannot_send_mail(tmp_path: Path) -> None:
     assert result.reason == REASON_MISMATCH
     assert result.event_kind == KIND_CAPABILITY_DEVIATION
     still = consume_task_execution_grant(issued.token, _binding(), base_dir=tmp_path)
-    assert still.allowed
+    assert not still.allowed
+    assert still.reason == REASON_REVOKED_SCOPE
+    assert still.event_kind == KIND_SCOPE_REVOKED
 
 
 def test_wrong_subject_or_resource_mismatch(tmp_path: Path) -> None:
@@ -339,12 +343,20 @@ def test_wrong_subject_or_resource_mismatch(tmp_path: Path) -> None:
     )
     assert not other_user.allowed
     assert other_user.reason == REASON_MISMATCH
+    revoked = consume_task_execution_grant(issued.token, _binding(), base_dir=tmp_path)
+    assert not revoked.allowed
+    assert revoked.reason == REASON_REVOKED_SCOPE
+    issued_file = accept_execution_task(
+        _binding(task_id="G-12842"),
+        base_dir=tmp_path,
+    )
     other_file = consume_task_execution_grant(
-        issued.token,
-        _binding(resource="secrets/wallet.txt"),
+        issued_file.token,
+        _binding(task_id="G-12842", resource="secrets/wallet.txt"),
         base_dir=tmp_path,
     )
     assert not other_file.allowed
+    assert other_file.reason == REASON_MISMATCH
 
 
 def test_missing_identity_never_reaches_executor(tmp_path: Path) -> None:
