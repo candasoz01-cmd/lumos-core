@@ -380,3 +380,46 @@ def test_mirror_is_readable_by_wall_observer(remote: Path, tmp_path: Path) -> No
     b = _store(remote, tmp_path, "b")
     b.list_claims()
     assert [c.owner for c in read_claims(b.store_dir)] == ["a"]
+
+
+# -- security review 916ab15: unsigned delegation via import, unsafe ids --------
+
+
+def test_import_never_trusts_unsigned_parent_pointer(remote: Path, tmp_path: Path) -> None:
+    """Exploit from review: plant a child claim under another agent's claim."""
+    from dataclasses import replace
+
+    from lumos_board.central_store import serialize_state
+    from lumos_board.claim_cli import check_write_permission
+
+    claude = _store(remote, tmp_path, "claude")
+    victim = _claim(claude, task="G1", owner="claude-cloud", scope="gate.py").claim
+    evil_dir = tmp_path / "evil"
+    TaskClaimStore(evil_dir).claim(task_id="EVIL", repo="lumos-core", branch="cursor/x",
+                                   worktree="/w", owner="cursor-agent", scopes=["gate.py"])
+    planted = replace(TaskClaimStore(evil_dir).list_claims()[0], parent_claim_id=victim.claim_id)
+    (evil_dir / "claims.json").write_text(serialize_state([planted]), encoding="utf-8")
+
+    cursor = _store(remote, tmp_path, "cursor")
+    report = cursor.import_local(evil_dir, actor="cursor-agent")
+
+    assert report.imported == ()
+    assert report.needs_reclaim[0]["reason"] == "delegation_not_reverifiable"
+    assert [c.claim_id for c in cursor.list_claims()] == [victim.claim_id]
+    verdict = check_write_permission(cursor.list_claims(), branch="cursor/x",
+                                     owner="cursor-agent", paths=["gate.py"])
+    assert verdict["ok"] is False
+
+
+@pytest.mark.parametrize("bad_id", ["$(touch PWNED)", "not-a-uuid", "3A18BAB8-DF16-458C-AA92-22731E4F2FF1"])
+def test_board_with_non_uuid_claim_id_is_corrupt(remote: Path, tmp_path: Path, bad_id: str) -> None:
+    _claim(_store(remote, tmp_path, "a"), task="T1", owner="a", scope="x.py")
+    work = tmp_path / "vandal"
+    _git("clone", "-q", "--branch", "claude/lumos-board", str(remote), str(work))
+    state = json.loads((work / "claims.json").read_text(encoding="utf-8"))
+    state["claims"][0]["claim_id"] = bad_id
+    (work / "claims.json").write_text(json.dumps(state), encoding="utf-8")
+    _git("-c", "user.name=v", "-c", "user.email=v@x", "commit", "-qam", "bad id", cwd=work)
+    _git("push", "-q", "origin", "HEAD:claude/lumos-board", cwd=work)
+    with pytest.raises(ClaimStoreCorrupt):
+        _store(remote, tmp_path, "b").list_claims()

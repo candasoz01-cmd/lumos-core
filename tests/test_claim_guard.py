@@ -290,3 +290,35 @@ def test_guard_cli_end_to_end(world, monkeypatch: pytest.MonkeyPatch) -> None:
     # unreadable board -> failure, never a pass
     assert claim_guard.main(["--base", base, "--head", head, "--branch", "claude/g1",
                              "--board-ref", "refs/remotes/origin/missing"]) == 2
+
+
+def test_message_only_amend_keeps_working_but_not_for_another_agent(world) -> None:
+    remote, tmp_path = world
+    claude, env_c = _agent_clone(remote, tmp_path, "claude-cloud", "claude/g1")
+    assert _cli(claude, env_c, "claim", "--task", "G1", "--repo", "lumos-core", "--branch", "claude/g1",
+                "--worktree", str(claude), "--owner", "claude-cloud", "--scope", "app.py").returncode == 0
+    (claude / "app.py").write_text("x = 2\n", encoding="utf-8")
+    _git(claude, "add", "app.py")
+    assert _git(claude, "commit", "-qm", "first", env=env_c).returncode == 0
+
+    amended = _git(claude, "commit", "--amend", "-qm", "reworded\n\n" +
+                   _git(claude, "log", "-1", "--format=%(trailers)").stdout, env=env_c, check=False)
+    assert amended.returncode == 0, amended.stderr
+    assert _git(claude, "log", "-1", "--format=%s").stdout.strip() == "reworded"
+
+    env_x = dict(env_c, LUMOS_AGENT="cursor-agent")
+    hijack = _git(claude, "commit", "--amend", "-qm", "hijack\n\n" +
+                  _git(claude, "log", "-1", "--format=%(trailers)").stdout, env=env_x, check=False)
+    assert hijack.returncode != 0
+    plain = _git(claude, "commit", "--amend", "-qm", "no trailers", env=env_c, check=False)
+    assert plain.returncode != 0
+
+
+@pytest.mark.parametrize("agent", ["a b", "$(id)", "x;y", ""])
+def test_hooks_reject_malformed_agent_identity(world, agent: str) -> None:
+    remote, tmp_path = world
+    clone, env = _agent_clone(remote, tmp_path, "claude-cloud", "claude/g1")
+    env["LUMOS_AGENT"] = agent
+    (clone / "app.py").write_text("x = 5\n", encoding="utf-8")
+    _git(clone, "add", "app.py")
+    assert _git(clone, "commit", "-qm", "m", env=env, check=False).returncode != 0

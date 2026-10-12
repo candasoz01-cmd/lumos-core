@@ -307,7 +307,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 raise ClaimError("migrate-local yalnız merkezi panoya yazar; --store/LUMOS_BOARD_DIR verme")
             report = store.import_local(Path(args.source), actor=args.actor)
             print(json.dumps(report.to_dict(), ensure_ascii=False, sort_keys=True))
-            return 2 if report.conflicts else 0
+            return 2 if report.conflicts or report.needs_reclaim else 0
         if args.command == "claim":
             result = store.claim(
                 task_id=args.task,

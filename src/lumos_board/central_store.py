@@ -40,6 +40,7 @@ import fcntl
 import json
 import os
 import random
+import re
 import subprocess
 import tempfile
 import time
@@ -78,6 +79,10 @@ _BOARD_README = (
 _COMMITTER_NAME = "lumos-board"
 _COMMITTER_EMAIL = "lumos-board@users.noreply.github.com"
 _MAX_ERROR_TEXT = 300
+# Claim ids are uuid4 strings minted by TaskClaimStore. Anything else on the
+# shared board (e.g. a hand-pushed "$(cmd)") is treated as corruption so it
+# never reaches hooks, trailers or CI output.
+_CLAIM_ID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 
 
 class CentralStoreUnavailable(ClaimError):
@@ -94,6 +99,7 @@ class ImportReport:
     already_present: tuple[str, ...]
     skipped_closed: tuple[str, ...]
     conflicts: tuple[dict[str, object], ...]
+    needs_reclaim: tuple[dict[str, object], ...] = ()
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -101,6 +107,7 @@ class ImportReport:
             "already_present": list(self.already_present),
             "skipped_closed": list(self.skipped_closed),
             "conflicts": list(self.conflicts),
+            "needs_reclaim": list(self.needs_reclaim),
         }
 
 
@@ -115,7 +122,13 @@ def parse_state_text(text: str) -> list[TaskClaim]:
     values = payload.get("claims")
     if not isinstance(values, list):
         raise ClaimStoreCorrupt("claim listesi geçersiz")
-    return [TaskClaim.from_dict(value) for value in values]
+    claims = [TaskClaim.from_dict(value) for value in values]
+    for claim in claims:
+        if not _CLAIM_ID.fullmatch(claim.claim_id) or (
+            claim.parent_claim_id is not None and not _CLAIM_ID.fullmatch(claim.parent_claim_id)
+        ):
+            raise ClaimStoreCorrupt("claim kimliği geçersiz")
+    return claims
 
 
 def serialize_state(claims: Sequence[TaskClaim]) -> str:
@@ -192,6 +205,13 @@ class CentralClaimStore(TaskClaimStore):
         Claims keep their ids, owners and lease times. An open local claim that
         collides with a central one is NOT imported and is reported instead —
         the central board stays the single truth, nothing is silently merged.
+
+        Delegated (child) claims are never imported: their ``parent_claim_id``
+        is only meaningful after ``DelegationVerifier`` checked a signed token,
+        which cannot be re-verified from a local file. An unverified parent
+        pointer would let a writer bypass the parent's scope lock, so such
+        claims are reported as ``needs_reclaim`` and must be re-claimed with a
+        fresh delegation token.
         """
         source = Path(source_dir) / STATE_FILE
         if not source.exists():
@@ -200,7 +220,10 @@ class CentralClaimStore(TaskClaimStore):
             text = source.read_text(encoding="utf-8")
         except OSError as exc:
             raise ClaimStoreCorrupt("yerel claim deposu okunamıyor") from exc
-        local_claims = sorted(parse_state_text(text), key=lambda c: (c.started_at, c.claim_id))
+        try:
+            local_claims = sorted(parse_state_text(text), key=lambda c: (c.started_at, c.claim_id))
+        except ClaimStoreCorrupt as exc:
+            raise ClaimStoreCorrupt(f"yerel claim deposu geçersiz: {exc}") from exc
         return self._transact(self._import_claims, local_claims, actor=actor)
 
     def _import_claims(self, local_claims: Sequence[TaskClaim], *, actor: str) -> ImportReport:
@@ -208,6 +231,7 @@ class CentralClaimStore(TaskClaimStore):
         present: list[str] = []
         closed: list[str] = []
         conflicts: list[dict[str, object]] = []
+        reclaim: list[dict[str, object]] = []
         with self._locked_state() as claims:
             now = self._now()
             self._expire_stale(claims, now)
@@ -220,6 +244,16 @@ class CentralClaimStore(TaskClaimStore):
                     item.status is ClaimStatus.ACTIVE and item.expires_at <= now
                 ):
                     closed.append(item.claim_id)
+                    continue
+                if item.parent_claim_id is not None:
+                    reclaim.append(
+                        {
+                            "claim_id": item.claim_id,
+                            "task_id": item.task_id,
+                            "owner": item.owner,
+                            "reason": "delegation_not_reverifiable",
+                        }
+                    )
                     continue
                 blockers = _find_conflicts(
                     claims,
@@ -249,7 +283,9 @@ class CentralClaimStore(TaskClaimStore):
                     details={"source": "local_board", "status": item.status.value},
                 )
             self._close_orphaned_children(claims, now)
-        return ImportReport(tuple(imported), tuple(present), tuple(closed), tuple(conflicts))
+        return ImportReport(
+            tuple(imported), tuple(present), tuple(closed), tuple(conflicts), tuple(reclaim)
+        )
 
     # -- transaction machinery --
 
