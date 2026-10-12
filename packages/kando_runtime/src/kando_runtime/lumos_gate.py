@@ -1220,6 +1220,61 @@ def _return_high_risk_pending(
     return out
 
 
+_AGENT_APPROVAL_TAG = "AGENT PIPELINE → açık insan onayı zorunlu"
+
+
+def _return_agent_pipeline_pending(
+    ctx: GateContext,
+    reasoning: dict[str, Any],
+    mode: str,
+    payload: str,
+    norm: dict[str, Any],
+    *,
+    plan: dict[str, Any],
+    repo_root: Path | None,
+    audit: LumosAuditCollector | None,
+    grant_source: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Agent pipeline without human approval: never execute, always wait for a human.
+
+    The pipeline patches files and commits, so it is held at ``pending_approval``
+    regardless of the keyword risk class. The record is visible and auditable;
+    nothing is skipped silently.
+    """
+    rsx = ctx.reasoning_summary
+    if _AGENT_APPROVAL_TAG not in (rsx or ""):
+        ctx.reasoning_summary = f"{rsx} | {_AGENT_APPROVAL_TAG}".strip(" |")
+    out = _return_high_risk_pending(
+        ctx,
+        reasoning,
+        mode,
+        payload,
+        norm,
+        plan=plan,
+        repo_root=repo_root,
+        confirmation_risk="high",
+        grant_source=grant_source,
+        risk="high",
+    )
+    par = out.get("pending_approval_record")
+    if isinstance(par, dict):
+        par["approval_reason"] = "agent_pipeline_requires_human_approval"
+    hb = out.get("http_body")
+    if isinstance(hb, dict):
+        hb["approval_reason"] = "agent_pipeline_requires_human_approval"
+    if audit is not None:
+        audit.set_plan(plan)
+        audit.set_step_results([])
+        audit.set_summary(
+            blocked=True,
+            reason="agent_pipeline_requires_human_approval",
+            execution_result="pending_approval",
+            execution_kind="pending_approval",
+        )
+        out["lumos_audit_log"] = audit.to_log_entry()
+    return out
+
+
 def _handle_task_return(
     *,
     http_body: dict[str, Any],
@@ -1433,6 +1488,23 @@ def _plan_steps_mutating(plan: dict[str, Any]) -> bool:
     return False
 
 
+def plan_starts_agent_pipeline(plan: dict[str, Any]) -> bool:
+    """True when executing ``plan`` would start the repo agent pipeline.
+
+    The agent pipeline patches repository files and creates a local commit.
+    Keyword risk classification is not an approval: such a plan always needs an
+    explicit human approval, whatever its risk class.
+    """
+    if not isinstance(plan, dict):
+        return False
+    if plan.get("action") == "agent":
+        return True
+    for s in plan.get("steps") or []:
+        if isinstance(s, dict) and s.get("type") == "agent":
+            return True
+    return False
+
+
 def _merge_risk_class(a: str, b: str) -> str:
     order = {"low": 0, "unknown": 1, "medium": 2, "high": 3}
     return a if order.get(a, 0) >= order.get(b, 0) else b
@@ -1600,6 +1672,7 @@ def _execute_plan_legacy(
     run_direct: Callable[[str], dict[str, Any]],
     start_agent: Callable[[str, bool], str],
     run_agent_auto: Callable[[str], None] | None,
+    approval_granted: bool = False,
     audit: LumosAuditCollector | None = None,
 ) -> tuple[str, dict[str, Any] | None, str | None]:
     if audit is not None:
@@ -1622,7 +1695,8 @@ def _execute_plan_legacy(
             _audit_finalize_non_plan(audit, "direct_patch", ex, None, plan)
         return "direct_patch", ex, None
     if action == "agent":
-        jid = start_agent(plan.get("goal") or "", True)
+        # The second argument is the human-approval fact, never a blanket "auto" grant.
+        jid = start_agent(plan.get("goal") or "", bool(approval_granted))
         if audit is not None:
             _audit_finalize_non_plan(audit, "agent", None, jid, plan)
         return "agent", None, jid
@@ -1898,7 +1972,8 @@ def _execute_plan_steps(
             last_patch_ex = ex
             last_instr_preview = instr[:500]
         elif t == "agent":
-            jid = start_agent(str(step.get("goal") or ""), True)
+            # The second argument is the human-approval fact, never a blanket "auto" grant.
+            jid = start_agent(str(step.get("goal") or ""), bool(approval_granted))
             last_jid = jid
             results.append({"type": "agent", "job_id": jid, "ok": True})
         elif t == "agent_auto":
@@ -1983,6 +2058,7 @@ def execute_plan(
         run_direct=run_direct,
         start_agent=start_agent,
         run_agent_auto=run_agent_auto,
+        approval_granted=approval_granted,
         audit=audit,
     )
 
@@ -2310,6 +2386,14 @@ def run_lumos_gate(
                 execution_kind="pending_approval",
             )
             out["lumos_audit_log"] = audit.to_log_entry()
+        return out
+
+    if plan_starts_agent_pipeline(plan) and not approval_granted:
+        out = _return_agent_pipeline_pending(
+            ctx, reasoning, mode, payload, norm, plan=plan, repo_root=repo_root, audit=audit
+        )
+        out["policy_ok"] = True
+        out["gate_complete"] = True
         return out
 
     if audit is not None:
@@ -2806,6 +2890,14 @@ def lumos_gate_execute(
             )
             out["lumos_audit_log"] = audit.to_log_entry()
         return out
+
+    if plan_starts_agent_pipeline(plan) and not approval_granted:
+        # Defence in depth: a run bundle built outside run_lumos_gate still cannot
+        # start the agent pipeline without a human approval.
+        return _return_agent_pipeline_pending(
+            ctx, reasoning, mode, payload, norm, plan=plan, repo_root=rr, audit=audit,
+            grant_source=bundle,
+        )
 
     grant_deny = _enforce_task_execution_grant(
         bundle, lumos_base=lumos_base, norm=norm, plan=plan
