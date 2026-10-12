@@ -8,8 +8,10 @@ name: Node tests
 # Bilinçli sınırlar:
 # - WebMCP panel E2E burada YOK; o zaten ci.yml `ui-smoke` işinde koşuyor.
 # - ci.yml'ye dokunulmaz (açık candasoz01-cmd/lumos-core#909 ile çakışmamak için).
-# - Bu iş, CONTRIBUTING.md § Merge gate'teki zorunlu kontrol listesine ayrıca
-#   eklenmedikçe zorunlu merge kapısı DEĞİLDİR.
+# - CONTRIBUTING.md § Merge gate bu işi (`node-tests`) zorunlu CI listesine
+#   yazar. GitHub branch protection'daki required checks listesine ise bu
+#   workflow `main`'e indikten SONRA eklenir; öncesinde eklenirse dosyayı
+#   taşımayan her açık PR'da kontrol hiç doğmaz ve merge sonsuza dek bekler.
 
 on:
   push:
