@@ -3,14 +3,121 @@
 from __future__ import annotations
 
 import json
+import os
+import subprocess
+import sys
 import threading
+import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from engine.model_client import PURPOSE_CYBER, CyberModelError, ModelClient
-from engine.provider_budget import LEDGER_NAME, RESERVATION_NAME
+from engine.provider_budget import (
+    LEDGER_NAME,
+    RESERVATION_NAME,
+    REASON_EXHAUSTED,
+    REASON_RESERVED,
+    BudgetDenied,
+    reserve_for_call,
+)
+
+_REPO = Path(__file__).resolve().parents[1]
+_WORKER = r"""
+import json, os, sys, time
+mode, base, budget = sys.argv[1], sys.argv[2], sys.argv[3]
+os.environ["LUMOS_BASE_DIR"] = base
+if budget:
+    os.environ["LUMOS_PROVIDER_BUDGET_TOKENS"] = budget
+else:
+    os.environ.pop("LUMOS_PROVIDER_BUDGET_TOKENS", None)
+from engine.provider_budget import (
+    REASON_EXHAUSTED,
+    BudgetDenied,
+    UsageSnapshot,
+    commit_call,
+    reserve_for_call,
+)
+try:
+    if mode == "reserve":
+        reservation = reserve_for_call(model="gpt-test", purpose="chat")
+        print(json.dumps({"ok": True, "tokens": reservation.tokens, "id": reservation.id}))
+    elif mode == "append":
+        reservation = reserve_for_call(model="gpt-test", purpose="chat")
+        commit_call(reservation, UsageSnapshot(True, 4, 6, 10))
+        print(json.dumps({"ok": True, "id": reservation.id}))
+    elif mode == "fill":
+        for _ in range(40):
+            try:
+                reservation = reserve_for_call(model="gpt-test", purpose="chat")
+            except BudgetDenied as exc:
+                if exc.reason == REASON_EXHAUSTED:
+                    print(json.dumps({"ok": False, "reason": exc.reason}))
+                    break
+                time.sleep(0.02)
+                continue
+            commit_call(reservation, UsageSnapshot(True, 5, 5, 10))
+            print(json.dumps({"ok": True, "tokens": reservation.tokens, "id": reservation.id}))
+            break
+        else:
+            print(json.dumps({"ok": False, "reason": "retry_exhausted"}))
+    else:
+        raise SystemExit("bad mode")
+except BudgetDenied as exc:
+    print(json.dumps({"ok": False, "reason": exc.reason}))
+"""
+
+
+def _child_env(base: Path, budget: str | None) -> dict[str, str]:
+    env = os.environ.copy()
+    env["LUMOS_BASE_DIR"] = str(base)
+    env["PYTHONPATH"] = os.pathsep.join(
+        [
+            str(_REPO / "src"),
+            str(_REPO / "packages" / "kando_runtime" / "src"),
+            str(_REPO / "packages" / "kando_bridge" / "src"),
+        ]
+    )
+    if budget is None:
+        env.pop("LUMOS_PROVIDER_BUDGET_TOKENS", None)
+    else:
+        env["LUMOS_PROVIDER_BUDGET_TOKENS"] = budget
+    return env
+
+
+def _run_worker(base: Path, budget: str | None, mode: str) -> dict:
+    proc = subprocess.run(
+        [sys.executable, "-c", _WORKER, mode, str(base), budget or ""],
+        cwd=_REPO,
+        env=_child_env(base, budget),
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    assert proc.returncode == 0, proc.stderr
+    return json.loads(proc.stdout)
+
+
+def _spawn_workers(base: Path, budget: str | None, mode: str, count: int) -> list[dict]:
+    procs = [
+        subprocess.Popen(
+            [sys.executable, "-c", _WORKER, mode, str(base), budget or ""],
+            cwd=_REPO,
+            env=_child_env(base, budget),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        for _ in range(count)
+    ]
+    results = []
+    for proc in procs:
+        stdout, stderr = proc.communicate(timeout=30)
+        assert proc.returncode == 0, stderr
+        results.append(json.loads(stdout))
+    return results
 
 
 def _client(monkeypatch: pytest.MonkeyPatch, base: Path, budget: str | None) -> ModelClient:
@@ -246,3 +353,86 @@ def test_provider_error_does_not_record_unknown_usage_as_zero(
     assert second.startswith("provider_budget_exhausted:")
     assert _rows(tmp_path)[0]["usage_known"] is False
     assert _rows(tmp_path)[0]["charged_tokens"] == 40
+
+
+def test_two_processes_cannot_hold_the_same_remainder(tmp_path: Path) -> None:
+    results = _spawn_workers(tmp_path, "80", "reserve", 2)
+    admitted = [item for item in results if item["ok"]]
+    denied = [item for item in results if not item["ok"]]
+    assert len(admitted) == 1
+    assert admitted[0]["tokens"] == 80
+    assert len(denied) == 1
+    assert denied[0]["reason"] == REASON_RESERVED
+    payload = json.loads((tmp_path / RESERVATION_NAME).read_text(encoding="utf-8"))
+    assert len(payload["reservations"]) == 1
+    assert payload["reservations"][0]["tokens"] == 80
+
+
+def test_dead_process_reservation_blocks_the_next_process(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    held = _run_worker(tmp_path, "50", "reserve")
+    assert held["ok"] is True
+    assert held["tokens"] == 50
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path))
+    monkeypatch.setenv("LUMOS_PROVIDER_BUDGET_TOKENS", "50")
+    with pytest.raises(BudgetDenied) as caught:
+        reserve_for_call(model="gpt-test", purpose="chat")
+    assert caught.value.reason == REASON_RESERVED
+    assert _rows(tmp_path) == []
+    assert (tmp_path / RESERVATION_NAME).is_file()
+
+
+def test_restart_charges_abandoned_reservation_instead_of_zero(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    reservation_id = "dead-worker-reservation"
+    (tmp_path / RESERVATION_NAME).write_text(
+        json.dumps(
+            {
+                "reservations": [
+                    {
+                        "id": reservation_id,
+                        "tokens": 30,
+                        "created_unix": time.time() - 1000,
+                        "provider": "openai",
+                        "model": "gpt-test",
+                        "purpose": "chat",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("LUMOS_BASE_DIR", str(tmp_path))
+    monkeypatch.setenv("LUMOS_PROVIDER_BUDGET_TOKENS", "100")
+    reservation = reserve_for_call(model="gpt-test", purpose="chat")
+    assert reservation.tokens == 70
+    rows = _rows(tmp_path)
+    assert rows[0]["reservation_id"] == reservation_id
+    assert rows[0]["usage_known"] is False
+    assert rows[0]["charged_tokens"] == 30
+    assert rows[0]["total_tokens"] is None
+
+
+def test_parallel_ledger_appends_stay_valid_json(tmp_path: Path) -> None:
+    results = _spawn_workers(tmp_path, None, "append", 8)
+    assert all(item["ok"] for item in results)
+    text = (tmp_path / LEDGER_NAME).read_text(encoding="utf-8")
+    lines = [line for line in text.splitlines() if line.strip()]
+    assert len(lines) == 8
+    rows = [json.loads(line) for line in lines]
+    assert [row["charged_tokens"] for row in rows] == [10, 10, 10, 10, 10, 10, 10, 10]
+    assert len({row["reservation_id"] for row in rows}) == 8
+
+
+def test_parallel_workers_cannot_exceed_the_budget(tmp_path: Path) -> None:
+    results = _spawn_workers(tmp_path, "40", "fill", 8)
+    successes = [item for item in results if item["ok"]]
+    assert len(successes) == 4
+    text = (tmp_path / LEDGER_NAME).read_text(encoding="utf-8")
+    lines = [line for line in text.splitlines() if line.strip()]
+    rows = [json.loads(line) for line in lines]
+    assert len(rows) == 4
+    assert sum(row["charged_tokens"] for row in rows) == 40
+    denied = [item for item in results if not item["ok"]]
+    assert denied
+    assert {item["reason"] for item in denied} <= {REASON_EXHAUSTED, REASON_RESERVED}
