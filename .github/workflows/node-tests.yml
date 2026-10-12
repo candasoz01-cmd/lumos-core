@@ -1,0 +1,52 @@
+name: Node tests
+
+# Node `node:test` sözleşme testleri (tests/*.test.mjs, ops/cloudflare/*.test.mjs):
+# credential gateway, Meta OAuth/webhook/bağlantılar, mobil API'ler, hosted chat,
+# Google redirect, bridge proxy/upload, Cloudflare company worker. pytest bu
+# dosyaları görmez; bu iş olmadan CI onları hiç koşmaz.
+#
+# Bilinçli sınırlar:
+# - WebMCP panel E2E burada YOK; o zaten ci.yml `ui-smoke` işinde koşuyor.
+# - ci.yml'ye dokunulmaz (açık candasoz01-cmd/lumos-core#909 ile çakışmamak için).
+# - Bu iş, CONTRIBUTING.md § Merge gate'teki zorunlu kontrol listesine ayrıca
+#   eklenmedikçe zorunlu merge kapısı DEĞİLDİR.
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: node-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  node-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run node:test contract suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          files=(tests/*.test.mjs ops/cloudflare/*.test.mjs)
+          # Fail closed: an empty glob must not turn into a silent green run.
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::no *.test.mjs files found"
+            exit 1
+          fi
+          echo "Running ${#files[@]} test files"
+          node --test "${files[@]}"
