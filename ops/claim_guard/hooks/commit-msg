@@ -1,0 +1,19 @@
+#!/bin/sh
+# Adds the Lumos-Claim / Lumos-Agent trailers verified by pre-commit, so
+# claim-guard in CI can attribute every commit to a central claim.
+set -eu
+git_dir=$(git rev-parse --git-dir)
+# Merge commits are exempt in claim-guard; their content is checked via the PR diff.
+if [ -f "$git_dir/MERGE_HEAD" ]; then
+  exit 0
+fi
+ids_file="$git_dir/lumos-claim-ids"
+if [ ! -s "$ids_file" ]; then
+  echo "claim-guard: pre-commit claim doğrulaması yok; commit engellendi" >&2
+  exit 1
+fi
+while IFS= read -r id; do
+  [ -n "$id" ] && git interpret-trailers --in-place --if-exists addIfDifferent --trailer "Lumos-Claim: $id" "$1"
+done < "$ids_file"
+git interpret-trailers --in-place --if-exists replace --trailer "Lumos-Agent: $LUMOS_AGENT" "$1"
+rm -f "$ids_file"

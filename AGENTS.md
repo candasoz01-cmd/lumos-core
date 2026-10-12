@@ -24,11 +24,29 @@ açılmaz. Duvar claim durumunu tüketir ve gösterir, ayrı claim üretmez
 5. PR açılınca claim kaydına bağlanır. İş bitince claim serbest bırakılır.
 6. Manual override yalnız açık onaylayan kişi ve gerekçe ile yapılır; audit kaydı zorunludur.
 
-Ortak depo Git common directory üzerinden otomatik bulunur. Temel komut:
+**Tek merkezi pano.** Claim kayıtları her klonun yerel dosyasında değil,
+paylaşılan `refs/heads/claude/lumos-board` ref'inde tutulur; Claude, Cursor ve
+Mac aynı kayıtları görür. Her işlem fetch → aynı kurallar → force'suz push ile
+atomiktir (yarışta tek kazanan). Merkezi panoya erişilemezse komut **reddeder**
+(exit 2); yerel kilide sessiz düşüş yoktur. Yerel depo yalnız açık
+`--store` / `LUMOS_BOARD_DIR` ile (test, çevrimdışı deneme) kullanılır ve
+üretim kapsamında geçerli claim sayılmaz. Bu ref'e elle yazılmaz, force-push
+yapılmaz; geçmişi audit izidir. Temel komut:
 
 ```text
 python -m lumos_board.claim_cli claim --task KA-000 --repo lumos-core --branch codex/example --worktree /path/to/worktree --owner agent-name --scope path/to/file
 ```
+
+Yazmadan önce önleme (her klonda bir kez):
+`git config core.hooksPath ops/claim_guard/hooks` ve ajan kimliği
+`LUMOS_AGENT=<claim owner>`. `pre-commit` hook'u, staged dosyaların bu dalda
+bu ajanın aktif merkezi claim'i içinde olduğunu ve başka ajanın aktif claim'ine
+girmediğini doğrular; değilse commit oluşmadan reddeder. `commit-msg` hook'u
+`Lumos-Claim` / `Lumos-Agent` trailer'larını ekler. CI'daki `claim-guard`
+işi aynı kuralları PR üzerinde denetler; commit yazar alanları kanıt sayılmaz,
+kimlik = trailer ajanı + merkezi claim sahibi + doğrulanmış devir.
+Eski yerel kayıtlar `python -m lumos_board.claim_cli migrate-local --from <dizin> --actor <ajan>`
+ile taşınır (kaynak değişmez, çakışan kayıt birleştirilmez, raporlanır).
 
 Claim aracı henüz hedef dalda yoksa bootstrap rezervasyonu olarak aynı görev kimliğini
 taşıyan uzak branch açılır; kod değişikliğinden önce açık PR, branch ve worktree çakışması

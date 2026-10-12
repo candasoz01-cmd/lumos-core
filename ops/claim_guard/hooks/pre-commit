@@ -1,0 +1,28 @@
+#!/bin/sh
+# Lumos Board pre-commit gate: the commit is refused BEFORE it exists unless the
+# central board says this agent ($LUMOS_AGENT) holds an ACTIVE claim on this
+# branch covering every staged path, and no other agent's ACTIVE claim overlaps.
+# Central board unreachable => refused (no local fallback).
+# Install once per clone:  git config core.hooksPath ops/claim_guard/hooks
+set -eu
+if [ -z "${LUMOS_AGENT:-}" ]; then
+  echo "claim-guard: LUMOS_AGENT ayarlı değil (commit için claim sahibi ajan kimliği gerekli)" >&2
+  exit 1
+fi
+root=$(git rev-parse --show-toplevel)
+git_dir=$(git rev-parse --git-dir)
+branch=$(git branch --show-current)
+if [ -z "$branch" ]; then
+  echo "claim-guard: detached HEAD üzerinde commit engellendi" >&2
+  exit 1
+fi
+rm -f "$git_dir/lumos-claim-ids"
+paths=$(git diff --cached --name-only --no-renames)
+[ -n "$paths" ] || exit 0
+if ! out=$(printf '%s\n' "$paths" | PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}" \
+    python3 -m lumos_board.claim_cli check --branch "$branch" --owner "$LUMOS_AGENT" --paths-from-stdin); then
+  echo "$out" >&2
+  echo "claim-guard: commit engellendi — merkezi panoda bu dosyalar için '$LUMOS_AGENT' adına aktif claim yok veya başka ajan tutuyor" >&2
+  exit 1
+fi
+printf '%s' "$out" | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)["claim_ids"]))' > "$git_dir/lumos-claim-ids"

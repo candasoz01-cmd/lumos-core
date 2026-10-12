@@ -6,18 +6,23 @@ import argparse
 import json
 import os
 import subprocess
+import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence
 
+from lumos_board.central_store import DEFAULT_REF, CentralClaimStore
 from lumos_board.founder_approval import (
     FounderApprovalStore,
     FounderApproverRegistry,
 )
 from lumos_board.task_claim import (
     ClaimError,
+    ClaimStatus,
     DelegationVerifier,
     OverrideApprovalVerifier,
+    TaskClaim,
     TaskClaimStore,
+    _scope_overlap,
 )
 
 
@@ -40,6 +45,115 @@ def _store_dir(explicit: str | None) -> Path:
     if not common_path.is_absolute():
         common_path = Path.cwd() / common_path
     return common_path.resolve().parent / ".lumos" / "board"
+
+
+def _git_common_dir() -> Path:
+    try:
+        common = subprocess.run(
+            ["git", "rev-parse", "--git-common-dir"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ClaimError("merkezi pano için git deposu içinde çalışılmalı") from exc
+    path = Path(common)
+    if not path.is_absolute():
+        path = Path.cwd() / path
+    return path.resolve()
+
+
+def _central_remote() -> str:
+    configured = os.environ.get("LUMOS_BOARD_REMOTE", "").strip()
+    if configured:
+        return configured
+    try:
+        return subprocess.run(
+            ["git", "remote", "get-url", "origin"],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ClaimError("merkezi pano remote'u bulunamadı (LUMOS_BOARD_REMOTE veya origin)") from exc
+
+
+def _claim_store(
+    explicit_store: str | None,
+    *,
+    override_verifier: OverrideApprovalVerifier | None = None,
+    delegation_verifier: DelegationVerifier | None = None,
+) -> TaskClaimStore:
+    """Claims are central by default; local only when explicitly requested.
+
+    No silent fallback: if the central board is unreachable the command fails
+    (exit 2) instead of writing a lock that other agents cannot see.
+    """
+    local_dir = explicit_store or os.environ.get("LUMOS_BOARD_DIR")
+    if local_dir:
+        return TaskClaimStore(
+            Path(local_dir),
+            override_verifier=override_verifier,
+            delegation_verifier=delegation_verifier,
+        )
+    cache = os.environ.get("LUMOS_BOARD_CACHE_DIR")
+    cache_dir = Path(cache) if cache else _git_common_dir().parent / ".lumos" / "board-central"
+    return CentralClaimStore(
+        remote=_central_remote(),
+        ref=os.environ.get("LUMOS_BOARD_REF", DEFAULT_REF),
+        cache_dir=cache_dir,
+        override_verifier=override_verifier,
+        delegation_verifier=delegation_verifier,
+    )
+
+
+def check_write_permission(
+    claims: Sequence[TaskClaim], *, branch: str, owner: str, paths: Sequence[str]
+) -> dict[str, object]:
+    """May ``owner`` write ``paths`` on ``branch`` right now? (pre-commit gate)
+
+    Yes only if every path is inside an ACTIVE claim of this owner on this
+    branch and no other ACTIVE claim (outside that owner's claim family)
+    overlaps it. Used by ops/claim_guard/hooks to stop a commit before it
+    exists.
+    """
+    owned = [
+        c for c in claims
+        if c.status is ClaimStatus.ACTIVE and c.owner == owner and c.branch == branch
+    ]
+    family = {c.claim_id for c in owned}
+    changed = True
+    while changed:  # parents of my delegated claims and my own children
+        changed = False
+        for c in claims:
+            if c.claim_id in family:
+                continue
+            if c.parent_claim_id in family or any(
+                o.parent_claim_id == c.claim_id for o in claims if o.claim_id in family
+            ):
+                family.add(c.claim_id)
+                changed = True
+    uncovered: list[str] = []
+    foreign: list[dict[str, object]] = []
+    used: set[str] = set()
+    for raw in paths:
+        path = raw.strip().replace("\\", "/")
+        covering = [c for c in owned if any(path == s or path.startswith(s + "/") for s in c.scopes)]
+        if covering:
+            used.update(c.claim_id for c in covering)
+        else:
+            uncovered.append(path)
+        for other in claims:
+            if other.status is not ClaimStatus.ACTIVE or other.claim_id in family:
+                continue
+            if any(_scope_overlap(path, scope) for scope in other.scopes):
+                foreign.append({"path": path, "owner": other.owner, "task_id": other.task_id, "claim_id": other.claim_id})
+    return {
+        "ok": not uncovered and not foreign and bool(paths),
+        "claim_ids": sorted(used),
+        "uncovered": uncovered,
+        "foreign": foreign,
+    }
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -77,6 +191,16 @@ def _parser() -> argparse.ArgumentParser:
 
     listing = subparsers.add_parser("list")
     listing.add_argument("--all", action="store_true")
+
+    check = subparsers.add_parser("check")
+    check.add_argument("--branch", required=True)
+    check.add_argument("--owner", required=True)
+    check.add_argument("--path", action="append", default=[])
+    check.add_argument("--paths-from-stdin", action="store_true")
+
+    migrate = subparsers.add_parser("migrate-local")
+    migrate.add_argument("--from", dest="source", required=True)
+    migrate.add_argument("--actor", required=True)
 
     approval = subparsers.add_parser("approval")
     approval_commands = approval.add_subparsers(dest="approval_command", required=True)
@@ -164,11 +288,26 @@ def main(argv: Sequence[str] | None = None) -> int:
             if not registry or not secret:
                 raise ClaimError("delegation için owner registry ve secret gerekli")
             delegation_verifier = DelegationVerifier.from_registry_file(Path(registry), secret=secret)
-        store = TaskClaimStore(
-            _store_dir(args.store),
+        store = _claim_store(
+            args.store,
             override_verifier=override_verifier,
             delegation_verifier=delegation_verifier,
         )
+        if args.command == "check":
+            paths = list(args.path)
+            if args.paths_from_stdin:
+                paths += [line for line in sys.stdin.read().splitlines() if line.strip()]
+            report = check_write_permission(
+                store.list_claims(), branch=args.branch, owner=args.owner, paths=paths
+            )
+            print(json.dumps(report, ensure_ascii=False, sort_keys=True))
+            return 0 if report["ok"] else 2
+        if args.command == "migrate-local":
+            if not isinstance(store, CentralClaimStore):
+                raise ClaimError("migrate-local yalnız merkezi panoya yazar; --store/LUMOS_BOARD_DIR verme")
+            report = store.import_local(Path(args.source), actor=args.actor)
+            print(json.dumps(report.to_dict(), ensure_ascii=False, sort_keys=True))
+            return 2 if report.conflicts else 0
         if args.command == "claim":
             result = store.claim(
                 task_id=args.task,
