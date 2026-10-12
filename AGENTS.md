@@ -102,7 +102,10 @@ merge etmez, merge'i hazır saymaz veya merge önerisini uygulamaz. Sayaçlar
 **o anki head SHA**'ya bağlıdır; head değişince sıfırlanır.
 
 1. **Zorunlu CI yeşil.** `.github/workflows/ci.yml` CheckRun'ları: `test`,
-   `rust`, `macos-app-build`, `ui-smoke`, `ui-e2e`.
+   `rust`, `macos-app-build`, `ui-smoke`, `ui-e2e`; ve
+   `.github/workflows/node-tests.yml` CheckRun'ı: `node-tests` (pytest'in
+   görmediği `node:test` sözleşme testleri). Kaynak:
+   [`CONTRIBUTING.md` § Merge gate](CONTRIBUTING.md#merge-gate).
 2. **Güvenlik incelemesi tamamlanmış ve temiz.** CheckRun adı:
    `Cursor Security Agent: Security Reviewer` (GitHub app: `cursor`; canlı
    doğrulama: `candasoz01-cmd/lumos-core#755` / `#762` · Checks API ·
@@ -141,9 +144,14 @@ yol `eligible` değildir; `docs/` altındaki genel bir belge de değildir
 dosya da hariçtir. Canlı ihlal: `#777` / [TD-20](docs/TECHNICAL_DEBT.md).
 
 `layer1a.yml` ve `prod-smoke.yml` PR merge kapısı değildir. Branch protection
-`main`'de açıktır ama `required_status_checks` listesi boştur; fiziksel kilit
-Settings'te required check eklenene kadar yoktur. Ajan yine de bu sözleşmeyi
-uygular. Durum bildirimi bir sonraki bölümün formatını kullanır.
+`main`'de açıktır; fiziksel `required_status_checks` listesi şunlardır:
+`test`, `rust`, `macos-app-build`, `ui-smoke`, `ui-e2e`, `publication-gate`
+(`strict=true`, `enforce_admins=true`; canlı doğrulama: GitHub API
+`branches/main/protection` · 2026-10-12T13:20Z). `node-tests` sözleşmede
+zorunludur ama fiziksel listeye `node-tests.yml` `main`'e indikten sonra
+eklenir; o zamana kadar ajan onu sözleşme gereği zorunlu sayar. Güvenlik
+incelemesi (kapı 2) ve insan onayı (kapı 3) fiziksel kilitte yoktur. Ajan yine
+de bu sözleşmenin tamamını uygular. Durum bildirimi bir sonraki bölümün formatını kullanır.
 
 ## Yayın ayrı bir kullanıcı eylemidir (tüm ajanlar)
 
