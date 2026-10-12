@@ -339,6 +339,21 @@ class ModelClient:
             return self._budget_blocked(is_cyber, model, denied.reason)
 
         settled = False
+        call_started = False
+
+        def settle_if_open() -> None:
+            nonlocal settled
+            if settled:
+                return
+            # create() was not entered: the request never left this process.
+            # Once create() is entered, a raised error does not prove the
+            # provider missed the request, so the reservation is charged.
+            if call_started:
+                commit_unknown(reservation)
+            else:
+                release_unsent(reservation)
+            settled = True
+
         try:
             from openai import OpenAI
 
@@ -357,6 +372,7 @@ class ModelClient:
             try:
                 try:
                     # Cyber stays a single create(): no timeout-stripped retry and no model fallback.
+                    call_started = True
                     response = client.responses.create(**create_kwargs)
                 except TypeError:
                     if reservation.enforced or is_cyber:
@@ -375,8 +391,7 @@ class ModelClient:
             except CyberModelError:
                 raise
             except Exception as exc:
-                commit_unknown(reservation)
-                settled = True
+                settle_if_open()
                 if is_cyber:
                     status = classify_cyber_api_error(exc)
                     log_cyber_model(status, model)
@@ -395,12 +410,10 @@ class ModelClient:
                 log_cyber_model(CYBER_AVAILABLE, model)
             return reply
         except CyberModelError:
-            if not settled:
-                commit_unknown(reservation)
+            settle_if_open()
             raise
         except Exception as e:
-            if not settled:
-                commit_unknown(reservation)
+            settle_if_open()
             if is_cyber:
                 log_cyber_model(CYBER_UNKNOWN, model)
                 raise CyberModelError(CYBER_UNKNOWN, model) from None

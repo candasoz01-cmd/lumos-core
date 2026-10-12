@@ -330,6 +330,40 @@ def test_real_zero_usage_does_not_block_the_next_call(tmp_path: Path, monkeypatc
     assert [row["charged_tokens"] for row in _rows(tmp_path)] == [0, 0]
 
 
+def test_failure_before_provider_call_releases_the_reservation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    client = _client(monkeypatch, tmp_path, "40")
+    calls = {"n": 0}
+    builds = {"n": 0}
+    real_build = ModelClient._build_system_prompt
+
+    def build(self, *args, **kwargs):
+        builds["n"] += 1
+        if builds["n"] == 1:
+            raise RuntimeError("prompt not built")
+        return real_build(*args, **kwargs)
+
+    def create(**kw):
+        calls["n"] += 1
+        return _response("sonra", total=1)
+
+    with patch("openai.OpenAI") as openai_cls, patch.object(ModelClient, "_build_system_prompt", build):
+        mock_client = MagicMock()
+        mock_client.responses.create = create
+        openai_cls.return_value = mock_client
+        first = client.generate("a", mode="—", presence="—", consent="—", lock="—")
+        assert calls["n"] == 0
+        assert _rows(tmp_path) == []
+        assert not (tmp_path / RESERVATION_NAME).exists()
+        second = client.generate("b", mode="—", presence="—", consent="—", lock="—")
+    assert first == "Model hatası oluştu."
+    assert second == "sonra"
+    assert calls["n"] == 1
+    assert _rows(tmp_path)[0]["charged_tokens"] == 1
+    assert _rows(tmp_path)[0]["usage_known"] is True
+
+
 def test_provider_error_does_not_record_unknown_usage_as_zero(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
