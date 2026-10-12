@@ -626,6 +626,73 @@ class TaskClaimStore:
             self._audit("CLAIM_PR_ATTACHED", updated, actor=owner, at=now, details={"pr_ref": pr_ref})
             return updated
 
+    def assert_write(
+        self,
+        *,
+        task_id: str,
+        owner: str,
+        repo: str,
+        scopes: Sequence[str],
+        claim_id: str | None = None,
+    ) -> TaskClaim:
+        """Central write lock: only the ACTIVE claim owner may write these scopes.
+
+        This is a controller over the existing ``claims.lock`` store. It does
+        not create a second lease. A QUEUED waiter cannot write. Missing or
+        foreign ownership fails closed.
+        """
+        task_id = _clean_text(task_id, "task_id")
+        owner = _clean_text(owner, "owner")
+        repo = _clean_text(repo, "repo")
+        write_scopes = _normalize_scopes(scopes)
+        wanted_id = _clean_text(claim_id, "claim_id") if claim_id else None
+        with self._locked_state() as claims:
+            now = self._now()
+            self._expire_stale(claims, now)
+            active = [
+                item
+                for item in claims
+                if item.status is ClaimStatus.ACTIVE and item.repo == repo
+            ]
+            if wanted_id is not None:
+                match = _find_claim(claims, wanted_id)
+                if match is None or match.status is not ClaimStatus.ACTIVE:
+                    raise ClaimError("WRITE_WITHOUT_CLAIM")
+                if match.owner != owner or match.task_id != task_id or match.repo != repo:
+                    raise ClaimError("CLAIM_OWNER_MISMATCH")
+                if not _scopes_within(write_scopes, match.scopes):
+                    raise ClaimError("SCOPE_OUTSIDE_CLAIM")
+                return match
+
+            same_task_foreign = [
+                item for item in active if item.task_id == task_id and item.owner != owner
+            ]
+            if same_task_foreign:
+                raise ClaimError("DUPLICATE_TASK")
+
+            owned = [
+                item for item in active if item.task_id == task_id and item.owner == owner
+            ]
+            covering = [item for item in owned if _scopes_within(write_scopes, item.scopes)]
+            if covering:
+                return covering[0]
+
+            overlapping_foreign = [
+                item
+                for item in active
+                if item.owner != owner
+                and any(
+                    _scope_overlap(existing, wanted)
+                    for existing in item.scopes
+                    for wanted in write_scopes
+                )
+            ]
+            if overlapping_foreign:
+                raise ClaimError("SCOPE_CONFLICT")
+            if owned:
+                raise ClaimError("SCOPE_OUTSIDE_CLAIM")
+            raise ClaimError("WRITE_WITHOUT_CLAIM")
+
     def list_claims(self, *, include_closed: bool = False) -> tuple[TaskClaim, ...]:
         with self._locked_state() as claims:
             self._expire_stale(claims, self._now())
