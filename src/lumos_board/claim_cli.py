@@ -11,6 +11,8 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from lumos_board.central_store import DEFAULT_REF, CentralClaimStore
+from lumos_board.write_attestation import ClaimGuard as WriteAttestationGuard
+from lumos_board.write_gate import WriteGate
 from lumos_board.founder_approval import (
     FounderApprovalStore,
     FounderApproverRegistry,
@@ -192,6 +194,26 @@ def _parser() -> argparse.ArgumentParser:
     listing = subparsers.add_parser("list")
     listing.add_argument("--all", action="store_true")
 
+    write_check = subparsers.add_parser("write-check")
+    write_check.add_argument("--token")
+    write_check.add_argument("--owner", required=True)
+    write_check.add_argument("--path", action="append", required=True, dest="paths")
+
+    write_attest = subparsers.add_parser("write-attest")
+    write_attest_cmds = write_attest.add_subparsers(dest="attest_command", required=True)
+    attest = write_attest_cmds.add_parser("attest")
+    attest.add_argument("--token", required=True)
+    attest.add_argument("--owner", required=True)
+    attest.add_argument("--claim-id", required=True)
+    attest.add_argument("--task", required=True)
+    attest.add_argument("--scope", action="append", required=True)
+    attest.add_argument("--path", action="append", required=True, dest="paths")
+    attest.add_argument("--parent-sha", required=True)
+    attest_verify = write_attest_cmds.add_parser("verify")
+    attest_verify.add_argument("--repo", default=".")
+    attest_verify.add_argument("--base", required=True)
+    attest_verify.add_argument("--head", required=True)
+
     check = subparsers.add_parser("check")
     check.add_argument("--branch", required=True)
     check.add_argument("--owner", required=True)
@@ -293,6 +315,33 @@ def main(argv: Sequence[str] | None = None) -> int:
             override_verifier=override_verifier,
             delegation_verifier=delegation_verifier,
         )
+        write_gate = WriteGate(store, secret=os.environ.get("LUMOS_WRITE_GATE_SECRET"))
+        if args.command == "write-check":
+            decision = write_gate.check(
+                token=args.token, owner=args.owner, paths=args.paths
+            )
+            print(json.dumps(decision.to_dict(), ensure_ascii=False, sort_keys=True))
+            return 0 if decision.allowed else 2
+        if args.command == "write-attest":
+            guard = WriteAttestationGuard(secret=os.environ.get("LUMOS_WRITE_GATE_SECRET"))
+            if args.attest_command == "verify":
+                verdict = guard.verify_range(
+                    Path(args.repo), base=args.base, head=args.head
+                )
+                print(json.dumps(verdict.to_dict(), ensure_ascii=False, sort_keys=True))
+                return 0 if verdict.allowed else 2
+            token = guard.attest(
+                write_gate=write_gate,
+                token=args.token,
+                owner=args.owner,
+                paths=args.paths,
+                parent_sha=args.parent_sha,
+                claim_id=args.claim_id,
+                task_id=args.task,
+                scopes=args.scope,
+            )
+            print(json.dumps({"attestation": token}, ensure_ascii=False, sort_keys=True))
+            return 0
         if args.command == "check":
             paths = list(args.path)
             if args.paths_from_stdin:
@@ -323,12 +372,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                 override_token=args.override_token,
                 override_reason=args.override_reason,
             )
-            print(json.dumps(result.to_dict(), ensure_ascii=False, sort_keys=True))
+            payload = result.to_dict()
+            if result.accepted and result.claim is not None and write_gate.configured():
+                payload["write_token"] = write_gate.issue(result.claim)
+            print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
             return 0 if result.accepted else 2
         if args.command == "heartbeat":
             value = store.heartbeat(args.claim_id, owner=args.owner, ttl_seconds=args.ttl)
         elif args.command == "release":
             value = store.release(args.claim_id, owner=args.owner)
+            write_gate.revoke(args.claim_id)
         elif args.command == "attach-pr":
             value = store.attach_pr(args.claim_id, owner=args.owner, pr_ref=args.pr)
         else:
