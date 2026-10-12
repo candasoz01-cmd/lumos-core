@@ -1,0 +1,82 @@
+# KA-003 claim-guard: every non-merge commit in the PR range must carry a
+# commit-message HMAC attestation covering that commit's paths. A claim
+# created after the fact cannot authorize an earlier commit because the
+# proof must live in that commit.
+#
+# issued_at in the trailer is NOT issuance proof. Proof is HMAC over a
+# one-shot write token (consumed at attest) + attestation_id +
+# credential_id + parent_sha + exact paths. The signing secret never
+# enters untrusted PR code.
+#
+# ── TRUST ROOT (same three layers as standing-class) ──────────────────────────
+#
+# 1. ORCHESTRATOR. `pull_request_target` runs the workflow definition from the
+#    BASE branch, not from the pull request.
+# 2. VERIFIER. `src/lumos_board/**` is materialized from the pull request's
+#    fixed `base.sha`. Missing on base → fail-closed. No PR-tree fallback.
+# 3. INPUT. The PR tree is NEVER checked out and its code is NEVER executed.
+#    The head is fetched as data; `git rev-list` / `diff-tree` execute nothing.
+#
+# `LUMOS_WRITE_GATE_SECRET` is injected only on the verify step whose
+# PYTHONPATH is the extracted trusted tree.
+#
+# BOOTSTRAP: this introducing PR cannot prove itself — main has neither this
+# workflow nor claim_guard.py. Its own CheckRun stays red / absent until the
+# trusted copy is on the base. 9a113ced is deliberately unattested and MUST
+# NOT be rewritten to skip that red.
+#
+# Required GitHub check is an admin Settings action. This workflow does not
+# change branch protection. This token cannot read or write
+# required_status_checks (HTTP 403). Human-merge lock is NOT in force until
+# `claim-guard` is in that list. Central task controller is not complete.
+name: claim-guard
+
+on:
+  pull_request_target:
+
+permissions:
+  contents: read
+
+jobs:
+  claim-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Materialize trusted claim-guard from base SHA
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          set -euo pipefail
+          test -n "$BASE_SHA"
+          rm -rf "${RUNNER_TEMP}/trusted"
+          python3 -m lumos_board.claim_guard_trust \
+            --repo . --base-sha "$BASE_SHA" --dest "${RUNNER_TEMP}/trusted"
+
+      - name: Fetch PR head as data
+        env:
+          PR_NUMBER: ${{ github.event.number }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin \
+            "+refs/pull/${PR_NUMBER}/head:refs/remotes/pr/head"
+
+      - name: Verify commit-bound claim attestations
+        env:
+          PYTHONPATH: ${{ runner.temp }}/trusted/src
+          LUMOS_WRITE_GATE_SECRET: ${{ secrets.LUMOS_WRITE_GATE_SECRET }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          HEAD_SHA="$(git rev-parse refs/remotes/pr/head)"
+          python3 -m lumos_board.claim_guard \
+            --repo . --base "$BASE_SHA" --head "$HEAD_SHA"
