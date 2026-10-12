@@ -33,7 +33,7 @@ Missing, queued, or in-progress results are not a pass, and the counters reset i
 the head changes. Full text:
 [CONTRIBUTING.md § Merge gate](../CONTRIBUTING.md#merge-gate).
 
-1. Required CI green — `test`, `rust`, `macos-app-build`, `ui-smoke`, `ui-e2e`
+1. Required CI green — `test`, `rust`, `macos-app-build`, `ui-smoke`, `ui-e2e`, `node-tests`
 2. Security review CheckRun complete and clean
 3. Explicit human approval — an agent, bot, or GitHub App review does not count
 

@@ -82,7 +82,9 @@ over to a later SHA.
 
 1. **Required CI green** (today’s test gate). GitHub CheckRuns from
    [`.github/workflows/ci.yml`](.github/workflows/ci.yml): `test`, `rust`,
-   `macos-app-build`, `ui-smoke`, `ui-e2e`.
+   `macos-app-build`, `ui-smoke`, `ui-e2e`; and from
+   [`.github/workflows/node-tests.yml`](.github/workflows/node-tests.yml):
+   `node-tests` (the `node:test` contract suites that pytest does not run).
 2. **Security review complete and clean** (today’s security gate). This is a
    real CheckRun produced by the Cursor Security Reviewer automation, not only
    a PR review or comment. Verified name:
