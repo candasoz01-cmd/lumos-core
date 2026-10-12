@@ -1,0 +1,1 @@
+{"actor": "claude-cloud", "at": "2026-10-12T16:11:02.836094Z", "claim_id": "3a18bab8-df16-458c-aa92-22731e4f2ff1", "details": {"source": "local_board", "status": "ACTIVE"}, "event": "CLAIM_IMPORTED", "owner": "claude-cloud", "repo": "lumos-core", "schema": "lumos.task_claim_event.v1", "task_id": "CB-001"}
