@@ -1626,7 +1626,11 @@ def run_lumos_gate_substep(
     tr = classify_risk(task_text, norm.get("target_rel"))
     effective_risk = _merge_risk_class(sr, tr)
 
-    if effective_risk == "high" and not approval_granted:
+    if (
+        effective_risk == "high"
+        and not approval_granted
+        and not _is_dry_run_replay(_dry_run_replay, True)
+    ):
         return {
             "_substep_gate_ok": False,
             "policy_ok": True,
@@ -1659,6 +1663,7 @@ def run_lumos_gate_substep(
         not approval_granted
         and effective_risk in ("medium", "unknown")
         and _plan_step_mutating(step)
+        and not _is_dry_run_replay(_dry_run_replay, True)
     ):
         return {
             "_substep_gate_ok": False,
@@ -2275,6 +2280,7 @@ def run_lumos_gate(
     bu bayrak yok sayılır; aksi halde yürütme yapılmaz, pending_approval + Onaylar akışına düşer.
     """
     approval_granted = _human_approved(approval_granted)
+    dry_run_replay = _is_dry_run_replay(_dry_run_replay, replay_mode)
     if isinstance(mode, dict):
         spec = mode
         if spec.get("is_substep") is True and isinstance(spec.get("task"), dict):
@@ -2282,6 +2288,7 @@ def run_lumos_gate(
                 spec["task"],
                 repo_root=repo_root,
                 approval_granted=approval_granted,
+                _dry_run_replay=_DRY_RUN_REPLAY if dry_run_replay else None,
             )
         raise ValueError(
             "run_lumos_gate: dict girişi yalnızca is_substep=True ve task=<adım> ile kullanılır"
@@ -2387,6 +2394,7 @@ def run_lumos_gate(
     if (
         client_requires_clarification
         and not approval_granted
+        and not dry_run_replay
         and user_intent_text_is_too_vague_for_action(norm, payload)
     ):
         rsx = ctx.reasoning_summary
@@ -2433,7 +2441,7 @@ def run_lumos_gate(
 
     if (
         risk in _PENDING_APPROVAL_RISKS or plan_has_high_risk_step(plan)
-    ) and not approval_granted:
+    ) and not approval_granted and not dry_run_replay:
         pending_risk = "unknown" if risk == "unknown" else "high"
         out = _return_high_risk_pending(
             ctx,
@@ -2464,7 +2472,6 @@ def run_lumos_gate(
             out["lumos_audit_log"] = audit.to_log_entry()
         return out
 
-    dry_run_replay = _is_dry_run_replay(_dry_run_replay, replay_mode)
     if plan_changes_code(plan) and not approval_granted and not dry_run_replay:
         out = _return_code_change_pending(
             ctx, reasoning, mode, payload, norm, plan=plan, repo_root=repo_root, audit=audit
@@ -2954,7 +2961,7 @@ def lumos_gate_execute(
         if not bridge_result.allowed:
             raise ValueError(bridge_result.reason or "confirmation validation failed")
 
-    if risk == "high" and not approval_granted:
+    if risk == "high" and not approval_granted and not dry_run_replay:
         out = _return_high_risk_pending(
             ctx, reasoning, mode, payload, norm, plan=plan, repo_root=rr,
             grant_source=bundle,
@@ -3025,7 +3032,7 @@ def lumos_gate_execute(
         audit=audit if isinstance(audit, LumosAuditCollector) else None,
         _dry_run_replay=_DRY_RUN_REPLAY if dry_run_replay else None,
     )
-    if risk == "high" and not approval_granted:
+    if risk == "high" and not approval_granted and not dry_run_replay:
         return _return_high_risk_pending(
             ctx, reasoning, mode, payload, norm, plan=plan, repo_root=rr,
             grant_source=bundle,

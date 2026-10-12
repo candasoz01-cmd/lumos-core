@@ -480,6 +480,12 @@ def _low_risk_plan(monkeypatch: pytest.MonkeyPatch, plan: dict[str, Any]) -> Non
     monkeypatch.setattr(lumos_gate, "classify_risk", lambda *a, **k: "low")
 
 
+def _high_risk_plan(monkeypatch: pytest.MonkeyPatch, plan: dict[str, Any]) -> None:
+    monkeypatch.setattr(lumos_gate, "build_execution_plan", lambda *a, **k: plan)
+    monkeypatch.setattr(lumos_gate, "classify_risk", lambda *a, **k: "high")
+    monkeypatch.setattr(lumos_gate, "plan_has_high_risk_step", lambda *_a, **_k: True)
+
+
 def _approved_original_log(tmp_path: Path, mode: str, payload: str) -> dict[str, Any]:
     audit = LumosAuditCollector(log_id="orig")
     bundle = lumos_gate.run_lumos_gate(
@@ -529,6 +535,40 @@ def test_real_replay_of_approved_agent_plan_starts_no_agent(
     assert new.get("execution_result") != "pending_approval"
     steps = new.get("steps") or []
     assert steps and all(s.get("job_id") in (None, "replay_skipped_job") for s in steps)
+
+
+def test_real_replay_of_approved_high_risk_patch_is_dry_run_not_pending(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Bugbot residual: high-risk hold still ran before the dry-run exemption."""
+    target = tmp_path / "g.txt"
+    target.write_text("old\n", encoding="utf-8")
+    _high_risk_plan(monkeypatch, {"steps": [{"type": "patch", "file": "g.txt", "content": "new"}]})
+    entry = _approved_original_log(tmp_path, "direct_patch", "TARGET: g.txt\nnew\n")
+    target.write_text("old\n", encoding="utf-8")
+
+    res = lumos_gate.replay_lumos_task(entry, repo_root=tmp_path)
+
+    new = res["new_log"]
+    assert new.get("execution_result") != "pending_approval"
+    assert new.get("blocked") is False
+    steps = new.get("steps") or []
+    assert steps and all(s.get("execution_result") == "replay_skipped" for s in steps)
+    assert res["match"] is True, res["differences"]
+    assert target.read_text(encoding="utf-8") == "old\n"
+
+
+def test_replay_mode_flag_alone_does_not_lift_high_risk_hold(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    _high_risk_plan(monkeypatch, {"steps": [{"type": "patch", "file": "g.txt", "content": "x"}]})
+    out = lumos_gate.run_lumos_gate(
+        "direct_patch", "TARGET: g.txt\nx\n", repo_root=tmp_path, replay_mode=True
+    )
+    assert out.get("_kind") != "run"
+    assert (out.get("http_body") or {}).get("decision_kind") in ("blocked", "pending", None)
+    par = out.get("pending_approval_record") or {}
+    assert par.get("risk_level") in ("high", None) or par.get("approval_reason")
 
 
 def test_replay_mode_flag_alone_does_not_lift_code_change_hold(
