@@ -19,6 +19,7 @@ from lumos_board.task_claim import (
     OverrideApprovalVerifier,
     TaskClaimStore,
 )
+from lumos_board.write_gate import WriteGate
 
 
 def _store_dir(explicit: str | None) -> Path:
@@ -77,6 +78,11 @@ def _parser() -> argparse.ArgumentParser:
 
     listing = subparsers.add_parser("list")
     listing.add_argument("--all", action="store_true")
+
+    write_check = subparsers.add_parser("write-check")
+    write_check.add_argument("--token")
+    write_check.add_argument("--owner", required=True)
+    write_check.add_argument("--path", action="append", required=True, dest="paths")
 
     approval = subparsers.add_parser("approval")
     approval_commands = approval.add_subparsers(dest="approval_command", required=True)
@@ -169,6 +175,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             override_verifier=override_verifier,
             delegation_verifier=delegation_verifier,
         )
+        write_gate = WriteGate(store, secret=os.environ.get("LUMOS_WRITE_GATE_SECRET"))
+        if args.command == "write-check":
+            decision = write_gate.check(
+                token=args.token, owner=args.owner, paths=args.paths
+            )
+            print(json.dumps(decision.to_dict(), ensure_ascii=False, sort_keys=True))
+            return 0 if decision.allowed else 2
         if args.command == "claim":
             result = store.claim(
                 task_id=args.task,
@@ -184,12 +197,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                 override_token=args.override_token,
                 override_reason=args.override_reason,
             )
-            print(json.dumps(result.to_dict(), ensure_ascii=False, sort_keys=True))
+            payload = result.to_dict()
+            if result.accepted and result.claim is not None and write_gate.configured():
+                payload["write_token"] = write_gate.issue(result.claim)
+            print(json.dumps(payload, ensure_ascii=False, sort_keys=True))
             return 0 if result.accepted else 2
         if args.command == "heartbeat":
             value = store.heartbeat(args.claim_id, owner=args.owner, ttl_seconds=args.ttl)
         elif args.command == "release":
             value = store.release(args.claim_id, owner=args.owner)
+            write_gate.revoke(args.claim_id)
         elif args.command == "attach-pr":
             value = store.attach_pr(args.claim_id, owner=args.owner, pr_ref=args.pr)
         else:
