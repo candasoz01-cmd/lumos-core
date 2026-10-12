@@ -627,12 +627,17 @@ class TaskClaimStore:
             return updated
 
     def list_claims(self, *, include_closed: bool = False) -> tuple[TaskClaim, ...]:
-        with self._locked_state() as claims:
-            self._expire_stale(claims, self._now())
-            selected = claims if include_closed else [
-                claim for claim in claims if claim.status in {ClaimStatus.ACTIVE, ClaimStatus.QUEUED}
-            ]
-            return tuple(sorted(selected, key=lambda item: (item.started_at, item.claim_id)))
+        """Salt-okunur projeksiyon: kilit yok, expire/yazma yok.
+
+        TTL dolumu ve kuyruk terfisi yalnız claim/heartbeat/release/attach_pr
+        yazma yollarında kalıcılaşır. Gözlem (`claim_cli list`) yazarı
+        bekletmez ve `claims.json` byte/mtime'sini değiştirmez.
+        """
+        claims = self._read_state()
+        selected = claims if include_closed else [
+            claim for claim in claims if claim.status in {ClaimStatus.ACTIVE, ClaimStatus.QUEUED}
+        ]
+        return tuple(sorted(selected, key=lambda item: (item.started_at, item.claim_id)))
 
     @contextmanager
     def _locked_state(self) -> Iterator[list[TaskClaim]]:
