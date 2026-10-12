@@ -45,6 +45,8 @@ girmediğini doğrular; değilse commit oluşmadan reddeder. `commit-msg` hook'u
 `Lumos-Claim` / `Lumos-Agent` trailer'larını ekler. CI'daki `claim-guard`
 işi aynı kuralları PR üzerinde denetler; commit yazar alanları kanıt sayılmaz,
 kimlik = trailer ajanı + merkezi claim sahibi + doğrulanmış devir.
+Ayrı `write-attestation` işi HMAC yazma jetonunu doğrular (`Lumos-Claim-Attestation`).
+Pano kilidi ile HMAC yazma kapısı birbirinin yerine geçmez; ikisi de gerekir.
 Eski yerel kayıtlar `python -m lumos_board.claim_cli migrate-local --from <dizin> --actor <ajan>`
 ile taşınır (kaynak değişmez, çakışan kayıt birleştirilmez, raporlanır).
 
