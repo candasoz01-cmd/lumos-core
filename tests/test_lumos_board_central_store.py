@@ -423,3 +423,21 @@ def test_board_with_non_uuid_claim_id_is_corrupt(remote: Path, tmp_path: Path, b
     _git("push", "-q", "origin", "HEAD:claude/lumos-board", cwd=work)
     with pytest.raises(ClaimStoreCorrupt):
         _store(remote, tmp_path, "b").list_claims()
+
+
+@pytest.mark.parametrize("bad_scopes", [["."], [""], ["../etc"], ["/abs"], ["b.py", "a.py"], ["dir/"]])
+def test_import_rejects_scopes_claim_could_not_create(remote: Path, tmp_path: Path, bad_scopes: list[str]) -> None:
+    """Review 164f105: a '.' scope imported via migrate-local locked the whole repo."""
+    from dataclasses import replace
+
+    from lumos_board.central_store import serialize_state
+
+    local_dir = tmp_path / "evil"
+    TaskClaimStore(local_dir).claim(task_id="ROOT", repo="lumos-core", branch="b", worktree="/w",
+                                    owner="mallory", scopes=["x"])
+    planted = replace(TaskClaimStore(local_dir).list_claims()[0], scopes=tuple(bad_scopes))
+    (local_dir / "claims.json").write_text(serialize_state([planted]), encoding="utf-8")
+    central = _store(remote, tmp_path, "central")
+    with pytest.raises(ClaimStoreCorrupt):
+        central.import_local(local_dir, actor="mallory")
+    assert _claim(central, task="T", owner="claude", scope="src/a.py").accepted is True

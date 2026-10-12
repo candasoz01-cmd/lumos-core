@@ -322,3 +322,37 @@ def test_hooks_reject_malformed_agent_identity(world, agent: str) -> None:
     (clone / "app.py").write_text("x = 5\n", encoding="utf-8")
     _git(clone, "add", "app.py")
     assert _git(clone, "commit", "-qm", "m", env=env, check=False).returncode != 0
+
+
+def test_stale_claim_cannot_authorise_write_after_another_agent_took_the_file(store: TaskClaimStore) -> None:
+    """Review 164f105: A cites its RELEASED claim after B holds the file ACTIVE."""
+    a = _claim(store, task="A", owner="agent-a", scopes=[GATE])
+    store.release(a.claim_id, owner="agent-a")
+    b = _claim(store, task="B", owner="agent-b", scopes=[GATE])
+    v = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=[GATE],
+                 commits=[_commit("late", [GATE], [a.claim_id], ["agent-a"]),
+                          _commit("ok", [GATE], [b.claim_id], ["agent-b"])], now=NOW)
+    assert _codes(v) == ["SUPERSEDED_BY_ACTIVE_CLAIM"]
+    assert v[0].commit == "late"
+
+
+def test_released_claim_still_attributes_finished_work_when_nobody_else_holds_it(store: TaskClaimStore) -> None:
+    a = _claim(store, task="A", owner="agent-a", scopes=[GATE])
+    store.release(a.claim_id, owner="agent-a")
+    v = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=[GATE],
+                 commits=[_commit("done", [GATE], [a.claim_id], ["agent-a"])], now=NOW)
+    assert v == []
+
+
+def test_override_takeover_flags_old_owner_commits_after_takeover(tmp_path: Path) -> None:
+    """Expired claim of A, B now ACTIVE on the same file: A's cited claim is stale."""
+    store = TaskClaimStore(tmp_path / "board")
+    a = _claim(store, task="A", owner="agent-a", scopes=[GATE], ttl_seconds=60)
+    later = NOW + timedelta(seconds=120)
+    clocked = TaskClaimStore(tmp_path / "board", clock=lambda: later)
+    b = clocked.claim(task_id="B", repo="lumos-core", branch=BRANCH, worktree="/w",
+                      owner="agent-b", scopes=[GATE]).claim
+    v = evaluate(clocked.list_claims(include_closed=True), branch=BRANCH, pr_ref=PR, changed_files=[GATE],
+                 commits=[_commit("late", [GATE], [a.claim_id], ["agent-a"]),
+                          _commit("b1", [GATE], [b.claim_id], ["agent-b"])], now=later)
+    assert _codes(v) == ["SUPERSEDED_BY_ACTIVE_CLAIM"]

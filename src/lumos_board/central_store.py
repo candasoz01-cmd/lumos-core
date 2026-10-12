@@ -64,6 +64,7 @@ from lumos_board.task_claim import (
     TaskClaimStore,
     _find_conflicts,
     _format_time,
+    _normalize_scopes,
 )
 
 DEFAULT_REF = "refs/heads/claude/lumos-board"
@@ -128,6 +129,14 @@ def parse_state_text(text: str) -> list[TaskClaim]:
             claim.parent_claim_id is not None and not _CLAIM_ID.fullmatch(claim.parent_claim_id)
         ):
             raise ClaimStoreCorrupt("claim kimliği geçersiz")
+        # Same scope rules as claim(): no repo root, no "..", canonical form.
+        # A hand-pushed "." would otherwise lock the whole repo for everyone.
+        try:
+            canonical = _normalize_scopes(claim.scopes)
+        except ClaimError as exc:
+            raise ClaimStoreCorrupt("claim kapsamı geçersiz") from exc
+        if canonical != tuple(claim.scopes):
+            raise ClaimStoreCorrupt("claim kapsamı kanonik değil")
     return claims
 
 

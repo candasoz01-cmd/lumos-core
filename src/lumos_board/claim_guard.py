@@ -29,6 +29,10 @@ Violations:
 * ``AGENT_NOT_CLAIM_OWNER`` – the trailer agent is not the claim's owner.
 * ``COMMIT_OUTSIDE_CLAIM_SCOPE`` – the commit touched files its claim does not
   cover.
+* ``SUPERSEDED_BY_ACTIVE_CLAIM`` – the commit touches a file that another
+  agent holds in an ACTIVE claim outside the cited claim's delegation family
+  (e.g. A cites its RELEASED claim after B took the file). Holds for any
+  cited claim status, so a stale claim id never authorises a write.
 
 Limits: trailers are self-asserted. This stops uncoordinated agents (the
 2026-10-12 incident) and makes every write attributable; it is not
@@ -89,6 +93,25 @@ def _effective_status(claim: TaskClaim, now: datetime) -> ClaimStatus:
     if claim.status is ClaimStatus.ACTIVE and claim.expires_at <= now:
         return ClaimStatus.EXPIRED
     return claim.status
+
+
+def _family(claims: Sequence[TaskClaim], roots: set[str]) -> set[str]:
+    """Claim ids linked to ``roots`` by verified delegation (ancestors + descendants)."""
+    by_id = {c.claim_id: c for c in claims}
+    family = set(roots)
+    changed = True
+    while changed:
+        changed = False
+        for c in claims:
+            if c.claim_id in family:
+                parent = c.parent_claim_id
+                if parent and parent in by_id and parent not in family:
+                    family.add(parent)
+                    changed = True
+            elif c.parent_claim_id in family:
+                family.add(c.claim_id)
+                changed = True
+    return family
 
 
 def pr_claims(claims: Sequence[TaskClaim], *, branch: str, pr_ref: str | None) -> dict[str, TaskClaim]:
@@ -189,6 +212,25 @@ def evaluate(
                 continue
             commit_claims.append(claim)
         if commit_claims:
+            family = _family(claims, {c.claim_id for c in commit_claims})
+            for path in commit.files:
+                rivals = [
+                    other
+                    for other in claims
+                    if other.claim_id not in family
+                    and other.owner != agent
+                    and _effective_status(other, now) is ClaimStatus.ACTIVE
+                    and any(_scope_overlap(path, scope) for scope in other.scopes)
+                ]
+                for other in rivals:
+                    violations.append(
+                        Violation(
+                            "SUPERSEDED_BY_ACTIVE_CLAIM",
+                            f"dosya şu an {other.owner} / {other.task_id} ({other.claim_id}) aktif claim'inde",
+                            commit=commit.sha,
+                            path=path,
+                        )
+                    )
             for path in commit.files:
                 if not any(_covered(path, c.scopes) for c in commit_claims):
                     violations.append(
