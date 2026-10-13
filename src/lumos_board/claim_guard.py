@@ -6,15 +6,25 @@ board ref, the PR's commits and its diff, and reports violations.
 What a violation is (and is not)
 --------------------------------
 Git author/committer fields are **not** evidence: one GitHub account may push
-for several agents, and a human may co-author an agent's commit. Identity is
-established by three facts that must agree:
+for several agents, and a human may co-author an agent's commit. The unsigned
+``Lumos-Agent:`` trailer is **not** identity proof either. Who was allowed to
+write a commit is decided at that commit's committer time:
 
-1. the commit's ``Lumos-Agent:`` trailer (who says they wrote it),
-2. the commit's ``Lumos-Claim:`` trailer → a claim on the central board whose
-   ``owner`` is that agent, and
+1. the ``Lumos-Claim-Attestation`` payload's ``owner`` (the field the sibling
+   HMAC job binds; this job does not see the signing secret and does not
+   treat a bare trailer as a substitute),
+2. the board's claim and handoff history for the cited claim at or before
+   that committer time (a later handoff does not rewrite the past), and
 3. that claim belongs to this PR (same head branch or ``pr_ref``), directly
    or through a delegated child claim (the board only stores a child with a
    ``parent_claim_id`` after verifying a signed delegation token).
+
+History replay uses each event's recorded ``owner``, which is the lease
+holder at that event. A current ``CLAIM_HANDOFF`` keeps the giver in
+``owner`` until ``CLAIM_HANDOFF_ACCEPTED``. An older immediate handoff stored
+the recipient in ``owner`` on ``CLAIM_HANDOFF`` itself. Events after the
+committer time are ignored, so a later transfer cannot authorise a commit
+the recipient did not hold, and cannot strip a commit the giver did hold.
 
 Violations:
 
@@ -26,17 +36,21 @@ Violations:
   ``Lumos-Agent`` trailers.
 * ``UNKNOWN_CLAIM`` / ``CLAIM_NOT_FOR_THIS_PR`` / ``QUEUED_CLAIM`` – the
   referenced claim is missing, belongs elsewhere, or never had write rights.
-* ``AGENT_NOT_CLAIM_OWNER`` – the trailer agent is not the claim's owner.
+* ``IDENTITY_UNVERIFIED`` – no attestation owner, or the unsigned trailer
+  disagrees with that owner. The trailer is not accepted as proof.
+* ``AGENT_NOT_CLAIM_OWNER`` – the attestation owner was not the claim's owner
+  at commit time.
 * ``COMMIT_OUTSIDE_CLAIM_SCOPE`` – the commit touched files its claim does not
   cover.
-* ``SUPERSEDED_BY_ACTIVE_CLAIM`` – the commit touches a file that another
-  agent holds in an ACTIVE claim outside the cited claim's delegation family
-  (e.g. A cites its RELEASED claim after B took the file). Holds for any
-  cited claim status, so a stale claim id never authorises a write.
+* ``SUPERSEDED_BY_ACTIVE_CLAIM`` – at commit time, the commit touches a file
+  that another agent held outside the cited claim's delegation family (e.g. A
+  cites its RELEASED claim after B took the file). A claim acquired after the
+  commit does not rewrite that commit.
 
-Limits: trailers are self-asserted. This stops uncoordinated agents (the
-2026-10-12 incident) and makes every write attributable; it is not
-cryptographic proof against a deliberately lying agent.
+Limits: this job never receives the write-gate secret. HMAC verification
+stays in ``write-attestation`` / ``write-attestation-trusted``. Reading the
+payload owner is not a signature check, so TD-45 item (2) stays open: a
+forged payload still fails only the HMAC job. Both jobs must pass.
 """
 
 from __future__ import annotations
@@ -46,13 +60,22 @@ import json
 import os
 import subprocess
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import PurePosixPath
 
-from lumos_board.central_store import DEFAULT_REF, STATE_FILE, parse_state_text
-from lumos_board.task_claim import ClaimError, ClaimStatus, TaskClaim, _scope_overlap
+from lumos_board.central_store import DEFAULT_REF, EVENTS_FILE, STATE_FILE, parse_state_text
+from lumos_board.task_claim import (
+    CLAIM_EVENT_SCHEMA,
+    ClaimError,
+    ClaimStatus,
+    TaskClaim,
+    _b64url_decode,
+    _parse_time,
+    _scope_overlap,
+)
+from lumos_board.write_attestation import ATTESTATION_SCHEMA, ATTESTATION_TRAILER, VERIFICATION_METHOD
 
 GUARD_SCHEMA = "lumos.claim_guard_report.v1"
 
@@ -63,6 +86,9 @@ class CommitInfo:
     files: tuple[str, ...]
     claim_ids: tuple[str, ...]
     agents: tuple[str, ...]
+    committed_at: datetime | None = None
+    attested_owner: str | None = None
+    attested_claim_ids: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -93,6 +119,113 @@ def _effective_status(claim: TaskClaim, now: datetime) -> ClaimStatus:
     if claim.status is ClaimStatus.ACTIVE and claim.expires_at <= now:
         return ClaimStatus.EXPIRED
     return claim.status
+
+
+def _held_at(claim: TaskClaim, moment: datetime) -> bool:
+    """Did this claim hold its scopes at ``moment``? Later leases do not count."""
+    if claim.status is ClaimStatus.QUEUED or claim.started_at > moment:
+        return False
+    if claim.status is ClaimStatus.ACTIVE:
+        return claim.expires_at > moment
+    if claim.closed_at is None:
+        return False
+    return claim.closed_at > moment
+
+
+def owner_at(claim_id: str, moment: datetime, events: Sequence[Mapping[str, object]]) -> str | None:
+    """Lease holder at ``moment``, from events at or before that instant.
+
+    Returns None when history cannot prove an owner. The claim row's current
+    owner is intentionally not a fallback: a later handoff must not speak for
+    an earlier commit.
+    """
+    ordered: list[tuple[datetime, str]] = []
+    for event in events:
+        if event.get("claim_id") != claim_id:
+            continue
+        raw_at = event.get("at")
+        recorded = event.get("owner")
+        if not isinstance(raw_at, str) or not isinstance(recorded, str) or not recorded:
+            return None
+        try:
+            at = _parse_time(raw_at)
+        except ValueError:
+            return None
+        ordered.append((at, recorded))
+    ordered.sort(key=lambda item: item[0])
+    holder: str | None = None
+    for at, recorded in ordered:
+        # Committer time is whole seconds. An event later in that same second
+        # is still this commit's instant; a later second is a different owner.
+        if at.replace(microsecond=0) <= moment.replace(microsecond=0):
+            holder = recorded
+        else:
+            break
+    return holder
+
+
+def _attestation_identity(token: str) -> tuple[str, str] | None:
+    """Read owner and claim id from an attestation payload.
+
+    The HMAC is not checked here. ``write-attestation`` does that with the
+    proof key, and ``write-attestation-trusted`` does it with the production
+    secret. This job must not accept the unsigned agent trailer instead.
+    """
+    try:
+        encoded_payload, _signature = token.split(".", 1)
+        payload = json.loads(_b64url_decode(encoded_payload))
+    except (ValueError, json.JSONDecodeError, UnicodeError):
+        return None
+    if not isinstance(payload, dict) or payload.get("schema") != ATTESTATION_SCHEMA:
+        return None
+    if payload.get("verification_method") != VERIFICATION_METHOD:
+        return None
+    owner = payload.get("owner")
+    claim_id = payload.get("claim_id")
+    if not isinstance(owner, str) or not owner.strip():
+        return None
+    if not isinstance(claim_id, str) or not claim_id.strip():
+        return None
+    return owner.strip(), claim_id.strip()
+
+
+def _commit_attestation(tokens: Sequence[str]) -> tuple[str | None, tuple[str, ...]]:
+    if not tokens:
+        return None, ()
+    owners: list[str] = []
+    claim_ids: list[str] = []
+    for token in tokens:
+        parsed = _attestation_identity(token)
+        if parsed is None:
+            return None, ()
+        owner, claim_id = parsed
+        owners.append(owner)
+        claim_ids.append(claim_id)
+    if len(set(owners)) != 1:
+        return None, ()
+    return owners[0], tuple(claim_ids)
+
+
+def _identity_violation(commit: CommitInfo) -> Violation | None:
+    if commit.committed_at is None or not commit.attested_owner or not commit.attested_claim_ids:
+        return Violation(
+            "IDENTITY_UNVERIFIED",
+            "imzasız Lumos-Agent trailer'ı kimlik kanıtı değil",
+            commit=commit.sha,
+        )
+    if set(commit.agents) != {commit.attested_owner}:
+        return Violation(
+            "IDENTITY_UNVERIFIED",
+            "Lumos-Agent trailer'ı attestation sahibi ile uyuşmuyor; trailer kimlik kanıtı değil",
+            commit=commit.sha,
+        )
+    if set(commit.attested_claim_ids) != set(commit.claim_ids):
+        return Violation(
+            "IDENTITY_UNVERIFIED",
+            "attestation claim kümesi Lumos-Claim trailer'ı ile uyuşmuyor",
+            commit=commit.sha,
+        )
+    return None
 
 
 def _family(claims: Sequence[TaskClaim], roots: set[str]) -> set[str]:
@@ -139,6 +272,7 @@ def evaluate(
     changed_files: Sequence[str],
     commits: Sequence[CommitInfo],
     now: datetime,
+    events: Sequence[Mapping[str, object]] = (),
 ) -> list[Violation]:
     violations: list[Violation] = []
     by_id = {c.claim_id: c for c in claims}
@@ -182,7 +316,6 @@ def evaluate(
                 Violation("AGENT_NOT_CLAIM_OWNER", "commit birden fazla Lumos-Agent beyan ediyor", commit=commit.sha)
             )
             continue
-        agent = commit.agents[0]
         commit_claims: list[TaskClaim] = []
         for claim_id in commit.claim_ids:
             claim = by_id.get(claim_id)
@@ -201,16 +334,31 @@ def evaluate(
             if claim.status is ClaimStatus.QUEUED:
                 violations.append(Violation("QUEUED_CLAIM", f"kuyruktaki claim yazma yetkisi vermez: {claim_id}", commit=commit.sha))
                 continue
-            if claim.owner != agent:
+            commit_claims.append(claim)
+        if not commit_claims:
+            continue
+        gap = _identity_violation(commit)
+        if gap is not None:
+            violations.append(gap)
+            commit_claims = []
+            continue
+        authorized: list[TaskClaim] = []
+        assert commit.committed_at is not None
+        assert commit.attested_owner is not None
+        for claim in commit_claims:
+            historical = owner_at(claim.claim_id, commit.committed_at, events)
+            if historical != commit.attested_owner:
+                shown = historical or "yok"
                 violations.append(
                     Violation(
                         "AGENT_NOT_CLAIM_OWNER",
-                        f"Lumos-Agent '{agent}' claim sahibi '{claim.owner}' değil ve devir yok",
+                        f"attestation sahibi '{commit.attested_owner}' commit anında claim sahibi '{shown}' değil",
                         commit=commit.sha,
                     )
                 )
                 continue
-            commit_claims.append(claim)
+            authorized.append(claim)
+        commit_claims = authorized
         if commit_claims:
             family = _family(claims, {c.claim_id for c in commit_claims})
             for path in commit.files:
@@ -218,15 +366,15 @@ def evaluate(
                     other
                     for other in claims
                     if other.claim_id not in family
-                    and other.owner != agent
-                    and _effective_status(other, now) is ClaimStatus.ACTIVE
+                    and other.owner != commit.attested_owner
+                    and _held_at(other, commit.committed_at)
                     and any(_scope_overlap(path, scope) for scope in other.scopes)
                 ]
                 for other in rivals:
                     violations.append(
                         Violation(
                             "SUPERSEDED_BY_ACTIVE_CLAIM",
-                            f"dosya şu an {other.owner} / {other.task_id} ({other.claim_id}) aktif claim'inde",
+                            f"dosya commit anında {other.owner} / {other.task_id} ({other.claim_id}) claim'inde",
                             commit=commit.sha,
                             path=path,
                         )
@@ -258,6 +406,22 @@ def read_board(ref: str) -> list[TaskClaim]:
     return parse_state_text(_git("show", f"{ref}:{STATE_FILE}"))
 
 
+def read_events(ref: str) -> list[dict[str, object]]:
+    text = _git("show", f"{ref}:{EVENTS_FILE}")
+    events: list[dict[str, object]] = []
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ClaimError("claim olay kaydı okunamıyor") from exc
+        if not isinstance(payload, dict) or payload.get("schema") != CLAIM_EVENT_SCHEMA:
+            raise ClaimError("claim olay kaydı geçersiz")
+        events.append(payload)
+    return events
+
+
 def collect(base: str, head: str) -> tuple[list[str], list[CommitInfo]]:
     changed = [p for p in _git("diff", "--name-only", "--no-renames", f"{base}...{head}").splitlines() if p]
     commits: list[CommitInfo] = []
@@ -271,7 +435,25 @@ def collect(base: str, head: str) -> tuple[list[str], list[CommitInfo]]:
         agents = tuple(
             v.strip() for v in _git("show", "-s", "--format=%(trailers:key=Lumos-Agent,valueonly,separator=%x0A)", sha).splitlines() if v.strip()
         )
-        commits.append(CommitInfo(sha, files, claim_ids, agents))
+        attestation = tuple(
+            v.strip()
+            for v in _git(
+                "show",
+                "-s",
+                f"--format=%(trailers:key={ATTESTATION_TRAILER},valueonly,separator=%x0A)",
+                sha,
+            ).splitlines()
+            if v.strip()
+        )
+        attested_owner, attested_claim_ids = _commit_attestation(attestation)
+        raw_time = _git("show", "-s", "--format=%cI", sha).strip()
+        try:
+            committed_at = _parse_time(raw_time)
+        except ValueError as exc:
+            raise ClaimError("commit zamanı okunamıyor") from exc
+        commits.append(
+            CommitInfo(sha, files, claim_ids, agents, committed_at, attested_owner, attested_claim_ids)
+        )
     return changed, commits
 
 
@@ -285,6 +467,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         claims = read_board(args.board_ref)
+        events = read_events(args.board_ref)
         changed, commits = collect(args.base, args.head)
     except ClaimError as exc:
         # Fail closed: an unreadable board is a failed check, never a pass.
@@ -297,6 +480,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         changed_files=changed,
         commits=commits,
         now=datetime.now(timezone.utc),
+        events=events,
     )
     report = {
         "schema": GUARD_SCHEMA,

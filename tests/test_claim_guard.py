@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import base64
 import json
 import os
 import shutil
 import subprocess
 import sys
+from dataclasses import replace
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -16,6 +18,7 @@ from lumos_board import claim_guard
 from lumos_board.claim_cli import check_write_permission
 from lumos_board.claim_guard import CommitInfo, evaluate
 from lumos_board.task_claim import (
+    CLAIM_EVENT_SCHEMA,
     DELEGATION_OWNER_REGISTRY_SCHEMA,
     DelegationVerifier,
     TaskClaimStore,
@@ -49,8 +52,48 @@ def _all(store: TaskClaimStore):
     return store.list_claims(include_closed=True)
 
 
-def _commit(sha: str, files: list[str], claim_ids: list[str], agents: list[str]) -> CommitInfo:
-    return CommitInfo(sha, tuple(files), tuple(claim_ids), tuple(agents))
+def _load_events(store: TaskClaimStore) -> list[dict[str, object]]:
+    if not store.audit_path.exists():
+        return []
+    return [json.loads(line) for line in store.audit_path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def _commit(
+    sha: str,
+    files: list[str],
+    claim_ids: list[str],
+    agents: list[str],
+    at: datetime | None = None,
+    *,
+    attested_owner: str | None = None,
+    attest: bool = True,
+) -> CommitInfo:
+    owner = attested_owner
+    if attest and owner is None and len(set(agents)) == 1 and agents[0]:
+        owner = agents[0]
+    if not attest:
+        owner = None
+    return CommitInfo(
+        sha,
+        tuple(files),
+        tuple(claim_ids),
+        tuple(agents),
+        at,
+        owner,
+        tuple(claim_ids) if owner else (),
+    )
+
+
+def _go(store: TaskClaimStore, files: list[str], commits: list[CommitInfo], now: datetime | None = None, claims=None):
+    return evaluate(
+        _all(store) if claims is None else claims,
+        branch=BRANCH,
+        pr_ref=PR,
+        changed_files=files,
+        commits=commits,
+        now=now or NOW,
+        events=_load_events(store),
+    )
 
 
 GATE = "packages/kando_runtime/src/kando_runtime/lumos_gate.py"
@@ -58,18 +101,16 @@ GATE = "packages/kando_runtime/src/kando_runtime/lumos_gate.py"
 
 def test_clean_pr_passes(store: TaskClaimStore) -> None:
     c = _claim(store, task="G1", owner="claude-cloud", scopes=[GATE])
-    v = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=[GATE],
-                 commits=[_commit("a1", [GATE], [c.claim_id], ["claude-cloud"])], now=NOW)
+    v = _go(store, [GATE], [_commit("a1", [GATE], [c.claim_id], ["claude-cloud"], c.started_at)])
     assert v == []
 
 
 def test_different_git_author_alone_is_not_a_violation(store: TaskClaimStore) -> None:
-    """Author/committer are never read: only trailer agent + claim owner + delegation."""
+    """Author/committer are never read. The attestation owner must match history."""
     c = _claim(store, task="G1", owner="claude-cloud", scopes=[GATE])
     # CommitInfo has no author field on purpose; a commit pushed by any account
-    # or co-authored by a human passes when the three identity facts agree.
-    v = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=[GATE],
-                 commits=[_commit("a1", [GATE], [c.claim_id], ["claude-cloud"])], now=NOW)
+    # or co-authored by a human passes when attestation owner and history agree.
+    v = _go(store, [GATE], [_commit("a1", [GATE], [c.claim_id], ["claude-cloud"], c.started_at)])
     assert v == []
     assert "author" not in CommitInfo.__dataclass_fields__
 
@@ -77,18 +118,17 @@ def test_different_git_author_alone_is_not_a_violation(store: TaskClaimStore) ->
 def test_reproduces_2026_10_12_incident_unclaimed_second_agent_commit(store: TaskClaimStore) -> None:
     c = _claim(store, task="G1", owner="claude-cloud", scopes=[GATE])
     commits = [
-        _commit("c3b289a", [GATE], [c.claim_id], ["claude-cloud"]),
+        _commit("c3b289a", [GATE], [c.claim_id], ["claude-cloud"], c.started_at),
         _commit("e43924f", [GATE], [], []),  # Cursor, no claim, same branch, same file
     ]
-    v = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=[GATE], commits=commits, now=NOW)
+    v = _go(store, [GATE], commits)
     assert _codes(v) == ["UNATTRIBUTED_COMMIT"]
     assert v[0].commit == "e43924f"
 
 
 def test_second_agent_borrowing_first_agents_claim_is_rejected(store: TaskClaimStore) -> None:
     c = _claim(store, task="G1", owner="claude-cloud", scopes=[GATE])
-    v = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=[GATE],
-                 commits=[_commit("e4", [GATE], [c.claim_id], ["cursor-agent"])], now=NOW)
+    v = _go(store, [GATE], [_commit("e4", [GATE], [c.claim_id], ["cursor-agent"], c.started_at)])
     assert _codes(v) == ["AGENT_NOT_CLAIM_OWNER"]
 
 
@@ -109,8 +149,7 @@ def test_verified_delegation_lets_second_agent_write(tmp_path: Path) -> None:
     )
     child = _claim(store, task="G1-sub", owner="cursor-agent", scopes=[GATE], branch="cursor/sub",
                    parent_claim_id=parent.claim_id, delegation_token=token)
-    v = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=[GATE],
-                 commits=[_commit("d1", [GATE], [child.claim_id], ["cursor-agent"])], now=NOW)
+    v = _go(store, [GATE], [_commit("d1", [GATE], [child.claim_id], ["cursor-agent"], child.started_at)])
     assert v == []
 
 
@@ -123,15 +162,13 @@ def test_no_claim_for_pr(store: TaskClaimStore) -> None:
 def test_pr_ref_binding_counts_even_if_branch_differs(store: TaskClaimStore) -> None:
     c = _claim(store, task="G1", owner="claude-cloud", scopes=[GATE], branch="old-name")
     store.attach_pr(c.claim_id, owner="claude-cloud", pr_ref=PR)
-    v = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=[GATE],
-                 commits=[_commit("a", [GATE], [c.claim_id], ["claude-cloud"])], now=NOW)
+    v = _go(store, [GATE], [_commit("a", [GATE], [c.claim_id], ["claude-cloud"], c.started_at)])
     assert v == []
 
 
 def test_unclaimed_path_and_commit_outside_scope(store: TaskClaimStore) -> None:
     c = _claim(store, task="G1", owner="claude-cloud", scopes=[GATE])
-    v = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=[GATE, "server.py"],
-                 commits=[_commit("a", [GATE, "server.py"], [c.claim_id], ["claude-cloud"])], now=NOW)
+    v = _go(store, [GATE, "server.py"], [_commit("a", [GATE, "server.py"], [c.claim_id], ["claude-cloud"], c.started_at)])
     assert _codes(v) == ["COMMIT_OUTSIDE_CLAIM_SCOPE", "UNCLAIMED_PATH"]
 
 
@@ -140,12 +177,11 @@ def test_foreign_active_claim_blocks_and_expired_does_not(store: TaskClaimStore)
     other = _claim(store, task="X", owner="cursor-agent", scopes=["server.py"], branch="cursor/x")
     files = [GATE, "server.py"]
     # mine does not cover server.py either; we look for the foreign hit
-    v = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=files,
-                 commits=[_commit("a", [GATE], [mine.claim_id], ["claude-cloud"])], now=NOW)
+    commit = [_commit("a", [GATE], [mine.claim_id], ["claude-cloud"], mine.started_at)]
+    v = _go(store, files, commit, now=NOW)
     assert "FOREIGN_ACTIVE_CLAIM" in _codes(v)
     later = other.expires_at + timedelta(seconds=1)
-    v2 = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=files,
-                  commits=[_commit("a", [GATE], [mine.claim_id], ["claude-cloud"])], now=later)
+    v2 = _go(store, files, commit, now=later)
     assert "FOREIGN_ACTIVE_CLAIM" not in _codes(v2)
 
 
@@ -272,11 +308,24 @@ def test_hook_refuses_when_central_board_unreachable(world) -> None:
 def test_guard_cli_end_to_end(world, monkeypatch: pytest.MonkeyPatch) -> None:
     remote, tmp_path = world
     claude, env_c = _agent_clone(remote, tmp_path, "claude-cloud", "claude/g1")
-    assert _cli(claude, env_c, "claim", "--task", "G1", "--repo", "lumos-core", "--branch", "claude/g1",
-                "--worktree", str(claude), "--owner", "claude-cloud", "--scope", "app.py").returncode == 0
+    claimed = _cli(claude, env_c, "claim", "--task", "G1", "--repo", "lumos-core", "--branch", "claude/g1",
+                   "--worktree", str(claude), "--owner", "claude-cloud", "--scope", "app.py")
+    assert claimed.returncode == 0, claimed.stderr
+    claim_id = json.loads(claimed.stdout)["claim"]["claim_id"]
     (claude / "app.py").write_text("x = 2\n", encoding="utf-8")
     _git(claude, "add", "app.py")
-    assert _git(claude, "commit", "-qm", "ok", env=env_c).returncode == 0
+    payload = json.dumps(
+        {
+            "schema": "lumos.claim_commit_attestation.v1",
+            "owner": "claude-cloud",
+            "claim_id": claim_id,
+            "verification_method": "hmac-sha256",
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    ).encode()
+    token = base64.urlsafe_b64encode(payload).rstrip(b"=").decode() + ".e30"
+    assert _git(claude, "commit", "-qm", f"ok\n\nLumos-Claim-Attestation: {token}", env=env_c).returncode == 0
     # an unattributed commit sneaks in without hooks (e.g. an agent that ignores them)
     (claude / "app.py").write_text("x = 3\n", encoding="utf-8")
     _git(claude, "-c", "core.hooksPath=/dev/null", "commit", "-qam", "sneaky")
@@ -329,9 +378,11 @@ def test_stale_claim_cannot_authorise_write_after_another_agent_took_the_file(st
     a = _claim(store, task="A", owner="agent-a", scopes=[GATE])
     store.release(a.claim_id, owner="agent-a")
     b = _claim(store, task="B", owner="agent-b", scopes=[GATE])
-    v = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=[GATE],
-                 commits=[_commit("late", [GATE], [a.claim_id], ["agent-a"]),
-                          _commit("ok", [GATE], [b.claim_id], ["agent-b"])], now=NOW)
+    moment = b.started_at
+    v = _go(store, [GATE], [
+        _commit("late", [GATE], [a.claim_id], ["agent-a"], moment),
+        _commit("ok", [GATE], [b.claim_id], ["agent-b"], moment),
+    ], now=moment)
     assert _codes(v) == ["SUPERSEDED_BY_ACTIVE_CLAIM"]
     assert v[0].commit == "late"
 
@@ -339,8 +390,7 @@ def test_stale_claim_cannot_authorise_write_after_another_agent_took_the_file(st
 def test_released_claim_still_attributes_finished_work_when_nobody_else_holds_it(store: TaskClaimStore) -> None:
     a = _claim(store, task="A", owner="agent-a", scopes=[GATE])
     store.release(a.claim_id, owner="agent-a")
-    v = evaluate(_all(store), branch=BRANCH, pr_ref=PR, changed_files=[GATE],
-                 commits=[_commit("done", [GATE], [a.claim_id], ["agent-a"])], now=NOW)
+    v = _go(store, [GATE], [_commit("done", [GATE], [a.claim_id], ["agent-a"], a.started_at)])
     assert v == []
 
 
@@ -357,7 +407,119 @@ def test_override_takeover_flags_old_owner_commits_after_takeover(tmp_path: Path
     clocked = TaskClaimStore(tmp_path / "board", clock=lambda: later)
     b = clocked.claim(task_id="B", repo="lumos-core", branch=BRANCH, worktree="/w",
                       owner="agent-b", scopes=[GATE]).claim
-    v = evaluate(clocked.list_claims(include_closed=True), branch=BRANCH, pr_ref=PR, changed_files=[GATE],
-                 commits=[_commit("late", [GATE], [a.claim_id], ["agent-a"]),
-                          _commit("b1", [GATE], [b.claim_id], ["agent-b"])], now=later)
+    v = _go(clocked, [GATE], [
+        _commit("late", [GATE], [a.claim_id], ["agent-a"], later),
+        _commit("b1", [GATE], [b.claim_id], ["agent-b"], later),
+    ], now=later, claims=clocked.list_claims(include_closed=True))
     assert _codes(v) == ["SUPERSEDED_BY_ACTIVE_CLAIM"]
+
+
+def _tests() -> dict[str, object]:
+    return {"command": "pytest", "passed": 1, "failed": 0, "skipped": 0}
+
+
+def test_accepted_handoff_keeps_the_earlier_owner_and_rejects_backdating(tmp_path: Path) -> None:
+    """A later accept must not unauthorize the giver or authorize the recipient early."""
+    opened = datetime(2026, 10, 13, 13, 0, tzinfo=timezone.utc)
+    written = opened + timedelta(minutes=10)
+    handed = opened + timedelta(minutes=20)
+    moment = {"now": opened}
+    store = TaskClaimStore(tmp_path / "board", clock=lambda: moment["now"], published_ref=lambda **_: None)
+    claim = _claim(store, task="TD-45", owner="cursor-cloud", scopes=[GATE])
+    moment["now"] = handed
+    store.handoff(
+        claim.claim_id,
+        owner="cursor-cloud",
+        to_owner="board-receiver",
+        commit="a" * 40,
+        tree="b" * 40,
+        branch=BRANCH,
+        tests=_tests(),
+    )
+    store.accept_handoff(claim.claim_id, owner="board-receiver")
+    assert store.list_claims(include_closed=True)[0].owner == "board-receiver"
+    early = _commit("early", [GATE], [claim.claim_id], ["cursor-cloud"], written)
+    backdated = _commit("backdated", [GATE], [claim.claim_id], ["board-receiver"], written)
+    after = _commit("after", [GATE], [claim.claim_id], ["board-receiver"], handed)
+    v = _go(store, [GATE], [early, backdated, after], now=handed + timedelta(minutes=1))
+    by_sha = {item.commit: item.code for item in v}
+    assert "early" not in by_sha
+    assert "after" not in by_sha
+    assert by_sha["backdated"] == "AGENT_NOT_CLAIM_OWNER"
+
+
+def test_unaccepted_offer_does_not_authorize_the_recipient(tmp_path: Path) -> None:
+    opened = datetime(2026, 10, 13, 13, 0, tzinfo=timezone.utc)
+    offered = opened + timedelta(minutes=15)
+    moment = {"now": opened}
+    store = TaskClaimStore(tmp_path / "board", clock=lambda: moment["now"], published_ref=lambda **_: None)
+    claim = _claim(store, task="TD-45", owner="cursor-cloud", scopes=[GATE])
+    moment["now"] = offered
+    store.handoff(
+        claim.claim_id,
+        owner="cursor-cloud",
+        to_owner="board-receiver",
+        commit="a" * 40,
+        tree="b" * 40,
+        branch=BRANCH,
+        tests=_tests(),
+    )
+    assert store.list_claims(include_closed=True)[0].owner == "cursor-cloud"
+    v = _go(store, [GATE], [
+        _commit("giver", [GATE], [claim.claim_id], ["cursor-cloud"], offered),
+        _commit("recipient", [GATE], [claim.claim_id], ["board-receiver"], offered),
+    ], now=offered)
+    by_sha = {item.commit: item.code for item in v}
+    assert "giver" not in by_sha
+    assert by_sha["recipient"] == "AGENT_NOT_CLAIM_OWNER"
+
+
+def test_legacy_immediate_handoff_does_not_rewrite_the_earlier_commit(tmp_path: Path) -> None:
+    """The live #942 handoff stored the recipient on CLAIM_HANDOFF itself."""
+    opened = datetime(2026, 10, 13, 12, 51, tzinfo=timezone.utc)
+    written = datetime(2026, 10, 13, 13, 2, tzinfo=timezone.utc)
+    handed = datetime(2026, 10, 13, 13, 16, tzinfo=timezone.utc)
+    moment = {"now": opened}
+    store = TaskClaimStore(tmp_path / "board", clock=lambda: moment["now"], published_ref=lambda **_: None)
+    claim = _claim(store, task="TD-45", owner="cursor-cloud", scopes=[GATE])
+    events = _load_events(store)
+    events.append({
+        "schema": CLAIM_EVENT_SCHEMA,
+        "event": "CLAIM_HANDOFF",
+        "at": handed.isoformat().replace("+00:00", "Z"),
+        "claim_id": claim.claim_id,
+        "owner": "board-receiver",
+        "actor": "cursor-cloud",
+        "details": {"from_owner": "cursor-cloud", "to_owner": "board-receiver"},
+    })
+    current = replace(claim, owner="board-receiver")
+    early = _commit("05607991", [GATE], [claim.claim_id], ["cursor-cloud"], written)
+    stolen = _commit("stolen", [GATE], [claim.claim_id], ["board-receiver"], written)
+    v = evaluate(
+        [current],
+        branch=BRANCH,
+        pr_ref=PR,
+        changed_files=[GATE],
+        commits=[early, stolen],
+        now=handed + timedelta(hours=1),
+        events=events,
+    )
+    by_sha = {item.commit: item.code for item in v}
+    assert "05607991" not in by_sha
+    assert by_sha["stolen"] == "AGENT_NOT_CLAIM_OWNER"
+
+
+def test_unsigned_agent_trailer_is_not_identity_proof(store: TaskClaimStore) -> None:
+    c = _claim(store, task="G1", owner="claude-cloud", scopes=[GATE])
+    bare = _commit("bare", [GATE], [c.claim_id], ["claude-cloud"], c.started_at, attest=False)
+    mismatch = _commit(
+        "mismatch",
+        [GATE],
+        [c.claim_id],
+        ["claude-cloud"],
+        c.started_at,
+        attested_owner="cursor-agent",
+    )
+    v = _go(store, [GATE], [bare, mismatch])
+    assert _codes(v) == ["IDENTITY_UNVERIFIED", "IDENTITY_UNVERIFIED"]
+    assert {item.commit for item in v} == {"bare", "mismatch"}
