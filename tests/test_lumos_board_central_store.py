@@ -181,6 +181,33 @@ def test_read_only_listing_does_not_write_a_commit(remote: Path, tmp_path: Path)
     assert _board_log(remote) == before
 
 
+def test_handoff_event_is_visible_on_the_shared_board(remote: Path, tmp_path: Path) -> None:
+    class Published:
+        def __call__(self, *, repo: str, branch: str, commit: str, tree: str) -> None:
+            assert repo == "lumos-core"
+            assert len(commit) == 40 and len(tree) == 40
+
+    sender = _store(remote, tmp_path, "sender", published_ref=Published())
+    claim = _claim(sender, task="TD-45", owner="cursor-cloud", scope="src/x.py").claim
+    assert claim is not None
+    tests = {"command": "python3 -m pytest -q", "passed": 2, "failed": 0, "skipped": 0}
+    sender.handoff(
+        claim.claim_id,
+        owner="cursor-cloud",
+        to_owner="claude-cloud",
+        commit="a" * 40,
+        tree="b" * 40,
+        branch=claim.branch,
+        tests=tests,
+    )
+    seen = _store(remote, tmp_path, "receiver").list_claims()
+    assert [item.owner for item in seen] == ["claude-cloud"]
+    events = _git("--git-dir", str(remote), "show", f"{DEFAULT_REF}:claim_events.jsonl")
+    assert "CLAIM_HANDOFF" in events
+    assert "claude-cloud" in events
+    assert "a" * 40 in events
+
+
 def test_board_commits_disable_vercel_previews(remote: Path, tmp_path: Path) -> None:
     _claim(_store(remote, tmp_path, "a"), task="T1", owner="a", scope="x.py")
     vercel = json.loads(_git("--git-dir", str(remote), "show", f"{DEFAULT_REF}:vercel.json"))

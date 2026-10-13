@@ -65,6 +65,7 @@ from lumos_board.task_claim import (
     _find_conflicts,
     _format_time,
     _normalize_scopes,
+    project_claims,
 )
 
 DEFAULT_REF = "refs/heads/claude/lumos-board"
@@ -163,6 +164,7 @@ class CentralClaimStore(TaskClaimStore):
         clock: Callable[[], datetime] | None = None,
         override_verifier: OverrideApprovalVerifier | None = None,
         delegation_verifier: DelegationVerifier | None = None,
+        published_ref: Callable[..., None] | None = None,
         max_attempts: int = 12,
         git_timeout: float = 60.0,
     ) -> None:
@@ -177,6 +179,7 @@ class CentralClaimStore(TaskClaimStore):
             clock=clock,
             override_verifier=override_verifier,
             delegation_verifier=delegation_verifier,
+            published_ref=published_ref,
         )
         self.remote = remote.strip()
         self.ref = ref
@@ -200,8 +203,21 @@ class CentralClaimStore(TaskClaimStore):
     def attach_pr(self, claim_id: str, *, owner: str, pr_ref: str) -> TaskClaim:
         return self._transact(super().attach_pr, claim_id, owner=owner, pr_ref=pr_ref)
 
+    def record_result(self, claim_id: str, **kwargs: Any) -> TaskClaim:
+        return self._transact(super().record_result, claim_id, **kwargs)
+
+    def handoff(self, claim_id: str, **kwargs: Any) -> TaskClaim:
+        return self._transact(super().handoff, claim_id, **kwargs)
+
     def list_claims(self, *, include_closed: bool = False) -> tuple[TaskClaim, ...]:
-        return self._transact(super().list_claims, include_closed=include_closed)
+        # Fetch only. A past lease is projected to EXPIRED. The local mirror
+        # is refreshed so observers can read it; no board commit is created.
+        _base, state_text, events_text = self._fetch()
+        if state_text is not None:
+            self.store_dir.mkdir(parents=True, exist_ok=True)
+            self._write_mirror(state_text, events_text)
+        claims = parse_state_text(state_text) if state_text else []
+        return project_claims(claims, self._now(), include_closed=include_closed)
 
     @property
     def last_base(self) -> str | None:
@@ -269,6 +285,7 @@ class CentralClaimStore(TaskClaimStore):
                     task_id=item.task_id,
                     repo=item.repo,
                     scopes=item.scopes,
+                    topics=item.topics,
                     parent_claim_id=item.parent_claim_id,
                 )
                 if blockers:

@@ -625,7 +625,11 @@ def test_failed_operation_leaves_no_audit_trace(tmp_path: Path) -> None:
     events_after_failure = [event["event"] for event in _events(store.audit_path)]
     assert "CLAIM_EXPIRED" not in events_after_failure
 
-    store.list_claims()
+    shown = store.list_claims(include_closed=True)
+    assert shown[0].status is ClaimStatus.EXPIRED
+    assert "CLAIM_EXPIRED" not in [event["event"] for event in _events(store.audit_path)]
+
+    _claim(store, task="KA-B", owner="agent-b", scope="other")
     expired_events = [
         event for event in _events(store.audit_path) if event["event"] == "CLAIM_EXPIRED"
     ]
@@ -762,3 +766,121 @@ def test_override_promotes_waiters_blocked_only_by_old_lease(tmp_path: Path) -> 
     assert replacement.accepted is True
     by_id = {claim.claim_id: claim.status for claim in store.list_claims(include_closed=True)}
     assert by_id[waiter.claim_id] is ClaimStatus.ACTIVE
+
+
+COMMIT = "a" * 40
+TREE = "b" * 40
+TESTS = {"command": "python3 -m pytest -q", "passed": 1, "failed": 0, "skipped": 0}
+
+
+class _Published:
+    def __init__(self, ok: bool = True) -> None:
+        self.ok = ok
+        self.calls: list[tuple[str, str, str, str]] = []
+
+    def __call__(self, *, repo: str, branch: str, commit: str, tree: str) -> None:
+        self.calls.append((repo, branch, commit, tree))
+        if not self.ok:
+            raise ClaimError("dal GitHub'da yok veya bildirilen commit değil")
+
+
+def test_claim_does_not_require_the_branch_to_exist(tmp_path: Path) -> None:
+    published = _Published(ok=False)
+    store = TaskClaimStore(tmp_path, clock=Clock(), published_ref=published)
+    result = _claim(store, task="TD-45", owner="cursor-cloud", scope="src/lumos_board/task_claim.py")
+    assert result.accepted is True
+    assert published.calls == []
+
+
+def test_same_explicit_topic_conflicts_across_different_paths(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock(), published_ref=_Published())
+    first = store.claim(
+        task_id="TD-45",
+        repo="lumos-core",
+        branch="cursor/td45-a",
+        worktree="/work/a",
+        owner="cursor-cloud",
+        scopes=["src/lumos_board/task_claim.py"],
+        topics=["board-handoff"],
+    )
+    second = store.claim(
+        task_id="TD-45-other",
+        repo="lumos-core",
+        branch="cursor/td45-b",
+        worktree="/work/b",
+        owner="claude-cloud",
+        scopes=["docs/TECHNICAL_DEBT.md"],
+        topics=["board-handoff"],
+    )
+    assert first.accepted is True
+    assert second.accepted is False
+    assert second.conflicts[0].reason == "TOPIC_CONFLICT"
+
+
+def test_omitted_topics_do_not_block_unrelated_paths(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock(), published_ref=_Published())
+    assert _claim(store, task="A", owner="a", scope="src/a.py").accepted is True
+    assert _claim(store, task="B", owner="b", scope="src/b.py").accepted is True
+
+
+def test_read_projects_expired_claim_without_writing(tmp_path: Path) -> None:
+    clock = Clock()
+    store = TaskClaimStore(tmp_path, clock=clock, published_ref=_Published())
+    claim = _claim(store, task="KA-002", owner="agent-a", scope="src", ttl_seconds=10).claim
+    assert claim is not None
+    clock.value += timedelta(seconds=11)
+    raw = json.loads((tmp_path / "claims.json").read_text(encoding="utf-8"))
+    assert raw["claims"][0]["status"] == "ACTIVE"
+    assert store.list_claims() == ()
+    shown = store.list_claims(include_closed=True)
+    assert shown[0].status is ClaimStatus.EXPIRED
+    raw_after = json.loads((tmp_path / "claims.json").read_text(encoding="utf-8"))
+    assert raw_after["claims"][0]["status"] == "ACTIVE"
+
+
+def test_result_and_handoff_require_a_published_branch(tmp_path: Path) -> None:
+    published = _Published(ok=False)
+    store = TaskClaimStore(tmp_path, clock=Clock(), published_ref=published)
+    claim = _claim(store, task="TD-45", owner="cursor-cloud", scope="src/x.py").claim
+    assert claim is not None
+    kwargs = {
+        "owner": "cursor-cloud",
+        "commit": COMMIT,
+        "tree": TREE,
+        "branch": claim.branch,
+        "tests": TESTS,
+    }
+    with pytest.raises(ClaimError, match="GitHub"):
+        store.record_result(claim.claim_id, **kwargs)
+    assert "CLAIM_RESULT" not in [event["event"] for event in _events(store.audit_path)]
+    published.ok = True
+    recorded = store.record_result(claim.claim_id, **kwargs)
+    assert recorded.owner == "cursor-cloud"
+    handed = store.handoff(claim.claim_id, to_owner="claude-cloud", **kwargs)
+    assert handed.owner == "claude-cloud"
+    events = _events(store.audit_path)
+    result = next(event for event in events if event["event"] == "CLAIM_RESULT")
+    handoff = next(event for event in events if event["event"] == "CLAIM_HANDOFF")
+    assert result["details"]["commit"] == COMMIT
+    assert result["details"]["tree"] == TREE
+    assert result["details"]["branch"] == claim.branch
+    assert result["details"]["tests"] == TESTS
+    assert handoff["details"]["to_owner"] == "claude-cloud"
+    assert handoff["details"]["from_owner"] == "cursor-cloud"
+    assert handoff["actor"] == "cursor-cloud"
+
+
+def test_handoff_rejects_a_different_branch_name(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock(), published_ref=_Published())
+    claim = _claim(store, task="TD-45", owner="cursor-cloud", scope="src/x.py").claim
+    assert claim is not None
+    with pytest.raises(ClaimError, match="claim dalı"):
+        store.handoff(
+            claim.claim_id,
+            owner="cursor-cloud",
+            to_owner="claude-cloud",
+            commit=COMMIT,
+            tree=TREE,
+            branch="cursor/some-other-branch",
+            tests=TESTS,
+        )
