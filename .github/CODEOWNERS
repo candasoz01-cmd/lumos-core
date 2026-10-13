@@ -1,6 +1,19 @@
-# Yayın kapısı güven çekirdeği. Bu dosya tek başına zorlayıcı DEĞİLDİR:
-# branch protection'da "Require review from Code Owners" açılmadıkça yalnız
-# bilgilendiricidir (ayar listesi: docs/PUBLICATION_GATE.md § Dürüst sınırlar).
+# Kurucu kapısı: depodaki HER yol kurucuya aittir; aşağıdaki özel satırlar
+# yayın kapısı güven çekirdeğini ayrıca işaretler (son eşleşen satır geçerli;
+# hepsi aynı sahip).
+#
+# Bu dosya tek başına zorlayıcı DEĞİLDİR (ayar listesi:
+# docs/PUBLICATION_GATE.md § Dürüst sınırlar):
+# - main ruleset/branch protection'da "Require review from Code Owners" ve
+#   "Require approval of the most recent reviewable push" açılmadıkça yalnız
+#   bilgilendiricidir.
+# - GitHub PR yazarının kendi PR'ını onaylamasına izin vermez. Ajan PR'ları
+#   kurucu hesabıyla açılıyorsa onay ancak kurucu bypass'ıyla geçer; bypass
+#   açık olduğu sürece bu mutlak bir engel değildir.
+# - Ajan, kurucunun GitHub kimliğiyle (admin) çalışıyorsa GitHub onu kurucudan
+#   ayıramaz. Gerçek ayrım için ajanlar kendi sınırlı kimlikleriyle çalışmalıdır.
+* @candasoz01-cmd
+
 /config/publication/ @candasoz01-cmd
 /ops/publication_gate/ @candasoz01-cmd
 /.githooks/ @candasoz01-cmd
