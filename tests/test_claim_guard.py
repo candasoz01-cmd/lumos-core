@@ -345,10 +345,15 @@ def test_released_claim_still_attributes_finished_work_when_nobody_else_holds_it
 
 
 def test_override_takeover_flags_old_owner_commits_after_takeover(tmp_path: Path) -> None:
-    """Expired claim of A, B now ACTIVE on the same file: A's cited claim is stale."""
-    store = TaskClaimStore(tmp_path / "board")
+    """Expired claim of A, B now ACTIVE on the same file: A's cited claim is stale.
+
+    Both stores share one fixed clock. A lease of 60s must be past ``later``
+    even when this module was imported long before the test body runs.
+    """
+    opened = datetime(2026, 10, 13, 12, 0, tzinfo=timezone.utc)
+    later = opened + timedelta(seconds=120)
+    store = TaskClaimStore(tmp_path / "board", clock=lambda: opened)
     a = _claim(store, task="A", owner="agent-a", scopes=[GATE], ttl_seconds=60)
-    later = NOW + timedelta(seconds=120)
     clocked = TaskClaimStore(tmp_path / "board", clock=lambda: later)
     b = clocked.claim(task_id="B", repo="lumos-core", branch=BRANCH, worktree="/w",
                       owner="agent-b", scopes=[GATE]).claim
