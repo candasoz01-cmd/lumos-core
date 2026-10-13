@@ -170,6 +170,7 @@ def _parser() -> argparse.ArgumentParser:
     claim.add_argument("--worktree", required=True)
     claim.add_argument("--owner", required=True)
     claim.add_argument("--scope", action="append", required=True)
+    claim.add_argument("--topic", action="append", default=[], dest="topics")
     claim.add_argument("--ttl", type=int, default=1800)
     claim.add_argument("--queue", action="store_true")
     claim.add_argument("--parent")
@@ -190,6 +191,28 @@ def _parser() -> argparse.ArgumentParser:
     attach_pr.add_argument("claim_id")
     attach_pr.add_argument("--owner", required=True)
     attach_pr.add_argument("--pr", required=True)
+
+    result = subparsers.add_parser("result")
+    result.add_argument("claim_id")
+    result.add_argument("--owner", required=True)
+    result.add_argument("--commit", required=True)
+    result.add_argument("--tree", required=True)
+    result.add_argument("--branch", required=True)
+    result.add_argument("--tests", required=True)
+
+    handoff = subparsers.add_parser("handoff")
+    handoff.add_argument("claim_id")
+    handoff.add_argument("--owner", required=True)
+    handoff.add_argument("--to", required=True, dest="to_owner")
+    handoff.add_argument("--commit", required=True)
+    handoff.add_argument("--tree", required=True)
+    handoff.add_argument("--branch", required=True)
+    handoff.add_argument("--tests", required=True)
+    handoff.add_argument("--ttl", type=int, default=1800)
+
+    accept = subparsers.add_parser("handoff-accept")
+    accept.add_argument("claim_id")
+    accept.add_argument("--owner", required=True)
 
     listing = subparsers.add_parser("list")
     listing.add_argument("--all", action="store_true")
@@ -371,6 +394,7 @@ def main(argv: Sequence[str] | None = None) -> int:
                 delegation_token=args.delegation_token,
                 override_token=args.override_token,
                 override_reason=args.override_reason,
+                topics=args.topics,
             )
             payload = result.to_dict()
             if result.accepted and result.claim is not None and write_gate.configured():
@@ -384,6 +408,33 @@ def main(argv: Sequence[str] | None = None) -> int:
             write_gate.revoke(args.claim_id)
         elif args.command == "attach-pr":
             value = store.attach_pr(args.claim_id, owner=args.owner, pr_ref=args.pr)
+        elif args.command in {"result", "handoff"}:
+            try:
+                tests = json.loads(args.tests)
+            except json.JSONDecodeError as exc:
+                raise ClaimError("test sonucu JSON olmalı") from exc
+            if args.command == "result":
+                value = store.record_result(
+                    args.claim_id,
+                    owner=args.owner,
+                    commit=args.commit,
+                    tree=args.tree,
+                    branch=args.branch,
+                    tests=tests,
+                )
+            else:
+                value = store.handoff(
+                    args.claim_id,
+                    owner=args.owner,
+                    to_owner=args.to_owner,
+                    commit=args.commit,
+                    tree=args.tree,
+                    branch=args.branch,
+                    tests=tests,
+                    ttl_seconds=args.ttl,
+                )
+        elif args.command == "handoff-accept":
+            value = store.accept_handoff(args.claim_id, owner=args.owner)
         else:
             values = [claim.to_dict() for claim in store.list_claims(include_closed=args.all)]
             print(json.dumps({"claims": values}, ensure_ascii=False, sort_keys=True))
