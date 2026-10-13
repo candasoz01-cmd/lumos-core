@@ -904,20 +904,8 @@ def observe_rhythm(
     ]
 
 
-def read_claims(store_dir: Path, *, now: datetime | None = None) -> tuple[TaskClaim, ...]:
-    """
-    Claim deposunu **salt-okunur** okur: kilit almaz, hiçbir şey yazmaz.
-
-    `TaskClaimStore.list_claims()` ile aynı süre projeksiyonunu uygular ve
-    dosyaya yazmaz. Gözlem katmanı claim kilidini almaz.
-
-    Yırtık dosya riski yok: `_write_state` geçici dosyaya yazıp
-    `os.replace` ile atomik olarak yerine koyar, okuyucu ya eskisini ya
-    yenisini görür.
-
-    Okuma, depodaki ACTIVE yazısını süre dolmuşsa EXPIRED olarak gösterir.
-    Dosyaya yazmaz; kalıcı EXPIRED damgası bir sonraki yazma işleminde konur.
-    """
+def read_stored_claims(store_dir: Path) -> tuple[TaskClaim, ...]:
+    """Read persisted claims. Does not project expiry and does not write."""
     state_path = Path(store_dir) / "claims.json"
     if not state_path.is_file():
         return ()
@@ -936,7 +924,28 @@ def read_claims(store_dir: Path, *, now: datetime | None = None) -> tuple[TaskCl
             claims.append(TaskClaim.from_dict(value))
         except Exception:
             continue
-    return project_claims(claims, now or datetime.now(timezone.utc), include_closed=True)
+    return tuple(claims)
+
+
+def read_claims(store_dir: Path, *, now: datetime | None = None) -> tuple[TaskClaim, ...]:
+    """
+    Claim deposunu **salt-okunur** okur: kilit almaz, hiçbir şey yazmaz.
+
+    `TaskClaimStore.list_claims()` ile aynı süre projeksiyonunu uygular ve
+    dosyaya yazmaz. Gözlem katmanı claim kilidini almaz.
+
+    Yırtık dosya riski yok: `_write_state` geçici dosyaya yazıp
+    `os.replace` ile atomik olarak yerine koyar, okuyucu ya eskisini ya
+    yenisini görür.
+
+    Okuma, depodaki ACTIVE yazısını süre dolmuşsa EXPIRED olarak gösterir.
+    Dosyaya yazmaz; kalıcı EXPIRED damgası bir sonraki yazma işleminde konur.
+    """
+    return project_claims(
+        read_stored_claims(store_dir),
+        now or datetime.now(timezone.utc),
+        include_closed=True,
+    )
 
 
 def last_event_times(audit_path: Path) -> dict[str, datetime]:
@@ -1005,7 +1014,9 @@ def observe(
     moment = now or datetime.now(timezone.utc)
     run = ObservationRun()
 
-    claims = read_claims(store_dir, now=moment)
+    # User-facing reads project EXPIRED. Rhythm still sees the persisted
+    # ACTIVE row, so ttl_expired_but_active is not dropped by that projection.
+    claims = read_stored_claims(store_dir)
     active = _active(claims)
     events = last_event_times(Path(store_dir) / "claim_events.jsonl")
 

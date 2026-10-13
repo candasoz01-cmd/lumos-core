@@ -191,7 +191,7 @@ def test_handoff_event_is_visible_on_the_shared_board(remote: Path, tmp_path: Pa
     claim = _claim(sender, task="TD-45", owner="cursor-cloud", scope="src/x.py").claim
     assert claim is not None
     tests = {"command": "python3 -m pytest -q", "passed": 2, "failed": 0, "skipped": 0}
-    sender.handoff(
+    offered = sender.handoff(
         claim.claim_id,
         owner="cursor-cloud",
         to_owner="claude-cloud",
@@ -200,10 +200,15 @@ def test_handoff_event_is_visible_on_the_shared_board(remote: Path, tmp_path: Pa
         branch=claim.branch,
         tests=tests,
     )
-    seen = _store(remote, tmp_path, "receiver").list_claims()
+    assert offered.owner == "cursor-cloud"
+    waiting = _store(remote, tmp_path, "receiver", published_ref=Published())
+    assert [item.owner for item in waiting.list_claims()] == ["cursor-cloud"]
+    waiting.accept_handoff(claim.claim_id, owner="claude-cloud")
+    seen = _store(remote, tmp_path, "after").list_claims()
     assert [item.owner for item in seen] == ["claude-cloud"]
     events = _git("--git-dir", str(remote), "show", f"{DEFAULT_REF}:claim_events.jsonl")
     assert "CLAIM_HANDOFF" in events
+    assert "CLAIM_HANDOFF_ACCEPTED" in events
     assert "claude-cloud" in events
     assert "a" * 40 in events
 

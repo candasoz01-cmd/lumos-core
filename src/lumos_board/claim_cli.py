@@ -210,6 +210,10 @@ def _parser() -> argparse.ArgumentParser:
     handoff.add_argument("--tests", required=True)
     handoff.add_argument("--ttl", type=int, default=1800)
 
+    accept = subparsers.add_parser("handoff-accept")
+    accept.add_argument("claim_id")
+    accept.add_argument("--owner", required=True)
+
     listing = subparsers.add_parser("list")
     listing.add_argument("--all", action="store_true")
 
@@ -429,6 +433,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                     tests=tests,
                     ttl_seconds=args.ttl,
                 )
+        elif args.command == "handoff-accept":
+            value = store.accept_handoff(args.claim_id, owner=args.owner)
         else:
             values = [claim.to_dict() for claim in store.list_claims(include_closed=args.all)]
             print(json.dumps({"claims": values}, ensure_ascii=False, sort_keys=True))

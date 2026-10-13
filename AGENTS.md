@@ -22,7 +22,9 @@ açılmaz. Duvar claim durumunu tüketir ve gösterir, ayrı claim üretmez
    veya mevcut sahibin açıkça devrettiği alt görev olur.
    **Board'a erişemeyen ajan kod değiştirmez.** Claim komutu reddederse (pano
    yok, yetki yok, çakışma) dosyaya yazılmaz. Claim'siz patch üretilip başka
-   ajana bırakılmaz; bu, board dışında görünmez iş biriktirir.
+   ajana bırakılmaz; bu, board dışında görünmez iş biriktirir. Devir, kayıtlı
+   alıcıya yapılan teklif ve o alıcının kabulüyle tamamlanır; kayıtsız ada
+   kira geçmez.
 4. Uzun işlerde heartbeat gönderilir. Sahiplik bırakılmadan başka ajan işi alamaz.
 5. PR açılınca claim kaydına bağlanır. İş bitince claim serbest bırakılır.
 6. Manual override yalnız açık onaylayan kişi ve gerekçe ile yapılır; audit kaydı zorunludur.

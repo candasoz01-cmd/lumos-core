@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import threading
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -18,9 +19,12 @@ from lumos_board.task_claim import (
     DelegationVerifier,
     OverrideApprovalVerifier,
     TaskClaimStore,
+    github_repo_identity,
     sign_delegation_token,
     sign_override_approval,
+    verify_published_work,
 )
+from lumos_board.wall_observer import observe
 
 
 NOW = datetime(2026, 7, 19, 12, 0, tzinfo=timezone.utc)
@@ -857,7 +861,11 @@ def test_result_and_handoff_require_a_published_branch(tmp_path: Path) -> None:
     recorded = store.record_result(claim.claim_id, **kwargs)
     assert recorded.owner == "cursor-cloud"
     handed = store.handoff(claim.claim_id, to_owner="claude-cloud", **kwargs)
-    assert handed.owner == "claude-cloud"
+    assert handed.owner == "cursor-cloud"
+    assert handed.handoff_offer is not None
+    assert handed.handoff_offer.to_owner == "claude-cloud"
+    accepted = store.accept_handoff(claim.claim_id, owner="claude-cloud")
+    assert accepted.owner == "claude-cloud"
     events = _events(store.audit_path)
     result = next(event for event in events if event["event"] == "CLAIM_RESULT")
     handoff = next(event for event in events if event["event"] == "CLAIM_HANDOFF")
@@ -868,6 +876,9 @@ def test_result_and_handoff_require_a_published_branch(tmp_path: Path) -> None:
     assert handoff["details"]["to_owner"] == "claude-cloud"
     assert handoff["details"]["from_owner"] == "cursor-cloud"
     assert handoff["actor"] == "cursor-cloud"
+    accepted_event = next(event for event in events if event["event"] == "CLAIM_HANDOFF_ACCEPTED")
+    assert accepted_event["actor"] == "claude-cloud"
+    assert accepted_event["owner"] == "claude-cloud"
 
 
 def test_handoff_rejects_a_different_branch_name(tmp_path: Path) -> None:
@@ -884,3 +895,97 @@ def test_handoff_rejects_a_different_branch_name(tmp_path: Path) -> None:
             branch="cursor/some-other-branch",
             tests=TESTS,
         )
+
+
+def test_observe_keeps_stale_claim_when_the_stored_row_is_still_active(tmp_path: Path) -> None:
+    clock = Clock()
+    store = TaskClaimStore(tmp_path, clock=clock, published_ref=_Published())
+    claim = _claim(store, task="TD-45", owner="cursor-cloud", scope="src/x.py", ttl_seconds=60).claim
+    assert claim is not None
+    clock.value += timedelta(hours=1)
+    raw = json.loads((tmp_path / "claims.json").read_text(encoding="utf-8"))
+    assert raw["claims"][0]["status"] == "ACTIVE"
+    shown = store.list_claims(include_closed=True)
+    assert shown[0].status is ClaimStatus.EXPIRED
+    run = observe(tmp_path, worktree_paths={claim.claim_id: []}, now=clock.value)
+    stale = [item for item in run.observations if item.signal == "STALE_CLAIM"]
+    assert [item.evidence["reasons"] for item in stale] == [["ttl_expired_but_active"]]
+
+
+def test_alias_topics_conflict_and_unknown_topics_are_rejected(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock(), published_ref=_Published())
+    first = store.claim(
+        task_id="TD-45",
+        repo="lumos-core",
+        branch="cursor/td45-a",
+        worktree="/work/a",
+        owner="cursor-cloud",
+        scopes=["src/lumos_board/task_claim.py"],
+        topics=["founder-approval"],
+    )
+    second = store.claim(
+        task_id="TD-45-alias",
+        repo="lumos-core",
+        branch="cursor/td45-b",
+        worktree="/work/b",
+        owner="claude-cloud",
+        scopes=["docs/TECHNICAL_DEBT.md"],
+        topics=["kurucu-onayi"],
+    )
+    assert first.accepted is True
+    assert first.claim is not None
+    assert first.claim.topics == ("founder-approval",)
+    assert second.accepted is False
+    assert second.conflicts[0].reason == "TOPIC_CONFLICT"
+    with pytest.raises(ClaimError, match="sözlük"):
+        store.claim(
+            task_id="TD-45-free",
+            repo="lumos-core",
+            branch="cursor/td45-c",
+            worktree="/work/c",
+            owner="cursor-cloud",
+            scopes=["src/lumos_board/claim_cli.py"],
+            topics=["serbest-konu"],
+        )
+
+
+def test_handoff_rejects_an_unregistered_recipient_and_a_different_acceptor(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock(), published_ref=_Published())
+    claim = _claim(store, task="TD-45", owner="cursor-cloud", scope="src/x.py").claim
+    assert claim is not None
+    kwargs = {
+        "owner": "cursor-cloud",
+        "commit": COMMIT,
+        "tree": TREE,
+        "branch": claim.branch,
+        "tests": TESTS,
+    }
+    with pytest.raises(ClaimError, match="kayıtlı"):
+        store.handoff(claim.claim_id, to_owner="not-a-registered-agent", **kwargs)
+    assert store.list_claims()[0].owner == "cursor-cloud"
+    assert "CLAIM_HANDOFF" not in [event["event"] for event in _events(store.audit_path)]
+    offered = store.handoff(claim.claim_id, to_owner="claude-cloud", **kwargs)
+    assert offered.owner == "cursor-cloud"
+    with pytest.raises(ClaimError, match="bu alıcıya değil"):
+        store.accept_handoff(claim.claim_id, owner="cursor-cloud")
+    assert store.list_claims()[0].owner == "cursor-cloud"
+    assert "CLAIM_HANDOFF_ACCEPTED" not in [event["event"] for event in _events(store.audit_path)]
+
+
+def test_published_work_rejects_a_fork_and_a_local_origin(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    credentialed = "https://x-access-token:example@github.com/candasoz01-cmd/lumos-core.git"
+    assert github_repo_identity(credentialed) == "candasoz01-cmd/lumos-core"
+    fork = tmp_path / "fork"
+    fork.mkdir()
+    subprocess.check_call(["git", "init", "-q", str(fork)])
+    subprocess.check_call(["git", "-C", str(fork), "remote", "add", "origin", "https://github.com/other/lumos-core.git"])
+    monkeypatch.chdir(fork)
+    with pytest.raises(ClaimError, match="kanonik"):
+        verify_published_work(repo="lumos-core", branch="main", commit=COMMIT, tree=TREE)
+    bare = tmp_path / "bare.git"
+    local = tmp_path / "local"
+    subprocess.check_call(["git", "init", "--bare", "-q", str(bare)])
+    subprocess.check_call(["git", "clone", "-q", str(bare), str(local)])
+    monkeypatch.chdir(local)
+    with pytest.raises(ClaimError, match="kanonik"):
+        verify_published_work(repo="lumos-core", branch="main", commit=COMMIT, tree=TREE)

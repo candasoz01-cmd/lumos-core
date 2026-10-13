@@ -165,6 +165,7 @@ class CentralClaimStore(TaskClaimStore):
         override_verifier: OverrideApprovalVerifier | None = None,
         delegation_verifier: DelegationVerifier | None = None,
         published_ref: Callable[..., None] | None = None,
+        recipients: Sequence[str] | None = None,
         max_attempts: int = 12,
         git_timeout: float = 60.0,
     ) -> None:
@@ -180,6 +181,7 @@ class CentralClaimStore(TaskClaimStore):
             override_verifier=override_verifier,
             delegation_verifier=delegation_verifier,
             published_ref=published_ref,
+            recipients=recipients,
         )
         self.remote = remote.strip()
         self.ref = ref
@@ -208,6 +210,9 @@ class CentralClaimStore(TaskClaimStore):
 
     def handoff(self, claim_id: str, **kwargs: Any) -> TaskClaim:
         return self._transact(super().handoff, claim_id, **kwargs)
+
+    def accept_handoff(self, claim_id: str, *, owner: str) -> TaskClaim:
+        return self._transact(super().accept_handoff, claim_id, owner=owner)
 
     def list_claims(self, *, include_closed: bool = False) -> tuple[TaskClaim, ...]:
         # Fetch only. A past lease is projected to EXPIRED. The local mirror
