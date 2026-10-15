@@ -31,6 +31,7 @@ from kando_bridge.pending_approvals import (
     STATUS_PENDING,
     find_pending_by_approval_id,
     pending_approvals_dir,
+    stored_approval_token,
     write_pending_approval,
 )
 
@@ -83,7 +84,7 @@ def test_open_url_requires_approval_pending(tmp_path: Path) -> None:
     )
     assert out["status"] == "pending_approval"
     assert out["approval_required"] is True
-    assert out["approval_token"]
+    assert "approval_token" not in out
     assert out["approval_id"]
     assert out["approval_file"]
     pending_dir = pending_approvals_dir(tmp_path)
@@ -93,7 +94,8 @@ def test_open_url_requires_approval_pending(tmp_path: Path) -> None:
     assert disk["schema_version"] == PC_REMOTE_PENDING_SCHEMA
     assert disk["status"] == STATUS_PENDING
     assert disk["command"] == CMD_OPEN_URL
-    assert disk["approval_token"] == out["approval_token"]
+    assert disk["approval_token"]
+    assert disk["approval_token"] not in json.dumps(out)
 
 
 def test_approval_granted_flag_ignored_without_token(tmp_path: Path) -> None:
@@ -103,7 +105,8 @@ def test_approval_granted_flag_ignored_without_token(tmp_path: Path) -> None:
         {"url": "https://example.com"},
         repo_root=tmp_path,
     )
-    token = out["approval_token"]
+    token = stored_approval_token(tmp_path, out["approval_id"])
+    assert token
     aid = out["approval_id"]
     found = find_pending_by_approval_id(tmp_path, aid)
     assert found is not None
@@ -137,7 +140,7 @@ def test_open_url_with_approval_stub(tmp_path: Path) -> None:
     out = execute_tool_stub(
         CMD_OPEN_URL,
         {"url": "https://example.com"},
-        approval_token=pending["approval_token"],
+        approval_token=stored_approval_token(tmp_path, pending["approval_id"]),
         approval_id=pending["approval_id"],
         repo_root=tmp_path,
     )
@@ -157,7 +160,7 @@ def test_suggest_click_never_auto_clicks(tmp_path: Path) -> None:
     out = execute_tool_stub(
         CMD_SUGGEST_CLICK,
         {"target_description": "Tamam düğmesi", "x": 100, "y": 200},
-        approval_token=pending["approval_token"],
+        approval_token=stored_approval_token(tmp_path, pending["approval_id"]),
         approval_id=pending["approval_id"],
         repo_root=tmp_path,
     )
@@ -251,7 +254,8 @@ def test_all_five_approval_commands_create_pending(
     out = execute_tool_stub(command, arguments, repo_root=tmp_path)
     assert out["status"] == "pending_approval"
     assert out["approval_id"]
-    assert out["approval_token"]
+    assert "approval_token" not in out
+    assert stored_approval_token(tmp_path, out["approval_id"])
     disk = json.loads(
         (pending_approvals_dir(tmp_path) / f"{out['approval_id']}.json").read_text(
             encoding="utf-8"
@@ -326,7 +330,7 @@ def test_server_approve_pc_remote_flow(
     handler = _bridge_handler_stub(
         body={
             "approval_file": pending["approval_file"],
-            "approval_token": pending["approval_token"],
+            "approval_token": stored_approval_token(tmp_path, pending["approval_id"]),
             "approved": True,
         }
     )
@@ -341,7 +345,7 @@ def test_server_approve_pc_remote_flow(
         body={
             "command": CMD_OPEN_APP,
             "arguments": {"app_name": "Safari"},
-            "approval_token": pending["approval_token"],
+            "approval_token": stored_approval_token(tmp_path, pending["approval_id"]),
             "approval_id": pending["approval_id"],
         }
     )
