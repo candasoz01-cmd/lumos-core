@@ -104,8 +104,9 @@ def _panel_gate_reason_parts() -> list[str]:
 
 
 def _panel_general_approval() -> bool:
-    v = (os.environ.get("LUMOS_GENERAL_APPROVAL") or "").strip().lower()
-    return v in ("1", "true", "yes")
+    from core.explicit_approval import is_explicit_approval_open
+
+    return is_explicit_approval_open()
 
 
 def _panel_profile() -> str:

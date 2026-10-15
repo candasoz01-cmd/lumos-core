@@ -3291,6 +3291,7 @@ def run_brain_and_persist_bridge(
 if __name__ == "__main__":
     import sys
 
+    from core.explicit_approval import is_explicit_approval_open
     from kando.file_patch_executor import goal_for_bridge
     from task_engine import PROFILE_GUVENLI_YURUT
 
@@ -3298,7 +3299,7 @@ if __name__ == "__main__":
     p_exec, p_res, *_rest = run_brain_and_persist_bridge(
         g,
         permission_profile=PROFILE_GUVENLI_YURUT,
-        general_approval=True,
+        general_approval=is_explicit_approval_open(),
     )
     print(str(p_exec.resolve()))
     print(str(p_res.resolve()))

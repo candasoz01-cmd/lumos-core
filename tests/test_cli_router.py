@@ -71,13 +71,19 @@ def test_router_handles_help_general_approval_and_exit(capsys):
         on_live_brain=None,
     )
 
-    run_cli_loop(router_ctx)
+    from core.explicit_approval import is_explicit_approval_open, reset_explicit_approval_session
 
-    out = capsys.readouterr().out
-    assert "Temel" in out
-    assert "Genel onay açık" in out
-    assert "OK" in out
-    assert general_approval[0] is True
+    try:
+        run_cli_loop(router_ctx)
+
+        out = capsys.readouterr().out
+        assert "Temel" in out
+        assert "Genel onay açık" in out
+        assert "OK" in out
+        assert general_approval[0] is True
+        assert is_explicit_approval_open() is True
+    finally:
+        reset_explicit_approval_session()
 
 
 def test_router_unknown_offline_prints_fallback(capsys):

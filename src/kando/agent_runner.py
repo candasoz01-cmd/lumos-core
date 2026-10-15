@@ -232,13 +232,14 @@ def _run_executor_goal(goal_multiline: str, repo_root: Path) -> dict[str, Any]:
     lumos = repo_root / ".lumos"
     os.environ["LUMOS_BASE_DIR"] = str(lumos)
 
+    from core.explicit_approval import is_explicit_approval_open
     from kando.cursor_bridge import run_brain_and_persist_bridge
     from task_engine import PROFILE_GUVENLI_YURUT
 
     _p_exec, _p_res, brain_result, exe, res_pkt = run_brain_and_persist_bridge(
         goal_multiline,
         permission_profile=PROFILE_GUVENLI_YURUT,
-        general_approval=True,
+        general_approval=is_explicit_approval_open(),
     )
     ex = getattr(exe, "constraints", {}).get("execution") if exe else None
     er = (ex or {}).get("execution_result") if isinstance(ex, dict) else None

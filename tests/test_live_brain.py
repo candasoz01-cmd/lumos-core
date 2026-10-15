@@ -183,17 +183,22 @@ def test_consent_approval_resumes_pending_action():
         from task_engine import TaskStore, PROFILE_RAPOR
 
         store = TaskStore(d)
-        out = handle_live_brain(
-            "onaylıyorum",
-            mock_engine,
-            store,
-            d,
-            PROFILE_RAPOR,
-            False,
-            observation_engine=None,
-            general_approval_ref=general_approval_ref,
-            pending_action_ref=pending_action_ref,
-        )
+        from core.explicit_approval import reset_explicit_approval_session
+
+        try:
+            out = handle_live_brain(
+                "onaylıyorum",
+                mock_engine,
+                store,
+                d,
+                PROFILE_RAPOR,
+                False,
+                observation_engine=None,
+                general_approval_ref=general_approval_ref,
+                pending_action_ref=pending_action_ref,
+            )
+        finally:
+            reset_explicit_approval_session()
     assert general_approval_ref[0] is True
     assert pending_action_ref[0] is None
     assert "Genel onay açıldı" in out
