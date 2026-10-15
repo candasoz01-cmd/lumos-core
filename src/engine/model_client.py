@@ -4,6 +4,17 @@ import json
 import time
 from typing import Any, Tuple
 
+from engine.provider_budget import (
+    REASON_CALL_UNBOUNDED,
+    BudgetConfigError,
+    BudgetDenied,
+    commit_call,
+    commit_unknown,
+    public_message,
+    release_unsent,
+    reserve_for_call,
+    usage_snapshot_from_response,
+)
 from security.crypto import b64d
 from security.request_signer import RequestSigner
 
@@ -318,6 +329,32 @@ class ModelClient:
             log_cyber_model(CYBER_NOT_CONFIGURED, model)
             raise CyberModelError(CYBER_NOT_CONFIGURED, model)
         try:
+            reservation = reserve_for_call(
+                model=model,
+                purpose=PURPOSE_CYBER if is_cyber else PURPOSE_CHAT,
+            )
+        except BudgetConfigError:
+            return self._budget_blocked(is_cyber, model, BudgetConfigError.reason)
+        except BudgetDenied as denied:
+            return self._budget_blocked(is_cyber, model, denied.reason)
+
+        settled = False
+        call_started = False
+
+        def settle_if_open() -> None:
+            nonlocal settled
+            if settled:
+                return
+            # create() was not entered: the request never left this process.
+            # Once create() is entered, a raised error does not prove the
+            # provider missed the request, so the reservation is charged.
+            if call_started:
+                commit_unknown(reservation)
+            else:
+                release_unsent(reservation)
+            settled = True
+
+        try:
             from openai import OpenAI
 
             client = OpenAI(api_key=self._openai_key)
@@ -325,63 +362,44 @@ class ModelClient:
             system_prompt = self._build_system_prompt(mode, presence, consent, lock)
             # Combined prompt: system identity + state first, then user message (Responses API single input).
             full_prompt = system_prompt + "\n\nUser: " + prompt
+            create_kwargs: dict[str, Any] = {
+                "model": model,
+                "input": full_prompt,
+                "timeout": 10,
+            }
+            if reservation.enforced:
+                create_kwargs["max_output_tokens"] = reservation.tokens
             try:
-                if is_cyber:
-                    # Cyber: one create() only. No TypeError retry, no chat-model fallback.
+                try:
+                    # Cyber stays a single create(): no timeout-stripped retry and no model fallback.
+                    call_started = True
+                    response = client.responses.create(**create_kwargs)
+                except TypeError:
+                    if reservation.enforced or is_cyber:
+                        release_unsent(reservation)
+                        settled = True
+                        if reservation.enforced:
+                            return self._budget_blocked(
+                                is_cyber, model, REASON_CALL_UNBOUNDED
+                            )
+                        log_cyber_model(CYBER_UNKNOWN, model)
+                        raise CyberModelError(CYBER_UNKNOWN, model)
                     response = client.responses.create(
                         model=model,
                         input=full_prompt,
-                        timeout=10,
                     )
-                else:
-                    try:
-                        response = client.responses.create(
-                            model=model,
-                            input=full_prompt,
-                            timeout=10,
-                        )
-                    except TypeError:
-                        response = client.responses.create(
-                            model=model,
-                            input=full_prompt,
-                        )
+            except CyberModelError:
+                raise
             except Exception as exc:
+                settle_if_open()
                 if is_cyber:
                     status = classify_cyber_api_error(exc)
                     log_cyber_model(status, model)
                     raise CyberModelError(status, model) from None
                 return "Model yanıt vermedi"
-            # Token usage: strict extraction; only real int/float/digit-string count (MagicMock -> 0).
-            usage = getattr(response, "usage", None) or getattr(response, "usage_metadata", None)
-            if usage is not None:
-                try:
-                    # Supported usage field names: input_tokens, prompt_tokens, output_tokens, completion_tokens, total_tokens
-                    in_raw = getattr(usage, "input_tokens", None)
-                    if not isinstance(in_raw, (int, float)):
-                        in_raw = getattr(usage, "prompt_tokens", None)
-
-                    out_raw = getattr(usage, "output_tokens", None)
-                    if not isinstance(out_raw, (int, float)):
-                        out_raw = getattr(usage, "completion_tokens", None)
-
-                    input_tokens = _safe_int(in_raw)
-                    output_tokens = _safe_int(out_raw)
-
-                    total_raw = getattr(usage, "total_tokens", None)
-                    if not isinstance(total_raw, (int, float)):
-                        total_raw = input_tokens + output_tokens
-
-                    total_tokens = _safe_int(total_raw)
-                    _ensure_token_logging_visible()
-                    logger.info(
-                        "token_usage model=%s input_tokens=%s output_tokens=%s total_tokens=%s",
-                        model,
-                        input_tokens,
-                        output_tokens,
-                        total_tokens,
-                    )
-                except Exception:
-                    pass
+            self._log_token_usage(response, model)
+            commit_call(reservation, usage_snapshot_from_response(response))
+            settled = True
             reply = getattr(response, "output_text", None)
             if reply is None and getattr(response, "output", None):
                 out = response.output
@@ -392,10 +410,52 @@ class ModelClient:
                 log_cyber_model(CYBER_AVAILABLE, model)
             return reply
         except CyberModelError:
+            settle_if_open()
             raise
         except Exception as e:
+            settle_if_open()
             if is_cyber:
                 log_cyber_model(CYBER_UNKNOWN, model)
                 raise CyberModelError(CYBER_UNKNOWN, model) from None
             logger.exception("LLM error: %s", e)
             return "Model hatası oluştu."
+
+    def _budget_blocked(self, is_cyber: bool, model: str, reason: str) -> str:
+        if is_cyber:
+            log_cyber_model(reason, model)
+            raise CyberModelError(reason, model)
+        return public_message(reason)
+
+    def _log_token_usage(self, response: Any, model: str) -> None:
+        # Token usage: strict extraction; only real int/float/digit-string count (MagicMock -> 0).
+        usage = getattr(response, "usage", None) or getattr(response, "usage_metadata", None)
+        if usage is None:
+            return
+        try:
+            # Supported usage field names: input_tokens, prompt_tokens, output_tokens, completion_tokens, total_tokens
+            in_raw = getattr(usage, "input_tokens", None)
+            if not isinstance(in_raw, (int, float)):
+                in_raw = getattr(usage, "prompt_tokens", None)
+
+            out_raw = getattr(usage, "output_tokens", None)
+            if not isinstance(out_raw, (int, float)):
+                out_raw = getattr(usage, "completion_tokens", None)
+
+            input_tokens = _safe_int(in_raw)
+            output_tokens = _safe_int(out_raw)
+
+            total_raw = getattr(usage, "total_tokens", None)
+            if not isinstance(total_raw, (int, float)):
+                total_raw = input_tokens + output_tokens
+
+            total_tokens = _safe_int(total_raw)
+            _ensure_token_logging_visible()
+            logger.info(
+                "token_usage model=%s input_tokens=%s output_tokens=%s total_tokens=%s",
+                model,
+                input_tokens,
+                output_tokens,
+                total_tokens,
+            )
+        except Exception:
+            return
