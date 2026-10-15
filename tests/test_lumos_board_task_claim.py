@@ -762,3 +762,202 @@ def test_override_promotes_waiters_blocked_only_by_old_lease(tmp_path: Path) -> 
     assert replacement.accepted is True
     by_id = {claim.claim_id: claim.status for claim in store.list_claims(include_closed=True)}
     assert by_id[waiter.claim_id] is ClaimStatus.ACTIVE
+
+
+def test_job_record_appends_agent_worktree_change_test_and_approval(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock())
+    claim = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
+    assert claim is not None
+
+    first = store.record_job(
+        claim.claim_id,
+        owner="agent-a",
+        changes=["src/core/simple_chat_task.py"],
+        test_result="passed",
+        test_command="python3 -m pytest tests/test_simple_chat_task.py -q",
+        approval="withheld",
+    )
+    second = store.record_job(
+        claim.claim_id,
+        owner="agent-a",
+        changes=[],
+        test_result="failed",
+        approval="pending",
+    )
+
+    assert first.agent == "agent-a"
+    assert first.worktree == "/worktrees/ka-002"
+    assert first.changes == ("src/core/simple_chat_task.py",)
+    assert first.approval == "withheld"
+    assert first.grants_merge is False
+    assert first.to_dict()["grants_merge"] is False
+    assert [item.record_id for item in store.list_job_records(claim.claim_id)] == [
+        first.record_id,
+        second.record_id,
+    ]
+    assert store.list_claims()[0].status is ClaimStatus.ACTIVE
+    assert [event["event"] for event in _events(store.audit_path)].count("JOB_RECORDED") == 2
+
+
+def test_job_record_rejects_other_agent_outside_change_and_fake_grant(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock())
+    claim = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
+    assert claim is not None
+
+    with pytest.raises(ClaimError, match="sahibi"):
+        store.record_job(
+            claim.claim_id,
+            owner="agent-b",
+            changes=["src/a.py"],
+            test_result="passed",
+            approval="pending",
+        )
+    with pytest.raises(ClaimError, match="kapsamı dışında"):
+        store.record_job(
+            claim.claim_id,
+            owner="agent-a",
+            changes=["docs/x.md"],
+            test_result="passed",
+            approval="pending",
+        )
+    with pytest.raises(ClaimError, match="kurucu"):
+        store.record_job(
+            claim.claim_id,
+            owner="agent-a",
+            changes=["src/a.py"],
+            test_result="passed",
+            approval="granted",
+            approval_id="missing",
+            approved_by="candasoz",
+            founder_dir=tmp_path,
+        )
+    assert store.list_job_records() == ()
+
+
+def test_job_record_cites_founder_approval_without_granting_merge(tmp_path: Path) -> None:
+    from lumos_board.founder_approval import (
+        FOUNDER_APPROVER_REGISTRY_SCHEMA,
+        FounderApprovalStore,
+        FounderApproverRegistry,
+    )
+
+    registry_path = tmp_path / "founder-approvers.json"
+    registry_path.write_text(
+        json.dumps(
+            {
+                "schema": FOUNDER_APPROVER_REGISTRY_SCHEMA,
+                "approvers": [
+                    {
+                        "approver_id": "candasoz",
+                        "enabled": True,
+                        "valid_until": "2027-01-01T00:00:00Z",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    founder = FounderApprovalStore(
+        tmp_path,
+        registry=FounderApproverRegistry.from_registry_file(registry_path),
+        clock=Clock(),
+    )
+    approval = founder.request(task="KA-002", gate="merge", action="merge", head_sha="a" * 40)
+    granted = founder.grant(approval.approval_id, approved_by="candasoz")
+    store = TaskClaimStore(tmp_path, clock=Clock())
+    claim = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
+    assert claim is not None
+
+    record = store.record_job(
+        claim.claim_id,
+        owner="agent-a",
+        changes=["src/a.py"],
+        test_result="passed",
+        approval="granted",
+        approval_id=granted.approval_id,
+        approved_by=granted.approved_by,
+        founder_dir=tmp_path,
+    )
+
+    assert record.approval == "granted"
+    assert record.approval_id == granted.approval_id
+    assert record.grants_merge is False
+    assert len(founder.list_approvals()) == 1
+
+
+def test_cli_records_job_without_turning_approval_into_a_grant(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    claimed = claim_cli_main(
+        [
+            "--store",
+            str(tmp_path),
+            "claim",
+            "--task",
+            "KA-002",
+            "--repo",
+            "lumos-core",
+            "--branch",
+            "codex/ka-002",
+            "--worktree",
+            "/worktrees/ka-002",
+            "--owner",
+            "agent-a",
+            "--scope",
+            "src",
+        ]
+    )
+    assert claimed == 0
+    claim_id = json.loads(capsys.readouterr().out)["claim"]["claim_id"]
+
+    refused = claim_cli_main(
+        [
+            "--store",
+            str(tmp_path),
+            "record-job",
+            claim_id,
+            "--owner",
+            "agent-a",
+            "--change",
+            "src/a.py",
+            "--test-result",
+            "passed",
+            "--approval",
+            "granted",
+            "--approval-id",
+            "missing",
+        ]
+    )
+    assert refused == 2
+    assert "kurucu" in capsys.readouterr().out
+
+    recorded = claim_cli_main(
+        [
+            "--store",
+            str(tmp_path),
+            "record-job",
+            claim_id,
+            "--owner",
+            "agent-a",
+            "--change",
+            "src/a.py",
+            "--test-result",
+            "passed",
+            "--test-command",
+            "python3 -m pytest -q",
+            "--approval",
+            "withheld",
+        ]
+    )
+    assert recorded == 0
+    body = json.loads(capsys.readouterr().out)
+    assert body["approval"] == "withheld"
+    assert body["grants_merge"] is False
+    assert body["agent"] == "agent-a"
+    assert body["worktree"] == "/worktrees/ka-002"
+
+    listed = claim_cli_main(["--store", str(tmp_path), "list-jobs", "--claim", claim_id])
+    assert listed == 0
+    jobs = json.loads(capsys.readouterr().out)
+    assert jobs["grants_merge"] is False
+    assert len(jobs["jobs"]) == 1

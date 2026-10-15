@@ -20,6 +20,11 @@ from typing import Callable, Iterator, Sequence
 
 CLAIM_STORE_SCHEMA = "lumos.task_claim_store.v1"
 CLAIM_EVENT_SCHEMA = "lumos.task_claim_event.v1"
+JOB_RECORD_SCHEMA = "lumos.board.job_record.v1"
+_JOB_TEST_RESULTS = frozenset({"passed", "failed", "not_run"})
+_JOB_APPROVAL_STATES = frozenset({"pending", "withheld", "granted"})
+_MAX_JOB_CHANGES = 50
+_MAX_TEST_COMMAND = 300
 APPROVER_REGISTRY_SCHEMA = "lumos.override_approver_registry.v1"
 OVERRIDE_APPROVAL_SCHEMA = "lumos.override_approval.v1"
 OVERRIDE_VERIFICATION_METHOD = "HMAC_SHA256_ALLOWLIST"
@@ -378,6 +383,44 @@ class TaskClaim:
 
 
 @dataclass(frozen=True)
+class JobRecord:
+    """Append-only evidence for one job. It does not grant merge or approval."""
+
+    record_id: str
+    claim_id: str
+    task_id: str
+    agent: str
+    worktree: str
+    changes: tuple[str, ...]
+    test_result: str
+    test_command: str
+    approval: str
+    approval_id: str | None
+    at: datetime
+
+    @property
+    def grants_merge(self) -> bool:
+        return False
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "schema": JOB_RECORD_SCHEMA,
+            "record_id": self.record_id,
+            "claim_id": self.claim_id,
+            "task_id": self.task_id,
+            "agent": self.agent,
+            "worktree": self.worktree,
+            "changes": list(self.changes),
+            "test_result": self.test_result,
+            "test_command": self.test_command,
+            "approval": self.approval,
+            "approval_id": self.approval_id,
+            "at": _format_time(self.at),
+            "grants_merge": False,
+        }
+
+
+@dataclass(frozen=True)
 class ClaimConflict:
     claim_id: str
     task_id: str
@@ -428,6 +471,7 @@ class TaskClaimStore:
         self._override_verifier = override_verifier
         self._delegation_verifier = delegation_verifier
         self._pending_events: list[dict[str, object]] = []
+        self._visible_events: list[str] = []
 
     def claim(
         self,
@@ -626,6 +670,65 @@ class TaskClaimStore:
             self._audit("CLAIM_PR_ATTACHED", updated, actor=owner, at=now, details={"pr_ref": pr_ref})
             return updated
 
+    def record_job(
+        self,
+        claim_id: str,
+        *,
+        owner: str,
+        changes: Sequence[str],
+        test_result: str,
+        test_command: str = "",
+        approval: str,
+        approval_id: str | None = None,
+        approved_by: str | None = None,
+        founder_dir: Path | None = None,
+    ) -> JobRecord:
+        """Record agent, worktree, change, test result and approval state.
+
+        The claim stays as it is. ``granted`` only cites an existing founder
+        approval; this method does not approve and never permits a merge.
+        """
+        if test_result not in _JOB_TEST_RESULTS:
+            raise ClaimError("test sonucu passed, failed veya not_run olmalı")
+        if approval not in _JOB_APPROVAL_STATES:
+            raise ClaimError("onay durumu pending, withheld veya granted olmalı")
+        command = _clean_test_command(test_command)
+        with self._locked_state() as claims:
+            now = self._now()
+            self._expire_stale(claims, now)
+            claim = _require_owned_active(claims, claim_id, owner)
+            normalized = _normalize_changes(changes, claim.scopes)
+            cited_id = _cited_approval(
+                approval,
+                approval_id=approval_id,
+                approved_by=approved_by,
+                task_id=claim.task_id,
+                founder_dir=founder_dir,
+            )
+            record = JobRecord(
+                record_id=str(uuid.uuid4()),
+                claim_id=claim.claim_id,
+                task_id=claim.task_id,
+                agent=claim.owner,
+                worktree=claim.worktree,
+                changes=normalized,
+                test_result=test_result,
+                test_command=command,
+                approval=approval,
+                approval_id=cited_id,
+                at=now,
+            )
+            self._audit("JOB_RECORDED", claim, actor=claim.owner, at=now, details=record.to_dict())
+            return record
+
+    def list_job_records(self, claim_id: str | None = None) -> tuple[JobRecord, ...]:
+        with self._locked_state():
+            records = _job_records_from_lines(self._visible_events)
+            if claim_id is None:
+                return tuple(records)
+            wanted = _clean_text(claim_id, "claim_id")
+            return tuple(record for record in records if record.claim_id == wanted)
+
     def list_claims(self, *, include_closed: bool = False) -> tuple[TaskClaim, ...]:
         with self._locked_state() as claims:
             self._expire_stale(claims, self._now())
@@ -640,6 +743,7 @@ class TaskClaimStore:
         with self.lock_path.open("a+", encoding="utf-8") as lock_file:
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
             claims = self._read_state()
+            self._visible_events = self._read_event_lines()
             self._pending_events = []
             try:
                 yield claims
@@ -652,6 +756,14 @@ class TaskClaimStore:
                 self._flush_audit()
             finally:
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+    def _read_event_lines(self) -> list[str]:
+        if not self.audit_path.exists():
+            return []
+        try:
+            return self.audit_path.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeError) as exc:
+            raise ClaimStoreCorrupt("claim olay izi okunamıyor") from exc
 
     def _read_state(self) -> list[TaskClaim]:
         if not self.state_path.exists():
@@ -897,6 +1009,119 @@ def _to_conflict(claim: TaskClaim, task_id: str, scopes: Sequence[str]) -> Claim
 
 def _find_claim(claims: Sequence[TaskClaim], claim_id: str) -> TaskClaim | None:
     return next((claim for claim in claims if claim.claim_id == claim_id), None)
+
+
+def _clean_test_command(value: str) -> str:
+    if not isinstance(value, str):
+        raise ClaimError("test komutu metin olmalı")
+    command = value.strip()
+    if "\n" in command or "\r" in command:
+        raise ClaimError("test komutu tek satır olmalı")
+    if len(command) > _MAX_TEST_COMMAND:
+        raise ClaimError("test komutu çok uzun")
+    return command
+
+
+def _normalize_changes(changes: Sequence[str], scopes: Sequence[str]) -> tuple[str, ...]:
+    if len(changes) > _MAX_JOB_CHANGES:
+        raise ClaimError("değişiklik listesi çok uzun")
+    normalized: list[str] = []
+    for raw in changes:
+        path = _clean_text(raw, "change").replace("\\", "/")
+        posix = PurePosixPath(path)
+        if posix.is_absolute() or ".." in posix.parts:
+            raise ClaimError("değişiklik repo-relative olmalı")
+        cleaned = str(posix)
+        if cleaned in {"", "."}:
+            raise ClaimError("değişiklik dosya yolu olmalı")
+        inside = any(
+            cleaned == scope or PurePosixPath(scope) in PurePosixPath(cleaned).parents
+            for scope in scopes
+        )
+        if not inside:
+            raise ClaimError("değişiklik claim kapsamı dışında")
+        if cleaned not in normalized:
+            normalized.append(cleaned)
+    return tuple(normalized)
+
+
+def _cited_approval(
+    approval: str,
+    *,
+    approval_id: str | None,
+    approved_by: str | None,
+    task_id: str,
+    founder_dir: Path | None,
+) -> str | None:
+    if approval != "granted":
+        if approval_id or approved_by or founder_dir is not None:
+            raise ClaimError("bekleyen veya verilmeyen onayda kurucu kaydı yazılmaz")
+        return None
+    if not approval_id or not approved_by or founder_dir is None:
+        raise ClaimError("verilmiş onay mevcut kurucu kaydını göstermelidir")
+    from lumos_board.founder_approval import FounderApprovalStore
+
+    cited_id = _clean_text(approval_id, "approval_id")
+    approver = _clean_text(approved_by, "approved_by")
+    matches = [item for item in FounderApprovalStore(founder_dir).list_approvals() if item.approval_id == cited_id]
+    if len(matches) != 1 or not matches[0].is_approved:
+        raise ClaimError("onay kaydı verilmiş bir kurucu onayı değil")
+    if matches[0].task != task_id or matches[0].approved_by != approver:
+        raise ClaimError("onay kaydı bu görevin kurucu onayıyla eşleşmiyor")
+    return cited_id
+
+
+def _job_records_from_lines(lines: Sequence[str]) -> list[JobRecord]:
+    records: list[JobRecord] = []
+    for line in lines:
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ClaimStoreCorrupt("claim olay izi okunamıyor") from exc
+        if not isinstance(event, dict):
+            raise ClaimStoreCorrupt("claim olay izi geçersiz")
+        if event.get("event") != "JOB_RECORDED":
+            continue
+        records.append(_job_record_from_event(event))
+    return records
+
+
+def _job_record_from_event(event: dict[str, object]) -> JobRecord:
+    details = event.get("details")
+    if not isinstance(details, dict) or details.get("schema") != JOB_RECORD_SCHEMA:
+        raise ClaimStoreCorrupt("iş kaydı geçersiz")
+    if details.get("grants_merge") is not False:
+        raise ClaimStoreCorrupt("iş kaydı merge izni taşıyamaz")
+    if event.get("claim_id") != details.get("claim_id") or event.get("task_id") != details.get("task_id"):
+        raise ClaimStoreCorrupt("iş kaydı claim ile eşleşmiyor")
+    try:
+        changes = details["changes"]
+        if not isinstance(changes, list) or not all(isinstance(item, str) for item in changes):
+            raise TypeError("changes")
+        approval_id = details.get("approval_id")
+        if approval_id is not None and not isinstance(approval_id, str):
+            raise TypeError("approval_id")
+        test_result = _required_text(details, "test_result")
+        approval = _required_text(details, "approval")
+        if test_result not in _JOB_TEST_RESULTS or approval not in _JOB_APPROVAL_STATES:
+            raise ValueError("enum")
+        return JobRecord(
+            record_id=_required_text(details, "record_id"),
+            claim_id=_required_text(details, "claim_id"),
+            task_id=_required_text(details, "task_id"),
+            agent=_required_text(details, "agent"),
+            worktree=_required_text(details, "worktree"),
+            changes=tuple(changes),
+            test_result=test_result,
+            test_command=_required_text(details, "test_command") if details.get("test_command") else "",
+            approval=approval,
+            approval_id=approval_id,
+            at=_parse_time(_required_text(details, "at")),
+        )
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ClaimStoreCorrupt("iş kaydı geçersiz") from exc
 
 
 def _require_owned_active(claims: Sequence[TaskClaim], claim_id: str, owner: str) -> TaskClaim:
