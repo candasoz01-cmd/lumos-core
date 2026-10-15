@@ -149,13 +149,21 @@ def run_cli_loop(router_ctx: RouterContext) -> None:
                 print("Geçerli profiller: rapor, guvenli_yurut, kisitli_otonom")
             continue
         if route == "genel_onay_ac":
-            router_ctx.mut_ctx.general_approval[0] = True
-            print(
-                "Genel onay açık. Kısıtlı otonom profilde bu oturumda yazma adımları yürütülebilir. "
-                "Consent (kimlik/keystore) ayrıdır; genel onay consent yerine geçmez."
-            )
+            from core.explicit_approval import grant_explicit_approval
+
+            if grant_explicit_approval():
+                router_ctx.mut_ctx.general_approval[0] = True
+                print(
+                    "Genel onay açık. Kısıtlı otonom profilde bu oturumda yazma adımları yürütülebilir. "
+                    "Consent (kimlik/keystore) ayrıdır; genel onay consent yerine geçmez."
+                )
+            else:
+                print("Genel onay açılmadı. Çekirdek sabitleri doğrulanamadı.")
             continue
         if route == "genel_onay_kapat":
+            from core.explicit_approval import revoke_explicit_approval
+
+            revoke_explicit_approval()
             router_ctx.mut_ctx.general_approval[0] = False
             print("Genel onay kapalı. Consent durumu değişmedi.")
             continue
