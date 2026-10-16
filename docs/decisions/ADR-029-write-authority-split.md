@@ -41,7 +41,8 @@ doğrulandı; ayar uygulanmadı.
 
 Kaynak: `gh api apps/<slug>`, `gh api users/<login>`,
 `repos/candasoz01-cmd/lumos-core/environments/lumos-write-gate`,
-`collaborators`, PR reviews. Settings yazılmadı. Sır okunmadı.
+`collaborators`, PR reviews. Aynı sorgular 2026-10-16T17:20Z tekrarlandı;
+id/slug/bot type değişmedi. Settings yazılmadı. Sır okunmadı.
 
 | Özne | Kanıt | Sınıf |
 | --- | --- | --- |
