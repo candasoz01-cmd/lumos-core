@@ -29,6 +29,9 @@ REASON_PROOF_AS_PRODUCTION = "WRITE_SECRET_PROOF_IS_NOT_PRODUCTION"
 REASON_SUBJECT_DENIED = "WRITE_SECRET_SUBJECT_DENIED"
 REASON_SERVICE_CONTEXT = "WRITE_SECRET_SERVICE_CONTEXT_DENIED"
 REASON_ALLOWED = "WRITE_SECRET_SERVICE_ONLY"
+REASON_IDENTITY_GAP = "WRITE_IDENTITY_EVIDENCE_DENIED"
+REQUIRED_APP_SLUGS = ("claude", "chatgpt-codex-connector")
+FOUNDER_LOGIN = "candasoz01-cmd"
 
 _NON_HUMAN_MARKERS = ("[bot]",)
 _NON_HUMAN_PREFIXES = ("app/",)
@@ -157,6 +160,98 @@ def simulate_required_check_impact(
     }
 
 
+def evaluate_identity_evidence(payload: Mapping[str, Any]) -> dict[str, Any]:
+    """Salt-okunur kimlik kaydını doğrular. Settings yazmaz, Aşama A/B açmaz.
+
+    Claude ve Codex kendi GitHub App kayıtlarıyla ajan öznesidir. Kurucu
+    ``User`` allowlist'tedir; ajan sürecinde üretim sırrı ve SSH beklenmez.
+    """
+    if not isinstance(payload, Mapping):
+        raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    founder = payload.get("founder")
+    apps = payload.get("apps")
+    process = payload.get("agent_process")
+    environment = payload.get("write_gate_environment")
+    identities = payload.get("operating_identities")
+    if not isinstance(founder, Mapping) or not isinstance(apps, list):
+        raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    if not isinstance(process, Mapping) or not isinstance(environment, Mapping):
+        raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    if not isinstance(identities, list):
+        raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    founder_login = str(founder.get("login") or "")
+    founder_type = str(founder.get("type") or "")
+    founder_id = founder.get("id")
+    if founder_login != FOUNDER_LOGIN or founder_type != "User" or not isinstance(founder_id, int):
+        raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    if classify_subject(owner=founder_login, founder_ids=(FOUNDER_LOGIN,)) != SUBJECT_FOUNDER:
+        raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    if classify_subject(
+        owner=founder_login,
+        lumos_agent="cursor-cloud",
+        founder_ids=(FOUNDER_LOGIN,),
+    ) != SUBJECT_AGENT:
+        raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    by_slug = {}
+    for item in apps:
+        if not isinstance(item, Mapping):
+            raise AuthoritySplitError(REASON_IDENTITY_GAP)
+        slug = str(item.get("slug") or "")
+        bot_login = str(item.get("bot_login") or "")
+        bot_type = str(item.get("bot_type") or "")
+        app_id = item.get("id")
+        bot_id = item.get("bot_id")
+        if not slug or bot_type != "Bot" or not bot_login or not isinstance(app_id, int):
+            raise AuthoritySplitError(REASON_IDENTITY_GAP)
+        if not isinstance(bot_id, int) or bot_id == founder_id or app_id == founder_id:
+            raise AuthoritySplitError(REASON_IDENTITY_GAP)
+        if classify_subject(owner=bot_login, github_actor=bot_login, founder_ids=(FOUNDER_LOGIN,)) != SUBJECT_AGENT:
+            raise AuthoritySplitError(REASON_IDENTITY_GAP)
+        by_slug[slug] = item
+    for slug in REQUIRED_APP_SLUGS:
+        if slug not in by_slug:
+            raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    for item in identities:
+        if not isinstance(item, Mapping):
+            raise AuthoritySplitError(REASON_IDENTITY_GAP)
+        login = str(item.get("login") or "")
+        kind = str(item.get("type") or "")
+        if not login:
+            raise AuthoritySplitError(REASON_IDENTITY_GAP)
+        subject = classify_subject(
+            owner=login,
+            github_actor=login if kind == "Bot" else "",
+            founder_ids=(FOUNDER_LOGIN,),
+        )
+        if subject != SUBJECT_AGENT:
+            raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    reviewers = list(environment.get("required_reviewers") or [])
+    branches = list(environment.get("deployment_branches") or [])
+    if reviewers != [FOUNDER_LOGIN] or branches != ["main"]:
+        raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    if process.get("lumos_write_gate_secret_present") or process.get("github_token_env_present"):
+        raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    if process.get("ssh_dir_present"):
+        raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    gh_account = str(process.get("gh_account") or "")
+    if not gh_account or gh_account == FOUNDER_LOGIN:
+        raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    return {
+        "schema": SCHEMA,
+        "ok": True,
+        "settings_mutated": False,
+        "dispatch": False,
+        "merge": False,
+        "grants_stage_a": False,
+        "grants_stage_b": False,
+        "founder": founder_login,
+        "required_apps": list(REQUIRED_APP_SLUGS),
+        "agent_logins": [str(item.get("login")) for item in identities if isinstance(item, Mapping)],
+        "write_gate_reviewer": FOUNDER_LOGIN,
+        "production_secret_in_agent_env": False,
+    }
+
+
 def _classify_main(argv: Sequence[str]) -> int:
     parser = argparse.ArgumentParser(prog="python -m lumos_board.write_authority_split classify")
     parser.add_argument("--owner", required=True)
@@ -203,6 +298,18 @@ def _secret_main(argv: Sequence[str]) -> int:
     return 0
 
 
+def _identities_main(argv: Sequence[str]) -> int:
+    parser = argparse.ArgumentParser(prog="python -m lumos_board.write_authority_split identities")
+    parser.add_argument("--file", required=True)
+    args = parser.parse_args(argv)
+    payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
+    if not isinstance(payload, Mapping):
+        raise AuthoritySplitError(REASON_IDENTITY_GAP)
+    report = evaluate_identity_evidence(payload)
+    sys.stdout.write(json.dumps(report, ensure_ascii=False, sort_keys=True) + "\n")
+    return 0
+
+
 def _impact_main(argv: Sequence[str]) -> int:
     parser = argparse.ArgumentParser(prog="python -m lumos_board.write_authority_split required-impact")
     parser.add_argument("--file", required=True)
@@ -225,7 +332,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     try:
         if not argv or argv[0] in {"-h", "--help"}:
-            sys.stderr.write("usage: classify | secret-use | required-impact\n")
+            sys.stderr.write("usage: classify | secret-use | required-impact | identities\n")
             return 2
         command, rest = argv[0], argv[1:]
         if command == "classify":
@@ -234,6 +341,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _secret_main(rest)
         if command == "required-impact":
             return _impact_main(rest)
+        if command == "identities":
+            return _identities_main(rest)
         raise AuthoritySplitError("bilinmeyen komut")
     except (ClaimError, OSError, ValueError, json.JSONDecodeError) as exc:
         sys.stderr.write(json.dumps({"error": str(exc)}, ensure_ascii=False) + "\n")

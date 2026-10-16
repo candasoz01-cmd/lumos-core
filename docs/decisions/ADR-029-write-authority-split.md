@@ -3,7 +3,7 @@
 | Alan | Değer |
 | --- | --- |
 | Durum | **Accepted (önkoşul, 2026-10-16)** — kurucu: Aşama A/B yok; #945 ve #946 kilitli |
-| Uygulama | `src/lumos_board/write_authority_split.py` — fail-closed sınıflandırma + sır kullanımı + zorunlu kontrol *simülasyonu* |
+| Uygulama | `src/lumos_board/write_authority_split.py` — fail-closed sınıflandırma + sır kullanımı + zorunlu kontrol *simülasyonu* + canlı App/kurucu kimlik kaydı |
 | Üst | [CONSTITUTION §11](../CONSTITUTION.md), [ADR-024](ADR-024-lumos-identity-multi-subject-model.md) N8, [ADR-027](ADR-027-controlled-core-writer.md), [write-authorization-v1](../contracts/write-authorization-v1.md), TD-10 |
 | Yasak | Merge, `workflow_dispatch`, ortam onayı, Settings yazımı, imza kökü kaydı, doğrulayıcı gevşetme |
 
@@ -36,6 +36,30 @@ SUCCESS · üretim `write-attestation-trusted` FAILURE ·
 yeşile zorlanmaz. `write-attestation-trusted`'ı required yapmak #945'i
 (ve prova imzalı her tanıtıcı PR'ı) fiziksel olarak kilitler. Bu etki
 doğrulandı; ayar uygulanmadı.
+
+## Canlı kimlik ayrımı (2026-10-16T17:19Z, GitHub API)
+
+Kaynak: `gh api apps/<slug>`, `gh api users/<login>`,
+`repos/candasoz01-cmd/lumos-core/environments/lumos-write-gate`,
+`collaborators`, PR reviews. Settings yazılmadı. Sır okunmadı.
+
+| Özne | Kanıt | Sınıf |
+| --- | --- | --- |
+| Kurucu `candasoz01-cmd` | User id `260758816`, repo `admin`, tek collaborator | `human.founder` (ajan env yokken) |
+| Claude App | slug `claude` id `1236702`, owner `anthropics`, bot `claude[bot]` id `209825114` type Bot | `agent` |
+| Claude commit yazarı | User `claude` id `81847` — App bot'u değil; `lumos-core` commit yazarı | yine `agent` |
+| Codex App | slug `chatgpt-codex-connector` id `1144995`, owner `openai`, bot `chatgpt-codex-connector[bot]` id `199175422` type Bot | `agent` |
+| Codex işletim | commit yazarı olarak 0; PR review `#930` ve `#932` | `agent` |
+| Cursor App | slug `cursor` id `1210556`, bot `cursor[bot]` id `206951365`; `#947` yazarı `app/cursor` | `agent` |
+| `lumos-write-gate` | zorunlu inceleyici yalnız `candasoz01-cmd`; dal politikası yalnız `main` | hizmet ortamı; merge değil |
+| Bu ajan süreci | `LUMOS_WRITE_GATE_SECRET` / `GITHUB_TOKEN` / `GH_TOKEN` yok; `~/.ssh` yok; `gh auth` hesabı `cursor` (`ghs_`, kurucu User değil) | kurucu kimliği yok |
+
+Kurucu allowlist'e yazılmış olsa bile `LUMOS_AGENT` doluysa özne `agent`
+kalır. Claude'un commit'leri App bot'u yerine User `claude` ile gelmiş
+olması App kaydını kurucu yapmaz; her iki login ajan olarak kilitlenir.
+
+`evaluate_identity_evidence` bu tabloyu fail-closed doğrular. Aşama A/B
+açılmaz. `#945` / `#946` kilitli kalır.
 
 ## Bu ADR'nin vermediği yetkiler
 

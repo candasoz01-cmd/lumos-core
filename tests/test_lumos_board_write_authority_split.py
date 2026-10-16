@@ -13,6 +13,7 @@ from lumos_board.write_authority_split import (
     PROOF_KEY_CHECK,
     REASON_AGENT_SECRET,
     REASON_ALLOWED,
+    REASON_IDENTITY_GAP,
     REASON_PROOF_AS_PRODUCTION,
     REASON_SERVICE_CONTEXT,
     REASON_SUBJECT_DENIED,
@@ -22,6 +23,7 @@ from lumos_board.write_authority_split import (
     SUBJECT_UNKNOWN,
     assert_production_secret_use,
     classify_subject,
+    evaluate_identity_evidence,
     main as split_main,
     public_proof_key,
     simulate_required_check_impact,
@@ -53,6 +55,12 @@ def test_agent_owner_is_never_founder() -> None:
     assert classify_subject(owner="cursoragent[bot]") == SUBJECT_AGENT
     assert classify_subject(owner="codex-pr945") == SUBJECT_AGENT
     assert classify_subject(owner="claude-cowork") == SUBJECT_AGENT
+    assert classify_subject(owner="claude", founder_ids=("candasoz01-cmd",)) == SUBJECT_AGENT
+    assert classify_subject(owner="claude[bot]", founder_ids=("candasoz01-cmd",)) == SUBJECT_AGENT
+    assert (
+        classify_subject(owner="chatgpt-codex-connector[bot]", founder_ids=("candasoz01-cmd",))
+        == SUBJECT_AGENT
+    )
 
 
 def test_founder_requires_allowlist_and_no_agent_env() -> None:
@@ -183,3 +191,137 @@ def test_public_proof_key_reads_claim_guard_workflow() -> None:
     key = public_proof_key()
     assert len(key.encode("utf-8")) >= 32
     assert "secrets." not in key
+
+
+LIVE_IDENTITY = {
+    "verified_at": "2026-10-16T17:19Z",
+    "source": "GitHub API",
+    "founder": {
+        "login": "candasoz01-cmd",
+        "id": 260758816,
+        "type": "User",
+        "role": "admin",
+    },
+    "apps": [
+        {
+            "slug": "claude",
+            "id": 1236702,
+            "name": "Claude",
+            "owner": "anthropics",
+            "bot_login": "claude[bot]",
+            "bot_id": 209825114,
+            "bot_type": "Bot",
+        },
+        {
+            "slug": "chatgpt-codex-connector",
+            "id": 1144995,
+            "name": "ChatGPT Codex Connector",
+            "owner": "openai",
+            "bot_login": "chatgpt-codex-connector[bot]",
+            "bot_id": 199175422,
+            "bot_type": "Bot",
+        },
+        {
+            "slug": "cursor",
+            "id": 1210556,
+            "name": "Cursor",
+            "owner": "cursor",
+            "bot_login": "cursor[bot]",
+            "bot_id": 206951365,
+            "bot_type": "Bot",
+        },
+    ],
+    "operating_identities": [
+        {
+            "login": "claude",
+            "id": 81847,
+            "type": "User",
+            "evidence": "repo commits author.login=claude",
+        },
+        {
+            "login": "claude[bot]",
+            "id": 209825114,
+            "type": "Bot",
+            "evidence": "GitHub App bot for slug claude",
+        },
+        {
+            "login": "chatgpt-codex-connector[bot]",
+            "id": 199175422,
+            "type": "Bot",
+            "evidence": "PR reviews on #930 and #932",
+        },
+        {
+            "login": "cursor[bot]",
+            "id": 206951365,
+            "type": "Bot",
+            "evidence": "PR author app/cursor including #947",
+        },
+    ],
+    "write_gate_environment": {
+        "name": "lumos-write-gate",
+        "required_reviewers": ["candasoz01-cmd"],
+        "deployment_branches": ["main"],
+    },
+    "agent_process": {
+        "lumos_write_gate_secret_present": False,
+        "github_token_env_present": False,
+        "ssh_dir_present": False,
+        "gh_account": "cursor",
+    },
+}
+
+
+def test_live_identity_evidence_keeps_apps_and_founder_apart() -> None:
+    report = evaluate_identity_evidence(LIVE_IDENTITY)
+    assert report["ok"] is True
+    assert report["founder"] == "candasoz01-cmd"
+    assert report["required_apps"] == ["claude", "chatgpt-codex-connector"]
+    assert report["production_secret_in_agent_env"] is False
+    assert report["grants_stage_a"] is False
+    assert report["grants_stage_b"] is False
+    assert report["settings_mutated"] is False
+
+
+def test_identity_evidence_rejects_missing_codex_app() -> None:
+    payload = json.loads(json.dumps(LIVE_IDENTITY))
+    payload["apps"] = [item for item in payload["apps"] if item["slug"] != "chatgpt-codex-connector"]
+    with pytest.raises(ClaimError, match=REASON_IDENTITY_GAP):
+        evaluate_identity_evidence(payload)
+
+
+def test_identity_evidence_rejects_secret_in_agent_env() -> None:
+    payload = json.loads(json.dumps(LIVE_IDENTITY))
+    payload["agent_process"]["lumos_write_gate_secret_present"] = True
+    with pytest.raises(ClaimError, match=REASON_IDENTITY_GAP):
+        evaluate_identity_evidence(payload)
+
+
+def test_identity_evidence_rejects_bot_as_write_gate_reviewer() -> None:
+    payload = json.loads(json.dumps(LIVE_IDENTITY))
+    payload["write_gate_environment"]["required_reviewers"] = ["claude[bot]"]
+    with pytest.raises(ClaimError, match=REASON_IDENTITY_GAP):
+        evaluate_identity_evidence(payload)
+
+
+def test_cli_identities_reads_file_only(tmp_path: Path) -> None:
+    path = tmp_path / "identities.json"
+    path.write_text(json.dumps(LIVE_IDENTITY), encoding="utf-8")
+    assert split_main(["identities", "--file", str(path)]) == 0
+
+
+def test_required_check_impact_records_947_trusted_red() -> None:
+    report = simulate_required_check_impact(
+        current_required=["test", "rust", "macos-app-build", "ui-smoke", "ui-e2e", "publication-gate"],
+        add=[PRODUCTION_CHECK],
+        pr_checks={
+            PROOF_KEY_CHECK: "SUCCESS",
+            PRODUCTION_CHECK: "FAILURE",
+            "claim-guard": "SUCCESS",
+            "test": "SUCCESS",
+        },
+        pr_number=947,
+        head_sha="6153783055abeea6b9b034efd4c871a1eaa576db",
+    )
+    assert report["would_block_merge"] is True
+    assert report["settings_mutated"] is False
+    assert report["grants_stage_a"] is False
