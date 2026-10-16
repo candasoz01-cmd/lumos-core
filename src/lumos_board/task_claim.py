@@ -471,7 +471,9 @@ class TaskClaimStore:
         self._override_verifier = override_verifier
         self._delegation_verifier = delegation_verifier
         self._pending_events: list[dict[str, object]] = []
-        self._visible_events: list[str] = []
+        # None: this lock did not load the event log. Claim paths must not
+        # decode it. Central transactions set a list from the fetched blob.
+        self._visible_events: list[str] | None = None
 
     def claim(
         self,
@@ -723,7 +725,10 @@ class TaskClaimStore:
 
     def list_job_records(self, claim_id: str | None = None) -> tuple[JobRecord, ...]:
         with self._locked_state():
-            records = _job_records_from_lines(self._visible_events)
+            lines = self._visible_events
+            if lines is None:
+                lines = _tolerant_event_lines(self.audit_path)
+            records = _job_records_from_lines(lines)
             if claim_id is None:
                 return tuple(records)
             wanted = _clean_text(claim_id, "claim_id")
@@ -743,7 +748,7 @@ class TaskClaimStore:
         with self.lock_path.open("a+", encoding="utf-8") as lock_file:
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
             claims = self._read_state()
-            self._visible_events = self._read_event_lines()
+            self._visible_events = None
             self._pending_events = []
             try:
                 yield claims
@@ -756,14 +761,6 @@ class TaskClaimStore:
                 self._flush_audit()
             finally:
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
-
-    def _read_event_lines(self) -> list[str]:
-        if not self.audit_path.exists():
-            return []
-        try:
-            return self.audit_path.read_text(encoding="utf-8").splitlines()
-        except (OSError, UnicodeError) as exc:
-            raise ClaimStoreCorrupt("claim olay izi okunamıyor") from exc
 
     def _read_state(self) -> list[TaskClaim]:
         if not self.state_path.exists():
@@ -1071,6 +1068,21 @@ def _cited_approval(
     return cited_id
 
 
+def _tolerant_event_lines(path: Path) -> list[str]:
+    """Read the append-only log without failing the claim board.
+
+    Agents can write this file. One bad byte must not stop claim, heartbeat,
+    release, or list. Invalid lines are dropped when job records are read.
+    """
+    if not path.exists():
+        return []
+    try:
+        data = path.read_bytes()
+    except OSError as exc:
+        raise ClaimStoreCorrupt("claim olay izi okunamıyor") from exc
+    return data.decode("utf-8", errors="replace").splitlines()
+
+
 def _job_records_from_lines(lines: Sequence[str]) -> list[JobRecord]:
     records: list[JobRecord] = []
     for line in lines:
@@ -1078,13 +1090,14 @@ def _job_records_from_lines(lines: Sequence[str]) -> list[JobRecord]:
             continue
         try:
             event = json.loads(line)
-        except json.JSONDecodeError as exc:
-            raise ClaimStoreCorrupt("claim olay izi okunamıyor") from exc
-        if not isinstance(event, dict):
-            raise ClaimStoreCorrupt("claim olay izi geçersiz")
-        if event.get("event") != "JOB_RECORDED":
+        except json.JSONDecodeError:
             continue
-        records.append(_job_record_from_event(event))
+        if not isinstance(event, dict) or event.get("event") != "JOB_RECORDED":
+            continue
+        try:
+            records.append(_job_record_from_event(event))
+        except ClaimStoreCorrupt:
+            continue
     return records
 
 

@@ -961,3 +961,33 @@ def test_cli_records_job_without_turning_approval_into_a_grant(
     jobs = json.loads(capsys.readouterr().out)
     assert jobs["grants_merge"] is False
     assert len(jobs["jobs"]) == 1
+
+
+def test_corrupt_event_log_does_not_stop_claim_operations(tmp_path: Path) -> None:
+    store = TaskClaimStore(tmp_path, clock=Clock())
+    claim = _claim(store, task="KA-002", owner="agent-a", scope="src").claim
+    assert claim is not None
+    recorded = store.record_job(
+        claim.claim_id,
+        owner="agent-a",
+        changes=["src/a.py"],
+        test_result="passed",
+        approval="withheld",
+    )
+    with store.audit_path.open("ab") as handle:
+        handle.write(b"\xff\xfe bozuk\n")
+        handle.write(
+            (
+                '{"event":"JOB_RECORDED","claim_id":"%s","task_id":"KA-002","details":'
+                '{"schema":"lumos.board.job_record.v1","grants_merge":true}}\n'
+                % claim.claim_id
+            ).encode("ascii")
+        )
+
+    heartbeat = store.heartbeat(claim.claim_id, owner="agent-a")
+    assert heartbeat.status is ClaimStatus.ACTIVE
+    listed = store.list_claims()
+    assert [item.claim_id for item in listed] == [claim.claim_id]
+    records = store.list_job_records(claim.claim_id)
+    assert [item.record_id for item in records] == [recorded.record_id]
+    assert records[0].grants_merge is False
