@@ -441,3 +441,23 @@ def test_import_rejects_scopes_claim_could_not_create(remote: Path, tmp_path: Pa
     with pytest.raises(ClaimStoreCorrupt):
         central.import_local(local_dir, actor="mallory")
     assert _claim(central, task="T", owner="claude", scope="src/a.py").accepted is True
+
+
+@pytest.mark.parametrize("known_base,ref,reason", [
+    ("a" * 40, DEFAULT_REF, "reference already exists"),
+    (None, "refs/heads/other", "reference already exists"),
+    (None, DEFAULT_REF, "pre-receive hook declined"),
+])
+def test_remote_rejection_is_not_mistaken_for_initial_ref_race(
+    tmp_path: Path, known_base: str | None, ref: str, reason: str,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store = CentralClaimStore(remote="unused", cache_dir=tmp_path / "cache")
+    store._last_base = known_base
+    commit = "b" * 40
+    result = subprocess.CompletedProcess(
+        [], 1, f"!\t{commit}:{ref}\t[remote rejected] ({reason})\n", "push failed",
+    )
+    monkeypatch.setattr(store, "_git", lambda *args, **kwargs: result)
+    with pytest.raises(CentralStoreUnavailable):
+        store._push(commit)
