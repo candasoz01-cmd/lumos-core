@@ -200,6 +200,12 @@ class CentralClaimStore(TaskClaimStore):
     def attach_pr(self, claim_id: str, *, owner: str, pr_ref: str) -> TaskClaim:
         return self._transact(super().attach_pr, claim_id, owner=owner, pr_ref=pr_ref)
 
+    def record_job(self, claim_id: str, **kwargs: Any):  # type: ignore[override]
+        return self._transact(super().record_job, claim_id, **kwargs)
+
+    def list_job_records(self, claim_id: str | None = None):  # type: ignore[override]
+        return self._transact(super().list_job_records, claim_id)
+
     def list_claims(self, *, include_closed: bool = False) -> tuple[TaskClaim, ...]:
         return self._transact(super().list_claims, include_closed=include_closed)
 
@@ -314,6 +320,7 @@ class CentralClaimStore(TaskClaimStore):
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
             try:
                 base, state_text, events_text = self._fetch()
+                self._visible_events = [line for line in events_text.splitlines() if line.strip()]
                 claims = parse_state_text(state_text) if state_text is not None else []
                 original = serialize_state(claims) if state_text is not None else None
                 self._pending_events = []
