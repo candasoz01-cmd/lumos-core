@@ -24,6 +24,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONPATH: ${{ github.workspace }}/src
+
 concurrency:
   group: write-sign-trusted-${{ inputs.pr_number }}
   cancel-in-progress: false
@@ -51,7 +54,7 @@ jobs:
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: main
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -74,10 +77,10 @@ jobs:
           esac
           git fetch --no-tags origin \
             "+refs/pull/${PR_NUMBER}/head:refs/remotes/origin/pr-${PR_NUMBER}-head"
-          BASE="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq .base.sha)"
           HEAD="$(git rev-parse "refs/remotes/origin/pr-${PR_NUMBER}-head")"
-          SOURCE="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq .head.ref)"
-          printf '%s\n%s\n%s\n' "$BASE" "$HEAD" "$SOURCE" > "${RUNNER_TEMP}/sign-request"
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" | \
+            python3 -m lumos_board.trusted_sign request \
+              --base "$GITHUB_SHA" --head "$HEAD" > "${RUNNER_TEMP}/sign-request"
 
       - name: Record the change that approval will cover
         id: manifest
@@ -160,7 +163,7 @@ jobs:
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: main
+          ref: ${{ github.sha }}
           fetch-depth: 0
           persist-credentials: true
 
@@ -188,14 +191,18 @@ jobs:
           esac
           git fetch --no-tags origin \
             "+refs/pull/${PR_NUMBER}/head:refs/remotes/origin/pr-${PR_NUMBER}-head"
-          BASE="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq .base.sha)"
           HEAD="$(git rev-parse "refs/remotes/origin/pr-${PR_NUMBER}-head")"
-          SOURCE="$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq .head.ref)"
-          printf '%s\n%s\n%s\n' "$BASE" "$HEAD" "$SOURCE" > "${RUNNER_TEMP}/sign-request"
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" | \
+            python3 -m lumos_board.trusted_sign request \
+              --base "$GITHUB_SHA" --head "$HEAD" > "${RUNNER_TEMP}/sign-request"
 
       - name: Sign the approved range onto a new branch
         env:
           LUMOS_WRITE_GATE_SECRET: ${{ secrets.LUMOS_WRITE_GATE_SECRET }}
+          GH_TOKEN: ${{ github.token }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: credential.https://github.com.helper
+          GIT_CONFIG_VALUE_0: "!gh auth git-credential"
           PR_NUMBER: ${{ inputs.pr_number }}
         run: |
           set -euo pipefail
@@ -253,7 +260,7 @@ jobs:
 
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: main
+          ref: ${{ github.sha }}
           fetch-depth: 1
           persist-credentials: false
 

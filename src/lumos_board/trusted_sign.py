@@ -473,6 +473,32 @@ def _preview_main(argv: Sequence[str]) -> int:
     return 0
 
 
+
+def validate_pr_request(payload: Mapping[str, Any], *, base: str, head: str) -> tuple[str, str, str]:
+    """Only sign an open main-targeted PR at the pinned workflow base."""
+    target = payload.get("base")
+    source = payload.get("head")
+    if not isinstance(target, Mapping) or not isinstance(source, Mapping):
+        raise TrustedSignError("PR hedefi veya kaynağı eksik")
+    if payload.get("state") != "open" or target.get("ref") != "main":
+        raise TrustedSignError("yalnız açık ve main hedefli PR imzalanır")
+    if target.get("sha") != _sha(base, "base") or source.get("sha") != _sha(head, "head"):
+        raise TrustedSignError("PR aralığı sabitlenen çalıştırma ile uyuşmuyor")
+    branch = _source_branch(str(source.get("ref") or ""), "")
+    return base, head, branch
+
+
+def _request_main(argv: Sequence[str]) -> int:
+    parser = argparse.ArgumentParser(prog="python -m lumos_board.trusted_sign request")
+    parser.add_argument("--base", required=True)
+    parser.add_argument("--head", required=True)
+    args = parser.parse_args(argv)
+    payload = json.load(sys.stdin)
+    if not isinstance(payload, Mapping):
+        raise TrustedSignError("PR verisi geçersiz")
+    sys.stdout.write("\n".join(validate_pr_request(payload, base=args.base, head=args.head)) + "\n")
+    return 0
+
 def _judge_main(argv: Sequence[str]) -> int:
     parser = argparse.ArgumentParser(prog="python -m lumos_board.trusted_sign judge-checks")
     parser.add_argument("--file", required=True)
@@ -489,6 +515,8 @@ def _judge_main(argv: Sequence[str]) -> int:
 def main(argv: Sequence[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     try:
+        if argv and argv[0] == "request":
+            return _request_main(argv[1:])
         if argv and argv[0] == "preview":
             return _preview_main(argv[1:])
         if argv and argv[0] == "judge-checks":

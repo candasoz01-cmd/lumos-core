@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -286,7 +287,8 @@ def test_workflow_shows_the_change_before_the_environment_gate() -> None:
     assert "--manifest-file" in workflow
     assert "--force" not in workflow
     assert "gh pr merge" not in workflow
-    assert "ref: main" in workflow
+    assert workflow.count("ref: ${{ github.sha }}") == 3
+    assert "ref: main" not in workflow
     assert "trusted-sign/pr-" in workflow
     preview = workflow.index("\n  preview:\n")
     environment = workflow.index("name: lumos-write-gate")
@@ -544,3 +546,60 @@ def test_failed_trusted_check_stops_and_does_not_grant_merge() -> None:
     pending = judge_checks(rollup[:-1])
     assert pending["stop"] is True
     assert pending["pending"] == ["publication-gate"]
+
+
+def test_workflow_python_entrypoints_run_without_installed_package() -> None:
+    import yaml
+
+    root = Path(__file__).resolve().parents[1]
+    workflow = yaml.safe_load(
+        (root / ".github/workflows/write-sign-trusted.yml").read_text(encoding="utf-8")
+    )
+    env = {"PATH": os.environ.get("PATH", "")}
+    env["PYTHONPATH"] = workflow.get("env", {}).get("PYTHONPATH", "").replace(
+        "${{ github.workspace }}", str(root)
+    )
+    for command in ([], ["preview"], ["judge-checks"], ["request"]):
+        result = subprocess.run(
+            [sys.executable, "-S", "-m", "lumos_board.trusted_sign", *command, "--help"],
+            cwd=root, env=env, capture_output=True, text=True, check=False,
+        )
+        assert result.returncode == 0, result.stderr
+
+
+def test_request_binds_approval_to_main_and_exact_range() -> None:
+    from lumos_board.trusted_sign import validate_pr_request
+
+    base, head = "a" * 40, "b" * 40
+    payload = {"state": "open", "base": {"ref": "main", "sha": base},
+               "head": {"ref": "feature", "sha": head}}
+    assert validate_pr_request(payload, base=base, head=head) == (base, head, "feature")
+    for change in (
+        {"state": "closed"},
+        {"base": {"ref": "signed-unmerged", "sha": base}},
+        {"base": {"ref": "main", "sha": "c" * 40}},
+        {"head": {"ref": "feature", "sha": "c" * 40}},
+        {"head": {"ref": "feature\ninjected", "sha": head}},
+        {"base": None},
+    ):
+        with pytest.raises(TrustedSignError):
+            validate_pr_request({**payload, **change}, base=base, head=head)
+
+
+def test_workflow_validates_both_requests_and_authenticates_board() -> None:
+    import yaml
+
+    root = Path(__file__).resolve().parents[1]
+    workflow = yaml.safe_load((root / ".github/workflows/write-sign-trusted.yml").read_text())
+    for job in ("preview", "sign"):
+        steps = workflow["jobs"][job]["steps"]
+        requests = [step for step in steps if "sign-request" in step.get("run", "")
+                    and "gh api" in step.get("run", "")]
+        assert len(requests) == 1
+        assert '--base "$GITHUB_SHA" --head "$HEAD"' in requests[0]["run"]
+    sign = next(step for step in workflow["jobs"]["sign"]["steps"]
+                if "--central" in step.get("run", ""))
+    env = sign["env"]
+    assert env["GH_TOKEN"] == "${{ github.token }}"
+    assert env["GIT_CONFIG_KEY_0"] == "credential.https://github.com.helper"
+    assert env["GIT_CONFIG_VALUE_0"] == "!gh auth git-credential"
