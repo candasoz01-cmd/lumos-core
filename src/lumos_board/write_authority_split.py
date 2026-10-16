@@ -32,6 +32,49 @@ REASON_ALLOWED = "WRITE_SECRET_SERVICE_ONLY"
 REASON_IDENTITY_GAP = "WRITE_IDENTITY_EVIDENCE_DENIED"
 REQUIRED_APP_SLUGS = ("claude", "chatgpt-codex-connector")
 FOUNDER_LOGIN = "candasoz01-cmd"
+# Inventory only. Listing a grant here does not open Stage A or B.
+STAGE_A_OPENS = (
+    "founder_merge_of_signer_workflow_onto_main",
+    "workflow_file_present_on_origin_main",
+    "write_sign_trusted_listed_active",
+)
+STAGE_B_OPENS = (
+    "founder_workflow_dispatch_from_refs_heads_main",
+    "founder_lumos_write_gate_environment_approval",
+    "service_production_secret_in_sign_job_only",
+    "copy_range_to_trusted_sign_branch",
+    "open_draft_pr_of_signed_copy",
+)
+STAGE_NEITHER_OPENS = (
+    "agent_merge",
+    "agent_dispatch",
+    "agent_environment_approval",
+    "grants_merge",
+    "proof_hmac_as_production",
+    "relax_trusted_verifier",
+    "branch_protection_settings_write",
+    "unlock_pr_945",
+    "unlock_pr_946",
+    "later_pr_merge",
+    "publication_signers_root",
+)
+
+
+def stage_authority_map() -> dict[str, Any]:
+    """What A and B would unlock if the founder later opens them. This call does not open them."""
+    return {
+        "schema": SCHEMA,
+        "stage_0_accepted": True,
+        "grants_stage_a": False,
+        "grants_stage_b": False,
+        "stage_a_opens": list(STAGE_A_OPENS),
+        "stage_b_opens": list(STAGE_B_OPENS),
+        "neither_opens": list(STAGE_NEITHER_OPENS),
+        "agent_inherits_founder": False,
+        "dispatch": False,
+        "merge": False,
+        "settings_mutated": False,
+    }
 
 _NON_HUMAN_MARKERS = ("[bot]",)
 _NON_HUMAN_PREFIXES = ("app/",)
@@ -332,7 +375,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     try:
         if not argv or argv[0] in {"-h", "--help"}:
-            sys.stderr.write("usage: classify | secret-use | required-impact | identities\n")
+            sys.stderr.write("usage: classify | secret-use | required-impact | identities | stages\n")
             return 2
         command, rest = argv[0], argv[1:]
         if command == "classify":
@@ -343,6 +386,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             return _impact_main(rest)
         if command == "identities":
             return _identities_main(rest)
+        if command == "stages":
+            sys.stdout.write(json.dumps(stage_authority_map(), ensure_ascii=False, sort_keys=True) + "\n")
+            return 0
         raise AuthoritySplitError("bilinmeyen komut")
     except (ClaimError, OSError, ValueError, json.JSONDecodeError) as exc:
         sys.stderr.write(json.dumps({"error": str(exc)}, ensure_ascii=False) + "\n")

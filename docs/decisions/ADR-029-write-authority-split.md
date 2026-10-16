@@ -62,10 +62,60 @@ olması App kaydını kurucu yapmaz; her iki login ajan olarak kilitlenir.
 `evaluate_identity_evidence` bu tabloyu fail-closed doğrular. Aşama A/B
 açılmaz. `#945` / `#946` kilitli kalır.
 
+## Aşama A ve B — yetki haritası (açılmadı)
+
+Kurucu 2026-10-16: Aşama 0 kanıtı kabul; Aşama A/B **henüz yok**. Bu
+bölüm envanterdir. `stage_authority_map()` her çağrıda
+`grants_stage_a=false` ve `grants_stage_b=false` döner. Ajan bu
+listeyi okuyarak A veya B'yi başlatamaz.
+
+A ve B **ayrı kurucu kararlarıdır**. Biri diğerini içermez. İkisini
+birden onaylamak bu belgede yoktur.
+
+### Aşama A — imzalayıcı kodunu `main`'e indirmek
+
+Üretim imzası basmaz. Üretim sırrını ajana açmaz.
+
+| Açar | Açmaz |
+| --- | --- |
+| Yalnız kurucunun, imzalayıcı iş dosyasını taşıyan PR'ı `main`'e merge etmesi | Ajan/bot merge |
+| Merge sonrası `origin/main:.github/workflows/write-sign-trusted.yml` varlığı | `workflow_dispatch` |
+| `gh workflow list`'te `Write sign trusted` işinin `active` görünmesi | `lumos-write-gate` ortam onayı |
+| | Üretim HMAC / `LUMOS_WRITE_GATE_SECRET` kullanımı |
+| | `trusted-sign/pr-*` yazımı |
+| | `grants_merge` |
+| | `#945` / `#946` kilidinin kalkması |
+| | sonraki PR'ların merge'i |
+
+Aşama A kanıtı (yalnız A açılırsa): `git cat-file -e origin/main:.github/workflows/write-sign-trusted.yml` ve iş listesinde `active`. Bu kanıt üretim imzasının çalıştığını göstermez.
+
+### Aşama B — ilk üretim kullanımı
+
+Aşama A kanıtı olmadan B açılmaz. B, A'nın merge yetkisini tekrar etmez.
+
+| Açar | Açmaz |
+| --- | --- |
+| Kurucunun `refs/heads/main` üzerinden `Write sign trusted` `workflow_dispatch` | Ajan dispatch |
+| Kurucunun `lumos-write-gate` ortamında compare URL onaylaması (merge değil) | Ajan ortam onayı |
+| Yalnız `service.write-gate` + `main` + `workflow_dispatch` bağlamında üretim sırrı | Ajanın üretim sırrı |
+| Aralığın `trusted-sign/pr-<n>` kopyası (kaynak dal ve `main` değişmez; force yok) | `main`'e doğrudan yazma |
+| İmzalı kopyanın taslak PR'ı | O taslağın veya kaynak PR'ın merge'i |
+| Kopya SHA'da `write-attestation-trusted` SUCCESS (ilk üretim kanıtı) | Prova HMAC'nin üretim sayılması |
+| | doğrulayıcı gevşetme |
+| | branch protection Settings yazımı |
+| | imza kökü / `allowed_signers` |
+
+Aynı kopyada prova `write-attestation` üretim imzasıyla eşleşmez; bu beklenen ayrımdır.
+
+### Ajan
+
+Claude, Codex ve Cursor kendi App kimlikleriyle çalışır. Hiçbir A/B maddesi
+ajanın kurucu merge, dispatch, ortam onayı veya üretim sırrını devralmasını
+açmaz. `LUMOS_AGENT` dolu bir oturum kurucu sayılmaz.
+
 ## Bu ADR'nin vermediği yetkiler
 
-- Aşama A (imzalayıcıyı `main`'e indirmek)
-- Aşama B (ilk üretim imzası / dispatch)
+- Aşama A ve Aşama B (yukarıdaki harita; karar ayrı ve henüz yok)
 - `#945` / `#946` kilidinin kaldırılması
 - ajan merge, dispatch, ortam onayı
 - branch protection listesinin doldurulması

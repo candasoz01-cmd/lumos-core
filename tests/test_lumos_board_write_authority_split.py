@@ -21,12 +21,16 @@ from lumos_board.write_authority_split import (
     SUBJECT_FOUNDER,
     SUBJECT_SERVICE,
     SUBJECT_UNKNOWN,
+    STAGE_A_OPENS,
+    STAGE_B_OPENS,
+    STAGE_NEITHER_OPENS,
     assert_production_secret_use,
     classify_subject,
     evaluate_identity_evidence,
     main as split_main,
     public_proof_key,
     simulate_required_check_impact,
+    stage_authority_map,
 )
 
 PROOF = "x" * 32
@@ -307,6 +311,22 @@ def test_cli_identities_reads_file_only(tmp_path: Path) -> None:
     path = tmp_path / "identities.json"
     path.write_text(json.dumps(LIVE_IDENTITY), encoding="utf-8")
     assert split_main(["identities", "--file", str(path)]) == 0
+
+
+def test_stage_map_does_not_open_a_or_b() -> None:
+    report = stage_authority_map()
+    assert report["grants_stage_a"] is False
+    assert report["grants_stage_b"] is False
+    assert report["agent_inherits_founder"] is False
+    assert report["merge"] is False
+    assert report["dispatch"] is False
+    assert "founder_merge_of_signer_workflow_onto_main" in report["stage_a_opens"]
+    assert "founder_workflow_dispatch_from_refs_heads_main" in report["stage_b_opens"]
+    assert "agent_merge" in report["neither_opens"]
+    assert set(STAGE_A_OPENS).isdisjoint(STAGE_B_OPENS)
+    assert set(STAGE_A_OPENS).isdisjoint(STAGE_NEITHER_OPENS)
+    assert set(STAGE_B_OPENS).isdisjoint(STAGE_NEITHER_OPENS)
+    assert split_main(["stages"]) == 0
 
 
 def test_required_check_impact_records_947_trusted_red() -> None:
