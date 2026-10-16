@@ -71,3 +71,21 @@ check + güvenilir taban + tek-kullanımlık jeton birlikte doğrulanmadan
 tamamlanmış sayılmaz. #935 taslak kalır; merge ve deploy yoktur.
 
 İkinci `TaskClaimStore` veya ikinci claim CLI açılmaz.
+
+## Yetkili imza
+
+`write-attestation-trusted` yalnız doğrular. İmza,
+`.github/workflows/write-sign-trusted.yml` içindedir.
+
+- Tetik yalnız `workflow_dispatch`. `pull_request` bu işi çalıştırmaz. PR
+  ağacı veri olarak fetch edilir; signer olarak checkout edilmez.
+- Ortam `lumos-write-gate`. Dal politikası yalnız `main`. Zorunlu inceleyici
+  ortam kaydındadır. İş ayrıca `github.ref == refs/heads/main` ister.
+- Genel prova anahtarı reddedilir. Üretim sırrı workflow metninde durmaz;
+  GitHub onu ortam onayından sonra enjekte eder.
+- Aralık yeni dala kopyalanır: `trusted-sign/pr-<numara>`. Kaynak dal ve
+  `main` güncellenmez. Var olan hedef dalın üstüne yazılmaz; force yoktur.
+- Her commit mevcut kapıyı kullanır: bir ACTIVE claim, bir yazma jetonu,
+  `write-attest` tüketimi, sonra claim serbest. `grants_merge` üretilmez.
+- Bu dosya `main`'de yokken iş seçilemez. Tanıtan PR kendini üretim sırrıyla
+  imzalayamaz. Bu bootstrap'tir; doğrulayıcı gevşetilmez.
