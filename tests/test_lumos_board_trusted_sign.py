@@ -23,6 +23,7 @@ from lumos_board.trusted_sign import (
     sign_range,
 )
 from lumos_board.write_attestation import REASON_OK, REASON_UNAUTHORIZED, ClaimGuard
+from lumos_board.write_gate import WriteGate
 
 SECRET = "b" * 32
 OTHER = "c" * 32
@@ -603,3 +604,69 @@ def test_workflow_validates_both_requests_and_authenticates_board() -> None:
     assert env["GH_TOKEN"] == "${{ github.token }}"
     assert env["GIT_CONFIG_KEY_0"] == "credential.https://github.com.helper"
     assert env["GIT_CONFIG_VALUE_0"] == "!gh auth git-credential"
+
+
+def test_bootstrap_procedure_is_draft_and_does_not_grant_authority() -> None:
+    root = Path(__file__).resolve().parents[1]
+    contract = (root / "docs/contracts/write-authorization-v1.md").read_text(
+        encoding="utf-8"
+    )
+    workflow = (root / ".github/workflows/write-sign-trusted.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "## Kurucu bootstrap (taslak — onay yok)" in contract
+    assert "TASLAK" in contract
+    assert "kurucu kararı değil, uygulanmadı, yetki üretmez" in contract
+    assert "Ajan merge / `workflow_dispatch` / ortam onayı / anahtar kaydı yapmaz" in contract
+    assert "Tanıtan PR'da trusted SUCCESS\nbeklemek kilitlenmedir." in contract
+    assert "Bu merge, üretim imzasının çalıştığını kanıtlamaz." in contract
+    assert "**İlk üretim kanıtı:**" in contract
+    assert "write-attestation-trusted` CheckRun SUCCESS" in contract
+    assert "\non:\n  workflow_dispatch:\n" in workflow
+    assert "pull_request:" not in workflow
+    assert "gh pr merge" not in workflow
+    assert workflow.count("${{ secrets.LUMOS_WRITE_GATE_SECRET }}") == 1
+
+
+def test_proof_hmac_is_unauthorized_under_production_secret(tmp_path: Path) -> None:
+    """Introducing commits use the public proof key. Trusted verify must refuse."""
+    proof = public_proof_key()
+    repo = _init_repo(tmp_path)
+    base = _git(repo, "rev-parse", "HEAD")
+    store = TaskClaimStore(tmp_path / "board")
+    result = store.claim(
+        task_id="CURSOR-TRUSTED-SIGN-BOOTSTRAP",
+        repo="lumos-core",
+        branch="feature",
+        worktree=str(repo),
+        owner="cursor-cloud",
+        scopes=["src/a.py"],
+    )
+    assert result.accepted and result.claim is not None
+    claim = result.claim
+    gate = WriteGate(store, secret=proof)
+    token = gate.issue(claim)
+    trailer = ClaimGuard(secret=proof).attest(
+        write_gate=gate,
+        token=token,
+        owner="cursor-cloud",
+        paths=["src/a.py"],
+        parent_sha=base,
+        claim_id=claim.claim_id,
+        task_id=claim.task_id,
+        scopes=["src/a.py"],
+    )
+    head = _commit(
+        repo,
+        "src/a.py",
+        "a\n",
+        f"introducing signer\n\nLumos-Claim-Attestation: {trailer}\n",
+    )
+    proof_verdict = ClaimGuard(secret=proof).verify_range(repo, base=base, head=head)
+    assert proof_verdict.allowed is True
+    assert proof_verdict.reason == REASON_OK
+    trusted = ClaimGuard(secret=SECRET).verify_range(repo, base=base, head=head)
+    assert trusted.allowed is False
+    assert trusted.reason == REASON_UNAUTHORIZED
+    with pytest.raises(TrustedSignError, match="prova anahtarı"):
+        assert_production_secret(proof, proof_key=proof)
