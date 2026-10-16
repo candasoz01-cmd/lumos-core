@@ -21,7 +21,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Mapping, Sequence
 
 from lumos_board.claim_cli import _claim_store
 from lumos_board.task_claim import ClaimError, TaskClaimStore
@@ -331,55 +331,230 @@ def push_signed(repo: Path, *, remote: str, sha: str, dest: str) -> None:
     _git(repo, *args)
 
 
+STOP_CHECKS = (
+    "write-attestation-trusted",
+    "claim-guard",
+    "test",
+    "rust",
+    "macos-app-build",
+    "ui-smoke",
+    "ui-e2e",
+    "node-tests",
+    "publication-gate",
+)
+PROOF_KEY_CHECK = "write-attestation"
+
+
+def compare_url(repo_slug: str, base: str, head: str) -> str:
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo_slug):
+        raise TrustedSignError("repo slug geçersiz")
+    base = _sha(base, "base")
+    head = _sha(head, "head")
+    return f"https://github.com/{repo_slug}/compare/{base}...{head}"
+
+
+def build_manifest(
+    repo: Path,
+    *,
+    base: str,
+    head: str,
+    dest: str,
+    source_branch: str,
+    repo_slug: str,
+) -> dict[str, Any]:
+    dest = destination_branch(dest)
+    if (
+        not source_branch
+        or source_branch.startswith("-")
+        or any(char.isspace() for char in source_branch)
+        or ".." in source_branch
+    ):
+        raise TrustedSignError("kaynak dal geçersiz")
+    commits = _linear_commits(repo, base, head)
+    items: list[dict[str, Any]] = []
+    for sha in commits:
+        subject = _git(repo, "log", "-1", "--format=%s", sha).strip()
+        items.append(
+            {
+                "paths": list(_changed_paths(repo, sha)),
+                "sha": sha,
+                "subject": subject,
+            }
+        )
+    return {
+        "base": _sha(base, "base"),
+        "commits": items,
+        "compare_url": compare_url(repo_slug, base, head),
+        "dest": dest,
+        "grants_merge": False,
+        "head": _sha(head, "head"),
+        "source_branch": source_branch,
+    }
+
+
+def manifest_core(manifest: Mapping[str, Any]) -> dict[str, Any]:
+    commits = manifest.get("commits")
+    if not isinstance(commits, list):
+        raise TrustedSignError("manifest commit listesi yok")
+    core_commits = []
+    for item in commits:
+        if not isinstance(item, Mapping):
+            raise TrustedSignError("manifest commit kaydı geçersiz")
+        paths = item.get("paths")
+        if not isinstance(paths, list) or not all(isinstance(path, str) for path in paths):
+            raise TrustedSignError("manifest yolları geçersiz")
+        core_commits.append({"paths": list(paths), "sha": _sha(str(item.get("sha")), "commit")})
+    return {
+        "base": _sha(str(manifest.get("base")), "base"),
+        "commits": core_commits,
+        "dest": destination_branch(str(manifest.get("dest"))),
+        "head": _sha(str(manifest.get("head")), "head"),
+        "source_branch": str(manifest.get("source_branch") or ""),
+    }
+
+
+def require_same_manifest(approved: Mapping[str, Any], live: Mapping[str, Any]) -> None:
+    if manifest_core(approved) != manifest_core(live):
+        raise TrustedSignError("onaylanan değişiklik ile canlı başlık farklı")
+    if approved.get("grants_merge") is True or live.get("grants_merge") is True:
+        raise TrustedSignError("imza kaydı merge izni taşıyamaz")
+
+
+def judge_checks(rollup: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    by_name: dict[str, dict[str, str]] = {}
+    for item in rollup:
+        name = str(item.get("name") or item.get("context") or "")
+        if not name:
+            continue
+        status = str(item.get("status") or "").lower()
+        conclusion = str(item.get("conclusion") or "").lower()
+        by_name[name] = {"conclusion": conclusion, "status": status}
+    pending: list[str] = []
+    failed: list[str] = []
+    for name in STOP_CHECKS:
+        row = by_name.get(name)
+        if row is None or row["status"] != "completed":
+            pending.append(name)
+        elif row["conclusion"] != "success":
+            failed.append(name)
+    return {
+        "failed": failed,
+        "grants_merge": False,
+        "pending": pending,
+        "proof_key_check": by_name.get(PROOF_KEY_CHECK),
+        "standing_class": by_name.get("standing-class"),
+        "stop": bool(pending or failed),
+    }
+
+
+def _emit(payload: Mapping[str, Any]) -> None:
+    sys.stdout.write(json.dumps(payload, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def _preview_main(argv: Sequence[str]) -> int:
+    parser = argparse.ArgumentParser(prog="python -m lumos_board.trusted_sign preview")
+    parser.add_argument("--repo", default=".")
+    parser.add_argument("--base", required=True)
+    parser.add_argument("--head", required=True)
+    parser.add_argument("--dest", required=True)
+    parser.add_argument("--source-branch", required=True)
+    parser.add_argument("--repo-slug", required=True)
+    args = parser.parse_args(argv)
+    _emit(
+        build_manifest(
+            Path(args.repo),
+            base=args.base,
+            head=args.head,
+            dest=args.dest,
+            source_branch=args.source_branch,
+            repo_slug=args.repo_slug,
+        )
+    )
+    return 0
+
+
+def _judge_main(argv: Sequence[str]) -> int:
+    parser = argparse.ArgumentParser(prog="python -m lumos_board.trusted_sign judge-checks")
+    parser.add_argument("--file", required=True)
+    args = parser.parse_args(argv)
+    payload = json.loads(Path(args.file).read_text(encoding="utf-8"))
+    rollup = payload.get("statusCheckRollup", payload)
+    if not isinstance(rollup, list):
+        raise TrustedSignError("kontrol listesi geçersiz")
+    verdict = judge_checks(rollup)
+    _emit(verdict)
+    return 2 if verdict["stop"] else 0
+
+
 def main(argv: Sequence[str] | None = None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    try:
+        if argv and argv[0] == "preview":
+            return _preview_main(argv[1:])
+        if argv and argv[0] == "judge-checks":
+            return _judge_main(argv[1:])
+        return _sign_main(argv)
+    except (ClaimError, TrustedSignError, OSError, ValueError) as exc:
+        sys.stderr.write(json.dumps({"error": str(exc)}, ensure_ascii=False) + "\n")
+        return 2
+
+
+def _sign_main(argv: Sequence[str]) -> int:
     parser = argparse.ArgumentParser(prog="python -m lumos_board.trusted_sign")
     parser.add_argument("--repo", default=".")
     parser.add_argument("--base", required=True)
     parser.add_argument("--head", required=True)
     parser.add_argument("--dest", required=True)
     parser.add_argument("--source-branch", required=True)
+    parser.add_argument("--repo-slug", default="")
+    parser.add_argument("--manifest-file")
     parser.add_argument("--store")
     parser.add_argument("--central", action="store_true")
     parser.add_argument("--push", metavar="REMOTE")
     args = parser.parse_args(argv)
-    try:
-        if args.central == bool(args.store):
-            raise TrustedSignError("yalnız --central veya --store verilir")
-        if args.central:
-            assert_authorized_context()
-        secret = assert_production_secret(os.environ.get(_SECRET_ENV[0]))
-        store = _claim_store(args.store)
-        signed = sign_range(
+    if args.manifest_file:
+        if not args.repo_slug:
+            raise TrustedSignError("manifest karşılaştırması repo slug ister")
+        approved = json.loads(Path(args.manifest_file).read_text(encoding="utf-8"))
+        live = build_manifest(
             Path(args.repo),
             base=args.base,
             head=args.head,
             dest=args.dest,
             source_branch=args.source_branch,
-            store=store,
-            secret=secret,
+            repo_slug=args.repo_slug,
         )
-        pushed = False
-        if args.push:
-            if not args.central:
-                raise TrustedSignError("push yalnız yetkili ortamda")
-            push_signed(Path(args.repo), remote=args.push, sha=signed[-1].signed, dest=args.dest)
-            pushed = True
-        sys.stdout.write(
-            json.dumps(
-                {
-                    "dest": args.dest,
-                    "pushed": pushed,
-                    "commits": [item.to_dict() for item in signed],
-                },
-                ensure_ascii=False,
-                sort_keys=True,
-            )
-            + "\n"
-        )
-        return 0
-    except ClaimError as exc:
-        sys.stderr.write(json.dumps({"error": str(exc)}, ensure_ascii=False) + "\n")
-        return 2
+        require_same_manifest(approved, live)
+    if args.central == bool(args.store):
+        raise TrustedSignError("yalnız --central veya --store verilir")
+    if args.central:
+        assert_authorized_context()
+    secret = assert_production_secret(os.environ.get(_SECRET_ENV[0]))
+    store = _claim_store(args.store)
+    signed = sign_range(
+        Path(args.repo),
+        base=args.base,
+        head=args.head,
+        dest=args.dest,
+        source_branch=args.source_branch,
+        store=store,
+        secret=secret,
+    )
+    pushed = False
+    if args.push:
+        if not args.central:
+            raise TrustedSignError("push yalnız yetkili ortamda")
+        push_signed(Path(args.repo), remote=args.push, sha=signed[-1].signed, dest=args.dest)
+        pushed = True
+    _emit(
+        {
+            "commits": [item.to_dict() for item in signed],
+            "dest": args.dest,
+            "grants_merge": False,
+            "pushed": pushed,
+        }
+    )
+    return 0
 
 
 if __name__ == "__main__":

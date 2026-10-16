@@ -267,26 +267,38 @@ def test_message_keeps_one_trailer_block() -> None:
     )
 
 
-def test_workflow_is_main_dispatch_and_does_not_take_the_proof_key() -> None:
+def test_workflow_shows_the_change_before_the_environment_gate() -> None:
     workflow = (
         Path(__file__).resolve().parents[1] / ".github" / "workflows" / "write-sign-trusted.yml"
     ).read_text(encoding="utf-8")
     assert "\non:\n  workflow_dispatch:\n" in workflow
     assert "pull_request:" not in workflow
     assert "pull_request_target:" not in workflow
-    assert "environment: lumos-write-gate" in workflow
+    assert "name: lumos-write-gate" in workflow
+    assert "url: ${{ needs.preview.outputs.compare_url }}" in workflow
+    assert "Onay merge izni değildir." in workflow
     assert "github.ref == 'refs/heads/main'" in workflow
     assert "github.event_name == 'workflow_dispatch'" in workflow
     assert workflow.count("${{ secrets.LUMOS_WRITE_GATE_SECRET }}") == 1
     assert "lumos-ci-write-attestation-proof-not-prod-32" not in workflow
     assert "--central" in workflow
     assert "--store" not in workflow
+    assert "--manifest-file" in workflow
     assert "--force" not in workflow
+    assert "gh pr merge" not in workflow
     assert "ref: main" in workflow
     assert "trusted-sign/pr-" in workflow
+    preview = workflow.index("\n  preview:\n")
+    environment = workflow.index("name: lumos-write-gate")
+    secret = workflow.index("${{ secrets.LUMOS_WRITE_GATE_SECRET }}")
+    watch = workflow.index("\n  watch:\n")
+    assert preview < environment < secret < watch
     jobs = workflow.split("\njobs:\n", 1)[1]
-    assert "contents: write" in jobs
+    assert jobs.count("contents: write") == 1
     assert "permissions:\n  contents: read\n" in workflow.split("\njobs:\n", 1)[0]
+    watch_job = jobs.split("\n  watch:\n", 1)[1]
+    assert "LUMOS_WRITE_GATE_SECRET" not in watch_job
+    assert "contents: write" not in watch_job
 
 
 def test_cli_result_omits_secret_and_token(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -321,3 +333,214 @@ def test_cli_result_omits_secret_and_token(tmp_path: Path, monkeypatch: pytest.M
     assert SECRET not in captured.out
     assert SECRET not in captured.err
     assert "write_token" not in captured.out
+    assert payload["grants_merge"] is False
+
+
+def test_preview_lists_paths_and_does_not_sign(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    repo = _init_repo(tmp_path)
+    base = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "feature")
+    head = _commit(repo, "src/a.py", "a\n", "change")
+    from lumos_board.trusted_sign import main as sign_main
+
+    code = sign_main(
+        [
+            "preview",
+            "--repo",
+            str(repo),
+            "--base",
+            base,
+            "--head",
+            head,
+            "--dest",
+            "trusted-sign/pr-9",
+            "--source-branch",
+            "feature",
+            "--repo-slug",
+            "candasoz01-cmd/lumos-core",
+        ]
+    )
+    captured = capsys.readouterr()
+    assert code == 0
+    manifest = json.loads(captured.out)
+    assert manifest["grants_merge"] is False
+    assert manifest["commits"] == [
+        {"paths": ["src/a.py"], "sha": head, "subject": "change"}
+    ]
+    assert manifest["compare_url"] == (
+        f"https://github.com/candasoz01-cmd/lumos-core/compare/{base}...{head}"
+    )
+    missing = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "--verify", "--quiet", "refs/heads/trusted-sign/pr-9"],
+        check=False,
+        capture_output=True,
+    )
+    assert missing.returncode != 0
+
+
+def test_moved_head_is_not_signed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    repo = _init_repo(tmp_path)
+    base = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "feature")
+    head = _commit(repo, "src/a.py", "a\n", "change")
+    from lumos_board.trusted_sign import build_manifest
+    from lumos_board.trusted_sign import main as sign_main
+
+    approved = build_manifest(
+        repo,
+        base=base,
+        head=head,
+        dest="trusted-sign/pr-9",
+        source_branch="feature",
+        repo_slug="candasoz01-cmd/lumos-core",
+    )
+    moved = _commit(repo, "src/b.py", "b\n", "later")
+    manifest_path = tmp_path / "approved.json"
+    manifest_path.write_text(json.dumps(approved), encoding="utf-8")
+    monkeypatch.setenv("LUMOS_WRITE_GATE_SECRET", SECRET)
+    code = sign_main(
+        [
+            "--repo",
+            str(repo),
+            "--base",
+            base,
+            "--head",
+            moved,
+            "--dest",
+            "trusted-sign/pr-9",
+            "--source-branch",
+            "feature",
+            "--repo-slug",
+            "candasoz01-cmd/lumos-core",
+            "--manifest-file",
+            str(manifest_path),
+            "--store",
+            str(tmp_path / "board"),
+        ]
+    )
+    captured = capsys.readouterr()
+    assert code == 2
+    assert "canlı başlık" in captured.err
+    assert SECRET not in captured.err
+    assert not (tmp_path / "board").exists()
+    missing = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "--verify", "--quiet", "refs/heads/trusted-sign/pr-9"],
+        check=False,
+        capture_output=True,
+    )
+    assert missing.returncode != 0
+
+
+def test_matching_manifest_signs_without_merge(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    repo = _init_repo(tmp_path)
+    base = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "feature")
+    head = _commit(repo, "src/a.py", "a\n", "change")
+    from lumos_board.trusted_sign import build_manifest
+    from lumos_board.trusted_sign import main as sign_main
+
+    approved = build_manifest(
+        repo,
+        base=base,
+        head=head,
+        dest="trusted-sign/pr-9",
+        source_branch="feature",
+        repo_slug="candasoz01-cmd/lumos-core",
+    )
+    manifest_path = tmp_path / "approved.json"
+    manifest_path.write_text(json.dumps(approved), encoding="utf-8")
+    monkeypatch.setenv("LUMOS_WRITE_GATE_SECRET", SECRET)
+    code = sign_main(
+        [
+            "--repo",
+            str(repo),
+            "--base",
+            base,
+            "--head",
+            head,
+            "--dest",
+            "trusted-sign/pr-9",
+            "--source-branch",
+            "feature",
+            "--repo-slug",
+            "candasoz01-cmd/lumos-core",
+            "--manifest-file",
+            str(manifest_path),
+            "--store",
+            str(tmp_path / "board"),
+        ]
+    )
+    captured = capsys.readouterr()
+    assert code == 0
+    payload = json.loads(captured.out)
+    assert payload["grants_merge"] is False
+    assert payload["pushed"] is False
+    assert SECRET not in captured.out
+
+
+def test_merge_flag_in_manifest_is_refused(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    base = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "feature")
+    head = _commit(repo, "src/a.py", "a\n", "change")
+    from lumos_board.trusted_sign import build_manifest
+    from lumos_board.trusted_sign import require_same_manifest
+
+    approved = build_manifest(
+        repo,
+        base=base,
+        head=head,
+        dest="trusted-sign/pr-9",
+        source_branch="feature",
+        repo_slug="candasoz01-cmd/lumos-core",
+    )
+    approved["grants_merge"] = True
+    with pytest.raises(TrustedSignError, match="merge"):
+        require_same_manifest(approved, approved)
+
+
+def test_failed_trusted_check_stops_and_does_not_grant_merge() -> None:
+    from lumos_board.trusted_sign import judge_checks
+
+    rollup = [
+        {"name": name, "status": "COMPLETED", "conclusion": "SUCCESS"}
+        for name in (
+            "write-attestation-trusted",
+            "claim-guard",
+            "test",
+            "rust",
+            "macos-app-build",
+            "ui-smoke",
+            "ui-e2e",
+            "node-tests",
+            "publication-gate",
+        )
+    ]
+    clean = judge_checks(rollup)
+    assert clean["stop"] is False
+    assert clean["grants_merge"] is False
+    failed = judge_checks(
+        [
+            {"name": "write-attestation-trusted", "status": "completed", "conclusion": "failure"},
+            *rollup[1:],
+            {"name": "write-attestation", "status": "completed", "conclusion": "failure"},
+            {"name": "standing-class", "status": "completed", "conclusion": "failure"},
+        ]
+    )
+    assert failed["stop"] is True
+    assert failed["failed"] == ["write-attestation-trusted"]
+    assert failed["grants_merge"] is False
+    assert failed["proof_key_check"]["conclusion"] == "failure"
+    assert failed["standing_class"]["conclusion"] == "failure"
+    proof_only = judge_checks(
+        [
+            *rollup,
+            {"name": "write-attestation", "status": "COMPLETED", "conclusion": "FAILURE"},
+            {"name": "standing-class", "status": "COMPLETED", "conclusion": "FAILURE"},
+        ]
+    )
+    assert proof_only["stop"] is False
+    assert proof_only["grants_merge"] is False
+    pending = judge_checks(rollup[:-1])
+    assert pending["stop"] is True
+    assert pending["pending"] == ["publication-gate"]

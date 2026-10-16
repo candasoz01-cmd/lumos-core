@@ -79,13 +79,25 @@ tamamlanmış sayılmaz. #935 taslak kalır; merge ve deploy yoktur.
 
 - Tetik yalnız `workflow_dispatch`. `pull_request` bu işi çalıştırmaz. PR
   ağacı veri olarak fetch edilir; signer olarak checkout edilmez.
+- Sıra: önce önizleme, sonra ortam onayı, sonra imza, sonra otomatik
+  kontroller. Önizleme commitleri, yolları ve sabit `base...head`
+  karşılaştırmasını yazar. Ortam kaydının adresi bu karşılaştırmadır.
+  İnceleyici onaydan önce o ekranı görür.
+- Onaylanan manifest ile canlı başlık aynı değilse imza yazılmaz. Üretim
+  sırrı yalnız imza işine gelir; önizleme ve kontrol işinde yoktur.
 - Ortam `lumos-write-gate`. Dal politikası yalnız `main`. Zorunlu inceleyici
   ortam kaydındadır. İş ayrıca `github.ref == refs/heads/main` ister.
-- Genel prova anahtarı reddedilir. Üretim sırrı workflow metninde durmaz;
-  GitHub onu ortam onayından sonra enjekte eder.
+  Bu onay merge izni değildir. `grants_merge` üretilmez. İş merge çağırmaz.
+- Genel prova anahtarı reddedilir. Üretim sırrı workflow metninde durmaz.
 - Aralık yeni dala kopyalanır: `trusted-sign/pr-<numara>`. Kaynak dal ve
   `main` güncellenmez. Var olan hedef dalın üstüne yazılmaz; force yoktur.
+  İmzadan sonra taslak PR açılır; otomatik kontroller orada koşar.
+- `write-attestation-trusted`, `claim-guard` ve zorunlu CI tamamlanmadan
+  izleme işi durur. Biri başarısızsa veya askıda kalırsa iş fail olur ve
+  merge yoktur. Genel prova anahtarı işi üretim imzasında eşleşmez; bu
+  beklenen ayrımıdır, doğrulayıcı gevşetilmez. `standing-class` başarısızlığı
+  imza başarısı sayılmaz ve merge açmaz.
 - Her commit mevcut kapıyı kullanır: bir ACTIVE claim, bir yazma jetonu,
-  `write-attest` tüketimi, sonra claim serbest. `grants_merge` üretilmez.
+  `write-attest` tüketimi, sonra claim serbest.
 - Bu dosya `main`'de yokken iş seçilemez. Tanıtan PR kendini üretim sırrıyla
   imzalayamaz. Bu bootstrap'tir; doğrulayıcı gevşetilmez.
