@@ -16,6 +16,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from core.evidence_settings import archive_removed_file
+
 
 def lumos_base_dir() -> Path:
     lb = os.environ.get("LUMOS_BASE_DIR", ".lumos")
@@ -100,9 +102,18 @@ def _backup_path(fp: Path) -> Path:
     return fp.with_name(fp.name + ".bak")
 
 
+def _retained_write(fp: Path, text: str, *, operation: str) -> None:
+    """A failed archive blocks replacement; never consume the previous bytes."""
+    if fp.exists():
+        archive_removed_file(lumos_base_dir(), fp, operation=operation)
+    fp.write_text(text, encoding="utf-8")
+
+
 def _backup_file(fp: Path) -> Path:
     bak = _backup_path(fp)
-    bak.write_text(fp.read_text(encoding="utf-8"), encoding="utf-8")
+    # Preserve the target before changing even its one-slot undo backup.
+    archive_removed_file(lumos_base_dir(), fp, operation="patch.target.replace")
+    _retained_write(bak, fp.read_text(encoding="utf-8"), operation="patch.backup.replace")
     return bak
 
 
@@ -114,7 +125,7 @@ def _rollback_file(fp: Path) -> dict[str, Any]:
             "error_type": "backup_missing",
             "detail": f"backup yok: {bak.name}",
         }
-    fp.write_text(bak.read_text(encoding="utf-8"), encoding="utf-8")
+    _retained_write(fp, bak.read_text(encoding="utf-8"), operation="patch.rollback.replace")
     return {
         "execution_result": "rollback_applied",
         "error_type": "",
@@ -273,7 +284,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         backups: dict[str, str] = {}
         for r in rels:
             fp0 = (Path.cwd().resolve() / r).resolve()
-            if fp0.exists():
+            if fp0.is_relative_to(Path.cwd().resolve()) and fp0.exists():
                 backups[r] = fp0.read_text(encoding="utf-8")
 
         results: list[dict[str, Any]] = []
@@ -282,7 +293,10 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
             results.append(sub)
             if sub.get("execution_result") not in ("patch_applied", "no_change"):
                 for br, content in backups.items():
-                    (Path.cwd().resolve() / br).write_text(content, encoding="utf-8")
+                    _retained_write(
+                        (Path.cwd().resolve() / br).resolve(), content,
+                        operation="patch.multi_rollback.replace",
+                    )
                 return {
                     "execution_result": "rolled_back",
                     "detail": f"multi rollback ({r} başarısız)",
@@ -315,7 +329,7 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
         backups: dict[str, str] = {}
         for r in rels:
             fp0 = (Path.cwd().resolve() / r).resolve()
-            if fp0.exists():
+            if fp0.is_relative_to(Path.cwd().resolve()) and fp0.exists():
                 backups[r] = fp0.read_text(encoding="utf-8")
 
         results: list[dict[str, Any]] = []
@@ -324,7 +338,10 @@ def run(payload: dict[str, Any]) -> dict[str, Any]:
             results.append(sub)
             if sub.get("execution_result") not in ("patch_applied", "no_change"):
                 for br, content in backups.items():
-                    (Path.cwd().resolve() / br).write_text(content, encoding="utf-8")
+                    _retained_write(
+                        (Path.cwd().resolve() / br).resolve(), content,
+                        operation="patch.multi_rollback.replace",
+                    )
                 return {
                     "execution_result": "rolled_back",
                     "detail": f"multi rollback ({r} başarısız)",
