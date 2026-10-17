@@ -298,3 +298,25 @@ The review account is intended solely for App Store evaluation. It contains
 only synthetic demonstration data and cannot access any production user
 information or customer accounts.
 ```
+
+
+---
+
+## 9. Apple guideline reconciliation and evidence gates (2026-10-17)
+
+**Status: documentation-only review; NOT evidence of native iOS compliance or App Store approval.** Apple Developer Relations' 2026-10-16 notice and the current English App Review Guidelines both contain **2.3.14** (creative assets) and **2.5.19** (hidden, dormant or undocumented functionality); 2.5.19 was formerly covered by 2.3.1. Guideline **1.2** explicitly covers AI-generated content and moderation. Source: https://developer.apple.com/app-store/review/guidelines/ . The earlier reported absence of these numbers on the webpage is not reproduced in the latest English text.
+
+### Mandatory release evidence (all unchecked until verified against the submitted binary)
+
+- [ ] Identify the **exact native iOS repository, release commit, build number and App Store Connect submission binary**. This OSS repository does not contain the native iOS source; do not infer binary behavior from this template or from TestFlight.
+- [ ] Inventory all shipped features, server-side flags, dormant paths, entitlement switches and remotely enabled functions. Under **2.5.19**, no hidden or undocumented functionality; user-facing description and review notes must reflect actual behavior. No reviewer-only bypass concealing production behavior.
+- [ ] Record a device-level reviewer walkthrough of every feature advertised in screenshots, previews and creative assets (**2.3.14**, **2.3.3**, **2.3.4**). Use only demonstrably working features, clearly mark simulations, and avoid unverifiable claims.
+- [ ] Confirm the review login and backend are actually available during review. Document real vs simulated features separately; a demo-only approval or canned assistant reply must never be described as production execution. Apple requires access to the submitted app's functionality; a demo workspace is not permission to conceal or replace live behavior.
+- [ ] Check actual microphone and camera permission strings, prompts, capture indicators, start/stop controls, background behavior and any upload/retention path on the native binary. **2.5.14** requires explicit consent and clear indication of recording. Do not claim an instant microphone mute unless demonstrated.
+- [ ] If users generate/share AI or other content, test objectionable-content filtering, reporting, blocking, published contact details and response handling under **1.2**; document applicability to the actual release.
+- [ ] Inventory every payment entry point. Distinguish **StoreKit in-app purchases** for digital features from permitted external payment use cases and regional entitlements under **3.1**. Google Pay, WeChat Pay or Apple Pay appearing in a plan or UI is not evidence of an integrated, permitted or working payment flow.
+- [ ] Validate privacy labels, SDK disclosures, permissions, support/privacy URLs and the App Review notes against **the same exact release binary**. Do not submit the placeholder text in section 3 as factual claims until independently verified.
+- [ ] Attach evidence for each claim: commit/build ID, test device and iOS version, test steps, observed result, screenshots/logs, reviewer account validation and responsible reviewer. Record failures and unknowns explicitly.
+- [ ] Obtain separate App Store review outcome. **TestFlight success is not App Store approval**.
+
+**Current evidence boundary:** The repository's Review Mode, hosted demo API, sample approval, chat and permission descriptions are engineering specifications/placeholders, not verified iOS functionality. Until binary-level evidence is collected, the release status remains **NOT VERIFIED / DO NOT CLAIM READY**.
