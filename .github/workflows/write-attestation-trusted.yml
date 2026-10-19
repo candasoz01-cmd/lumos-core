@@ -2,9 +2,11 @@
 # Isolated from claim-guard.yml so pull_request_target never emits SKIPPED
 # CheckRuns named claim-guard or write-attestation.
 #
-# pull_request_target + base.sha extract + production secret.
-# The secret is only on the verify step after the verifier is materialized
-# from the PR base, never from the untrusted head.
+# pull_request_target + base.sha extract + production secret from the
+# lumos-write-gate environment. Protection rules on that environment run
+# before the secret is readable. The verifier is materialized from the PR
+# base, never from the untrusted head. An environment secret of the same
+# name overrides the repository secret for this job only.
 name: Write attestation trusted
 
 on:
@@ -19,6 +21,8 @@ concurrency:
 
 jobs:
   write-attestation-trusted:
+    # Production key source. The checkout below stays on the base SHA.
+    environment: lumos-write-gate
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:

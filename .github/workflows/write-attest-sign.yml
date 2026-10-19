@@ -1,0 +1,93 @@
+# Production head attestation. Signs a commit SHA from outside the commit.
+#
+# Trigger: workflow_dispatch on refs/heads/main only. The job runs in the
+# lumos-write-gate environment. The founder is the required reviewer of that
+# environment, and deployment branches are limited to main. Those two settings
+# are GitHub Environment rules; this file cannot create them.
+#
+# LUMOS_WRITE_GATE_SECRET is read only inside this job, from that environment.
+# The checkout is main. The PR head is fetched as data and is never executed.
+# A commit message cannot contain its own SHA, so the HMAC is published as the
+# write-attest-sign check run on that SHA.
+name: Write attest sign
+
+on:
+  workflow_dispatch:
+    inputs:
+      head_sha:
+        description: Commit SHA to attest
+        required: true
+        type: string
+      claim_id:
+        description: ACTIVE claim id cited by that commit
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  sign:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    environment: lumos-write-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      checks: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: refs/heads/main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Read commit message as data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+        run: |
+          set -euo pipefail
+          gh api "/repos/${GITHUB_REPOSITORY}/commits/${HEAD_SHA}" --jq .commit.message \
+            > "${RUNNER_TEMP}/message.txt"
+
+      - name: Sign head from main code
+        env:
+          LUMOS_WRITE_GATE_SECRET: ${{ secrets.LUMOS_WRITE_GATE_SECRET }}
+          HEAD_SHA: ${{ inputs.head_sha }}
+          CLAIM_ID: ${{ inputs.claim_id }}
+          ACTOR: ${{ github.actor }}
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref }}
+          CODE_SHA: ${{ github.sha }}
+          MAIN_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin +refs/heads/claude/lumos-board:refs/remotes/origin/claude/lumos-board
+          PYTHONPATH=src python3 -m lumos_board.head_attestation sign \
+            --event-name "$EVENT_NAME" \
+            --ref "$REF_NAME" \
+            --code-sha "$CODE_SHA" \
+            --main-sha "$MAIN_SHA" \
+            --repo . \
+            --head-sha "$HEAD_SHA" \
+            --claim-id "$CLAIM_ID" \
+            --actor "$ACTOR" \
+            --message-file "${RUNNER_TEMP}/message.txt" \
+            > "${RUNNER_TEMP}/attest.json"
+
+      - name: Publish check run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ATTEST_FILE: ${{ runner.temp }}/attest.json
+        run: |
+          set -euo pipefail
+          PYTHONPATH=src python3 -m lumos_board.head_attestation publish-body \
+            --file "$ATTEST_FILE" > "${RUNNER_TEMP}/check.json"
+          gh api --method POST "/repos/${GITHUB_REPOSITORY}/check-runs" \
+            --input "${RUNNER_TEMP}/check.json"
