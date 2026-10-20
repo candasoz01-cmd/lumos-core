@@ -114,6 +114,18 @@ needs_cgroup = pytest.mark.skipif(
     reason="delegated cgroup v2 memory controller required",
 )
 
+# Keyed on the platform, not on tool presence: on a Linux host a missing
+# prlimit / keyctl / seccomp still fails these tests loudly (fail-closed is
+# what they assert), it is never turned into a skip.
+needs_linux = pytest.mark.skipif(
+    sys.platform != "linux",
+    reason="Linux kernel features (keyctl, seccomp, /proc task count, prlimit) required",
+)
+
+# Host-side helper binary for preexec tests (not inside the jail): /bin/true
+# does not exist on every host (e.g. recent macOS ships only /usr/bin/true).
+_TRUE_BIN = shutil.which("true") or "/bin/true"
+
 
 def _git(cwd: Path, *args: str) -> None:
     subprocess.run(
@@ -978,6 +990,7 @@ def test_user_keyring_not_searchable_after_preexec() -> None:
     assert parts[3] == "1"  # EPERM on @s
 
 
+@needs_linux
 def test_key_seccomp_filter_denies_x32_syscall_bit() -> None:
     """Bugbot Medium on 5989489a: x32 keeps AUDIT_ARCH_X86_64, sets bit 30."""
     from lumos_board.observer_sandbox import (
@@ -1082,7 +1095,7 @@ def test_join_keyring_preexec_does_not_cdll_or_raise(
 
     monkeypatch.setattr("ctypes.CDLL", _boom)
     proc = subprocess.run(
-        ["/bin/true"],
+        [_TRUE_BIN],
         preexec_fn=_join_fresh_session_keyring,
         timeout=5,
         check=False,
@@ -1101,7 +1114,7 @@ def test_join_keyring_eperm_is_noop_and_child_execs(
     monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.EPERM))
     monkeypatch.setattr(sandbox, "_keyctl_search_is_live", lambda: False)
     proc = subprocess.run(
-        ["/bin/true"],
+        [_TRUE_BIN],
         preexec_fn=sandbox._join_fresh_session_keyring,
         timeout=5,
         check=False,
@@ -1121,7 +1134,7 @@ def test_join_keyring_edquot_aborts_when_seccomp_fails(
     monkeypatch.setattr(sandbox, "_keyctl_search_is_live", lambda: True)
     monkeypatch.setattr(sandbox, "_block_key_syscalls", lambda: errno.ENOSYS)
     proc = subprocess.run(
-        ["/bin/true"],
+        [_TRUE_BIN],
         preexec_fn=sandbox._join_fresh_session_keyring,
         timeout=5,
         check=False,
@@ -1140,7 +1153,7 @@ def test_join_keyring_edquot_execs_when_seccomp_blocks_keys(
     monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.EDQUOT))
     monkeypatch.setattr(sandbox, "_block_key_syscalls", lambda: 0)
     proc = subprocess.run(
-        ["/bin/true"],
+        [_TRUE_BIN],
         preexec_fn=sandbox._join_fresh_session_keyring,
         timeout=5,
         check=False,
@@ -1160,7 +1173,7 @@ def test_join_keyring_eacces_aborts_when_search_live(
     monkeypatch.setattr(sandbox, "_keyctl_search_is_live", lambda: True)
     monkeypatch.setattr(sandbox, "_block_key_syscalls", lambda: errno.ENOSYS)
     proc = subprocess.run(
-        ["/bin/true"],
+        [_TRUE_BIN],
         preexec_fn=sandbox._join_fresh_session_keyring,
         timeout=5,
         check=False,
@@ -1178,7 +1191,7 @@ def test_join_keyring_eacces_execs_when_search_blocked(
     monkeypatch.setattr(sandbox, "_keyctl_join_raw", lambda: (-1, errno.EACCES))
     monkeypatch.setattr(sandbox, "_keyctl_search_is_live", lambda: False)
     proc = subprocess.run(
-        ["/bin/true"],
+        [_TRUE_BIN],
         preexec_fn=sandbox._join_fresh_session_keyring,
         timeout=5,
         check=False,
@@ -1196,6 +1209,7 @@ def test_keyctl_blocked_errnos_are_syscall_dead_only() -> None:
     assert errno.ENOTSUP not in _KEYCTL_BLOCKED
 
 
+@needs_linux
 def test_join_keyring_enomem_search_aborts_child(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1209,7 +1223,7 @@ def test_join_keyring_enomem_search_aborts_child(
     monkeypatch.setattr(sandbox, "_block_key_syscalls", lambda: errno.ENOSYS)
     assert sandbox._keyctl_search_is_live() is True
     proc = subprocess.run(
-        ["/bin/true"],
+        [_TRUE_BIN],
         preexec_fn=sandbox._join_fresh_session_keyring,
         timeout=5,
         check=False,
@@ -1217,6 +1231,7 @@ def test_join_keyring_enomem_search_aborts_child(
     assert proc.returncode != 0
 
 
+@needs_linux
 def test_keyctl_denial_does_not_skip_started_sandbox(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1240,6 +1255,7 @@ def test_keyctl_denial_does_not_skip_started_sandbox(
     assert result.returncode == 0
 
 
+@needs_linux
 def test_probe_seccomp_enosys_live_search_is_unavailable(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1255,6 +1271,7 @@ def test_probe_seccomp_enosys_live_search_is_unavailable(
         run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
+@needs_linux
 def test_keyctl_join_edquot_is_unavailable(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1269,6 +1286,7 @@ def test_keyctl_join_edquot_is_unavailable(
         run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
+@needs_linux
 def test_probe_sigsys_degrades_not_skip(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1296,6 +1314,7 @@ def test_probe_sigsys_degrades_not_skip(
     assert result.returncode == 0
 
 
+@needs_linux
 def test_probe_hang_degrades_not_block(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1331,6 +1350,7 @@ def test_probe_hang_degrades_not_block(
     assert killed == [(4242, signal.SIGKILL)]
 
 
+@needs_linux
 def test_probe_timeout_honours_late_success_status(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1362,6 +1382,7 @@ def test_probe_timeout_honours_late_success_status(
     assert result.returncode == 0
 
 
+@needs_linux
 def test_probe_timeout_honours_late_fail_closed_status(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1390,6 +1411,13 @@ def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(
 ) -> None:
     monkeypatch.setattr(
         "lumos_board.observer_sandbox._current_uid_task_count", lambda: 100
+    )
+    real_which = shutil.which
+    # Command construction only: resolve prlimit even on hosts without
+    # util-linux. Missing prlimit is covered by test_missing_prlimit_fails_closed.
+    monkeypatch.setattr(
+        "lumos_board.observer_sandbox.shutil.which",
+        lambda name: "/usr/bin/prlimit" if name == "prlimit" else real_which(name),
     )
     from lumos_board.observer_sandbox import _resource_limited_command
 
@@ -1433,6 +1461,7 @@ def test_bwrap_launcher_uses_resolved_absolute_host_path(
     assert prefix[prefix.index("--remount-ro") + 1] == "/dev"
 
 
+@needs_linux
 def test_setup_failure_without_sentinel_is_unavailable(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1448,6 +1477,7 @@ def test_setup_failure_without_sentinel_is_unavailable(
         run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
+@needs_linux
 def test_git_child_failure_with_sentinel_is_result(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1490,6 +1520,7 @@ def test_git_child_failure_with_sentinel_is_result(
     assert seen_cmd[0].index("--ro-bind") < root_ro
 
 
+@needs_linux
 def test_stderr_truncate_does_not_skip_started_sandbox(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1509,6 +1540,7 @@ def test_stderr_truncate_does_not_skip_started_sandbox(
     assert result.returncode == 0
 
 
+@needs_linux
 def test_timeout_after_start_sentinel_is_result(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1528,6 +1560,7 @@ def test_timeout_after_start_sentinel_is_result(
     assert "lumos-sandbox-start" not in result.stderr
 
 
+@needs_linux
 def test_timeout_before_start_sentinel_is_unavailable(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
