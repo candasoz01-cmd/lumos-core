@@ -80,6 +80,12 @@ _BOARD_README = (
 _COMMITTER_NAME = "lumos-board"
 _COMMITTER_EMAIL = "lumos-board@users.noreply.github.com"
 _MAX_ERROR_TEXT = 300
+# git push --porcelain summary when the remote ref moved between advertisement
+# and update (lost compare-and-swap). Matched exactly, for our own ref only.
+_CAS_RACE_SUMMARY = "[remote rejected] (incorrect old value provided)"
+# Same lost race when the ref did not exist yet and another writer created it
+# first. Only counted when our push is the creation (no base was fetched).
+_CREATE_RACE_SUMMARY = "[remote rejected] (reference already exists)"
 # Claim ids are uuid4 strings minted by TaskClaimStore. Anything else on the
 # shared board (e.g. a hand-pushed "$(cmd)") is treated as corruption so it
 # never reaches hooks, trailers or CI output.
@@ -185,6 +191,9 @@ class CentralClaimStore(TaskClaimStore):
         self._max_attempts = max(1, int(max_attempts))
         self._git_timeout = git_timeout
         self._last_base: str | None = None
+        # True only while pushing a commit made without a fetched base, i.e.
+        # the push that creates the board ref. Fail-closed default.
+        self._push_creates_ref = False
 
     # -- public API: every operation is one CAS transaction, re-run on loss --
 
@@ -332,7 +341,11 @@ class CentralClaimStore(TaskClaimStore):
                     for event in self._pending_events
                 )
                 commit = self._commit(new_state, new_events, base, self._pending_events)
-                self._push(commit)
+                self._push_creates_ref = base is None
+                try:
+                    self._push(commit)
+                finally:
+                    self._push_creates_ref = False
                 self._pending_events = []
                 self._last_base = commit
                 self._write_mirror(new_state, new_events)
@@ -449,7 +462,37 @@ class CentralClaimStore(TaskClaimStore):
         lost_markers = ("[rejected]", "non-fast-forward", "fetch first", "stale info", "cannot lock ref")
         if any(marker in combined for marker in lost_markers):
             raise _CasLost()
+        if self._is_target_ref_cas_race(result.stdout):
+            raise _CasLost()
         raise CentralStoreUnavailable(f"merkezi panoya yazılamadı: {_trim(result.stderr or result.stdout)}")
+
+    def _is_target_ref_cas_race(self, porcelain_stdout: str) -> bool:
+        """Remote ref transaction lost the race for exactly our ref.
+
+        A concurrent writer moved the ref between the remote's advertisement
+        and its update, so the remote refuses with "incorrect old value
+        provided". That is the same CAS loss as a non-fast-forward reject and
+        is re-run by ``_transact``. When our push creates the ref (no fetched
+        base) and another writer created it first, the remote answers
+        "reference already exists"; that counts only for the creating push.
+        Only the ``--porcelain`` stdout line for
+        our own destination ref counts; hook / permission / other
+        ``[remote rejected]`` reasons, and anything a hook prints to stderr,
+        stay failures.
+        """
+        for line in (porcelain_stdout or "").splitlines():
+            fields = line.split("\t")
+            if len(fields) != 3 or fields[0].strip() != "!":
+                continue
+            _src, sep, dst = fields[1].rpartition(":")
+            if not sep or dst != self.ref:
+                continue
+            summary = fields[2].strip()
+            if summary == _CAS_RACE_SUMMARY:
+                return True
+            if self._push_creates_ref and summary == _CREATE_RACE_SUMMARY:
+                return True
+        return False
 
     def _write_mirror(self, state_text: str, events_text: str) -> None:
         for name, text in ((STATE_FILE, state_text), (EVENTS_FILE, events_text)):
