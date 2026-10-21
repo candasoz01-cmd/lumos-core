@@ -1,0 +1,180 @@
+---
+import "../../styles/lumos-tokens.css";
+import "../../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../../components/WeLockSiteFooter.astro";
+import I18nInit from "../../components/I18nInit.astro";
+
+// Hukuki gizlilik bildirimi — KARAR-1 (candasoz01-cmd/lumos-core#903).
+// Google ve Meta konsollarındaki "Privacy Policy URL" bu adrese bağlanır;
+// /privacy teknik veri ve güven envanteri olarak kalır.
+// "KARAR GEREKLİ" satırları hukuk/politika onayı bekler. Bu satırlar
+// kaldırılana kadar sayfa noindex kalır ve yayın onayı verilmez.
+const INVENTORY = "/privacy";
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Gizlilik Bildirimi (taslak) — We Lock AI · Lumos</title>
+    <meta
+      name="description"
+      content="Lumos hukuki gizlilik bildirimi taslağı. Hukuk onayı bekleyen alanlar açıkça işaretlidir."
+    />
+    <link rel="canonical" href="https://welockai.com/legal/privacy" />
+    <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow">WE LOCK AI · LUMOS · HUKUKİ</p>
+      <h1>Gizlilik bildirimi</h1>
+      <p><a href="#en-title" lang="en">English version</a></p>
+
+      <div class="umbrella-callout" id="draft-status">
+        <h2>Durum: taslak, hukuk onayı yok</h2>
+        <p>
+          Bu sayfa henüz yürürlükte bir gizlilik bildirimi değildir. “KARAR GEREKLİ” ile işaretli alanlar
+          hukuk ve politika kararı bekler. Bu alanlar doldurulup onaylanana kadar sayfa arama motorlarına
+          kapalıdır.
+        </p>
+      </div>
+
+      <p>
+        Bu bildirim, hukuki gizlilik bildirimidir. Kodun bugün hangi veriyi nereye gönderdiğini anlatan teknik
+        envanter ayrı sayfadadır: <a href={INVENTORY}>Teknik veri ve güven envanteri</a>. Bu bildirimde yazılan
+        veri akışları o envanterle çelişirse, envanterdeki kod davranışı geçerlidir ve bu bildirim düzeltilir.
+      </p>
+
+      <h2 id="controller">1. Veri sorumlusu</h2>
+      <p class="legal-todo">KARAR GEREKLİ: tüzel kişinin unvanı, adresi ve sicil bilgisi.</p>
+
+      <h2 id="contact">2. İletişim ve başvuru kanalı</h2>
+      <p class="legal-todo">KARAR GEREKLİ: başvuru e-posta adresi veya formu, yanıt süresi, kimlik doğrulama usulü.</p>
+
+      <h2 id="data">3. İşlenen veriler ve amaçları</h2>
+      <p>
+        Aşağıdaki liste, bu depodaki kodun işlediği veri gruplarıdır. Alan düzeyindeki ayrıntı
+        <a href={INVENTORY}>Teknik veri ve güven envanteri</a> sayfasındadır.
+      </p>
+      <ul>
+        <li>Google ile giriş: kimlik (sub), e-posta, ad, profil resmi; oturumu sürdürmek için.</li>
+        <li>Sohbet: ileti, geçmiş, isteğe bağlı görsel, oturumdaki ad ve izinli hafıza özetleri; yanıt üretmek için bir model API’sine gönderilir.</li>
+        <li>Kişisel hafıza: kullanıcı “hatırla” dediğinde ve izin verdiyse en fazla 1000 karakterlik özet.</li>
+        <li>Meta bağlantıları (Facebook, Instagram, Pages, WhatsApp): erişim belirteci, hesap kimliği, sayfa ve işletme hesabı bilgileri; kullanıcı bağlantıyı başlattığında.</li>
+        <li>Teknik kayıtlar: hata ve olay kayıtlarında izinli teknik alanlar ve Lumos kimliği.</li>
+      </ul>
+
+      <h2 id="legal-basis">4. Hukuki dayanak</h2>
+      <p class="legal-todo">KARAR GEREKLİ: yukarıdaki her amaç için dayanılan hukuki sebep ve uygulanacak mevzuat.</p>
+
+      <h2 id="recipients">5. Aktarılan taraflar</h2>
+      <p>Kod bugün şu hizmet gruplarına veri gönderir; hangisinin kullanıldığı kurulum ayarına bağlıdır:</p>
+      <ul>
+        <li>Model sağlayıcıları: OpenAI (Responses API) ve Google (Gemini API).</li>
+        <li>Kimlik ve bağlantı sağlayıcıları: Google, Meta.</li>
+        <li>Barındırma: Vercel.</li>
+        <li>Belirteç ve bağlantı kaydı saklama: Lumos kimlik bilgisi geçidi, Infisical üzerinde.</li>
+        <li>Hata ve olay gözlemi, yapılandırılmışsa: Sentry, Axiom.</li>
+      </ul>
+      <p class="legal-todo">KARAR GEREKLİ: yurt dışına aktarım değerlendirmesi ve dayanağı; her alıcı için sözleşme durumu.</p>
+
+      <h2 id="retention">6. Saklama süreleri</h2>
+      <p>Kodda tanımlı süreler: oturum çerezi 7 gün, OAuth durum çerezi 10 dakika.</p>
+      <p class="legal-todo">KARAR GEREKLİ: hafıza özetleri, Meta belirteçleri ve bağlantı kayıtları, teknik kayıtlar ve yerel günlükler için saklama süresi. Bu süreler kodda tanımlı değildir.</p>
+
+      <h2 id="rights">7. Haklarınız ve başvuru usulü</h2>
+      <p class="legal-todo">KARAR GEREKLİ: uygulanacak mevzuata göre kullanıcı hakları, başvuru usulü ve yanıt süresi.</p>
+
+      <h2 id="deletion">8. Silme</h2>
+      <ul>
+        <li>Çıkış yalnız tarayıcıdaki oturum çerezini siler.</li>
+        <li>Kişisel hafıza, hafıza silme eylemiyle silinir.</li>
+        <li>Meta bağlantısı “Bağlantıyı kaldır” ile kaldırılır. Meta veri silme ve yetki kaldırma geri çağrıları ayrı bir değişiklikle eklenmektedir; tamamlanana kadar bu yol açık bir eksiktir.</li>
+        <li>Google hesap erişimi <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener noreferrer">Google bağlantılar sayfasından</a> kaldırılabilir.</li>
+      </ul>
+      <p class="legal-todo">KARAR GEREKLİ: yukarıdakiler dışında kalan veriler için silme talebi usulü ve süresi.</p>
+
+      <h2 id="google">9. Google kullanıcı verileri</h2>
+      <p>
+        welockai.com Google girişi yalnız openid, email ve profile izinlerini ister. Gmail salt-okuma izni kodda
+        tanımlıdır; bu depoda Gmail izin ekranı ve geri çağrı işleyicisi yoktur.
+      </p>
+      <p class="legal-todo">KARAR GEREKLİ: Google API Hizmetleri Kullanıcı Verileri Politikası kapsamındaki beyan.</p>
+
+      <h2 id="meta">10. Meta platform verileri</h2>
+      <p class="legal-todo">KARAR GEREKLİ: Meta platform koşulları kapsamındaki beyan ve veri silme talimatlarının yeri.</p>
+
+      <h2 id="changes">11. Değişiklikler ve yürürlük</h2>
+      <p class="legal-todo">KARAR GEREKLİ: yürürlük tarihi ve değişikliklerin duyurulma usulü.</p>
+
+      <hr />
+
+      <section lang="en" aria-labelledby="en-title">
+        <h1 id="en-title">Privacy notice</h1>
+        <div class="umbrella-callout">
+          <h2>Status: draft, no legal approval</h2>
+          <p>
+            This page is not yet a privacy notice in force. Items marked “DECISION REQUIRED” await a legal and
+            policy decision. Until they are filled in and approved, this page is closed to search engines.
+          </p>
+        </div>
+        <p>
+          This is the legal privacy notice. The technical inventory of what the code sends where is a separate
+          page: <a href={INVENTORY}>Technical data and trust inventory</a>. If a data flow described here
+          conflicts with that inventory, the code behaviour in the inventory holds and this notice is corrected.
+        </p>
+        <h2>1. Data controller</h2>
+        <p class="legal-todo">DECISION REQUIRED: legal entity name, address, and registration details.</p>
+        <h2>2. Contact and request channel</h2>
+        <p class="legal-todo">DECISION REQUIRED: request email or form, response time, identity verification.</p>
+        <h2>3. Data processed and purposes</h2>
+        <ul>
+          <li>Google sign-in: subject ID, email, name, profile picture; to keep the session.</li>
+          <li>Chat: message, history, optional image, the signed-in name, and permitted memory summaries; sent to a model API to produce a reply.</li>
+          <li>Personal memory: a summary of at most 1000 characters when the user asks to remember and has consented.</li>
+          <li>Meta connections (Facebook, Instagram, Pages, WhatsApp): access token, account ID, page and business account details; when the user starts the connection.</li>
+          <li>Technical records: allowlisted technical fields and the Lumos ID in error and event logs.</li>
+        </ul>
+        <h2>4. Legal basis</h2>
+        <p class="legal-todo">DECISION REQUIRED: the legal basis for each purpose above and the applicable law.</p>
+        <h2>5. Recipients</h2>
+        <ul>
+          <li>Model providers: OpenAI (Responses API) and Google (Gemini API).</li>
+          <li>Identity and connection providers: Google, Meta.</li>
+          <li>Hosting: Vercel.</li>
+          <li>Token and connection record storage: the Lumos credential gateway, on Infisical.</li>
+          <li>Error and event monitoring, if configured: Sentry, Axiom.</li>
+        </ul>
+        <p class="legal-todo">DECISION REQUIRED: cross-border transfer assessment and basis; contract status per recipient.</p>
+        <h2>6. Retention</h2>
+        <p>Periods defined in code: session cookie 7 days, OAuth state cookie 10 minutes.</p>
+        <p class="legal-todo">DECISION REQUIRED: retention for memory summaries, Meta tokens and connection records, technical records, and local logs. These periods are not defined in code.</p>
+        <h2>7. Your rights and how to request</h2>
+        <p class="legal-todo">DECISION REQUIRED: user rights under the applicable law, request procedure, and response time.</p>
+        <h2>8. Deletion</h2>
+        <ul>
+          <li>Logout deletes only the session cookie in the browser.</li>
+          <li>Personal memory is deleted with the memory delete action.</li>
+          <li>A Meta connection is removed with “Remove connection”. Meta data deletion and deauthorize callbacks are being added in a separate change; until then this path is an open gap.</li>
+          <li>Google account access can be removed from <a href="https://myaccount.google.com/connections" target="_blank" rel="noopener noreferrer">Google's connections page</a>.</li>
+        </ul>
+        <p class="legal-todo">DECISION REQUIRED: deletion request procedure and timing for data not covered above.</p>
+        <h2>9. Google user data</h2>
+        <p>
+          welockai.com Google sign-in requests only openid, email, and profile. A Gmail read-only scope is defined
+          in code; this repository has no Gmail consent screen or callback handler.
+        </p>
+        <p class="legal-todo">DECISION REQUIRED: the statement under the Google API Services User Data Policy.</p>
+        <h2>10. Meta platform data</h2>
+        <p class="legal-todo">DECISION REQUIRED: the statement under Meta platform terms and where data deletion instructions live.</p>
+        <h2>11. Changes and effective date</h2>
+        <p class="legal-todo">DECISION REQUIRED: effective date and how changes are announced.</p>
+      </section>
+    </main>
+    <WeLockSiteFooter />
+    <I18nInit />
+  </body>
+</html>
