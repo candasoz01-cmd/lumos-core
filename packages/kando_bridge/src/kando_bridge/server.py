@@ -1129,7 +1129,6 @@ def task_pipeline_result_for_chat(out: dict) -> dict:
         "last_result",
         "gate_complete",
         "approval_file",
-        "approval_token",
     )
     d: dict = {}
     for k in keys:
@@ -1158,7 +1157,10 @@ def task_pipeline_result_for_chat(out: dict) -> dict:
             )
             if rec.get("schema_version") == DISPATCH_PENDING_APPROVAL_SCHEMA:
                 d["approval_kind"] = "dispatch_medium"
-    return d
+    from kando_bridge.pending_approvals import redact_requester_view
+
+    redacted = redact_requester_view(d)
+    return redacted if isinstance(redacted, dict) else {}
 
 
 def _is_dispatch_medium_pending(out: dict) -> bool:
@@ -1528,6 +1530,8 @@ class BridgeHandler(BaseHTTPRequestHandler):
         self.send_error(404)
 
     def _send_json(self, status: int, payload: dict) -> None:
+        from kando_bridge.pending_approvals import redact_requester_view
+
         meta = getattr(self, "_post_task_envelope_meta", None)
         if meta is not None:
             payload = merge_post_task_http_envelope(
@@ -1535,11 +1539,15 @@ class BridgeHandler(BaseHTTPRequestHandler):
                 payload=payload,
                 envelope_meta=meta,
             )
+        redacted = redact_requester_view(payload)
+        if not isinstance(redacted, dict):
+            redacted = {}
+        if meta is not None:
             self._post_task_outbox_snapshot = {
                 "http_status": int(status),
-                "response": dict(payload),
+                "response": dict(redacted),
             }
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        body = json.dumps(redacted, ensure_ascii=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
