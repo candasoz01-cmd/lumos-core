@@ -1,0 +1,101 @@
+---
+import "../../styles/lumos-tokens.css";
+import "../../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../../components/WeLockSiteFooter.astro";
+
+// Meta veri silme geri çağrısının döndürdüğü durum adresi (KARAR-2, #903).
+// Sayfa yalnız /api/meta/data-deletion?code= yanıtını gösterir; kendi
+// başına "silindi" demez.
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Meta veri silme durumu — We Lock AI · Lumos</title>
+    <link rel="canonical" href="https://welockai.com/legal/meta-deletion" />
+    <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow">WE LOCK AI · LUMOS · HUKUKİ</p>
+      <h1>Meta veri silme durumu</h1>
+      <p id="meta-deletion-status" role="status">Durum yükleniyor.</p>
+      <dl id="meta-deletion-counts" hidden>
+        <dt>Silinen erişim belirteci</dt><dd data-count="credentials">0</dd>
+        <dt>Silinen bağlantı kaydı</dt><dd data-count="connections">0</dd>
+        <dt>Silinen WhatsApp gelen ileti zarfı</dt><dd data-count="inbound">0</dd>
+        <dt>Silinen son gelen ileti kaydı</dt><dd data-count="lastInbound">0</dd>
+        <dt>Silinen gönderim kaydı</dt><dd data-count="send">0</dd>
+      </dl>
+
+      <h2>Bu işlemin kapsamı</h2>
+      <p>
+        Silinenler: Lumos kimlik bilgisi geçidinde bu Meta hesabına ait erişim belirteçleri, bu belirteçlere
+        bağlı sayfa, Instagram ve WhatsApp bağlantı kayıtları ile bu bağlantıların WhatsApp ileti zarfı ve
+        gönderim kayıtları.
+      </p>
+      <p>
+        Kapsam dışı: Meta’nın kendi kayıtları; model sağlayıcılarına daha önce gönderilmiş içerik; yapılandırılmış
+        webhook alıcısı bu geçitten farklı bir servisse oradaki kayıtlar; Lumos kişisel hafızası (kendi silme
+        eylemiyle silinir). Bu kalemler için silme bu sayfada “tamamlandı” sayılmaz.
+      </p>
+
+      <section lang="en">
+        <h2>Meta data deletion status (English)</h2>
+        <p id="meta-deletion-status-en" role="status">Loading status.</p>
+        <p>
+          Deleted: in the Lumos credential gateway, this Meta account's access tokens, the page, Instagram, and
+          WhatsApp connection records linked to them, and those connections' WhatsApp message envelopes and send
+          records.
+        </p>
+        <p>
+          Not covered: Meta's own records; content already sent to model providers; records at a configured
+          webhook receiver if it is a service other than this gateway; Lumos personal memory (deleted with its own
+          action). This page does not count those as completed.
+        </p>
+      </section>
+    </main>
+    <WeLockSiteFooter />
+    <script>
+      const TEXT = {
+        completed: ["Silme tamamlandı.", "Deletion completed."],
+        failed: ["Silme tamamlanamadı. Talep yeniden gönderilmelidir.", "Deletion did not complete. The request must be sent again."],
+        unknown: ["Bu kod için durum bulunamadı veya şu an okunamıyor.", "No status was found for this code, or it cannot be read right now."],
+        missing: ["Onay kodu yok.", "No confirmation code."],
+      };
+      const tr = document.getElementById("meta-deletion-status");
+      const en = document.getElementById("meta-deletion-status-en");
+      const counts = document.getElementById("meta-deletion-counts");
+      const show = (key: keyof typeof TEXT) => {
+        if (tr) tr.textContent = TEXT[key][0];
+        if (en) en.textContent = TEXT[key][1];
+      };
+      const code = new URLSearchParams(window.location.search).get("code") || "";
+      if (!code) {
+        show("missing");
+      } else {
+        fetch(`/api/meta/data-deletion?code=${encodeURIComponent(code)}`, { headers: { Accept: "application/json" } })
+          .then((response) => response.json().then((body) => ({ response, body })))
+          .then(({ response, body }) => {
+            if (!response.ok || !body?.ok) return show("unknown");
+            if (body.status === "completed") {
+              show("completed");
+              if (counts) {
+                counts.hidden = false;
+                counts.querySelectorAll<HTMLElement>("[data-count]").forEach((node) => {
+                  node.textContent = String(Number(body.counts?.[node.dataset.count || ""] || 0));
+                });
+              }
+              return;
+            }
+            show(body.status === "failed" ? "failed" : "unknown");
+          })
+          .catch(() => show("unknown"));
+      }
+    </script>
+  </body>
+</html>
