@@ -1,38 +1,11 @@
 #!/bin/sh
-# Lumos Board pre-commit gate: the commit is refused BEFORE it exists unless the
-# central board says this agent ($LUMOS_AGENT) holds an ACTIVE claim on this
-# branch covering every staged path, and no other agent's ACTIVE claim overlaps.
-# Central board unreachable => refused (no local fallback).
-# Install once per clone:  git config core.hooksPath ops/claim_guard/hooks
+# Compatibility entry for core.hooksPath=ops/claim_guard/hooks.
+# The canonical hook set is .githooks (claim gate + ruff/pytest + publication
+# gate). Delegate there so pointing hooksPath here never drops an older guard.
 set -eu
-if [ -z "${LUMOS_AGENT:-}" ]; then
-  echo "claim-guard: LUMOS_AGENT ayarlı değil (commit için claim sahibi ajan kimliği gerekli)" >&2
-  exit 1
-fi
-case "$LUMOS_AGENT" in
-  *[!A-Za-z0-9._@/-]*)
-    echo "claim-guard: LUMOS_AGENT yalnız [A-Za-z0-9._@/-] içerebilir" >&2
-    exit 1 ;;
-esac
+here=$(cd "$(dirname "$0")" && pwd)
 root=$(git rev-parse --show-toplevel)
-git_dir=$(git rev-parse --git-dir)
-branch=$(git branch --show-current)
-if [ -z "$branch" ]; then
-  echo "claim-guard: detached HEAD üzerinde commit engellendi" >&2
-  exit 1
+if [ -f "$root/.githooks/pre-commit" ]; then
+  exec "$root/.githooks/pre-commit" "$@"
 fi
-rm -f "$git_dir/lumos-claim-ids" "$git_dir/lumos-claim-nochange"
-paths=$(git diff --cached --name-only --no-renames)
-if [ -z "$paths" ]; then
-  # Nothing new is written (e.g. a message-only --amend). commit-msg then only
-  # accepts a message that already carries this agent's verified trailers.
-  : > "$git_dir/lumos-claim-nochange"
-  exit 0
-fi
-if ! out=$(printf '%s\n' "$paths" | PYTHONPATH="$root/src${PYTHONPATH:+:$PYTHONPATH}" \
-    python3 -m lumos_board.claim_cli check --branch "$branch" --owner "$LUMOS_AGENT" --paths-from-stdin); then
-  echo "$out" >&2
-  echo "claim-guard: commit engellendi — merkezi panoda bu dosyalar için '$LUMOS_AGENT' adına aktif claim yok veya başka ajan tutuyor" >&2
-  exit 1
-fi
-printf '%s' "$out" | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)["claim_ids"]))' > "$git_dir/lumos-claim-ids"
+exec "$here/../claim-pre-commit" "$@"
