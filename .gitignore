@@ -3,3 +3,6 @@ dist/
 .venv/
 __pycache__/
 .DS_Store
+
+# yerel yedek — repoya girmez
+.git_BACKUP_DO_NOT_TOUCH/
