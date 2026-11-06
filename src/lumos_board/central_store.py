@@ -445,6 +445,11 @@ class CentralClaimStore(TaskClaimStore):
         result = self._git("push", "--porcelain", "--", self.remote, f"{commit}:{self.ref}")
         if result.returncode == 0:
             return
+        # Git may report the first-ref creation race only in porcelain stdout.
+        # Match this exact ref/result; a generic remote rejection stays fatal.
+        create_race = f"!\t{commit}:{self.ref}\t[remote rejected] (reference already exists)"
+        if self._last_base is None and create_race in result.stdout.splitlines():
+            raise _CasLost()
         combined = f"{result.stdout}\n{result.stderr}".lower()
         lost_markers = ("[rejected]", "non-fast-forward", "fetch first", "stale info", "cannot lock ref")
         if any(marker in combined for marker in lost_markers):
