@@ -68,7 +68,7 @@
       "source": "/",
       "has": [{ "type": "host", "value": "welockai.com" }],
       "destination": "/company/",
-      "permanent": false
+      "permanent": true
     },
     {
       "source": "/(.*)",
