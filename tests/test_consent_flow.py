@@ -297,6 +297,11 @@ def test_genel_onay_does_not_set_session_consent(capsys):
         mode="offline",
         on_live_brain=None,
     )
-    run_cli_loop(router_ctx)
-    assert general_approval[0] is True
-    assert session_consent[0] is False
+    from core.explicit_approval import reset_explicit_approval_session
+
+    try:
+        run_cli_loop(router_ctx)
+        assert general_approval[0] is True
+        assert session_consent[0] is False
+    finally:
+        reset_explicit_approval_session()

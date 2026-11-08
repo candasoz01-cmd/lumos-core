@@ -301,6 +301,11 @@ def handle_live_brain(
 
     # --- Consent flow: user says "onaylıyorum" (or similar) ---
     if _is_consent_phrase(raw):
+        from core.explicit_approval import grant_explicit_approval
+
+        granted = grant_explicit_approval()
+        if not granted:
+            return "Genel onay açılmadı. Çekirdek sabitleri doğrulanamadı."
         if general_approval_ref is not None:
             general_approval_ref[0] = True
         if pending_action_ref is not None and len(pending_action_ref) > 0 and pending_action_ref[0]:

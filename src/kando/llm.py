@@ -425,13 +425,14 @@ def _llm_impl(prompt: str) -> str:
                 _log_event("patch_approve", f"Onay hata: {e!s}")
             return LAST_OUTPUT
         try:
+            from core.explicit_approval import is_explicit_approval_open
             from kando.cursor_bridge import run_brain_and_persist_bridge, short_bridge_footer
             from task_engine import PROFILE_GUVENLI_YURUT
 
             p_exec, p_res, result, exe, res_pkt = run_brain_and_persist_bridge(
                 goal,
                 permission_profile=PROFILE_GUVENLI_YURUT,
-                general_approval=True,
+                general_approval=is_explicit_approval_open(),
             )
             from core.patch_pipeline_lifecycle import format_pipeline_summary_line
 
