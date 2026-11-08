@@ -1,0 +1,37 @@
+---
+description: Lumos Board claim and commit trailer rules for every commit in lumos-core
+alwaysApply: true
+---
+
+# Lumos Board: claim before writing, one trailer block
+
+1. Before changing any file, take a claim on the **central** board:
+   `python -m lumos_board.claim_cli claim ...` (no `--store`, no `LUMOS_BOARD_DIR`).
+   If it is refused (`SCOPE_CONFLICT` / `DUPLICATE_TASK`), do not write those files.
+2. Install the hooks once per clone and set your identity:
+   `make setup-commit-guard` and `export LUMOS_AGENT=<your claim owner>`.
+   The hooks refuse the commit before it exists if the claim does not cover it,
+   and they add the trailers for you.
+3. If you ever write trailers yourself, they must be in the message's **last**
+   paragraph together with every other trailer, with **no blank line** between
+   them. Git and `claim-guard` read only that last block:
+
+   ```text
+   feat(x): subject
+
+   Body text.
+
+   Lumos-Claim: <claim uuid>
+   Lumos-Agent: <claim owner>
+   Co-authored-by: Name <email>
+   ```
+
+   Wrong (Lumos lines are ignored → `UNATTRIBUTED_COMMIT`):
+
+   ```text
+   Lumos-Claim: <claim uuid>
+   Lumos-Agent: <claim owner>
+
+   Co-authored-by: Name <email>
+   ```
+4. Never weaken or bypass `claim-guard`; never push to `claude/lumos-board` by hand.

@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
-# Geliştirme: commit guard (ürün onay kurallarından ayrı — docs/dev-commit-guard.md)
+# Commit guard: merkezi claim kapısı + ruff + pytest (docs/dev-commit-guard.md)
 # Kurulum: make setup-commit-guard | Bypass: git commit --no-verify
 set -euo pipefail
 ROOT="$(git rev-parse --show-toplevel)"
 cd "$ROOT"
+
+# 1) Lumos Board merkezi claim kapısı — ruff/pytest'ten ÖNCE ve git'in hook
+# ortamı (özellikle `git commit <yol>` için geçici GIT_INDEX_FILE) silinmeden
+# önce koşar; aksi halde yanlış index denetlenir. Pano erişilemezse reddeder.
+echo ">>> pre-commit: merkezi claim kapısı (LUMOS_AGENT=${LUMOS_AGENT:-<yok>})"
+if [[ ! -x "$ROOT/ops/claim_guard/claim-pre-commit" ]]; then
+  echo "claim-guard: ops/claim_guard/claim-pre-commit bulunamadı; commit engellendi" >&2
+  exit 1
+fi
+"$ROOT/ops/claim_guard/claim-pre-commit"
 
 # When committing from a linked worktree, git sets these for the hook process;
 # left in place they leak into any git command tests spawn in their own
