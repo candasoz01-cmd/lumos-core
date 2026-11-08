@@ -13,13 +13,13 @@ Testlerin taşıdığı iddialar:
 
 from __future__ import annotations
 
-import errno
 import hashlib
 import json
 import os
 import shutil
 import struct
 import subprocess
+import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -1093,22 +1093,29 @@ def test_missing_index_is_not_a_refusal(tmp_path: Path) -> None:
     assert pin_repository(repo, [tmp_path])[0] == repo / ".git"
 
 
+# macOS APFS bu adı EILSEQ ile reddeder. Ayrım platforma göredir: Darwin'de
+# test hiç kurulmaz. Linux'ta ad oluşturulamıyorsa test düşer; aynı kontrol
+# orada skip edilmez.
+_NON_UTF8_FILENAME = pytest.mark.skipif(
+    sys.platform == "darwin",
+    reason="macOS APFS rejects non-UTF-8 filenames; this case is mandatory on Linux",
+)
+
+
 def _write_non_utf8_named_file(repo: Path, payload: bytes) -> bytes:
-    # APFS (macOS) UTF-8 olmayan dosya adını EILSEQ ile reddeder; test edilen
-    # davranış (bozuk adın gözlem turunu düşürmemesi) bu dosya sisteminde
-    # üretilemez — skip doğru sinyal. ext4 (Linux CI) keyfi baytı kabul eder,
-    # test orada aynen koşar.
     bad_name = os.path.join(os.fsencode(repo), b"bad\xffname.txt")
     try:
         with open(bad_name, "wb") as handle:
             handle.write(payload)
     except OSError as exc:
-        if exc.errno == errno.EILSEQ:
-            pytest.skip("filesystem rejects non-UTF-8 filenames")
-        raise
+        raise AssertionError(
+            "Linux filesystem must accept a non-UTF-8 filename "
+            f"(errno={exc.errno}); skipping would hide this check"
+        ) from exc
     return bad_name
 
 
+@_NON_UTF8_FILENAME
 def test_non_utf8_filename_does_not_abort_observation(tmp_path: Path) -> None:
     """
     Git `-z` çıktısı ham bayttır; UTF-8 olmayan tek bir dosya adı strict
@@ -1166,6 +1173,7 @@ def test_unexpected_inspection_error_is_a_skip_not_an_abort(
     assert any(o.claim_id == healthy.claim_id for o in run.observations)
 
 
+@_NON_UTF8_FILENAME
 def test_clean_tracked_non_utf8_name_stays_clean(tmp_path: Path) -> None:
     """
     Bozuk adı U+FFFD'ye çevirip dosyayı o adla aramak, temiz commit'lenmiş
