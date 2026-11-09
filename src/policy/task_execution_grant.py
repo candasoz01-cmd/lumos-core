@@ -61,6 +61,7 @@ REASON_KEY_NOT_REGISTERED = "task_execution_grant_key_not_registered"
 REASON_EXPIRED = "task_execution_grant_expired"
 REASON_USED = "task_execution_grant_used"
 REASON_MISMATCH = "task_execution_grant_mismatch"
+REASON_REVOKED_SCOPE = "task_execution_grant_revoked_scope_change"
 REASON_BINDING_INCOMPLETE = "task_execution_grant_binding_incomplete"
 REASON_IDENTITY_MISSING = "task_execution_grant_identity_missing"
 REASON_SURFACE_BLOCKED = "task_execution_grant_surface_blocked"
@@ -79,6 +80,7 @@ KIND_MISSING_IDENTITY = "missing_identity"
 KIND_UNKNOWN_TASK = "unknown_task"
 KIND_UNREGISTERED_KEY = "unregistered_key"
 KIND_CAPABILITY_DEVIATION = "capability_deviation"
+KIND_SCOPE_REVOKED = "scope_revoked"
 KIND_REPLAY = "replay"
 KIND_EXPIRED = "expired"
 KIND_SURFACE_BLOCKED = "surface_blocked"
@@ -131,6 +133,11 @@ class GrantResult:
 
 
 def is_task_execution_grant_enabled() -> bool:
+    """Opt-in locally. Staging forces the grant on; a false flag cannot disable it."""
+    from policy.runtime_gates import is_staging_runtime
+
+    if is_staging_runtime():
+        return True
     raw = (os.environ.get(ENV_ENABLED) or "").strip().lower()
     return raw in ("1", "true", "yes")
 
@@ -800,6 +807,7 @@ def _kind_for_reason(reason: str) -> str:
         REASON_UNKNOWN_TASK: KIND_UNKNOWN_TASK,
         REASON_KEY_NOT_REGISTERED: KIND_UNREGISTERED_KEY,
         REASON_MISMATCH: KIND_CAPABILITY_DEVIATION,
+        REASON_REVOKED_SCOPE: KIND_SCOPE_REVOKED,
         REASON_USED: KIND_REPLAY,
         REASON_EXPIRED: KIND_EXPIRED,
         REASON_SURFACE_BLOCKED: KIND_SURFACE_BLOCKED,
@@ -929,6 +937,8 @@ def _validate_record(
         return REASON_MALFORMED, SUSPICION_HIGH
     if action_is_grant_forbidden(stored.action_key):
         return REASON_SURFACE_BLOCKED, SUSPICION_HIGH
+    if str(record.get("revoked_reason") or "") == "scope_change":
+        return REASON_REVOKED_SCOPE, SUSPICION_HIGH
     if binding_hash(stored) != binding_hash(expected):
         return REASON_MISMATCH, SUSPICION_HIGH
     if not _hashes_equal(str(record.get("token_hash") or ""), token_hash(token)):
@@ -1065,6 +1075,11 @@ def _consume_locked(
     failed = _validate_record(record, token=token, expected=expected)
     if failed is not None:
         reason, suspicion = failed
+        if reason == REASON_MISMATCH:
+            record["revoked_reason"] = "scope_change"
+            record["consumed"] = True
+            record["consumed_at"] = _now_iso()
+            _atomic_write_json(path, record)
         return _deny(
             reason,
             suspicion=suspicion,

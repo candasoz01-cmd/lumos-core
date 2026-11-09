@@ -23,6 +23,7 @@ REASON_CONFIRMATION_REQUIRED = "confirmation_required"
 REASON_CONFIRMATION_EXPIRED = "confirmation_expired"
 REASON_SCOPE_MISMATCH = "scope_mismatch"
 REASON_CONFIRMATION_DISABLED = "confirmation_disabled"
+REASON_REVOKED_SCOPE = "approval_revoked_scope_change"
 
 # CU4 grant actor — server-side surfaces only. Never copied from client body or disk.
 GRANTED_BY_PANEL = "panel_confirm"
@@ -105,7 +106,11 @@ class PendingConfirmation:
 
 
 def is_confirmation_enabled() -> bool:
-    """LUMOS_CONFIRMATION_ENABLED=true|1|yes → aktif; aksi halde no-op."""
+    """Opt-in locally. Staging forces the gate on; a false flag cannot disable it."""
+    from policy.runtime_gates import is_staging_runtime
+
+    if is_staging_runtime():
+        return True
     raw = (os.environ.get("LUMOS_CONFIRMATION_ENABLED") or "").strip().lower()
     return raw in ("1", "true", "yes")
 
@@ -184,11 +189,16 @@ def check_confirmation(
     if grant is None:
         return ConfirmationResult(False, REASON_CONFIRMATION_REQUIRED)
 
-    if grant.get("action_key") != action_key:
-        return ConfirmationResult(False, REASON_SCOPE_MISMATCH)
+    grant_path = _grant_path(_pending_dir(base), confirmation_id)
+    if grant.get("revoked_reason") == "scope_change":
+        return ConfirmationResult(False, REASON_REVOKED_SCOPE)
 
     expected_hash = _scope_hash(scope)
-    if grant.get("scope_hash") != expected_hash:
+    if grant.get("action_key") != action_key or grant.get("scope_hash") != expected_hash:
+        revoked = dict(grant)
+        revoked["revoked_reason"] = "scope_change"
+        revoked["consumed"] = True
+        _write_grant(grant_path, revoked)
         return ConfirmationResult(False, REASON_SCOPE_MISMATCH)
 
     if grant.get("consumed"):

@@ -21,8 +21,9 @@ STATUS_PENDING = "pending"
 STATUS_APPROVED = "approved"
 STATUS_REJECTED = "rejected"
 STATUS_EXPIRED = "expired"
+STATUS_REVOKED = "revoked"
 
-PendingStatus = Literal["pending", "approved", "rejected", "expired"]
+PendingStatus = Literal["pending", "approved", "rejected", "expired", "revoked"]
 
 DEFAULT_TTL_SECONDS = 900
 
@@ -61,6 +62,32 @@ def new_approval_id() -> str:
 
 def new_approval_token() -> str:
     return secrets.token_hex(16)
+
+
+def redact_requester_view(value: Any) -> Any:
+    """Drop approval tokens from a payload returned to the requesting client.
+
+    The token stays on the pending file for the human approval channel
+    (local operator or paired mobile relay). The tool client receives
+    ``approval_id`` and status only.
+    """
+    if isinstance(value, dict):
+        return {
+            key: redact_requester_view(item)
+            for key, item in value.items()
+            if key != "approval_token"
+        }
+    if isinstance(value, list):
+        return [redact_requester_view(item) for item in value]
+    return value
+
+
+def stored_approval_token(repo_root: Path, approval_id: str) -> str:
+    """Human-channel read of the token stored on disk. Not a client response."""
+    found = find_pending_by_approval_id(repo_root, approval_id)
+    if found is None:
+        return ""
+    return str(found[1].get("approval_token") or "")
 
 
 def _atomic_write_json(path: Path, record: dict[str, Any]) -> None:
@@ -244,6 +271,8 @@ def validate_approval_token(
         return False, "invalid_approval_token", None
 
     status = str(record.get("status") or STATUS_PENDING)
+    if status == STATUS_REVOKED or record.get("revoked_reason") == "scope_change":
+        return False, "approval_revoked_scope_change", None
     if status == STATUS_EXPIRED:
         return False, "approval_expired", None
     if status == STATUS_REJECTED:
@@ -355,6 +384,15 @@ def _approval_request_matches(record: dict[str, Any], request: dict[str, Any]) -
         return False
 
 
+def _revoke_for_scope_change(path: Path, record: dict[str, Any]) -> None:
+    """A different target or scope kills this approval. It cannot be reused."""
+    record["status"] = STATUS_REVOKED
+    record["revoked_reason"] = "scope_change"
+    record["revoked_at"] = _iso(_utc_now())
+    record["used"] = True
+    _atomic_write_json(path, record)
+
+
 def try_consume_approval_token(
     repo_root: Path,
     approval_id: str,
@@ -411,6 +449,7 @@ def try_consume_approval_token(
                 if not ok:
                     return False, reason, None
                 if expected_request is not None and not _approval_request_matches(fresh, expected_request):
+                    _revoke_for_scope_change(path, fresh)
                     return False, "approval_request_mismatch", None
                 fresh["used"] = True
                 fresh["consumed_at"] = _iso(_utc_now())
@@ -425,8 +464,34 @@ def try_consume_approval_token(
     if bool(record.get("used")):
         return False, "approval_already_used", None
     if expected_request is not None and not _approval_request_matches(record, expected_request):
+        _revoke_for_scope_change(path, record)
         return False, "approval_request_mismatch", None
     return True, "", consume_pending_record(path, record)
+
+
+def try_consume_human_approved_request(
+    repo_root: Path,
+    approval_id: str,
+    expected_request: dict[str, Any],
+) -> tuple[bool, str, dict[str, Any] | None]:
+    """Consume an approval the human channel already marked approved.
+
+    The requesting client presents ``approval_id`` and the same scope.
+    It does not present, and never received, the approval token.
+    """
+    found = find_pending_by_approval_id(repo_root, approval_id)
+    if found is None:
+        return False, "approval_not_found", None
+    path, record = found
+    if not is_pc_remote_pending(record):
+        return False, "not_pc_remote_pending", None
+    token = str(record.get("approval_token") or "")
+    return try_consume_approval_token(
+        repo_root,
+        approval_id,
+        token,
+        expected_request=expected_request,
+    )
 
 
 def _validate_record_for_execute(
@@ -438,6 +503,8 @@ def _validate_record_for_execute(
     if tok != str(record.get("approval_token") or "").strip():
         return False, "invalid_approval_token", None
     status = str(record.get("status") or STATUS_PENDING)
+    if status == STATUS_REVOKED or record.get("revoked_reason") == "scope_change":
+        return False, "approval_revoked_scope_change", None
     if status == STATUS_EXPIRED:
         return False, "approval_expired", None
     if status == STATUS_REJECTED:

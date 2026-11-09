@@ -13,6 +13,7 @@ from policy.task_execution_grant import (
     GRANTS_DIR,
     KIND_CAPABILITY_DEVIATION,
     REASON_MISMATCH,
+    REASON_REVOKED_SCOPE,
     REASON_MISSING,
     REASON_USED,
     ExecutionBinding,
@@ -417,7 +418,24 @@ def test_lumos_gate_execute_denies_changed_agent_goal_despite_file(
     stored = json.loads(
         (lumos / GRANTS_DIR / f"{issued.grant_id}.json").read_text(encoding="utf-8")
     )
-    assert stored.get("consumed") is False
+    assert stored.get("consumed") is True
+    assert stored.get("revoked_reason") == "scope_change"
+    original = lumos_gate_execute(
+        _bundle(
+            tmp_path,
+            plan={"steps": [{"type": "agent", "goal": "summarize the notes"}]},
+            mode="agent",
+            task_execution_action_key="agent",
+            task_execution_permission="execute",
+            task_execution_grant_token=issued.token,
+        ),
+        run_direct=_run_direct,
+        start_agent=_start_agent,
+        run_agent_auto=None,
+    )
+    assert jobs == []
+    assert original["blocked"] is True
+    assert original["reason"] == REASON_REVOKED_SCOPE
 
 
 def _pending_record(tmp_path: Path, **overrides: object) -> dict:

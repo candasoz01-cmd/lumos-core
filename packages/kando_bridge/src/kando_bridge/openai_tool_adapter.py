@@ -264,6 +264,16 @@ def approve_and_reexecute(
     """Approve pending record then re-POST /tools/execute with approval token."""
     approval_id = str(pending.get("approval_id") or "").strip()
     approval_token = str(pending.get("approval_token") or "").strip()
+    if not approval_token and dev_auto_approve_allowed() and approval_id:
+        # Dev bypass reads the human-channel token from disk. The tool
+        # response never carries it, so this path cannot be used by the model.
+        try:
+            from kando_bridge.pending_approvals import stored_approval_token
+            from kando_bridge.server import ROOT
+
+            approval_token = stored_approval_token(ROOT, approval_id)
+        except Exception:
+            approval_token = ""
     if not approval_id or not approval_token:
         return 400, {
             "call_id": tool_call.call_id,

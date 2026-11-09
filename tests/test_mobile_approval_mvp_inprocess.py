@@ -22,7 +22,12 @@ from kando_bridge.mobile_approval_client import (
     validate_token_for_record,
 )
 from kando_bridge.pc_remote_tools import CMD_OPEN_URL, execute_tool_stub
-from kando_bridge.pending_approvals import STATUS_APPROVED, STATUS_PENDING, find_pending_by_approval_id
+from kando_bridge.pending_approvals import (
+    STATUS_APPROVED,
+    STATUS_PENDING,
+    find_pending_by_approval_id,
+    stored_approval_token,
+)
 
 
 def _bridge_handler_stub(*, body: dict[str, Any]) -> Any:
@@ -144,10 +149,12 @@ def test_mobile_approval_mvp_inprocess_pc_open_url(bridge_client_env: Path) -> N
     )
     assert status == 200
     assert pending["status"] == "pending_approval"
+    assert "approval_token" not in pending
     approval_id = pending["approval_id"]
-    approval_token = pending["approval_token"]
 
     listed = list_pending_pc_remote(status=STATUS_PENDING)
+    approval_token = listed[0]["approval_token"]
+    assert approval_token
     assert len(listed) == 1
     assert listed[0]["approval_id"] == approval_id
     assert listed[0]["command"] == CMD_OPEN_URL
@@ -195,7 +202,9 @@ def test_mobile_approval_reject_flow(bridge_client_env: Path) -> None:
         repo_root=bridge_client_env,
     )
     aid = pending["approval_id"]
-    tok = pending["approval_token"]
+    assert "approval_token" not in pending
+    tok = stored_approval_token(bridge_client_env, aid)
+    assert tok
 
     reject_out = reject_pending(aid, tok)
     assert reject_out.get("accepted") is True

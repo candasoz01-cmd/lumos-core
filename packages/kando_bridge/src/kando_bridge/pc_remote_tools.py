@@ -14,12 +14,19 @@ from pathlib import Path
 from typing import Any, TypedDict
 
 from kando_bridge.pending_approvals import (
+    STATUS_APPROVED,
+    STATUS_PENDING,
+    _approval_request_matches,
+    _revoke_for_scope_change,
     approve_pending_record,
     build_pc_remote_pending_record,
+    find_pending_by_approval_id,
     find_pending_by_token,
     mark_expired_if_needed,
+    redact_requester_view,
     reject_pending_record,
     try_consume_approval_token,
+    try_consume_human_approved_request,
     validate_approval_token,
     write_pending_approval,
 )
@@ -428,6 +435,106 @@ def _persist_pending_approval(
     return record
 
 
+def _pending_client_view(
+    record: dict[str, Any],
+    command: str,
+    spec: CommandSpec,
+) -> dict[str, Any]:
+    return redact_requester_view({
+        "ok": False,
+        "status": "pending_approval",
+        "command": command,
+        "approval_required": True,
+        "approval_id": record["approval_id"],
+        "approval_file": record["approval_file"],
+        "action_key": record.get("action_key") or _ACTION_KEY_BY_COMMAND.get(command),
+        "risk_tier": spec["risk_tier"],
+        "risk_level": record["risk_level"],
+        "required_user_action": record["required_user_action"],
+        "expires_at": record["expires_at"],
+        "pending_status": record["status"],
+        "message": "Kullanıcı onayı gerekli (stub — gerçek yürütme yok)",
+        "arguments_preview": record["arguments_preview"],
+        "schema_version": SCHEMA_VERSION,
+    })
+
+
+def _id_only_approval(
+    *,
+    command: str,
+    arguments: dict[str, Any],
+    approval_id: str,
+    repo_root: Path,
+    target_device: str,
+    spec: CommandSpec,
+) -> tuple[str, dict[str, Any] | None]:
+    """Human already holds the token. The tool client retries with approval_id.
+
+    Returns ``("go", None)`` when the approved scope was consumed, or
+    ``("stop", payload)`` when the caller should return that payload.
+    """
+    found = find_pending_by_approval_id(repo_root, approval_id)
+    if found is None:
+        return "stop", {
+            "ok": False,
+            "status": "rejected",
+            "command": command,
+            "approval_required": True,
+            "error": "approval_not_found",
+            "schema_version": SCHEMA_VERSION,
+        }
+    path, record = found
+    expected = {
+        "approval_id": approval_id,
+        "command": command,
+        "arguments": arguments,
+        "target_device": target_device,
+    }
+    status_name = str(record.get("status") or "")
+    if status_name == STATUS_PENDING:
+        if not _approval_request_matches(record, expected):
+            _revoke_for_scope_change(path, record)
+            return "stop", {
+                "ok": False,
+                "status": "rejected",
+                "command": command,
+                "approval_required": True,
+                "error": "approval_request_mismatch",
+                "schema_version": SCHEMA_VERSION,
+            }
+        return "stop", _pending_client_view(record, command, spec)
+    if status_name == STATUS_APPROVED and not record.get("used"):
+        ok, reason, _approved = try_consume_human_approved_request(
+            repo_root,
+            approval_id,
+            expected,
+        )
+        if not ok:
+            return "stop", {
+                "ok": False,
+                "status": "rejected",
+                "command": command,
+                "approval_required": True,
+                "error": reason or "approval_denied",
+                "schema_version": SCHEMA_VERSION,
+            }
+        return "go", None
+    if status_name == "revoked" or record.get("revoked_reason") == "scope_change":
+        error = "approval_revoked_scope_change"
+    elif record.get("used"):
+        error = "approval_already_used"
+    else:
+        error = "approval_not_approved"
+    return "stop", {
+        "ok": False,
+        "status": "rejected",
+        "command": command,
+        "approval_required": True,
+        "error": error,
+        "schema_version": SCHEMA_VERSION,
+    }
+
+
 def execute_tool_stub(
     command: str,
     arguments: dict[str, Any],
@@ -441,7 +548,9 @@ def execute_tool_stub(
     """
     Demo-safe stub yürütme. Gerçek OS API çağrısı yok.
     Private katman: bu fonksiyonun yerine executor swap.
-    Onay gerektiren komutlar: diskte `status=approved` + eşleşen token olmadan yürütülmez.
+    Onay gerektiren komutlar: diskte `status=approved` ve aynı kapsam olmadan
+    yürütülmez. Araç istemcisi jetonu görmez; insan onayından sonra aynı
+    `approval_id` ile yeniden dener. Kapsam değişince kayıt iptal edilir.
     """
     err = validate_command_arguments(command, arguments)
     if err:
@@ -472,13 +581,37 @@ def execute_tool_stub(
                 "error": "repo_root_required",
                 "schema_version": SCHEMA_VERSION,
             }
-        gate = check_approval_gate(
-            command,
-            approval_token=approval_token,
-            approval_id=approval_id,
-            repo_root=repo_root,
-        )
-        if not gate.allowed:
+        client_token = (approval_token or "").strip()
+        client_id = (approval_id or "").strip()
+        already_consumed = False
+        if client_id and not client_token:
+            decision, payload = _id_only_approval(
+                command=command,
+                arguments=arguments,
+                approval_id=client_id,
+                repo_root=repo_root,
+                target_device=target_device,
+                spec=spec,
+            )
+            if decision == "stop":
+                return payload or {
+                    "ok": False,
+                    "status": "rejected",
+                    "command": command,
+                    "error": "approval_denied",
+                    "schema_version": SCHEMA_VERSION,
+                }
+            already_consumed = True
+        if not already_consumed:
+            gate = check_approval_gate(
+                command,
+                approval_token=approval_token,
+                approval_id=approval_id,
+                repo_root=repo_root,
+            )
+        else:
+            gate = ApprovalGateResult(True, True)
+        if not already_consumed and not gate.allowed:
             if gate.reason == "approval_required":
                 try:
                     record = _persist_pending_approval(
@@ -496,14 +629,13 @@ def execute_tool_stub(
                         "error": "audit_write_failed",
                         "schema_version": SCHEMA_VERSION,
                     }
-                return {
+                return redact_requester_view({
                     "ok": False,
                     "status": "pending_approval",
                     "command": command,
                     "approval_required": True,
                     "approval_id": record["approval_id"],
                     "approval_file": record["approval_file"],
-                    "approval_token": record["approval_token"],
                     "action_key": record.get("action_key") or _ACTION_KEY_BY_COMMAND.get(command),
                     "risk_tier": spec["risk_tier"],
                     "risk_level": record["risk_level"],
@@ -513,7 +645,7 @@ def execute_tool_stub(
                     "message": "Kullanıcı onayı gerekli (stub — gerçek yürütme yok)",
                     "arguments_preview": record["arguments_preview"],
                     "schema_version": SCHEMA_VERSION,
-                }
+                })
             err_reason = gate.reason or "approval_denied"
             tok = (approval_token or "").strip()
             aid = (approval_id or "").strip()
@@ -539,38 +671,39 @@ def execute_tool_stub(
             }
         tok = (approval_token or "").strip()
         aid = (approval_id or "").strip()
-        if not aid:
-            found = find_pending_by_token(repo_root, tok)
-            if found is not None:
-                aid = str(found[1].get("approval_id") or found[0].stem)
-        ok, reason, approved_rec = try_consume_approval_token(
-            repo_root,
-            aid,
-            tok,
-            expected_request={
-                "approval_id": aid,
-                "command": command,
-                "arguments": arguments,
-                "target_device": target_device,
-            },
-        )
-        if not ok or approved_rec is None:
-            _audit_execute_rejected(
+        if not already_consumed:
+            if not aid:
+                found = find_pending_by_token(repo_root, tok)
+                if found is not None:
+                    aid = str(found[1].get("approval_id") or found[0].stem)
+            ok, reason, approved_rec = try_consume_approval_token(
                 repo_root,
-                approval_id=aid,
-                command=command,
-                error=reason or "invalid_approval_token",
-                requested_by=requested_by,
-                target_device=target_device,
+                aid,
+                tok,
+                expected_request={
+                    "approval_id": aid,
+                    "command": command,
+                    "arguments": arguments,
+                    "target_device": target_device,
+                },
             )
-            return {
-                "ok": False,
-                "status": "rejected",
-                "command": command,
-                "approval_required": True,
-                "error": reason or "invalid_approval_token",
-                "schema_version": SCHEMA_VERSION,
-            }
+            if not ok or approved_rec is None:
+                _audit_execute_rejected(
+                    repo_root,
+                    approval_id=aid,
+                    command=command,
+                    error=reason or "invalid_approval_token",
+                    requested_by=requested_by,
+                    target_device=target_device,
+                )
+                return {
+                    "ok": False,
+                    "status": "rejected",
+                    "command": command,
+                    "approval_required": True,
+                    "error": reason or "invalid_approval_token",
+                    "schema_version": SCHEMA_VERSION,
+                }
         try:
             from kando_bridge.pc_remote_audit import EVENT_STUB_EXECUTED, append_pc_remote_audit
 
@@ -652,7 +785,7 @@ def execute_tool_stub(
             "action": "request_user_approval",
             "summary": str(arguments.get("summary") or ""),
             "risk_level": str(arguments.get("risk_level") or "medium"),
-            "approval_token": secrets.token_hex(16),
+            "recorded": True,
         }
 
     return base
@@ -731,11 +864,10 @@ def approve_pc_remote_pending(
         updated = approve_pending_record(path, record)
     except OSError:
         return False, "audit_write_failed", None
-    return True, "", {
+    return True, "", redact_requester_view({
         "status": "approved",
         "approval_id": updated.get("approval_id"),
         "command": updated.get("command"),
-        "approval_token": updated.get("approval_token"),
         "approval_file": updated.get("approval_file"),
-        "message": "Onaylandı — POST /tools/execute ile approval_token gönderin",
-    }
+        "message": "Onaylandı — araç istemcisi aynı approval_id ile yeniden dener",
+    })
