@@ -74,6 +74,31 @@ tamamlanmış sayılmaz. #935 taslak kalır; merge ve deploy yoktur.
 
 ## Yetkili imza
 
+### Prova ve üretim kanıtının ayrılması
+
+Üretim imzalayıcısı aynı doğrulanmış payload için iki ayrı trailer üretir:
+`Lumos-Claim-Attestation` üretim HMAC'idir; `Lumos-Claim-Proof` genel CI
+prova anahtarıyla doğrulanır. `write-attestation --proof` ikinci alanı,
+`write-attestation-trusted` ilk alanı denetler. Prova kanıtı üretim imzası
+yerine kullanılamaz. İki kontrol de commit ebeveynini, dosya yollarını,
+kapsamı, zamanı ve kanıtın tekrar kullanılmamasını denetler.
+
+Eski kaynak commitlerinde ayrı prova alanı yoksa prova doğrulayıcısı
+`Lumos-Claim-Attestation` alanını **yalnız genel prova anahtarıyla**
+denetlemeye devam eder. Açıkça verilmiş boş, bozuk veya tekrarlı prova
+alanı bu uyumluluk yoluna düşmez. Üretim doğrulayıcısı prova alanına
+başvurmaz; yinelenen üretim alanını reddeder.
+
+Bu değişiklik sır dağıtmaz, ortam onayını kaldırmaz ve merge yetkisi
+vermez. `write-attestation` başarısız veya beklemedeyken izleme de durur.
+Üretimdeki eski tek-imzalı kopya yeniden adlandırılarak geçerli hale gelmez;
+yeni imzalayıcı güvenilir ana dala alındıktan sonra ayrı onaylı aralık gerekir.
+Yerel ajan ortamında üretim sırrının yokluğu hata olarak onarılmaz:
+yerel hazırlık genel prova ve merkezi claim ile, üretim imzası yalnız
+onaylı hizmette yapılır. Prova `WRITE_ALLOWED` sonucu üretim yetkisi değildir.
+
+### İmzalayıcı akışı
+
 `write-attestation-trusted` yalnız doğrular. İmza,
 `.github/workflows/write-sign-trusted.yml` içindedir.
 
@@ -94,8 +119,8 @@ tamamlanmış sayılmaz. #935 taslak kalır; merge ve deploy yoktur.
   İmzadan sonra taslak PR açılır; otomatik kontroller orada koşar.
 - `write-attestation-trusted`, `claim-guard` ve zorunlu CI tamamlanmadan
   izleme işi durur. Biri başarısızsa veya askıda kalırsa iş fail olur ve
-  merge yoktur. Genel prova anahtarı işi üretim imzasında eşleşmez; bu
-  beklenen ayrımıdır, doğrulayıcı gevşetilmez. `standing-class` başarısızlığı
+  merge yoktur. Genel prova işi ayrı `Lumos-Claim-Proof` alanını doğrular;
+  üretim imzasıyla anahtarları eşleşmez, doğrulayıcı gevşetilmez. `standing-class` başarısızlığı
   imza başarısı sayılmaz ve merge açmaz.
 - Her commit mevcut kapıyı kullanır: bir ACTIVE claim, bir yazma jetonu,
   `write-attest` tüketimi, sonra claim serbest.
