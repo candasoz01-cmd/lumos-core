@@ -98,6 +98,30 @@ def test_missing_secret_fail_closed(tmp_path: Path) -> None:
     assert verdict.reason == REASON_UNCONFIGURED
 
 
+def test_proof_lane_accepts_legacy_source_but_not_invalid_explicit_proof(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    base = _git(repo, "rev-parse", "HEAD")
+    store = tmp_path / "board"
+    claim_id, token, task_id = _claim_and_token(store, owner="cursor", scope="src")
+    attestation = ClaimGuard(secret=SECRET).attest(
+        write_gate=WriteGate(TaskClaimStore(store), secret=SECRET), token=token,
+        owner="cursor", paths=["src/a.py"], parent_sha=base, claim_id=claim_id,
+        task_id=task_id, scopes=["src"],
+    )
+    message = f"legacy proof\n\n{ATTESTATION_TRAILER}: {attestation}\n"
+    tip = _commit(repo, "src/a.py", "a\n", message)
+    proof_guard = ClaimGuard(secret=SECRET, proof=True)
+    assert proof_guard.verify_range(repo, base=base, head=tip).allowed
+    assert not ClaimGuard(secret="production-test-key-not-public-32").verify_range(
+        repo, base=base, head=tip,
+    ).allowed
+    for extra in ["Lumos-Claim-Proof: \n", "Lumos-Claim-Proof: invalid\n",
+                  f"Lumos-Claim-Proof: {attestation}\nLumos-Claim-Proof: {attestation}\n"]:
+        _git(repo, "commit", "--amend", "-m", message + extra)
+        tip = _git(repo, "rev-parse", "HEAD")
+        assert not proof_guard.verify_range(repo, base=base, head=tip).allowed
+
+
 def test_unattested_commit_fails_and_later_attested_commit_does_not_save_it(
     tmp_path: Path,
 ) -> None:
