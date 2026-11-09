@@ -12,8 +12,8 @@
 #
 # 2. write-attestation (HMAC, GitHub proof on this PR): public CI proof
 #    key, NOT secrets.LUMOS_WRITE_GATE_SECRET, so untrusted PR code never
-#    receives the production secret. A commit without
-#    Lumos-Claim-Attestation fails (CLAIM_GUARD_MISSING_ATTESTATION).
+#    receives the production secret. A commit without the separate
+#    Lumos-Claim-Proof fails (CLAIM_GUARD_MISSING_ATTESTATION).
 #    The proof key cannot authorize production writes.
 #
 # A green board CheckRun is not HMAC proof. A green HMAC CheckRun is not
@@ -84,4 +84,4 @@ jobs:
         run: |
           set -euo pipefail
           PYTHONPATH=src python3 -m lumos_board.write_attestation \
-            --repo . --base "$BASE_SHA" --head "$HEAD_SHA"
+            --repo . --base "$BASE_SHA" --head "$HEAD_SHA" --proof

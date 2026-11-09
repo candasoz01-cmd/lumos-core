@@ -158,11 +158,11 @@ def _linear_commits(repo: Path, base: str, head: str) -> tuple[str, ...]:
     return commits
 
 
-def rebuild_message(original: str, *, claim_id: str, owner: str, attestation: str) -> str:
+def rebuild_message(original: str, *, claim_id: str, owner: str, attestation: str, proof: str) -> str:
     coauthors: list[str] = []
     kept: list[str] = []
     for line in original.splitlines():
-        if line.startswith(("Lumos-Claim:", "Lumos-Agent:", "Lumos-Claim-Attestation:")):
+        if line.startswith(("Lumos-Claim:", "Lumos-Agent:", "Lumos-Claim-Attestation:", "Lumos-Claim-Proof:")):
             continue
         if line.startswith("Co-authored-by:"):
             coauthors.append(line)
@@ -173,6 +173,7 @@ def rebuild_message(original: str, *, claim_id: str, owner: str, attestation: st
         f"Lumos-Claim: {claim_id}",
         f"Lumos-Agent: {owner}",
         f"Lumos-Claim-Attestation: {attestation}",
+        f"Lumos-Claim-Proof: {proof}",
         *coauthors,
     ]
     return body + "\n\n" + "\n".join(trailers) + "\n"
@@ -235,6 +236,7 @@ def sign_range(
     head = _sha(head, "head")
     dest = destination_branch(dest)
     source_branch = _source_branch(source_branch, dest)
+    proof_key = public_proof_key() if proof_key is None else proof_key
     secret = assert_production_secret(secret, proof_key=proof_key)
     before = _snapshot(
         repo,
@@ -284,6 +286,7 @@ def sign_range(
                 claim_id=claim.claim_id,
                 owner=SIGNER_OWNER,
                 attestation=attestation,
+                proof=guard.public_proof(attestation, proof_key=proof_key),
             )
             new_sha = _commit_tree(
                 repo,
@@ -332,6 +335,7 @@ def push_signed(repo: Path, *, remote: str, sha: str, dest: str) -> None:
 
 
 STOP_CHECKS = (
+    "write-attestation",
     "write-attestation-trusted",
     "claim-guard",
     "test",

@@ -169,6 +169,8 @@ def test_signed_range_verifies_and_releases_claims(tmp_path: Path) -> None:
     verdict = ClaimGuard(secret=SECRET).verify_range(repo, base=base, head=tip)
     assert verdict.allowed is True
     assert verdict.reason == REASON_OK
+    assert ClaimGuard(secret=public_proof_key(), proof=True).verify_range(repo, base=base, head=tip).allowed
+    assert not ClaimGuard(secret=public_proof_key()).verify_range(repo, base=base, head=tip).allowed
     other = ClaimGuard(secret=OTHER).verify_range(repo, base=base, head=tip)
     assert other.allowed is False
     assert other.reason == REASON_UNAUTHORIZED
@@ -184,6 +186,47 @@ def test_signed_range_verifies_and_releases_claims(tmp_path: Path) -> None:
     assert claims
     assert all(item.status is ClaimStatus.RELEASED for item in claims)
     assert store.list_claims() == ()
+
+
+@pytest.mark.parametrize(
+    "mutation,production_ok,proof_ok",
+    [
+        ("remove-proof", True, False),
+        ("remove-production", False, True),
+        ("duplicate-proof", True, False),
+        ("duplicate-production", False, True),
+        ("swap", False, False),
+    ],
+)
+def test_dual_signatures_are_independent_and_cannot_replace_each_other(
+    tmp_path: Path, mutation: str, production_ok: bool, proof_ok: bool,
+) -> None:
+    repo = _init_repo(tmp_path)
+    base = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "checkout", "feature")
+    head = _commit(repo, "src/a.py", "a\n", "change")
+    tip = _sign(repo, tmp_path / "board", base=base, head=head)
+    lines = _git(repo, "log", "-1", "--format=%B", tip).splitlines()
+    prod = next(line for line in lines if line.startswith("Lumos-Claim-Attestation:"))
+    proof = next(line for line in lines if line.startswith("Lumos-Claim-Proof:"))
+    target = proof if mutation.endswith("proof") else prod
+    if mutation.startswith("remove-"):
+        lines.remove(target)
+    elif mutation.startswith("duplicate-"):
+        lines.append(target)
+    else:
+        lines = [
+            "Lumos-Claim-Attestation:" + proof.split(":", 1)[1] if line == prod
+            else "Lumos-Claim-Proof:" + prod.split(":", 1)[1] if line == proof
+            else line for line in lines
+        ]
+    _git(repo, "checkout", "trusted-sign/pr-944")
+    _git(repo, "commit", "--amend", "-m", "\n".join(lines))
+    tip = _git(repo, "rev-parse", "HEAD")
+    assert ClaimGuard(secret=SECRET).verify_range(repo, base=base, head=tip).allowed is production_ok
+    assert ClaimGuard(secret=public_proof_key(), proof=True).verify_range(
+        repo, base=base, head=tip,
+    ).allowed is proof_ok
 
 
 def test_existing_destination_and_bad_names_refuse(tmp_path: Path) -> None:
@@ -254,6 +297,7 @@ def test_message_keeps_one_trailer_block() -> None:
         claim_id="claim-1",
         owner=SIGNER_OWNER,
         attestation="sig",
+        proof="public-proof",
     )
     assert "\n\n\n" not in message
     assert message.endswith(
@@ -262,6 +306,7 @@ def test_message_keeps_one_trailer_block() -> None:
             "Lumos-Claim: claim-1",
             f"Lumos-Agent: {SIGNER_OWNER}",
             "Lumos-Claim-Attestation: sig",
+            "Lumos-Claim-Proof: public-proof",
             "Co-authored-by: A <a@example.com>",
             "",
         ]
@@ -517,6 +562,7 @@ def test_failed_trusted_check_stops_and_does_not_grant_merge() -> None:
             "ui-e2e",
             "node-tests",
             "publication-gate",
+            "write-attestation",
         )
     ]
     clean = judge_checks(rollup)
@@ -531,7 +577,7 @@ def test_failed_trusted_check_stops_and_does_not_grant_merge() -> None:
         ]
     )
     assert failed["stop"] is True
-    assert failed["failed"] == ["write-attestation-trusted"]
+    assert failed["failed"] == ["write-attestation", "write-attestation-trusted"]
     assert failed["grants_merge"] is False
     assert failed["proof_key_check"]["conclusion"] == "failure"
     assert failed["standing_class"]["conclusion"] == "failure"
@@ -542,11 +588,12 @@ def test_failed_trusted_check_stops_and_does_not_grant_merge() -> None:
             {"name": "standing-class", "status": "COMPLETED", "conclusion": "FAILURE"},
         ]
     )
-    assert proof_only["stop"] is False
+    assert proof_only["stop"] is True
+    assert proof_only["failed"] == ["write-attestation"]
     assert proof_only["grants_merge"] is False
     pending = judge_checks(rollup[:-1])
     assert pending["stop"] is True
-    assert pending["pending"] == ["publication-gate"]
+    assert pending["pending"] == ["write-attestation"]
 
 
 def test_workflow_python_entrypoints_run_without_installed_package() -> None:

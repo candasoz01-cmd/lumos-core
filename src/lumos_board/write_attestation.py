@@ -38,6 +38,7 @@ from lumos_board.write_gate import WriteGate
 
 ATTESTATION_SCHEMA = "lumos.claim_commit_attestation.v1"
 ATTESTATION_TRAILER = "Lumos-Claim-Attestation"
+PROOF_TRAILER = "Lumos-Claim-Proof"
 VERIFICATION_METHOD = "hmac-sha256"
 _CLOCK_SKEW = timedelta(seconds=60)
 
@@ -78,8 +79,9 @@ class RangeVerdict:
 
 
 class ClaimGuard:
-    def __init__(self, *, secret: str | None) -> None:
+    def __init__(self, *, secret: str | None, proof: bool = False) -> None:
         self._secret = (secret or "").encode("utf-8")
+        self._trailer_name = PROOF_TRAILER if proof else ATTESTATION_TRAILER
 
     def configured(self) -> bool:
         return len(self._secret) >= 32
@@ -118,6 +120,13 @@ class ClaimGuard:
         }
         return self._sign(payload)
 
+    def public_proof(self, attestation: str, *, proof_key: str) -> str:
+        """Copy an authenticated payload under the public key, without issuing a write token."""
+        proof_guard = ClaimGuard(secret=proof_key, proof=True)
+        if not self.configured() or not proof_guard.configured() or self._secret == proof_guard._secret:
+            raise ClaimError("üretim ve prova anahtarları ayrı ve yapılandırılmış olmalı")
+        return proof_guard._sign(self._open(attestation))
+
     def verify_range(self, repo: Path, *, base: str, head: str) -> RangeVerdict:
         if not self.configured():
             return RangeVerdict(False, REASON_UNCONFIGURED, ())
@@ -141,7 +150,10 @@ class ClaimGuard:
         seen_ids: set[str],
         seen_blobs: set[str],
     ) -> CommitVerdict:
-        token = _trailer(repo, sha)
+        token = _trailer(
+            repo, sha, name=self._trailer_name,
+            legacy_name=ATTESTATION_TRAILER if self._trailer_name == PROOF_TRAILER else None,
+        )
         if token is None:
             return CommitVerdict(sha, False, REASON_MISSING)
         if token in seen_blobs:
@@ -218,14 +230,19 @@ def _rev_list(repo: Path, base: str, head: str) -> tuple[str, ...]:
     return tuple(line.strip() for line in out.splitlines() if line.strip())
 
 
-def _trailer(repo: Path, sha: str) -> str | None:
+def _trailer(
+    repo: Path, sha: str, *, name: str = ATTESTATION_TRAILER,
+    legacy_name: str | None = None,
+) -> str | None:
     message = _git(repo, "log", "-1", "--format=%B", sha)
-    prefix = f"{ATTESTATION_TRAILER}: "
-    for line in message.splitlines():
-        if line.startswith(prefix):
-            value = line[len(prefix) :].strip()
-            return value or None
-    return None
+    prefix = f"{name}:"
+    values = [line[len(prefix):].strip() for line in message.splitlines() if line.startswith(prefix)]
+    # Legacy source commits used the attestation field for public proof.
+    # An invalid or duplicate explicit proof must never trigger this fallback.
+    if not values and legacy_name is not None:
+        prefix = f"{legacy_name}:"
+        values = [line[len(prefix):].strip() for line in message.splitlines() if line.startswith(prefix)]
+    return values[0] if len(values) == 1 and values[0] else None
 
 
 def _committer_time(repo: Path, sha: str) -> datetime:
@@ -274,7 +291,7 @@ def main(argv: list[str] | None = None) -> int:
     if not base or not head:
         sys.stderr.write("usage: python -m lumos_board.write_attestation --repo DIR --base SHA --head SHA\n")
         return 2
-    verdict = ClaimGuard(secret=os.environ.get("LUMOS_WRITE_GATE_SECRET")).verify_range(
+    verdict = ClaimGuard(secret=os.environ.get("LUMOS_WRITE_GATE_SECRET"), proof="--proof" in argv).verify_range(
         Path(repo), base=base, head=head
     )
     sys.stdout.write(json.dumps(verdict.to_dict(), ensure_ascii=False, sort_keys=True) + "\n")
