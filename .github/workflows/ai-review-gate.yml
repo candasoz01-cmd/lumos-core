@@ -1,0 +1,61 @@
+# AI review evidence gate (ADR-036, draft).
+#
+# pull_request_target: the workflow definition AND the verifier come from the
+# PR base. The PR tree is never checked out or executed. The introducing PR
+# cannot prove itself; that is bootstrap, not a bypass.
+#
+# Counts SHA-bound evidence from GitHub App identities only (cursor,
+# chatgpt-codex-connector). It is NOT human approval and NOT founder merge
+# authority (ADR-035 merge-authority signature).
+#
+# Limit (ADR-035 §4): this job's own CheckRun is produced by GitHub Actions.
+# A same-name result can be produced by a workflow copy on another base
+# branch for the same head SHA. As a required check by name alone it is
+# evidence, not a physical lock.
+name: AI review gate
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+  checks: read
+
+concurrency:
+  group: ai-review-gate-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  ai-review-gate:
+    # No job-level `if`: a SKIPPED check counts as passing for required
+    # status checks. Drafts run and fail/wait instead of skipping.
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+
+      - name: Verify SHA-bound AI review evidence (not human approval)
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PYTHONPATH: ${{ github.workspace }}/src
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test -f config/ai-review/policy.json
+          python3 -m lumos_board.ai_review_gate ai-gate \
+            --repo "$REPO" --pr "$PR_NUMBER" --head "$HEAD_SHA" \
+            --policy config/ai-review/policy.json \
+            --wait-seconds 2400 --interval 60
