@@ -10,6 +10,7 @@ import pytest
 
 from lumos_board.ai_review_gate import (
     AI_NOT_HUMAN,
+    changed_paths,
     GateError,
     evaluate_ai_gate,
     is_critical,
@@ -178,3 +179,23 @@ def test_cli_fails_closed_on_bad_policy(tmp_path, capsys):
 def test_policy_has_no_founder_or_merge_authority():
     p = load_policy(POLICY_PATH)
     assert "founder_gate" not in p and "not founder merge authority" in p["note"]
+
+
+def test_rename_out_of_critical_path_stays_critical(policy):
+    files = [{"filename": "docs/moved.yml", "previous_filename": ".github/workflows/ci.yml"}]
+    paths = changed_paths(files)
+    assert paths == ["docs/moved.yml", ".github/workflows/ci.yml"]
+    v = run_ai(policy, paths=paths)
+    assert v["critical"] is True and v["pass"] is False  # no cursor review on head
+
+
+def test_unpassable_policy_stops_waiting():
+    p = load_policy(POLICY_PATH)  # shipped: codex pass_status empty
+    v = evaluate_ai_gate(pr=1, head_sha=HEAD, paths=["docs/x.md"], check_runs=[cursor_run()],
+                         reviews=[], review_comments=[], issue_comments=[], policy=p)
+    assert v["pass"] is False and v["retryable"] is False
+
+
+def test_missing_evidence_is_retryable(policy):
+    v = run_ai(policy, comments=[])
+    assert v["pass"] is False and v["retryable"] is True

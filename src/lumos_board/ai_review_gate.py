@@ -129,7 +129,11 @@ def eval_codex(
 ) -> dict[str, Any]:
     pass_status = cfg.get("pass_status") or []
     if not pass_status:
-        return {"pass": False, "reason": "codex pass status not yet verified in policy"}
+        return {
+            "pass": False,
+            "permanent": True,
+            "reason": "codex pass status not yet verified in policy",
+        }
     states = []
     for c in issue_comments:
         if not _is_bot(c.get("user"), cfg["login"]) or _app_slug(c) != cfg["app_slug"]:
@@ -200,8 +204,16 @@ def evaluate_ai_gate(
         ]
         if inline:
             reasons.append(f"critical: {len(inline)} AI inline finding(s) on head SHA")
+    # Waiting cannot help if a provider can never pass under this policy.
+    blocked = [n for n, r in results.items() if r.get("permanent")]
+    reachable = len(providers) - len(blocked)
+    final = bool(blocked) and (
+        reachable < int(policy["min_distinct_providers"])
+        or (critical and bool(ccfg.get("require_all_providers")))
+    )
     return {
         "schema": VERDICT_SCHEMA,
+        "retryable": not final and bool(reasons),
         "pr": pr,
         "head_sha": head_sha,
         "pass": not reasons,
@@ -250,9 +262,20 @@ class GitHub:
         return items
 
 
+def changed_paths(files: list[dict[str, Any]]) -> list[str]:
+    """Both sides of a rename count: moving a critical file out of a critical
+    path must still be judged by the critical rules."""
+    paths: list[str] = []
+    for f in files:
+        for key in ("filename", "previous_filename"):
+            if f.get(key) and f[key] not in paths:
+                paths.append(f[key])
+    return paths
+
+
 def _ai_inputs(gh: GitHub, pr: int, head: str) -> dict[str, Any]:
     return {
-        "paths": [f["filename"] for f in gh.all(f"/pulls/{pr}/files")],
+        "paths": changed_paths(gh.all(f"/pulls/{pr}/files")),
         "check_runs": gh.all(f"/commits/{head}/check-runs", key="check_runs"),
         "reviews": gh.all(f"/pulls/{pr}/reviews"),
         "review_comments": gh.all(f"/pulls/{pr}/comments"),

@@ -33,7 +33,10 @@ gelmeli. Ama insan onayı gibi gösterilmemeli.
   `src/standing_merge/`, yayın kapısı, claim guard, policy dosyası,
   anayasa/AGENTS/CONTRIBUTING): bütün sağlayıcılar, Codex'te hiç bulgu yok,
   head'de Cursor review kaydı, head'de AI inline bulgusu yok. Yol listesi
-  boşsa veya yol `-`/`..` içeriyorsa kritik sayılır.
+  boşsa veya yol `-`/`..` içeriyorsa kritik sayılır. Yeniden adlandırmada
+  eski ve yeni yol birlikte değerlendirilir.
+- **Boşuna bekleme yok.** Policy altında hiç geçemeyecek bir sağlayıcı
+  varsa kapı beklemeden düşer (`retryable: false`).
 - **Güven kökü base SHA'dır.** Workflow ve doğrulayıcı
   `pull_request_target` ile base'den koşar; PR ağacı checkout edilmez.
   Kapıyı tanıtan PR kendini kanıtlayamaz (bootstrap).
