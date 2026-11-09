@@ -11,7 +11,11 @@ spec.loader.exec_module(handoff)
 
 
 def run(repo, *args):
-    return subprocess.check_output(['git', '-C', str(repo), *args], stderr=subprocess.PIPE)
+    # Same ambient-config isolation the handoff itself uses: a bare restored.git must be
+    # readable regardless of the caller's GIT_CONFIG_PARAMETERS (e.g. safe.bareRepository=explicit).
+    return subprocess.check_output(
+        ['git', '-C', str(repo), *args], stderr=subprocess.PIPE, env=handoff.git_environment()
+    )
 
 
 @pytest.fixture
