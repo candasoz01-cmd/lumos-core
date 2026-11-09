@@ -153,6 +153,213 @@ def test_lost_race_is_rerun_against_new_state_and_sees_winner(remote: Path, tmp_
     assert owners == ["winner"]
 
 
+def _remote_tip(remote: Path) -> str:
+    return _git("--git-dir", str(remote), "rev-parse", DEFAULT_REF).strip()
+
+
+def _install_pre_receive(remote: Path, body: str) -> None:
+    hook = remote / "hooks" / "pre-receive"
+    hook.write_text("#!/bin/sh\n" + body, encoding="utf-8")
+    hook.chmod(0o755)
+
+
+class _PushRecorder(CentralClaimStore):
+    """Records every ``git push`` result; behaviour is unchanged."""
+
+    def __init__(self, *args: object, **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)
+        self.pushes: list[subprocess.CompletedProcess[str]] = []
+
+    def _git(self, *args: str, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        result = super()._git(*args, **kwargs)
+        if args and args[0] == "push":
+            self.pushes.append(result)
+        return result
+
+
+def test_remote_side_ref_race_is_rerun_and_sees_winner(remote: Path, tmp_path: Path) -> None:
+    """The ref moves between receive-pack's advertisement and its update.
+
+    Real git, no stubs: a pre-receive hook advances the board ref to the
+    winner's commit once, exactly as a concurrent writer landing inside the
+    remote's update window would. The remote refuses our push ("incorrect old
+    value provided" on current git). That is a lost compare-and-swap: the
+    transaction must re-run against the new state, not fail as unreachable.
+    """
+    winner = _store(remote, tmp_path, "winner")
+    assert _claim(winner, task="BASE", owner="winner", scope="base.py").accepted
+    base = _remote_tip(remote)
+    assert _claim(winner, task="W", owner="winner", scope="x.py").accepted
+    winner_tip = _remote_tip(remote)
+    _git("--git-dir", str(remote), "update-ref", DEFAULT_REF, base)
+
+    sentinel = tmp_path / "race-injected"
+    _install_pre_receive(
+        remote,
+        f'[ -e "{sentinel}" ] && exit 0\n'
+        "unset GIT_QUARANTINE_PATH GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES\n"
+        f'git update-ref {DEFAULT_REF} {winner_tip} && echo moved > "{sentinel}"\n'
+        "exit 0\n",
+    )
+
+    loser = _PushRecorder(remote=str(remote), cache_dir=tmp_path / "agent-loser")
+    result = _claim(loser, task="L", owner="loser", scope="x.py")
+
+    assert sentinel.read_text(encoding="utf-8").strip() == "moved"
+    assert loser.pushes and loser.pushes[0].returncode != 0
+    assert result.accepted is False
+    assert result.conflicts[0].owner == "winner"
+    owners = sorted(c["owner"] for c in _board_state(remote)["claims"])
+    assert owners == ["winner", "winner"]
+    subprocess.run(
+        ["git", "--git-dir", str(remote), "merge-base", "--is-ancestor", winner_tip, DEFAULT_REF],
+        check=True,
+    )
+
+
+def test_remote_side_ref_creation_race_is_rerun_and_sees_winner(remote: Path, tmp_path: Path) -> None:
+    """Both writers saw no board ref; the other one creates it first.
+
+    Real git, no stubs: the remote starts without the ref, and a pre-receive
+    hook creates it once at the winner's commit inside our push's update
+    window. The remote refuses our creating push ("reference already exists"
+    on current git). That is a lost compare-and-swap for the creating push:
+    re-run against the new state.
+    """
+    winner = _store(remote, tmp_path, "winner")
+    assert _claim(winner, task="W", owner="winner", scope="x.py").accepted
+    winner_tip = _remote_tip(remote)
+    _git("--git-dir", str(remote), "update-ref", "-d", DEFAULT_REF)
+
+    sentinel = tmp_path / "race-injected"
+    _install_pre_receive(
+        remote,
+        f'[ -e "{sentinel}" ] && exit 0\n'
+        "unset GIT_QUARANTINE_PATH GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES\n"
+        f'git update-ref {DEFAULT_REF} {winner_tip} "" && echo created > "{sentinel}"\n'
+        "exit 0\n",
+    )
+
+    loser = _PushRecorder(remote=str(remote), cache_dir=tmp_path / "agent-loser")
+    result = _claim(loser, task="L", owner="loser", scope="x.py")
+
+    assert sentinel.read_text(encoding="utf-8").strip() == "created"
+    assert loser.pushes and loser.pushes[0].returncode != 0
+    assert result.accepted is False
+    assert result.conflicts[0].owner == "winner"
+    assert [c["owner"] for c in _board_state(remote)["claims"]] == ["winner"]
+    subprocess.run(
+        ["git", "--git-dir", str(remote), "merge-base", "--is-ancestor", winner_tip, DEFAULT_REF],
+        check=True,
+    )
+
+
+def test_reference_already_exists_with_fetched_base_is_not_retried(remote: Path, tmp_path: Path) -> None:
+    """The ref existed when we fetched, so "already exists" is no lost race."""
+    assert _claim(_store(remote, tmp_path, "first"), task="F", owner="first", scope="f.py").accepted
+    store = _StubPushStore(
+        remote=str(remote),
+        cache_dir=tmp_path / "c",
+        push_result=_push_result(_porcelain(DEFAULT_REF, "[remote rejected] (reference already exists)")),
+    )
+    with pytest.raises(CentralStoreUnavailable, match="yazılamadı"):
+        _claim(store, task="T", owner="a", scope="x.py")
+    assert store.push_calls == 1
+
+
+@pytest.mark.parametrize(
+    ("creating", "dst", "expected"),
+    [
+        (True, DEFAULT_REF, _CasLost),
+        (False, DEFAULT_REF, CentralStoreUnavailable),
+        (True, "refs/heads/other", CentralStoreUnavailable),
+    ],
+    ids=["creating-target", "not-creating", "creating-other-ref"],
+)
+def test_reference_already_exists_counts_only_for_creating_push(
+    tmp_path: Path, creating: bool, dst: str, expected: type[Exception]
+) -> None:
+    store = _StubPushStore(
+        remote="unused",
+        cache_dir=tmp_path / "c",
+        push_result=_push_result(_porcelain(dst, "[remote rejected] (reference already exists)")),
+    )
+    store._push_creates_ref = creating
+    with pytest.raises(expected):
+        store._push("a" * 40)
+
+
+def test_hook_rejection_echoing_race_text_is_not_retried(remote: Path, tmp_path: Path) -> None:
+    """A declining hook that prints the race summary to stderr stays a failure."""
+    counter = tmp_path / "hook-calls"
+    _install_pre_receive(
+        remote,
+        f'echo x >> "{counter}"\n'
+        f"printf '!\\tdead:{DEFAULT_REF}\\t[remote rejected] (incorrect old value provided)\\n' >&2\n"
+        "exit 1\n",
+    )
+    store = _PushRecorder(remote=str(remote), cache_dir=tmp_path / "c")
+    with pytest.raises(CentralStoreUnavailable, match="yazılamadı"):
+        _claim(store, task="T", owner="a", scope="x.py")
+    assert counter.read_text(encoding="utf-8").count("x") == 1
+    assert len(store.pushes) == 1
+
+
+def _push_result(stdout: str, stderr: str = "error: failed to push some refs to 'r'\n") -> subprocess.CompletedProcess[str]:
+    return subprocess.CompletedProcess(["git", "push"], 1, stdout=stdout, stderr=stderr)
+
+
+class _StubPushStore(CentralClaimStore):
+    def __init__(self, *args: object, push_result: subprocess.CompletedProcess[str], **kwargs: object) -> None:
+        super().__init__(*args, **kwargs)
+        self._push_result = push_result
+        self.push_calls = 0
+
+    def _git(self, *args: str, **kwargs: object) -> subprocess.CompletedProcess[str]:
+        if args and args[0] == "push":
+            self.push_calls += 1
+            return self._push_result
+        return super()._git(*args, **kwargs)
+
+
+def _porcelain(dst: str, summary: str) -> str:
+    return f"To r\n!\t{'a' * 40}:{dst}\t{summary}\nDone\n"
+
+
+def test_target_ref_incorrect_old_value_is_cas_loss(tmp_path: Path) -> None:
+    store = _StubPushStore(
+        remote="unused",
+        cache_dir=tmp_path / "c",
+        push_result=_push_result(_porcelain(DEFAULT_REF, "[remote rejected] (incorrect old value provided)")),
+    )
+    with pytest.raises(_CasLost):
+        store._push("a" * 40)
+
+
+@pytest.mark.parametrize(
+    "stdout",
+    [
+        _porcelain("refs/heads/other", "[remote rejected] (incorrect old value provided)"),
+        _porcelain(DEFAULT_REF, "[remote rejected] (pre-receive hook declined)"),
+        _porcelain(DEFAULT_REF, "[remote rejected] (permission denied)"),
+        _porcelain(DEFAULT_REF, "[remote rejected] (failed to update ref)"),
+        _porcelain(DEFAULT_REF, "[remote rejected] (incorrect old value provided) extra"),
+        f"To r\n!  {'a' * 40}:{DEFAULT_REF}  [remote rejected] (incorrect old value provided)\nDone\n",
+        "",
+    ],
+    ids=["other-ref", "hook-declined", "permission", "failed-update", "suffix", "no-tabs", "empty"],
+)
+def test_other_remote_rejections_fail_closed_without_retry(remote: Path, tmp_path: Path, stdout: str) -> None:
+    store = _StubPushStore(
+        remote=str(remote),
+        cache_dir=tmp_path / "c",
+        push_result=_push_result(stdout, stderr="remote: incorrect old value provided\nerror: failed to push\n"),
+    )
+    with pytest.raises(CentralStoreUnavailable, match="yazılamadı"):
+        _claim(store, task="T", owner="a", scope="x.py")
+    assert store.push_calls == 1
+
+
 def test_board_history_is_linear_and_never_rewritten(remote: Path, tmp_path: Path) -> None:
     a = _store(remote, tmp_path, "a")
     held = _claim(a, task="T1", owner="a", scope="x.py")
