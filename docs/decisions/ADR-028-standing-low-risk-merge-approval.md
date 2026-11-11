@@ -23,7 +23,11 @@ edebilir; yalnız **sınıf** ve **kapı** birlikte tutulursa.
 ### Sınıf (dahil)
 
 - docs-only
-- teknik borç kaydı (`docs/TECHNICAL_DEBT.md` satır düzeltmesi dahil)
+- teknik borç kaydının yalnız olgusal güncellemesi (`docs/TECHNICAL_DEBT.md`):
+  dosya adı yetki vermez. Değişiklik `semantic_review`'dır; standing yalnız o
+  head SHA'ya bağlı `factual` attestation ile açılır. Yeni kural, izin,
+  güvenlik, otorite, mahremiyet veya merge davranışı taşıyan kayıt hariçtir
+  (2026-09-26, kurucu)
 - mekanik ve prod davranışını değiştirmeyen değişiklikler
 
 ### Sınıf (hariç — açık insan onayı gerekir)

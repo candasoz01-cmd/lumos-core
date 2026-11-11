@@ -1,7 +1,7 @@
 {
   "schema": "lumos.standing_merge.rules.v2",
   "authority": "docs/decisions/ADR-028-standing-low-risk-merge-approval.md",
-  "note": "Üç durum: excluded > semantic_review > eligible. Hard-exclusion (önek/dosya/jeton) her şeyin önünde. Sonra semantic_prefixes: yol tek başına karar vermeye yetmez, olgu/norm değerlendirmesi head SHA'ya bağlı insan işidir; otomatik standing yok. Sonra dar allow listesi. Hiçbirine düşmeyen yol excluded (fail-closed). docs/ genel allowlist'i KALDIRILDI: docs/merge-rules.md gibi yeni bir governance belgesi isim listesinden kaçsa bile eligible olamaz, semantic_review'a düşer. standing-class FAILURE yalnız standing-merge yasağıdır; GitHub required check yapılmaz. ADR-023 bilinçli olarak hard-exclusion'da DEĞİL: semantic_review'a düşer, çünkü aynı dosyada hem olgu düzeltmesi (#788) hem yetki normu (#784) olabilir; ayrımı yol değil insan yapar.",
+  "note": "Üç durum: excluded > semantic_review > eligible. Hard-exclusion (önek/dosya/jeton) her şeyin önünde. Sonra semantic_prefixes: yol tek başına karar vermeye yetmez, olgu/norm değerlendirmesi head SHA'ya bağlı insan işidir; otomatik standing yok. Sonra dar allow listesi. Hiçbirine düşmeyen yol excluded (fail-closed). docs/ genel allowlist'i KALDIRILDI: docs/merge-rules.md gibi yeni bir governance belgesi isim listesinden kaçsa bile eligible olamaz, semantic_review'a düşer. standing-class FAILURE yalnız standing-merge yasağıdır; GitHub required check yapılmaz. ADR-023 bilinçli olarak hard-exclusion'da DEĞİL: semantic_review'a düşer, çünkü aynı dosyada hem olgu düzeltmesi (#788) hem yetki normu (#784) olabilir; ayrımı yol değil insan yapar. docs/TECHNICAL_DEBT.md allow_files'tan çıkarıldı (2026-09-26, kurucu): aynı dosya adı hem olgusal satır düzeltmesi hem yeni kural/izin/güvenlik kaydı taşıyabilir; semantic_review'a düşer, olgusal değişiklik head SHA'ya bağlı factual attestation ile standing alabilir.",
   "exclude_prefixes": [
     "docs/contracts/",
     "docs/decisions/ADR-003",
@@ -107,7 +107,5 @@
     "docs/screenshots/",
     "docs/visual-review/"
   ],
-  "allow_files": [
-    "docs/TECHNICAL_DEBT.md"
-  ]
+  "allow_files": []
 }
