@@ -273,6 +273,12 @@ def test_workflow_is_pull_request_target_and_secret_stays_on_trusted_step() -> N
     assert "lumos-ci-write-attestation-proof-not-prod-32" in board_jobs
     assert "Reject commits without HMAC write attestation" in board_jobs
     assert "Check PR writes against central claims" in board_jobs
+    assert trusted.count("name: lumos-write-verify") == 1
+    assert trusted.index("name: lumos-write-verify") < trusted.index(
+        "${{ secrets.LUMOS_WRITE_GATE_SECRET }}"
+    )
+    assert "\non:\n  pull_request:\n" in board
+    assert "${{ secrets.LUMOS_WRITE_GATE_SECRET }}" not in board
 
 
 def test_board_trailers_do_not_satisfy_hmac(tmp_path: Path) -> None:

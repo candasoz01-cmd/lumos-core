@@ -2,9 +2,14 @@
 # Isolated from claim-guard.yml so pull_request_target never emits SKIPPED
 # CheckRuns named claim-guard or write-attestation.
 #
-# pull_request_target + base.sha extract + production secret.
-# The secret is only on the verify step after the verifier is materialized
-# from the PR base, never from the untrusted head.
+# pull_request_target + base.sha extract. The production secret is scoped to
+# environment lumos-write-verify. This environment does not approve merges and
+# is not lumos-write-gate. The secret is only on the verify step after the
+# verifier is materialized from the PR base, never from the untrusted head.
+# The repository secret remains a temporary fallback until the same replacement
+# key is present in BOTH lumos-write-gate and lumos-write-verify and a
+# verification run succeeds. Deleting the repository secret before that breaks
+# verification.
 name: Write attestation trusted
 
 on:
@@ -20,6 +25,8 @@ concurrency:
 jobs:
   write-attestation-trusted:
     runs-on: ubuntu-latest
+    environment:
+      name: lumos-write-verify
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
