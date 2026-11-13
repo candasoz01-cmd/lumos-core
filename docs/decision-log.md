@@ -107,6 +107,7 @@ Karar uygulandı; kod `main`'de. DL-A01, DL-A02 … DL-A16 takip satırları kap
 | DL-F07 | 2026-06-17 | Root build vs panel E2E hizası | **Seçenek A uygulandı** (OD-046 **closed**) — üretim `ui/`; smoke (#294–#296); Faz 0–4 (#300–#305): kök `e2e:package*` → `ui/dist`, CI `ui-e2e`, legacy `e2e:legacy:*` | OD-046 — [`build-e2e-surface-alignment-decision.md`](memory/build-e2e-surface-alignment-decision.md), [`od-046-e2e-migration-plan.md`](memory/od-046-e2e-migration-plan.md) |
 | DL-F08 | 2026-06-19 | Evidence Continuity v2 backlog | 14/14 madde minimum v1 uygulandı (PR #255–#291); takip belgesi `implementation-complete` | [`docs/memory/evidence-continuity-v2-backlog.md`](memory/evidence-continuity-v2-backlog.md); OD-058 v1 closed |
 | DL-F09 | 2026-09-23 | Kurumsal yönetişim / risk motoru — tedarikçi kanıtı + son güvenli karar tarihi | **Gelecek özellik notu (doc-only)** — iki ilke çıkarımı: **(1)** tedarikçi/servis sağlayıcı «destekliyoruz / hazırız / uyumluyuz» beyanı tek başına yeterli değil; iddia doğrulanabilir kanıt, sertifika, kapsam ve güncel durumla birlikte gösterilir, kanıtsız iddia `doğrulanmamış beyan` olarak görünür. **(2)** risk/uyum maddelerinde resmî son tarihin yanında **son güvenli karar tarihi** tutulur; entegrasyon, test, doğrulama, değişiklik yönetimi ve alternatif tedarikçiye geçiş süreleri düşülerek hesaplanır. **Karar onayı, ürün yüzeyi, şema ve kod yok; STOP LIST sürüyor.** | OD-065, [`tedarikci-kaniti-ve-son-guvenli-karar-tarihi.md`](memory/tedarikci-kaniti-ve-son-guvenli-karar-tarihi.md), [`product-rules.md`](product-rules.md) PR-060/PR-061 |
+| DL-F10 | 2026-09-26 | Kanıt → kontrol → gereklilik katmanı | **İleride değerlendirilecek katkı.** Lumos’un kendi çalışma kanıtlarını ilgili kontrol ve mevzuat/standart gereklilikleriyle eşleyebilen bir katman. Feature kararı ve uygulama başlangıcı değildir; şema, kod ve ürün yüzeyi yok. Microsoft ürün ve uyum iddiaları bu kayıtla Lumos kararı olmaz. EU AI Act, NIS2 ve DORA hükümleri Microsoft metninden doğrulanmış sayılmaz; ileride birincil mevzuattan doğrulama şarttır. | Kaynak: `candasoz01-cmd/lumos-core#896`, `docs/drafts/microsoft-emea-blueprint-kaynak-adayi.md` (basılı s. 8, s. 35). Komşu, aynı kayıt değil: LUMOS-0009, LUMOS-0016, ADR-012 §3.3, DL-F09 |
 
 ### Karar kapandı — docs/memory (uygulama kodu yok)
 
@@ -176,4 +177,4 @@ Tam liste: `docs/memory/open-decisions-needs-review.md` (OD-001 … OD-060).
 
 ---
 
-Son güncelleme: 2026-09-23 (DL-F09 — tedarikçi kanıtı + son güvenli karar tarihi gelecek özellik notu)
+Son güncelleme: 2026-09-26 (DL-F10 — kanıt → kontrol → gereklilik katmanı, ileride değerlendirilecek katkı)
