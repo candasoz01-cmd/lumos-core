@@ -1,0 +1,94 @@
+---
+import "../styles/lumos-tokens.css";
+import "../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
+
+// Public support page for the Lumos iOS app (App Store "Support URL").
+// It replaces the withdrawn /help page, which is not reopened. Keep it free
+// of internal addresses, hostnames, setup details and roadmap: anything here
+// is public and is read by App Review.
+const supportEmail = "candasoz@welockai.com";
+const updated = "13 Kasım 2026";
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Destek — Lumos · We Lock AI</title>
+    <meta
+      name="description"
+      content="Lumos uygulaması için destek: iletişim, mikrofon ve kamera izinleri, canlı sesli görüşme, veri silme talebi ve uygunsuz içerik bildirimi."
+    />
+    <link rel="canonical" href="https://welockai.com/destek" />
+    <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow">LUMOS · DESTEK</p>
+      <h1>Destek</h1>
+      <p class="umbrella-lead">
+        Lumos uygulamasıyla ilgili soru, sorun ve talepleriniz için bu sayfayı kullanın.
+      </p>
+      <p>Son güncelleme: {updated}</p>
+
+      <h2>Bize ulaşın</h2>
+      <p>
+        E-posta: <a href={`mailto:${supportEmail}`}>{supportEmail}</a><br />
+        Mesajınıza uygulama sürümünü ve sorunu nasıl yaşadığınızı ekleyin. Şifre, kart bilgisi veya
+        başka gizli bilgi göndermeyin.
+      </p>
+
+      <h2>Mikrofon ve kamera izni</h2>
+      <ul>
+        <li>Mikrofon yalnızca sesle yazmayı veya canlı sesli görüşmeyi başlattığınızda kullanılır.</li>
+        <li>Kamera yalnızca kamera düğmesine bastığınızda, sohbete eklemek istediğiniz fotoğraf için kullanılır.</li>
+        <li>İzinleri istediğiniz zaman iPhone'da <strong>Ayarlar &gt; Lumos</strong> bölümünden kapatabilirsiniz.</li>
+      </ul>
+
+      <h2>Canlı sesli görüşme</h2>
+      <ul>
+        <li>Görüşmeyi ekrandaki <strong>Görüşmeyi bitir</strong> düğmesiyle istediğiniz an bitirebilirsiniz; görüşme bitince mikrofon bırakılır.</li>
+        <li>Görüşmede hangi bilgilerin işlendiği <a href="/lumos-uygulama-gizlilik">uygulama gizlilik bildiriminde</a> açıklanır.</li>
+      </ul>
+
+      <h2>Verilerinizin silinmesi</h2>
+      <p>
+        Hesabınızın ve size ait kayıtların silinmesini istiyorsanız yukarıdaki adrese, uygulamada kullandığınız
+        hesabın e-posta adresinden yazın. Talebinizi aldığımızı bildirir, sonucunu size iletiriz.
+      </p>
+
+      <h2>Uygunsuz içerik bildirimi</h2>
+      <p>
+        Lumos yapay zekâ ile yanıt üretir ve yanıtlar hatalı ya da uygunsuz olabilir. Uygunsuz, zararlı veya hatalı
+        bir yanıtla karşılaşırsanız yanıtın tarihini ve kısa bir açıklamayı aynı adrese gönderin; bildirimi inceleriz.
+      </p>
+
+      <h2>Önemli</h2>
+      <p>
+        Lumos'un yanıtları tıbbi, hukuki veya finansal danışmanlık yerine geçmez. Acil bir durumda bulunduğunuz
+        yerdeki acil yardım numarasını arayın.
+      </p>
+
+      <hr />
+
+      <h2 lang="en">Support (English)</h2>
+      <div lang="en">
+        <p>
+          Contact: <a href={`mailto:${supportEmail}`}>{supportEmail}</a>. Please include the app version and a short
+          description of the problem. Never send passwords or payment details.
+        </p>
+        <ul>
+          <li>The microphone is used only when you start dictation or a live voice call; the camera only when you tap the camera button. You can turn both off in iPhone Settings &gt; Lumos.</li>
+          <li>You can end a live voice call at any time with <strong>Görüşmeyi bitir</strong> (End call); the microphone is released when the call ends.</li>
+          <li>To delete your account and your records, email us from the address you use in the app.</li>
+          <li>To report an inappropriate or harmful AI response, email us the date and a short description.</li>
+          <li>See the <a href="/lumos-uygulama-gizlilik">app privacy notice</a> for what is processed and by whom.</li>
+        </ul>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+  </body>
+</html>
