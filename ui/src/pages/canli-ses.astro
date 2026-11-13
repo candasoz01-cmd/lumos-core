@@ -102,6 +102,15 @@ const title = "Canlı ses — Lumos";
         background: #2d8f82;
         transform: scale(.98);
       }
+      #mute {
+        margin-top: .8rem;
+        color: #f4f0e7;
+        background: rgba(255, 255, 255, .12);
+      }
+      #mute[aria-pressed="true"] {
+        color: #fff;
+        background: #7a5a16;
+      }
       [hidden] { display: none !important; }
       button:disabled { opacity: .48; }
       #status { min-height: 1.5rem; margin: 1rem 0 0; color: #c9d4d3; }
@@ -121,6 +130,7 @@ const title = "Canlı ses — Lumos";
       </div>
       <button id="toggle" type="button">Canlı konuşmayı başlat</button>
       <button id="push-to-talk" type="button" hidden>Basılı tut ve konuş</button>
+      <button id="mute" type="button" hidden aria-pressed="false">Mikrofonu kapat</button>
       <p id="status" role="status" aria-live="polite">Hazır</p>
       <p class="note">Mikrofon yalnız bu görüşme açıkken kullanılır. Standart API anahtarı telefona gönderilmez.</p>
       <audio id="remote-audio" autoplay></audio>
@@ -135,6 +145,7 @@ const title = "Canlı ses — Lumos";
         const autoModeButton = document.getElementById("mode-auto");
         const pushModeButton = document.getElementById("mode-push");
         const pushToTalkButton = document.getElementById("push-to-talk");
+        const muteButton = document.getElementById("mute");
         const token = new URLSearchParams(location.hash.slice(1)).get("token") || "";
         history.replaceState(null, "", location.pathname);
 
@@ -142,11 +153,69 @@ const title = "Canlı ses — Lumos";
         let stream = null;
         let mode = "auto";
         let eventsChannel = null;
+        // Mute is the user's decision. Nothing in this page turns it off
+        // again: not a mode switch, push-to-talk, a reconnect or a timer.
+        let muted = false;
+        let microphoneSender = null;
+        let connectTimer = null;
+        let recoveryTimer = null;
+        let recovering = false;
+        // A transient "disconnected" is given time to heal by itself.
+        // Checks back off (1 s, 2 s, 4 s, 8 s); after 15 s the call ends.
+        const RECOVERY_BACKOFF_MS = [1000, 2000, 4000, 8000];
+        const CONNECT_TIMEOUT_MS = 20000;
+        const SESSION_REQUEST_TIMEOUT_MS = 15000;
+
+        const schedule = (fn, ms) => (typeof setTimeout === "function" ? setTimeout(fn, ms) : null);
+        const cancel = (timer) => { if (timer !== null && typeof clearTimeout === "function") clearTimeout(timer); };
+        const clearTimers = () => {
+          cancel(connectTimer);
+          cancel(recoveryTimer);
+          connectTimer = null;
+          recoveryTimer = null;
+          recovering = false;
+        };
 
         const setStatus = (text) => { status.textContent = text; };
         const microphoneTrack = () => stream?.getAudioTracks()[0] || null;
+        // While muted the sender carries no track at all, so no microphone
+        // audio (not even silence frames) leaves the device.
+        const applyMute = () => {
+          const track = microphoneTrack();
+          if (muted && track) track.enabled = false;
+          if (microphoneSender && typeof microphoneSender.replaceTrack === "function") {
+            const wanted = muted ? null : track;
+            if (microphoneSender.track !== wanted) {
+              Promise.resolve(microphoneSender.replaceTrack(wanted)).catch(() => {
+                // Could not detach the track: fail closed, keep it disabled.
+                if (track) track.enabled = false;
+              });
+            }
+          }
+          muteButton.setAttribute("aria-pressed", String(muted));
+          muteButton.dataset.muted = String(muted);
+          muteButton.textContent = muted ? "Mikrofonu aç" : "Mikrofonu kapat";
+        };
+        const setMuted = (next) => {
+          muted = Boolean(next);
+          if (!muted) {
+            const track = microphoneTrack();
+            // Unmute restores the current mode's rule: open in free talk,
+            // closed in push-to-talk until the button is held again.
+            if (track) track.enabled = mode !== "push";
+          }
+          applyMute();
+          if (pc?.connectionState === "connected" && !recovering) {
+            if (muted) setStatus("Mikrofon kapalı — Lumos seni duymuyor");
+            else setStatus(mode === "push" ? "Canlı — konuşmak için basılı tut" : "Canlı — konuşabilirsin");
+          }
+        };
         const setTalking = (talking) => {
           if (mode !== "push" || pc?.connectionState !== "connected") return;
+          if (muted) {
+            setStatus("Mikrofon kapalı — konuşmak için önce mikrofonu aç");
+            return;
+          }
           const track = microphoneTrack();
           if (track) track.enabled = talking;
           audio.muted = talking;
@@ -164,18 +233,22 @@ const title = "Canlı ses — Lumos";
           pushModeButton.setAttribute("aria-pressed", String(pushMode));
           pushToTalkButton.hidden = !pushMode || pc?.connectionState !== "connected";
           const track = microphoneTrack();
-          if (track) track.enabled = !pushMode;
+          if (track) track.enabled = !pushMode && !muted;
+          applyMute();
           if (pc?.connectionState === "connected") {
-            setStatus(pushMode ? "Canlı — konuşmak için basılı tut" : "Canlı — konuşabilirsin");
+            if (muted) setStatus("Mikrofon kapalı — Lumos seni duymuyor");
+            else setStatus(pushMode ? "Canlı — konuşmak için basılı tut" : "Canlı — konuşabilirsin");
           }
         };
         const selectMode = (nextMode) => {
           mode = nextMode;
           applyMode();
         };
-        const stop = () => {
+        const stop = (message = "Yeniden başlatmak için Lumos uygulamasına dön.") => {
+          clearTimers();
           stream?.getTracks().forEach((track) => track.stop());
           stream = null;
+          microphoneSender = null;
           // Closing the peer must not re-enter stop through its state callback.
           if (pc) pc.onconnectionstatechange = null;
           eventsChannel?.close();
@@ -191,7 +264,80 @@ const title = "Canlı ses — Lumos";
           button.disabled = true;
           modePicker.hidden = true;
           pushToTalkButton.hidden = true;
-          setStatus("Yeniden başlatmak için Lumos uygulamasına dön.");
+          muteButton.hidden = true;
+          setStatus(message);
+        };
+
+        // Called on every check of a "disconnected" peer. The same peer is
+        // never renegotiated and no new session is created: a new session
+        // would need a new token and would replay chat context to the model.
+        const checkRecovery = (attempt) => {
+          recoveryTimer = null;
+          if (!pc || !recovering) return;
+          const state = pc.connectionState;
+          if (state === "connected") return;
+          if (state === "failed" || state === "closed") {
+            stop("Bağlantı geri gelmedi. Yeniden başlatmak için Lumos uygulamasına dön.");
+            return;
+          }
+          if (attempt >= RECOVERY_BACKOFF_MS.length) {
+            stop("Bağlantı geri gelmedi. Yeniden başlatmak için Lumos uygulamasına dön.");
+            return;
+          }
+          recoveryTimer = schedule(() => checkRecovery(attempt + 1), RECOVERY_BACKOFF_MS[attempt]);
+        };
+        const beginRecovery = () => {
+          if (recovering) return;
+          recovering = true;
+          orb.dataset.live = "false";
+          pushToTalkButton.hidden = true;
+          pushToTalkButton.dataset.talking = "false";
+          audio.muted = false;
+          const track = microphoneTrack();
+          if (track && mode === "push") track.enabled = false;
+          applyMute();
+          setStatus("Bağlantı koptu — yeniden bağlanılıyor…");
+          checkRecovery(0);
+        };
+        const handleConnectionState = () => {
+          const state = pc?.connectionState;
+          if (state === "connected") {
+            cancel(connectTimer);
+            connectTimer = null;
+            cancel(recoveryTimer);
+            recoveryTimer = null;
+            recovering = false;
+            orb.dataset.live = "true";
+            button.disabled = false;
+            button.dataset.stop = "true";
+            button.textContent = "Görüşmeyi bitir";
+            modePicker.hidden = false;
+            muteButton.hidden = false;
+            applyMode();
+            return;
+          }
+          if (state === "disconnected") {
+            beginRecovery();
+            return;
+          }
+          if (state === "failed" || state === "closed") {
+            stop(state === "failed"
+              ? "Bağlantı koptu. Yeniden başlatmak için Lumos uygulamasına dön."
+              : undefined);
+          }
+        };
+        const permissionMessage = (error) => {
+          const name = error?.name || "";
+          if (name === "NotAllowedError" || name === "SecurityError" || name === "PermissionDeniedError") {
+            return "Mikrofon izni verilmedi. Ayarlar > Lumos > Mikrofon'dan izin verip yeniden dene.";
+          }
+          if (name === "NotFoundError" || name === "OverconstrainedError") {
+            return "Kullanılabilir mikrofon bulunamadı.";
+          }
+          if (name === "NotReadableError" || name === "AbortError" || name === "TrackStartError") {
+            return "Mikrofon başka bir uygulama tarafından kullanılıyor olabilir.";
+          }
+          return null;
         };
 
         const isSpokenEndRequest = (text) => {
@@ -263,20 +409,19 @@ const title = "Canlı ses — Lumos";
           }
           button.disabled = true;
           setStatus("Mikrofon hazırlanıyor…");
+          // Which step failed decides the message: a microphone AbortError
+          // and an aborted session request share the same error name.
+          let phase = "microphone";
           try {
             pc = new RTCPeerConnection();
             pc.ontrack = (event) => { audio.srcObject = event.streams[0]; };
-            pc.onconnectionstatechange = () => {
-              if (pc?.connectionState === "connected") {
-                orb.dataset.live = "true";
-                button.disabled = false;
-                button.dataset.stop = "true";
-                button.textContent = "Görüşmeyi bitir";
-                modePicker.hidden = false;
-                applyMode();
+            pc.onconnectionstatechange = handleConnectionState;
+            connectTimer = schedule(() => {
+              connectTimer = null;
+              if (pc && pc.connectionState !== "connected") {
+                stop("Bağlantı zaman aşımına uğradı. Yeniden başlatmak için Lumos uygulamasına dön.");
               }
-              if (["failed", "disconnected", "closed"].includes(pc?.connectionState)) stop();
-            };
+            }, CONNECT_TIMEOUT_MS);
 
             stream = await navigator.mediaDevices.getUserMedia({
               audio: {
@@ -285,37 +430,63 @@ const title = "Canlı ses — Lumos";
                 autoGainControl: true,
               },
             });
-            stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+            phase = "session";
+            stream.getTracks().forEach((track) => {
+              const sender = pc.addTrack(track, stream);
+              if (track.kind !== "video" && sender) microphoneSender = sender;
+            });
+            applyMute();
             eventsChannel = pc.createDataChannel("oai-events");
 
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-            const response = await fetch("https://api.openai.com/v1/realtime/calls", {
-              method: "POST",
-              headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/sdp",
-              },
-              body: offer.sdp,
-            });
+            const controller = typeof AbortController === "function" ? new AbortController() : null;
+            const abortTimer = controller ? schedule(() => controller.abort(), SESSION_REQUEST_TIMEOUT_MS) : null;
+            let response;
+            try {
+              response = await fetch("https://api.openai.com/v1/realtime/calls", {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/sdp",
+                },
+                body: offer.sdp,
+                ...(controller ? { signal: controller.signal } : {}),
+              });
+            } finally {
+              cancel(abortTimer);
+            }
             if (!response.ok) throw new Error("session_failed");
             await pc.setRemoteDescription({
               type: "answer",
               sdp: await response.text(),
             });
-          } catch (_error) {
+          } catch (error) {
+            clearTimers();
             stream?.getTracks().forEach((track) => track.stop());
             stream = null;
+            microphoneSender = null;
+            if (pc) pc.onconnectionstatechange = null;
+            eventsChannel?.close?.();
+            eventsChannel = null;
             pc?.close();
             pc = null;
             button.disabled = true;
-            setStatus("Canlı ses başlatılamadı. Mikrofon iznini ve bağlantını kontrol et.");
+            muteButton.hidden = true;
+            setStatus((phase === "microphone" && permissionMessage(error))
+              || (error?.name === "AbortError" || error?.name === "TimeoutError"
+                ? "Canlı ses sunucusu zamanında yanıt vermedi. Lumos uygulamasından yeniden dene."
+                : "Canlı ses başlatılamadı. Mikrofon iznini ve bağlantını kontrol et."));
           }
         };
 
         button.addEventListener("click", () => {
           if (pc) stop();
           else start();
+        });
+        muteButton.addEventListener("click", () => {
+          if (!pc) return;
+          setMuted(!muted);
         });
         autoModeButton.addEventListener("click", () => selectMode("auto"));
         pushModeButton.addEventListener("click", () => selectMode("push"));
