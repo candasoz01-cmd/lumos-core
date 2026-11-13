@@ -60,7 +60,7 @@ Depo sırrı, aşağıdaki başarıdan önce silinirse doğrulama kırılır.
    eder. Ajan merge etmez.
 3. O merge'den sonra tek bir yeni anahtar üretilir (en az 32 bayt) ve aynı
    değer hem `lumos-write-gate` hem `lumos-write-verify` üzerine yazılır.
-   Anahtar basılmaz. Git'e girmez. Bu adım, `origin/main` iş değişikliğini
+   Değer loga, sohbete veya git'e yazılmaz. Bu adım, `origin/main` iş değişikliğini
    gerçekten içermeden yapılmaz.
 4. Doğrulama koşulur: üretim imzalı bir aralık `write-attestation-trusted`
    geçer. Genel `write-attestation` işi yalnız genel prova anahtarını
