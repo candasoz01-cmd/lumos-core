@@ -4,12 +4,12 @@ import "../styles/umbrella-chrome.css";
 import WeLockSiteNav from "../components/WeLockSiteNav.astro";
 import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
 
-// Privacy notice for the Lumos iOS app (App Store "Privacy Policy URL").
-// Every statement must match the submitted binary. Before changing a data
-// flow in the app, change this page in the same release. Statements that
-// still need founder or legal confirmation are listed in the PR, not here.
+// App Store privacy draft. Only statements that survive comparison with the
+// live site, server records, and the iOS app belong here. Chat retention,
+// memory permission, telemetry contents, model providers, and microphone or
+// camera behavior are omitted until those three sources agree.
 const contactEmail = "candasoz@welockai.com";
-const updated = "13 Kasım 2026";
+const updated = "16 Kasım 2026";
 ---
 
 <html lang="tr">
@@ -19,7 +19,7 @@ const updated = "13 Kasım 2026";
     <title>Lumos uygulaması gizlilik bildirimi — We Lock AI</title>
     <meta
       name="description"
-      content="Lumos iOS uygulamasında hangi verilerin, hangi amaçla ve hangi hizmet sağlayıcılarla işlendiğini açıklayan gizlilik bildirimi."
+      content="Lumos iOS uygulaması için gizlilik taslağı. Doğrulanmayan saklama, hafıza, kayıt, sağlayıcı ve mikrofon veya kamera cümleleri bu sayfada yoktur."
     />
     <link rel="canonical" href="https://welockai.com/lumos-uygulama-gizlilik" />
     <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
@@ -30,93 +30,60 @@ const updated = "13 Kasım 2026";
       <p class="umbrella-eyebrow">LUMOS · GİZLİLİK</p>
       <h1>Lumos uygulaması gizlilik bildirimi</h1>
       <p class="umbrella-lead">
-        Bu bildirim Lumos iOS uygulamasını kapsar. welockai.com sitesinin genel bildirimi
-        <a href="/privacy">ayrı sayfadadır</a>.
+        Bu sayfa Lumos iOS uygulaması için hazırlanan taslaktır. welockai.com sitesinin genel bildirimi
+        <a href="/privacy">ayrı sayfadadır</a>. Bu taslak App Store gizlilik adresine konmaya hazır değildir.
       </p>
       <p>Son güncelleme: {updated}</p>
 
-      <h2>Veri sorumlusu ve iletişim</h2>
+      <h2>İletişim</h2>
       <p>
-        Lumos, Candaş Öz'ün şahıs işletmesi tarafından "We Lock AI" markasıyla sunulur (Gazimağusa, Kuzey Kıbrıs).
-        Gizlilikle ilgili tüm talepleriniz için: <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.
+        Gizlilikle ilgili bir talep için <a href={`mailto:${contactEmail}`}>{contactEmail}</a> adresine yazın.
+        İletiyi, uygulamada kullandığınız e-posta adresinden gönderin.
       </p>
 
-      <h2>Hangi verileri işliyoruz?</h2>
-      <ul>
-        <li><strong>Hesap:</strong> Google ile giriş yaptığınızda Google'ın paylaştığı temel hesap bilgileri (ad ve e-posta adresi) ve oturum bilgisi.</li>
-        <li><strong>Sohbet:</strong> Yazdığınız mesajlar, eklediğiniz fotoğraflar ve Lumos'un yanıtları. Sohbet geçmişiniz uygulamada yeniden görüntülenebilmesi için Lumos sunucusunda tutulur.</li>
-        <li><strong>Canlı sesli görüşme:</strong> Görüşme açıkken mikrofon sesiniz. Görüşme başlarken, sohbetin devam edebilmesi için o sohbetteki en fazla son 12 metin mesajı da görüşmeye aktarılır. Fotoğraflar aktarılmaz; yerlerine yalnızca "fotoğraf vardı" notu gider.</li>
-        <li><strong>Sesle yazma:</strong> Konuşmanız Apple'ın konuşma tanıma hizmetiyle metne çevrilir; çıkan metin sohbet mesajı olarak işlenir.</li>
-        <li><strong>Hafıza:</strong> Yalnızca uygulamada hafıza iznini açarsanız, sonraki sohbetlerde kullanılmak üzere sizinle ilgili notlar tutulur. İzni kapattığınızda hafıza kullanılmaz.</li>
-        <li><strong>Yerel ağ:</strong> Yalnızca izin verdiğiniz Mac bağlantısını bulmak için yerel ağınız taranır; bu bilgi sunucuya gönderilmez.</li>
-        <li><strong>Teknik kayıtlar:</strong> Güvenlik ve hata giderme için gereken sınırlı kayıtlar (örneğin istek zamanı ve hata kodu).</li>
-      </ul>
-      <p>Konum, kişiler, sağlık verisi veya reklam kimliği toplanmaz. Uygulamada reklam ve izleme (tracking) yoktur.</p>
-
-      <h2>Yapay zekâ hizmet sağlayıcıları</h2>
+      <h2>Bu taslakta kesin cümle yoktur</h2>
       <p>
-        Lumos'un yanıtları, mesajınızın ve gerekli bağlamın aşağıdaki sağlayıcılara gönderilmesiyle üretilir.
-        Bu sağlayıcılar veriyi kendi API koşulları çerçevesinde işler:
+        Aşağıdaki başlıklar, çalışan site, sunucu kayıtları ve yayımlanacak iOS sürümü birlikte
+        gösterilene kadar bu sayfada kesin ifade olarak yer almaz:
       </p>
       <ul>
-        <li><strong>OpenAI</strong> — sohbet yanıtları ve canlı sesli görüşme (ses doğrudan cihazınızdan OpenAI'ye, kısa ömürlü bir oturum anahtarıyla iletilir).</li>
-        <li><strong>Anthropic (Claude)</strong> — sohbet yanıtları.</li>
-        <li><strong>Google (Gemini)</strong> — sohbet yanıtları.</li>
+        <li>Sohbet metninin, fotoğrafın veya yanıtın nerede ve ne kadar süre tutulduğu.</li>
+        <li>Hafızanın yalnız bir uygulama izniyle çalışıp çalışmadığı.</li>
+        <li>Teknik kayıtlara iletinin, adın veya başka bir içeriğin yazılıp yazılmadığı.</li>
+        <li>İsteğin hangi yapay zekâ sağlayıcısına gittiği.</li>
+        <li>Mikrofonun, kameranın ve konuşma tanımanın ne zaman açıldığı ve sesin veya görüntünün nereye gittiği.</li>
       </ul>
       <p>
-        Verileriniz satılmaz ve reklam amacıyla kullanılmaz. Yapay zekâ yanıtları hatalı olabilir; önemli kararlar için
-        doğrulayın.
+        Google ile giriş bu sitede <code>openid</code>, <code>email</code> ve <code>profile</code> kapsamlarını ister.
+        Oturuma yazılan alanlar ve bunların uygulamada kullanımı bu taslakta ayrıca sayılmaz.
       </p>
 
-      <h2>Neden işliyoruz?</h2>
+      <h2>Talep</h2>
       <ul>
-        <li>İstediğiniz sohbeti, sesli görüşmeyi ve görevi yerine getirmek.</li>
-        <li>Hesabınızı ve oturumunuzu güvenli tutmak.</li>
-        <li>Kötüye kullanımı önlemek ve sorunları gidermek.</li>
+        <li>Hesabınız veya kayıtlarınız için silme talebini aynı adrese yazabilirsiniz. Bu sayfa, talebin sistemde silme olarak tamamlandığını söylemez.</li>
+        <li>Google erişimini Google hesabınızın bağlı uygulamalar sayfasından kaldırabilirsiniz.</li>
+        <li>Uygunsuz veya hatalı bir yanıtı, tarihi ve kısa açıklamasıyla aynı adrese bildirebilirsiniz.</li>
       </ul>
-
-      <h2>Saklama ve silme</h2>
-      <p>
-        Sohbet geçmişi ve hafıza notları, siz silinmesini isteyene veya hesabınız silinene kadar tutulur. Hesabınızın ve
-        size ait kayıtların silinmesi için hesabınızın e-posta adresinden
-        <a href={`mailto:${contactEmail}`}>{contactEmail}</a> adresine yazın. Hizmet sağlayıcıların kendi
-        sistemlerindeki saklama süreleri kendi koşullarına tabidir.
-      </p>
-
-      <h2>Haklarınız ve denetimleriniz</h2>
-      <ul>
-        <li>Verilerinize erişim, düzeltme ve silme talebinde bulunabilirsiniz.</li>
-        <li>Mikrofon, kamera ve konuşma tanıma izinlerini iPhone'da <strong>Ayarlar &gt; Lumos</strong> bölümünden kapatabilirsiniz.</li>
-        <li>Canlı sesli görüşmeyi istediğiniz an bitirebilirsiniz; görüşme bitince mikrofon bırakılır.</li>
-        <li>Google erişimini Google Hesabınızın bağlı uygulamalar sayfasından kaldırabilirsiniz.</li>
-      </ul>
-
-      <h2>Çocuklar</h2>
-      <p>Lumos 18 yaşından küçükler için tasarlanmamıştır.</p>
-
-      <h2>Değişiklikler</h2>
-      <p>Uygulamanın veri kullanımı değiştiğinde bu sayfa ve güncelleme tarihi aynı sürümle birlikte yenilenir.</p>
 
       <hr />
 
       <section lang="en">
         <h2>Lumos app privacy notice (English summary)</h2>
         <p>
-          Lumos is provided by Candaş Öz (sole proprietorship) under the "We Lock AI" brand, Famagusta, Northern Cyprus.
+          This is a draft for the Lumos iOS app. The site notice is on <a href="/privacy">a separate page</a>.
+          This draft is not ready to use as the App Store privacy URL.
           Contact: <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.
         </p>
-        <ul>
-          <li><strong>Account:</strong> basic Google account details (name, email) and session data when you sign in with Google.</li>
-          <li><strong>Chat:</strong> your messages, attached photos and Lumos replies; chat history is stored on the Lumos server so you can see it again.</li>
-          <li><strong>Live voice:</strong> microphone audio while a call is open. When a call starts, up to the last 12 text messages of that chat are passed to the call for context; photos are not passed (only a short note).</li>
-          <li><strong>Dictation:</strong> Apple speech recognition converts your speech to text.</li>
-          <li><strong>Memory:</strong> only if you turn memory on in the app.</li>
-          <li><strong>Local network:</strong> only to find the Mac connection you approve; not sent to the server.</li>
-          <li>No location, contacts, health data or advertising identifier. No ads, no tracking.</li>
-          <li><strong>AI providers:</strong> OpenAI (chat and live voice; audio goes directly from your device to OpenAI with a short-lived session key), Anthropic (Claude) and Google (Gemini) process requests under their API terms. Data is not sold or used for advertising.</li>
-          <li><strong>Retention and deletion:</strong> chat history and memory notes are kept until you ask for deletion or your account is deleted. Email us from your account address to delete your account and records.</li>
-          <li>Lumos is not intended for people under 18.</li>
-        </ul>
+        <p>
+          It does not state where chat, photos, or replies are kept, whether memory runs only after an
+          in-app permission, what technical logs contain, which AI provider receives a request, or when the
+          microphone, camera, or speech recognition is used. Those sentences stay out until the live site,
+          server records, and the iOS build to be submitted agree.
+        </p>
+        <p>
+          You can email a deletion request or report an inappropriate reply. This page does not say that a
+          request has already deleted records.
+        </p>
       </section>
     </main>
     <WeLockSiteFooter />
