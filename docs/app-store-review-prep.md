@@ -342,11 +342,38 @@ kanıt kaydıdır; yayın onayı değildir.
 |---|---|---|---|
 | E1 | Gemini ücretli katman | Açık; kanıt yok | Faturalandırma ekranı, anahtar–proje eşleşmesi ve AI Studio'daki katman bilgisi; ya da Gemini yedeği kapatılır. |
 | E2 | Sesli görüşmeye giden sohbet geçmişi | Kod tarafı biliniyor: son 12 metin mesajı, fotoğraf yerine not. Binary kanıtı yok | Yeni build PR-1'in köken betiğiyle arşivlenir; 13 mesajlı cihaz testi yapılır. |
-| E3 | Yardım bağlantısı | Üç adayda da kapalı `welockai.com/help` adresi var | Yeni `/destek` sayfası yayımlanır, iOS'taki "Tam yardım" bağlantısı oraya çevrilir. Sayfa ayrıca kurucu yayın onayı ister. |
-| E4 | Gizlilik bildirimi | `/privacy` sayfasında veri sorumlusu, iletişim, OpenAI/Gemini/Anthropic ve ses verisi yok | Uygulamaya özel `/lumos-uygulama-gizlilik` taslağı hazırlandı; kurucu onayından sonra yayımlanır. |
+| E3 | Yardım bağlantısı | Üç adayda da kapalı `welockai.com/help` adresi var. 16 Kasım 2026'da `/destek` hâlâ 404. | `/destek` kurucu onayından sonra yayımlanır. Mikrofon, kamera ve görüşme bitirme cümleleri uygulama sürümü görülmeden sayfada durmaz. iOS'taki yardım bağlantısı o zaman çevrilir. |
+| E4 | Gizlilik bildirimi | `/privacy` sayfasında veri sorumlusu ve ses verisi yok. 16 Kasım 2026 karşılaştırması sohbet saklama, hafıza izni, telemetri, sağlayıcı ve mikrofon/kamera iddialarını doğrulamadı. | `/lumos-uygulama-gizlilik` bu iddiaları taşımıyor. Sayfa App Store adresine konmaz; kurucu onayı ve §11 kanıtı gerekir. |
 | E5 | Giriş hizmeti (4.8) | Uygulama yalnız Google ile giriş kullanıyor | Apple ile Giriş veya 4.8 şartlarını karşılayan başka bir giriş seçeneği eklenir. |
 | E6 | Uygulama içinden hesap silme (5.1.1(v)) | Uygulamada hesap silme olup olmadığı doğrulanmadı | Uygulamada "Hesabı sil" girişi; silme sunucuda gerçekten yapılmalı. |
 | E7 | Marka | Avukat görüşü yok | Marka kararından sonra uygulama adı ve mağaza metni kesinleşir. |
 | E8 | Apple Developer hesap türü | Doğrulanmadı | Account → Membership Details ekranı kurucu tarafından kontrol edilir. |
 | E9 | Xcode CI | `lumos-ios`'ta Codex'in claim'i (`IOS-XCODE-CI-20261113`) süresi dolmuş ama hâlâ `ACTIVE`. Dal GitHub'da yok, yerelde iş sürüyor | Claim sahibi işi sürdürür ya da claim'i bırakır. Başka ajan devralmaz. |
 | E10 | Build kökeni | Build 50'nin kaynağı kanıtlanamıyor | Build 51 yalnız temiz ağaçtan, köken kaydıyla arşivlenir. |
+
+## 11. Gizlilik iddiaları — 16 Kasım 2026
+
+Bu bölüm yayın onayı değildir. #967 merge edilmez. Karşılaştırma üç kaynağa bakmıştır: çalışan welockai.com, bu depodaki sunucu kodu ve GitHub'daki `lumos-ios`. Üretim sunucu günlüğü (Vercel, Axiom veya Sentry içeriği) bu ortamdan okunamadı. Yayımlanacak iOS adayı §10'daki `Lumos` `b98e81e` olarak kayıtlıdır ve GitHub'da yoktur. Bu yüzden kodda görülen bir yol, canlı kayıt veya yayımlanacak binary kanıtı sayılmaz.
+
+Saat: 16 Kasım 2026, 14:28 (Famagusta, UTC+2). Canlı yoklamalar oturumsuzdur; kullanıcı iletisi gönderilmemiştir.
+
+| Yoklama | Sonuç |
+|---|---|
+| `https://welockai.com/lumos-uygulama-gizlilik` | 404 |
+| `https://welockai.com/destek` | 404 |
+| `POST /api/bridge/chat` `{}` | 400 `message_required` |
+| `GET /api/mobile/memory` | 401 `unauthorized` |
+| `POST /api/mobile/realtime-token` `{}` | 401 `unauthorized` |
+| Canlı `/integrations` | OpenAI "Bağlı"; Gemini "Planlanan"; Anthropic listede yok. Katalog kaydı canlı bağlantı anlamına gelmez. |
+| Canlı `/data-and-trust` | 5 Ekim 2026, kaynak `39effc6`. Ortam ayarları ayrıca doğrulanmamış. Barındırılan sohbet işleyicisi iletiyi kendi veritabanına veya dosyasına yazmaz. Hafıza adresi tanımlıysa her istekte lookup yapılır. Köprü telemetrisi çağrılırsa kullanıcı iletisi `.lumos/logs` altına yazılır. |
+| `lumos-ios` `main` `72372f263601861c3a01fe4d97051b51df777fb3` | Sohbet yalnız ekran belleğindedir ve sabit "Buradayım." yanıtı verir. `VoiceModule` ve `CameraModule` boştur. Mikrofon veya kamera kullanım cümlesi yoktur. Ayarlar, sürümün gerçek Lumos hizmetine bağlanmadığını ve saklamanın yalnız o cihazda olduğunu yazar. `PrivacyInfo.xcprivacy` toplanan veri türü boş ve `NSPrivacyTracking` false. Bu depo §10'daki yayımlanacak aday değildir. |
+
+| #967'deki kesin cümle | Karşılaştırma | Taslaktaki durum |
+|---|---|---|
+| Sohbet geçmişi Lumos sunucusunda, silme isteğine kadar tutulur. | Canlı envanter, barındırılan işleyicinin kendi deposuna yazmadığını söyler. İşleyici geçmişi istek gövdesinden okur. Köprü günlüğü ve yayımlanmayan iOS kaynağı ayrı yollardır. Üretim günlüğü görülmedi. | Kaldırıldı. Yerine "tutulmaz" da yazılmadı. |
+| Hafıza yalnız uygulamadaki izin açılırsa çalışır; kapatınca kullanılmaz. | Sunucu, bellek servisi tanımlıysa her sohbet isteğinde `lumos_id` ile lookup yapar. İzin, servis yanıtındaki `consent` alanıdır. GitHub'daki iOS uygulamasında hafıza anahtarı yoktur. | Kaldırıldı. |
+| Teknik kayıtlar istek zamanı ve hata koduyla sınırlıdır. | `append_chat_turn_telemetry` çağrılırsa kullanıcı iletisini 10000 karaktere kadar ve yanıtı `.lumos/logs` dosyasına yazar. Barındırılan sohbet yolu bu işlevi çağırmaz. Gözlem allowlist'inde ileti yoktur; `lumosId`, rota ve hata kodu vardır. Anahtarların canlıda dolu olup olmadığı günlükten görülmedi. | Kaldırıldı. |
+| OpenAI, Anthropic (Claude) ve Google (Gemini) sohbeti işler. Ses cihazdan OpenAI'ye gider. | Canlı katalog Anthropic'i göstermez; Gemini planlanan durumdadır. Sunucu kodu anahtar varsa önce OpenAI, olmazsa Gemini çağırır. Canlı ses ucu OpenAI `client_secrets` ister. Hangi anahtarın üretimde dolu olduğu ve sesin cihazdan gidip gitmediği görülmedi. | Kaldırıldı. |
+| Mikrofon yalnız sesle yazma veya görüşmede, kamera yalnız düğmede kullanılır. Görüşme "Görüşmeyi bitir" ile biter ve mikrofon bırakılır. Son 12 metin mesajı görüşmeye gider. | GitHub iOS kabuğunda bu kontroller ve izin cümleleri yoktur. §10'daki aday push edilmemiştir. Canlı sitede bu cümleler yoktur. | Destek ve gizlilik taslağından kaldırıldı. |
+| Google yalnız ad ve e-posta paylaşır. | Giriş kodu çereze `sid`, `lumos_id`, `sub`, `email`, `name`, `picture`, `door`, `provider`, `package` yazar. Google `access_token` yazılmaz. Kapsamlar `openid email profile`. Canlı çerez okunmadı. | Kesin liste taslaktan çıkarıldı. |
+| Veri sorumlusu Candaş Öz şahıs işletmesi, Gazimağusa. | Canlı `/privacy` ve `/data-and-trust` bu kimliği yayımlamaz. Teknik envanter, veri sorumlusunun ayrı bir hukuk kararı beklediğini söyler. | Taslaktan çıkarıldı. |
