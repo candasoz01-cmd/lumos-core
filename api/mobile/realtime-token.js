@@ -3,6 +3,7 @@ import {
   hostedSessionClaims,
 } from "../_lib/hosted_lumos.js";
 import { sessionLumosId } from "../_lib/lumos_session.js";
+import { HOSTED_AI_NOT_ENABLED, isHostedAiAllowed } from "../_lib/hosted_ai_access.js";
 
 export const REALTIME_MODEL = "gpt-realtime-2.1";
 export const REALTIME_TRANSCRIPTION_MODEL = "gpt-live-transcribe";
@@ -134,6 +135,9 @@ export default async function handler(req, res) {
   const claims = hostedSessionClaims(req);
   const lumosId = sessionLumosId(claims);
   if (!lumosId) return res.status(401).json({ error: "unauthorized" });
+  if (!isHostedAiAllowed(lumosId)) {
+    return res.status(403).json(HOSTED_AI_NOT_ENABLED);
+  }
   if (!allowSession(lumosId)) {
     return res.status(429).json({ error: "rate_limited" });
   }

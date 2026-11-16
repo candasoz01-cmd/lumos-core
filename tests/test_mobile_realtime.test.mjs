@@ -11,6 +11,9 @@ import handler, {
 import { sealSession } from "../api/_lib/lumos_session.js";
 
 const LUMOS_ID = `lumos_${"R".repeat(24)}`;
+
+// Erişim kapısı test_hosted_ai_access.test.mjs'te; burada test kimliği açıkça listede.
+process.env.LUMOS_HOSTED_AI_ALLOWED_IDS = LUMOS_ID;
 process.env.LUMOS_AUTH_STATE_SECRET = "test-only-secret-32-characters-minimum";
 
 function makeRes() {

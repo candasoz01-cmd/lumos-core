@@ -26,6 +26,12 @@ import {
   sealSession,
   sessionLumosId,
 } from "../api/_lib/lumos_session.js";
+import { lumosIdForProviderIdentity as testAllowlistId } from "../api/_lib/lumos_session.js";
+
+// Bu dosya sağlayıcı davranışını test eder; erişim kapısı test_hosted_ai_access.test.mjs'te.
+// Kapı yalnız açık listeyle açılır: test kimliğini sabit kimlik sırrıyla listeye ekliyoruz.
+process.env.LUMOS_ID_SECRET = "test-only-identity-secret-32-characters";
+process.env.LUMOS_HOSTED_AI_ALLOWED_IDS = ["google-subject-one"].map((sub) => testAllowlistId("google_web", sub)).join(",");
 
 function makeRes() {
   return {

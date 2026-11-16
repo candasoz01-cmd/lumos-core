@@ -14,6 +14,7 @@ import {
   readJsonBody,
 } from "../_lib/hosted_lumos.js";
 import { captureError, captureSecurityEvent } from "../_lib/observability.js";
+import { HOSTED_AI_NOT_ENABLED, isHostedAiAllowed } from "../_lib/hosted_ai_access.js";
 
 const ROUTE = "bridge_chat";
 
@@ -113,6 +114,12 @@ export default async function handler(req, res) {
 
   const localReply = localTimeReply(message);
   if (localReply) return res.status(200).json({ reply: localReply, mode: "hosted_local", identity });
+
+  if (!isHostedAiAllowed(userContext.lumos_id)) {
+    // Model çağrısı maliyet üretir; izin listesinde olmayan oturum sağlayıcıya gitmez.
+    await captureSecurityEvent("hosted_ai_access_denied", { route: ROUTE });
+    return res.status(403).json({ ...HOSTED_AI_NOT_ENABLED, identity });
+  }
 
   if (!hostedOpenAIKey() && !hostedGeminiKey()) {
     await captureError(new Error("model_unconfigured"), { route: ROUTE, errorCode: "model_unconfigured" });
