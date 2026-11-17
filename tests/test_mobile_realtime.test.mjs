@@ -9,6 +9,11 @@ import handler, {
   sanitizeRealtimeDeviceContext,
 } from "../api/mobile/realtime-token.js";
 import { sealSession } from "../api/_lib/lumos_session.js";
+import { usageGuard } from "../api/_lib/usage_guard.js";
+
+// Kalıcı kullanım sayacı ayrı dosyalarda test edilir (test_usage_guard_*.test.mjs);
+// bu dosyada sayaç "izin ver" cevabı verir ki sağlayıcı davranışı ölçülebilsin.
+usageGuard.consume = async () => ({ ok: true });
 
 const LUMOS_ID = `lumos_${"R".repeat(24)}`;
 
