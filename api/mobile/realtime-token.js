@@ -4,6 +4,7 @@ import {
 } from "../_lib/hosted_lumos.js";
 import { sessionLumosId } from "../_lib/lumos_session.js";
 import { HOSTED_AI_NOT_ENABLED, isHostedAiAllowed } from "../_lib/hosted_ai_access.js";
+import { usageDeniedPayload, usageGuard } from "../_lib/usage_guard.js";
 
 export const REALTIME_MODEL = "gpt-realtime-2.1";
 export const REALTIME_TRANSCRIPTION_MODEL = "gpt-live-transcribe";
@@ -145,6 +146,11 @@ export default async function handler(req, res) {
   const apiKey = hostedRealtimeKey();
   if (!apiKey) {
     return res.status(503).json({ error: "realtime_unconfigured" });
+  }
+
+  const usage = await usageGuard.consume(lumosId, "realtime");
+  if (!usage.ok) {
+    return res.status(usage.status).json(usageDeniedPayload(usage));
   }
 
   let upstream;

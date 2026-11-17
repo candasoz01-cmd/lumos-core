@@ -17,6 +17,11 @@ import statusHandler from "../api/bridge/status.js";
 import healthHandler from "../api/bridge/health.js";
 import { sealSession } from "../api/_lib/lumos_session.js";
 import { lumosIdForProviderIdentity as testAllowlistId } from "../api/_lib/lumos_session.js";
+import { usageGuard } from "../api/_lib/usage_guard.js";
+
+// Kalıcı kullanım sayacı ayrı dosyalarda test edilir (test_usage_guard_*.test.mjs);
+// bu dosyada sayaç "izin ver" cevabı verir ki sağlayıcı davranışı ölçülebilsin.
+usageGuard.consume = async () => ({ ok: true });
 
 // Bu dosya sağlayıcı davranışını test eder; erişim kapısı test_hosted_ai_access.test.mjs'te.
 // Kapı yalnız açık listeyle açılır: test kimliğini sabit kimlik sırrıyla listeye ekliyoruz.

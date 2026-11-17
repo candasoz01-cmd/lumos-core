@@ -6,6 +6,11 @@ import mobileChatHandler from "../api/mobile/chat.js";
 import realtimeHandler from "../api/mobile/realtime-token.js";
 import { isHostedAiAllowed } from "../api/_lib/hosted_ai_access.js";
 import { openSession, sealSession, sessionLumosId } from "../api/_lib/lumos_session.js";
+import { usageGuard } from "../api/_lib/usage_guard.js";
+
+// Kalıcı kullanım sayacı ayrı dosyalarda test edilir (test_usage_guard_*.test.mjs);
+// bu dosyada sayaç "izin ver" cevabı verir ki sağlayıcı davranışı ölçülebilsin.
+usageGuard.consume = async () => ({ ok: true });
 
 // Bu dosya erişim kapısının KAPALI varsayılanını test eder.
 // Herkese açma modu yoktur; LUMOS_HOSTED_AI_ACCESS=open hiçbir şey açmamalıdır.

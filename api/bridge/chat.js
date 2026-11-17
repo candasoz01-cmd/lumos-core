@@ -15,6 +15,7 @@ import {
 } from "../_lib/hosted_lumos.js";
 import { captureError, captureSecurityEvent } from "../_lib/observability.js";
 import { HOSTED_AI_NOT_ENABLED, isHostedAiAllowed } from "../_lib/hosted_ai_access.js";
+import { usageDeniedPayload, usageGuard } from "../_lib/usage_guard.js";
 
 const ROUTE = "bridge_chat";
 
@@ -124,6 +125,13 @@ export default async function handler(req, res) {
   if (!hostedOpenAIKey() && !hostedGeminiKey()) {
     await captureError(new Error("model_unconfigured"), { route: ROUTE, errorCode: "model_unconfigured" });
     return res.status(503).json({ error: "model_unconfigured", errorKind: "model_error" });
+  }
+
+  // Kalıcı kullanım sayacı: kota dolmuşsa veya sayaç doğrulanamıyorsa sağlayıcıya gidilmez.
+  const usage = await usageGuard.consume(userContext.lumos_id, "chat");
+  if (!usage.ok) {
+    await captureSecurityEvent("hosted_ai_usage_denied", { route: ROUTE, status: usage.status });
+    return res.status(usage.status).json({ ...usageDeniedPayload(usage), identity });
   }
 
   try {
