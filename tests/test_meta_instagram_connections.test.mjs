@@ -6,7 +6,7 @@ import { instagramConnectionId } from "../api/_lib/meta_connections.js";
 import { COOKIE, sealSession } from "../api/_lib/lumos_session.js";
 
 function configure() {
-  process.env.LUMOS_AUTH_STATE_SECRET = "auth-state-secret-for-tests";
+  process.env.LUMOS_AUTH_STATE_SECRET = "auth-state-secret-for-tests-32-characters-min";
   process.env.LUMOS_META_GRAPH_VERSION = "v26.0";
   process.env.LUMOS_CREDENTIAL_VAULT_WRITE_URL = "https://vault.test/credentials";
   process.env.LUMOS_CREDENTIAL_VAULT_WRITE_TOKEN = "vault-write-token";
