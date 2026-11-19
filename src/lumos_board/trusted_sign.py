@@ -57,20 +57,8 @@ class SignedCommit:
 
 
 def public_proof_key() -> str:
-    """Read the public CI proof key from the workflow that already publishes it."""
-    workflow = Path(__file__).resolve().parents[2] / ".github" / "workflows" / "claim-guard.yml"
-    marker = "LUMOS_WRITE_GATE_SECRET:"
-    try:
-        lines = workflow.read_text(encoding="utf-8").splitlines()
-    except OSError as exc:
-        raise TrustedSignError("genel prova anahtarı okunamadı") from exc
-    for line in lines:
-        stripped = line.strip()
-        if stripped.startswith(marker) and "secrets." not in stripped:
-            value = stripped.split(":", 1)[1].strip()
-            if len(value.encode("utf-8")) >= 32:
-                return value
-    raise TrustedSignError("genel prova anahtarı okunamadı")
+    """Retain the retired public CI key solely to forbid production signing."""
+    return "lumos-ci-write-attestation-proof-not-prod-32"
 
 
 def assert_production_secret(secret: str | None, *, proof_key: str | None = None) -> str:
@@ -333,6 +321,7 @@ def push_signed(repo: Path, *, remote: str, sha: str, dest: str) -> None:
 
 STOP_CHECKS = (
     "write-attestation-trusted",
+    "write-attestation",
     "claim-guard",
     "test",
     "rust",
@@ -342,6 +331,7 @@ STOP_CHECKS = (
     "node-tests",
     "publication-gate",
 )
+# Legacy report field retained for consumers; this is now a required result.
 PROOF_KEY_CHECK = "write-attestation"
 
 
