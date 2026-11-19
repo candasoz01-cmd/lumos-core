@@ -191,8 +191,11 @@ def test_cli_required_impact_reads_file_only(tmp_path: Path) -> None:
     assert split_main(["required-impact", "--file", str(path)]) == 0
 
 
-def test_public_proof_key_reads_claim_guard_workflow() -> None:
+def test_retired_public_proof_key_matches_signer_denylist() -> None:
+    from lumos_board.trusted_sign import public_proof_key as signer_proof_key
+
     key = public_proof_key()
+    assert key == signer_proof_key() == "lumos-ci-write-attestation-proof-not-prod-32"
     assert len(key.encode("utf-8")) >= 32
     assert "secrets." not in key
 
