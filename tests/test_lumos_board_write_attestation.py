@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import os
 import subprocess
+
+import pytest
+import yaml
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -256,22 +259,21 @@ def test_workflow_is_pull_request_target_and_secret_stays_on_trusted_step() -> N
     board_jobs = board.split("\njobs:\n", 1)[1]
     trusted_jobs = trusted.split("\njobs:\n", 1)[1]
     assert "python -m lumos_board.claim_guard" in board_jobs
-    assert "lumos_board.write_attestation" in board_jobs
+    assert "lumos_board.write_attestation" not in board_jobs
     assert "lumos_board.claim_guard_trust" in trusted_jobs
     assert "${{ secrets.LUMOS_WRITE_GATE_SECRET }}" not in board
     assert trusted_jobs.count("${{ secrets.LUMOS_WRITE_GATE_SECRET }}") == 1
     assert "  claim-guard:\n" in board_jobs
-    assert "  write-attestation:\n" in board_jobs
+    assert "  write-attestation:\n" not in board_jobs
     assert "  write-attestation-trusted:\n" in trusted_jobs
     assert "  claim-guard:\n" not in trusted_jobs
-    assert "  write-attestation:\n" not in trusted_jobs
+    assert "  write-attestation:\n" in trusted_jobs
     assert "if: github.event_name" not in board
     assert "if: github.event_name" not in trusted
     assert "\non:\n  pull_request:\n" in board
     assert "\non:\n  pull_request_target:\n" not in board
     assert "\non:\n  pull_request_target:\n" in trusted
-    assert "lumos-ci-write-attestation-proof-not-prod-32" in board_jobs
-    assert "Reject commits without HMAC write attestation" in board_jobs
+    assert "lumos-ci-write-attestation-proof-not-prod-32" not in board_jobs
     assert "Check PR writes against central claims" in board_jobs
 
 
@@ -335,3 +337,61 @@ def test_cli_verify_exit_code(tmp_path: Path, monkeypatch: object) -> None:
         ["write-attest", "verify", "--repo", str(repo), "--base", base, "--head", head]
     )
     assert code == 2
+
+
+def _trusted_workflow() -> dict:
+    path = Path(__file__).resolve().parents[1] / ".github/workflows/write-attestation-trusted.yml"
+    return yaml.safe_load(path.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("result", ["success", "failure", "cancelled", "skipped", "", "pending"])
+def test_required_status_fails_closed_on_every_non_success(result: str) -> None:
+    job = _trusted_workflow()["jobs"]["write-attestation"]
+    assert job["needs"] == "write-attestation-trusted"
+    assert job["if"] == "${{ always() }}"
+    assert "continue-on-error" not in job
+    assert len(job["steps"]) == 1
+    step = job["steps"][0]
+    assert step["env"] == {"TRUSTED_RESULT": "${{ needs.write-attestation-trusted.result }}"}
+    assert "if" not in step and "continue-on-error" not in step
+    completed = subprocess.run(["bash", "-e", "-c", step["run"]],
+                               env={"TRUSTED_RESULT": result}, check=False)
+    assert (completed.returncode == 0) is (result == "success")
+
+
+@pytest.mark.parametrize("fetched_matches", [True, False])
+def test_trusted_verifier_checks_event_head_before_verifying(tmp_path: Path, fetched_matches: bool) -> None:
+    repo = _init_repo(tmp_path)
+    sha = _git(repo, "rev-parse", "HEAD")
+    _git(repo, "update-ref", "refs/remotes/pr/head", sha)
+    job = _trusted_workflow()["jobs"]["write-attestation-trusted"]
+    checkout = job["steps"][0]
+    assert checkout["with"]["ref"] == "${{ github.event.pull_request.base.sha }}"
+    step = next(s for s in job["steps"] if s.get("name") == "Verify HMAC write attestations")
+    assert step["env"]["HEAD_SHA"] == "${{ github.event.pull_request.head.sha }}"
+    assert step["env"]["PYTHONPATH"] == "${{ runner.temp }}/trusted/src"
+    # Execute the actual pre-verification shell against a real ref. No secret needed.
+    preflight = step["run"].split("python3 -m lumos_board.write_attestation", 1)[0]
+    completed = subprocess.run(["bash", "-c", preflight], cwd=repo,
+                               env={**os.environ, "HEAD_SHA": sha if fetched_matches else "0" * 40},
+                               check=False)
+    assert (completed.returncode == 0) is fetched_matches
+
+
+@pytest.mark.parametrize("signing_secret", [SECRET, "lumos-ci-write-attestation-proof-not-prod-32"])
+def test_production_verifier_accepts_its_key_and_rejects_public_proof_key(tmp_path: Path, signing_secret: str) -> None:
+    repo = _init_repo(tmp_path)
+    base = _git(repo, "rev-parse", "HEAD")
+    store = TaskClaimStore(tmp_path / "board")
+    claim = store.claim(task_id="key-boundary", repo="lumos-core", branch="x", worktree="/w",
+                        owner="cursor", scopes=["src"]).claim
+    gate = WriteGate(store, secret=signing_secret)
+    token = gate.issue(claim)
+    attestation = ClaimGuard(secret=signing_secret).attest(
+        write_gate=gate, token=token, owner="cursor", paths=["src/ok.py"], parent_sha=base,
+        claim_id=claim.claim_id, task_id=claim.task_id, scopes=["src"],
+    )
+    head = _commit(repo, "src/ok.py", "ok\n", f"ok\n\n{ATTESTATION_TRAILER}: {attestation}\n")
+    verdict = ClaimGuard(secret=SECRET).verify_range(repo, base=base, head=head)
+    assert verdict.allowed is (signing_secret == SECRET)
+    assert verdict.reason == (REASON_OK if signing_secret == SECRET else "CLAIM_GUARD_UNAUTHORIZED")
