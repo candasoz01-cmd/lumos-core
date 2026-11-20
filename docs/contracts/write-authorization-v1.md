@@ -49,7 +49,9 @@ PR aralığındaki her non-merge commit, o commit'in mesajında
 - Sonradan açılan claim eski commiti meşrulaştırmaz: kanıt o commit nesnesinin
   içinde olmalıdır. `9a113ced` bilinçli olarak trailersızdır; tarih yeniden
   yazılmaz.
-- HMAC CheckRun adı: `write-attestation`. Secret yoksa fail-closed.
+- HMAC doğrulayıcısı: `write-attestation-trusted`. Zorunlu `write-attestation`
+  aynı güvenilir iş akışında yalnız bu iş SUCCESS ise geçer; failure, cancelled
+  ve skipped sonuçlarında başarısız olur. Secret yoksa fail-closed.
 - Orkestratör `pull_request_target`; doğrulayıcı `base.sha` extract.
   Secret yalnız güvenilir PYTHONPATH adımındadır.
 - Pano CheckRun adı: `claim-guard` (`lumos_board.claim_guard`,
@@ -94,13 +96,26 @@ tamamlanmış sayılmaz. #935 taslak kalır; merge ve deploy yoktur.
   İmzadan sonra taslak PR açılır; otomatik kontroller orada koşar.
 - `write-attestation-trusted`, `claim-guard` ve zorunlu CI tamamlanmadan
   izleme işi durur. Biri başarısızsa veya askıda kalırsa iş fail olur ve
-  merge yoktur. Genel prova anahtarı işi üretim imzasında eşleşmez; bu
-  beklenen ayrımıdır, doğrulayıcı gevşetilmez. `standing-class` başarısızlığı
+  merge yoktur. Genel prova anahtarı PR doğrulamasında kullanılmaz; üretim
+  doğrulayıcısı bu anahtarla imzalanmış commitleri reddeder. `standing-class` başarısızlığı
   imza başarısı sayılmaz ve merge açmaz.
 - Her commit mevcut kapıyı kullanır: bir ACTIVE claim, bir yazma jetonu,
   `write-attest` tüketimi, sonra claim serbest.
 - Bu dosya `main`'de yokken iş seçilemez. Tanıtan PR kendini üretim sırrıyla
   imzalayamaz. Bu bootstrap'tir; doğrulayıcı gevşetilmez.
+
+## 2026-11-19 — Zorunlu kontrolün güvenilir doğrulamaya bağlanması
+
+`claim-guard.yml` yalnız merkezi pano sahipliğini denetler. `write-attestation`
+CheckRun adı korunur ve yalnız `write-attestation-trusted.yml` tarafından üretilir.
+Üretim sırrı ve base SHA doğrulayıcısı aynı güvenilir adımda kalır; PR kodu
+çalıştırılmaz. Fetch edilen head olayın head SHA değeriyle uyuşmazsa red edilir.
+Branch protection değişmez. Bu değişiklik eski koşuları güncellemez; #972
+üzerinde eski başarısız koşuyu yeniden çalıştırmak yeni workflow tanımını
+yüklediğini kanıtlamaz. Ana dala alınmadan yeni target workflow canlı doğrulanamaz.
+
+Aşağıdaki bootstrap taslağı eski iki-anahtarlı düzenin tarihsel kaydıdır;
+bugünkü zorunlu kontrolün davranışını tanımlamaz.
 
 ## Kurucu bootstrap (taslak — onay yok)
 

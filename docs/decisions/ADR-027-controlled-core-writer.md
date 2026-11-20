@@ -82,3 +82,15 @@ Bu, kapı 2'nin «yok = pending» okumasını doğrular; Cursor yavaşlığı de
 ## İlişkili
 
 - [AGENTS.md](../../AGENTS.md) — ajanlar önerir, merge etmez, writer sayılmaz
+
+
+## 2026-11-19 — Yazma imzası kontrolünün güven sınırı
+
+Zorunlu `write-attestation` sonucu, `pull_request_target` üzerindeki
+`write-attestation-trusted` işinin sonucuna bağlanır. Yalnız SUCCESS geçer;
+atlama, iptal ve hata geçmez. Her CheckRun adı yalnız bir iş akışından çıkar.
+PR koduna üretim sırrı verilmez; doğrulayıcı base SHA'dan alınır, PR head
+veri olarak okunur ve olayın head SHA değeriyle eşleşmek zorundadır.
+Genel test anahtarı üretim imzasının alternatifi değildir. Merkezi claim,
+insan onayı ve branch protection sınırları değişmez. Ayrıntı:
+[Write authorization v1](../contracts/write-authorization-v1.md).

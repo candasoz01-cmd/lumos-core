@@ -509,6 +509,7 @@ def test_failed_trusted_check_stops_and_does_not_grant_merge() -> None:
         {"name": name, "status": "COMPLETED", "conclusion": "SUCCESS"}
         for name in (
             "write-attestation-trusted",
+            "write-attestation",
             "claim-guard",
             "test",
             "rust",
@@ -531,7 +532,7 @@ def test_failed_trusted_check_stops_and_does_not_grant_merge() -> None:
         ]
     )
     assert failed["stop"] is True
-    assert failed["failed"] == ["write-attestation-trusted"]
+    assert failed["failed"] == ["write-attestation-trusted", "write-attestation"]
     assert failed["grants_merge"] is False
     assert failed["proof_key_check"]["conclusion"] == "failure"
     assert failed["standing_class"]["conclusion"] == "failure"
@@ -542,7 +543,8 @@ def test_failed_trusted_check_stops_and_does_not_grant_merge() -> None:
             {"name": "standing-class", "status": "COMPLETED", "conclusion": "FAILURE"},
         ]
     )
-    assert proof_only["stop"] is False
+    assert proof_only["stop"] is True
+    assert proof_only["failed"] == ["write-attestation"]
     assert proof_only["grants_merge"] is False
     pending = judge_checks(rollup[:-1])
     assert pending["stop"] is True
@@ -670,3 +672,26 @@ def test_proof_hmac_is_unauthorized_under_production_secret(tmp_path: Path) -> N
     assert trusted.reason == REASON_UNAUTHORIZED
     with pytest.raises(TrustedSignError, match="prova anahtarı"):
         assert_production_secret(proof, proof_key=proof)
+
+
+@pytest.mark.parametrize("conclusion", ["failure", "cancelled", "skipped", None])
+def test_required_attestation_result_stops_signer_monitor(conclusion: str | None) -> None:
+    from lumos_board.trusted_sign import STOP_CHECKS, judge_checks
+
+    rows = [{"name": name, "status": "completed", "conclusion": "success"} for name in STOP_CHECKS]
+    rows = [row for row in rows if row["name"] != "write-attestation"]
+    assert judge_checks(rows)["pending"] == ["write-attestation"]
+    rows.append({"name": "write-attestation", "status": "completed", "conclusion": conclusion})
+    result = judge_checks(rows)
+    assert result["stop"] is True
+    assert result["failed"] == ["write-attestation"]
+    assert result["grants_merge"] is False
+
+
+def test_retired_public_key_remains_forbidden_without_workflow_key() -> None:
+    from lumos_board.trusted_sign import assert_production_secret
+
+    assert public_proof_key() == "lumos-ci-write-attestation-proof-not-prod-32"
+    with pytest.raises(TrustedSignError, match="prova anahtarı"):
+        assert_production_secret(public_proof_key())
+    assert assert_production_secret(SECRET) == SECRET

@@ -1,6 +1,5 @@
-# Trusted HMAC verifier. Not a required status check.
-# Isolated from claim-guard.yml so pull_request_target never emits SKIPPED
-# CheckRuns named claim-guard or write-attestation.
+# Trusted HMAC verifier and required write-attestation result.
+# Only this workflow emits write-attestation; no duplicate/skipped sibling.
 #
 # pull_request_target + base.sha extract + production secret.
 # The secret is only on the verify step after the verifier is materialized
@@ -57,8 +56,21 @@ jobs:
           PYTHONPATH: ${{ runner.temp }}/trusted/src
           LUMOS_WRITE_GATE_SECRET: ${{ secrets.LUMOS_WRITE_GATE_SECRET }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          HEAD_SHA="$(git rev-parse refs/remotes/pr/head)"
+          test "$(git rev-parse refs/remotes/pr/head)" = "$HEAD_SHA"
           python3 -m lumos_board.write_attestation \
             --repo . --base "$BASE_SHA" --head "$HEAD_SHA"
+
+  write-attestation:
+    needs: write-attestation-trusted
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 1
+    steps:
+      - name: Require successful production verification
+        env:
+          TRUSTED_RESULT: ${{ needs.write-attestation-trusted.result }}
+        run: |
+          test "$TRUSTED_RESULT" = success

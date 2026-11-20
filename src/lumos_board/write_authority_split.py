@@ -92,7 +92,10 @@ class AuthoritySplitError(ClaimError):
 
 
 def public_proof_key(*, workflow: Path | None = None) -> str:
-    path = workflow or Path(__file__).resolve().parents[2] / ".github" / "workflows" / "claim-guard.yml"
+    # The old public key remains forbidden after its CI job is retired.
+    if workflow is None:
+        return "lumos-ci-write-attestation-proof-not-prod-32"
+    path = workflow
     marker = "LUMOS_WRITE_GATE_SECRET:"
     try:
         lines = path.read_text(encoding="utf-8").splitlines()
