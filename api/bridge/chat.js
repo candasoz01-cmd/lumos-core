@@ -13,7 +13,7 @@ import {
   openAIReply,
   readJsonBody,
 } from "../_lib/hosted_lumos.js";
-import { captureError, captureSecurityEvent } from "../_lib/observability.js";
+import { captureError, captureSecurityEvent, logEvent } from "../_lib/observability.js";
 
 const ROUTE = "bridge_chat";
 
@@ -70,6 +70,12 @@ async function callGemini(body, context) {
   return reply ? { reply, provider: "google", model: HOSTED_MODEL } : null;
 }
 
+// Count generated API replies by server-selected mode; never include user content or identity.
+async function successfulReply(res, payload) {
+  await logEvent(`chat.reply.${payload.mode}.success`, { route: ROUTE, status: 200 });
+  return res.status(200).json(payload);
+}
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (req.method === "OPTIONS") return res.status(204).end();
@@ -103,16 +109,16 @@ export default async function handler(req, res) {
   };
   const identityReply = identityStatusReply(message, userContext);
   if (identityReply) {
-    return res.status(200).json({ reply: identityReply, mode: "hosted_identity_status", identity });
+    return successfulReply(res, { reply: identityReply, mode: "hosted_identity_status", identity });
   }
 
   const memoryReply = memoryWriteStatusReply(userContext);
   if (memoryReply) {
-    return res.status(200).json({ reply: memoryReply, mode: "hosted_memory_status", identity });
+    return successfulReply(res, { reply: memoryReply, mode: "hosted_memory_status", identity });
   }
 
   const localReply = localTimeReply(message);
-  if (localReply) return res.status(200).json({ reply: localReply, mode: "hosted_local", identity });
+  if (localReply) return successfulReply(res, { reply: localReply, mode: "hosted_local", identity });
 
   if (!hostedOpenAIKey() && !hostedGeminiKey()) {
     await captureError(new Error("model_unconfigured"), { route: ROUTE, errorCode: "model_unconfigured" });
@@ -135,7 +141,7 @@ export default async function handler(req, res) {
     // PR-005 / ADR-019: `provider` ve `model` iç operatör alanlarıdır; kullanıcıya
     // açık API yanıtında yer almaz. Yalnız Lumos Agent Wall bu ayrıntıyı görür.
     const { provider: _p, model: _m, ...userVisible } = answer;
-    return res.status(200).json({ ...userVisible, mode: "hosted_chat", identity });
+    return await successfulReply(res, { ...userVisible, mode: "hosted_chat", identity });
   } catch (e) {
     await captureError(e, { route: ROUTE, errorCode: "model_unavailable_exception" });
     return res.status(502).json({ error: "model_unavailable", errorKind: "model_error" });
