@@ -14,6 +14,7 @@ Panel görev motoru: `.lumos/tasks.json` (LUMOS_BASE_DIR/tasks.json).
 from __future__ import annotations
 
 import copy
+import hmac
 import json
 import os
 import random
@@ -1315,6 +1316,15 @@ class Handler(BaseHTTPRequestHandler):
         raw = body.get("passphrase")
         if raw is None or not str(raw).strip():
             _send_json(self, 400, {"ok": False, "error": "passphrase_required"})
+            return
+        # A non-empty passphrase is not proof of consent. Fail closed unless
+        # an independent, sufficiently long consent credential is configured.
+        expected = os.environ.get("LUMOS_CONSENT_PASSPHRASE") or ""
+        if len(expected) < 32:
+            _send_json(self, 503, {"ok": False, "error": "consent_auth_unconfigured"})
+            return
+        if not hmac.compare_digest(str(raw).encode("utf-8"), expected.encode("utf-8")):
+            _send_json(self, 403, {"ok": False, "error": "consent_auth_failed"})
             return
         base = _base_dir()
         try:
