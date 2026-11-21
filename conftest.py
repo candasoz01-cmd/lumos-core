@@ -71,6 +71,7 @@ _PROVIDER_CREDENTIAL_ENV = (
     "REPLICATE_API_TOKEN",
     "RECALL_API_KEY",
     "LUMOS_SONOS_ACCESS_TOKEN",
+    "GITHUB_TOKEN",  # ai_review_gate: api.github.com (third party)
 )
 
 # Read by src/ and packages/ but deliberately left in place: these authenticate

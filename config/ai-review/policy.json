@@ -1,0 +1,47 @@
+{
+  "schema": "lumos.ai_review_policy.v1",
+  "note": "AI review evidence is not human approval and not founder merge authority (that is ADR-035 merge-authority signature). Read only from the PR base SHA.",
+  "min_distinct_providers": 2,
+  "providers": {
+    "cursor": {
+      "kind": "check_run",
+      "app_slug": "cursor",
+      "check_name": "Cursor Security Agent: Security Reviewer",
+      "pass_conclusions": [
+        "success"
+      ],
+      "review_login": "cursor[bot]"
+    },
+    "codex": {
+      "kind": "codex_state_comment",
+      "login": "chatgpt-codex-connector[bot]",
+      "app_slug": "chatgpt-codex-connector",
+      "marker": "codex-review-state:v1",
+      "pass_status": [],
+      "pass_status_note": "Empty until a successful Codex review status value is observed live on this repo. Empty means codex cannot pass (fail-closed)."
+    }
+  },
+  "critical_paths": {
+    "prefixes": [
+      ".github/",
+      "config/ai-review/",
+      "config/publication/",
+      "ops/publication_gate/",
+      "ops/claim_guard/",
+      "src/standing_merge/",
+      "src/lumos_board/"
+    ],
+    "files": [
+      "AGENTS.md",
+      "CONTRIBUTING.md",
+      "docs/CONSTITUTION.md",
+      "vercel.json"
+    ]
+  },
+  "critical": {
+    "require_all_providers": true,
+    "codex_require_no_findings": true,
+    "require_cursor_review_on_head": true,
+    "forbid_ai_inline_findings_on_head": true
+  }
+}
