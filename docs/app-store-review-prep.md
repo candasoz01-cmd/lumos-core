@@ -320,3 +320,33 @@ information or customer accounts.
 - [ ] Obtain separate App Store review outcome. **TestFlight success is not App Store approval**.
 
 **Current evidence boundary:** The repository's Review Mode, hosted demo API, sample approval, chat and permission descriptions are engineering specifications/placeholders, not verified iOS functionality. Until binary-level evidence is collected, the release status remains **NOT VERIFIED / DO NOT CLAIM READY**.
+
+## 10. Doğrulanmış durum — 2026-11-13
+
+Kaynak: Mac'teki yerel kopyalar ve Xcode arşivleri (salt okunur), `lumos-core` GitHub API'si (ajan kimliği
+`lumos-agent-claude-candasoz[bot]`) ve Apple App Review Guidelines. Saatler Türkiye saatidir. Bu bölüm
+kanıt kaydıdır; yayın onayı değildir.
+
+### 10.1 Yayın adayı
+
+| Aday | Repo / commit | Build | Durum |
+|---|---|---|---|
+| Build 50 (TestFlight) | `Lumos` `b52bb27` (`rc/ios-tester-candidate-20260918`) | 50 | Yayın adayı **olamaz**: 50 numarası App Store Connect'te zaten kullanılmış. Mac'teki tek build 50 arşivi (19 Eylül) kaynağını kaydetmiyor (`LumosSourceSHA` boş, `LumosSourceDirty = true`) ve yüklemesi "bundle version 50 zaten kullanıldı" hatasıyla başarısız olmuş. TestFlight'taki build 50'nin hangi commit'ten derlendiği bu kayıtlarla kanıtlanamıyor. |
+| PR-1 | `Lumos` `b98e81e` (21 Eki), yalnız Mac'te | 51 | **En uygun aday.** v1 kapsamı, build 51 ve köken kaydı (`scripts/ios_archive_provenance.sh`) var. Release simülatör derlemesi 2026-11-13'te **başarılı** (`CODE_SIGNING_ALLOWED=NO`). GitHub'a push edilmemiş. `b52bb27` değil, main tabanlı. |
+| Ses hazırlık düzeltmesi | `Lumos` `bdd27bd` (29 Eki), yalnız Mac'te | 50 | `b52bb27` üzerine tek commit. Build 50 olduğu için yüklenemez; PR-1'e taşınması gerekir. GitHub'a push edilmemiş. |
+| `lumos-ios` PR #7 | `lumos-ios` `bfd84ba` | 51, `ai.lumos.app`, sürüm 1.0 | Demo uygulama kabuğu (`Lumos.xcodeproj`). Gerçek uygulamayla **aynı bundle ID'yi ve aynı build numarasını (51)** kullanıyor. Yüklenirse gerçek uygulamanın 51 numarasını tüketir. Gerçek uygulama yerine yayına çıkmamalı. |
+
+### 10.2 Engeller
+
+| # | Engel | Durum | Kapanış için |
+|---|---|---|---|
+| E1 | Gemini ücretli katman | Açık; kanıt yok | Faturalandırma ekranı, anahtar–proje eşleşmesi ve AI Studio'daki katman bilgisi; ya da Gemini yedeği kapatılır. |
+| E2 | Sesli görüşmeye giden sohbet geçmişi | Kod tarafı biliniyor: son 12 metin mesajı, fotoğraf yerine not. Binary kanıtı yok | Yeni build PR-1'in köken betiğiyle arşivlenir; 13 mesajlı cihaz testi yapılır. |
+| E3 | Yardım bağlantısı | Üç adayda da kapalı `welockai.com/help` adresi var | Yeni `/destek` sayfası yayımlanır, iOS'taki "Tam yardım" bağlantısı oraya çevrilir. Sayfa ayrıca kurucu yayın onayı ister. |
+| E4 | Gizlilik bildirimi | `/privacy` sayfasında veri sorumlusu, iletişim, OpenAI/Gemini/Anthropic ve ses verisi yok | Uygulamaya özel `/lumos-uygulama-gizlilik` taslağı hazırlandı; kurucu onayından sonra yayımlanır. |
+| E5 | Giriş hizmeti (4.8) | Uygulama yalnız Google ile giriş kullanıyor | Apple ile Giriş veya 4.8 şartlarını karşılayan başka bir giriş seçeneği eklenir. |
+| E6 | Uygulama içinden hesap silme (5.1.1(v)) | Uygulamada hesap silme olup olmadığı doğrulanmadı | Uygulamada "Hesabı sil" girişi; silme sunucuda gerçekten yapılmalı. |
+| E7 | Marka | Avukat görüşü yok | Marka kararından sonra uygulama adı ve mağaza metni kesinleşir. |
+| E8 | Apple Developer hesap türü | Doğrulanmadı | Account → Membership Details ekranı kurucu tarafından kontrol edilir. |
+| E9 | Xcode CI | `lumos-ios`'ta Codex'in claim'i (`IOS-XCODE-CI-20261113`) süresi dolmuş ama hâlâ `ACTIVE`. Dal GitHub'da yok, yerelde iş sürüyor | Claim sahibi işi sürdürür ya da claim'i bırakır. Başka ajan devralmaz. |
+| E10 | Build kökeni | Build 50'nin kaynağı kanıtlanamıyor | Build 51 yalnız temiz ağaçtan, köken kaydıyla arşivlenir. |
