@@ -22,6 +22,7 @@ from kando_bridge.pending_approvals import (
     PC_REMOTE_PENDING_SCHEMA,
     STATUS_PENDING,
     find_pending_by_approval_id,
+    stored_approval_token,
     mark_expired_if_needed,
     write_pending_approval,
 )
@@ -59,7 +60,7 @@ def test_audit_trail_on_pending_approve_execute(tmp_path: Path) -> None:
     execute_tool_stub(
         CMD_OPEN_URL,
         {"url": "https://secret-user-content.example.com"},
-        approval_token=str(pending["approval_token"]),
+        approval_token=stored_approval_token(tmp_path, str(pending["approval_id"])),
         approval_id=str(pending["approval_id"]),
         repo_root=tmp_path,
     )
@@ -123,7 +124,7 @@ def test_audit_execute_rejected_on_replay(tmp_path: Path) -> None:
     found = find_pending_by_approval_id(tmp_path, str(pending["approval_id"]))
     assert found is not None
     approve_pc_remote_pending(found[0], found[1], approved=True, repo_root=tmp_path)
-    token = str(pending["approval_token"])
+    token = stored_approval_token(tmp_path, str(pending["approval_id"]))
     aid = str(pending["approval_id"])
     execute_tool_stub(
         CMD_OPEN_URL,

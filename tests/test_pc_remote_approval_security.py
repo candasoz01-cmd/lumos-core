@@ -16,6 +16,7 @@ from kando_bridge.pending_approvals import (
     STATUS_PENDING,
     STATUS_REJECTED,
     find_pending_by_approval_id,
+    stored_approval_token,
     write_pending_approval,
 )
 
@@ -37,7 +38,7 @@ def test_double_execute_replay_rejected(tmp_path: Path) -> None:
     first = execute_tool_stub(
         CMD_OPEN_URL,
         {"url": "https://example.com"},
-        approval_token=str(pending["approval_token"]),
+        approval_token=stored_approval_token(tmp_path, str(pending["approval_id"])),
         approval_id=str(pending["approval_id"]),
         repo_root=tmp_path,
     )
@@ -47,7 +48,7 @@ def test_double_execute_replay_rejected(tmp_path: Path) -> None:
     second = execute_tool_stub(
         CMD_OPEN_URL,
         {"url": "https://example.com"},
-        approval_token=str(pending["approval_token"]),
+        approval_token=stored_approval_token(tmp_path, str(pending["approval_id"])),
         approval_id=str(pending["approval_id"]),
         repo_root=tmp_path,
     )
@@ -101,7 +102,7 @@ def test_reject_then_reexecute_fails(tmp_path: Path) -> None:
     out = execute_tool_stub(
         CMD_OPEN_URL,
         {"url": "https://example.com"},
-        approval_token=str(pending["approval_token"]),
+        approval_token=stored_approval_token(tmp_path, str(pending["approval_id"])),
         approval_id=str(pending["approval_id"]),
         repo_root=tmp_path,
     )
@@ -125,7 +126,7 @@ def test_concurrent_execute_one_wins(tmp_path: Path) -> None:
         repo_root=tmp_path,
     )
     _approve_pending(tmp_path, pending)
-    token = str(pending["approval_token"])
+    token = stored_approval_token(tmp_path, str(pending["approval_id"]))
     aid = str(pending["approval_id"])
     results: list[dict] = []
     barrier = threading.Barrier(2)
@@ -169,7 +170,7 @@ def test_concurrent_execute_many_losers_all_already_used(tmp_path: Path) -> None
         repo_root=tmp_path,
     )
     _approve_pending(tmp_path, pending)
-    token = str(pending["approval_token"])
+    token = stored_approval_token(tmp_path, str(pending["approval_id"]))
     aid = str(pending["approval_id"])
     n = 8
     results: list[dict] = []
@@ -224,7 +225,7 @@ def test_try_consume_approval_token_marks_used(tmp_path: Path) -> None:
     ok, reason, rec = try_consume_approval_token(
         tmp_path,
         str(pending["approval_id"]),
-        str(pending["approval_token"]),
+        stored_approval_token(tmp_path, str(pending["approval_id"])),
     )
     assert ok is True
     assert reason == ""
@@ -233,7 +234,7 @@ def test_try_consume_approval_token_marks_used(tmp_path: Path) -> None:
     ok2, reason2, _ = try_consume_approval_token(
         tmp_path,
         str(pending["approval_id"]),
-        str(pending["approval_token"]),
+        stored_approval_token(tmp_path, str(pending["approval_id"])),
     )
     assert ok2 is False
     assert reason2 == "approval_already_used"

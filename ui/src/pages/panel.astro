@@ -15,7 +15,7 @@ const CHAT_URL = import.meta.env.PUBLIC_LUMOS_CHAT_URL || "/api/bridge/chat";
 /** PUBLIC token visible in browser — local/dev only; prod build omits test123 fallback */
 const kandoToken = import.meta.env.DEV
   ? import.meta.env.PUBLIC_KANDO_TOKEN || "test123"
-  : import.meta.env.PUBLIC_KANDO_TOKEN || "";
+  : "";
 const UPLOAD_URL =
   import.meta.env.PUBLIC_LUMOS_PANEL_UPLOAD_URL ||
   String(CHAT_URL).replace(/\/chat\/?$/i, "") + "/panel/upload";

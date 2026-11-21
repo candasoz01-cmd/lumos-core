@@ -14,7 +14,11 @@ from kando_bridge.pc_remote_tools import (
     approve_pc_remote_pending,
     handle_tools_execute_body,
 )
-from kando_bridge.pending_approvals import find_pending_by_approval_id, write_pending_approval
+from kando_bridge.pending_approvals import (
+    find_pending_by_approval_id,
+    stored_approval_token,
+    write_pending_approval,
+)
 from kando_bridge.pc_remote_audit import EVENT_STUB_EXECUTED, read_audit_events
 
 
@@ -34,7 +38,8 @@ def _approved(root: Path, *, command: str = CMD_OPEN_URL,
     assert ok, reason
     return {
         "command": command, "arguments": args, "target_device": "fixture-device",
-        "approval_id": pending["approval_id"], "approval_token": pending["approval_token"],
+        "approval_id": pending["approval_id"],
+        "approval_token": stored_approval_token(root, pending["approval_id"]),
     }
 
 
@@ -45,7 +50,7 @@ def _execute(root: Path, body: dict[str, Any], receipts: list[dict[str, Any]]) -
     return result
 
 
-def test_changed_url_rejected_without_consuming_matching_approval(tmp_path: Path) -> None:
+def test_changed_url_revokes_the_original_approval(tmp_path: Path) -> None:
     body = _approved(tmp_path)
     receipts: list[dict[str, Any]] = []
     rejected = _execute(tmp_path, {**body, "arguments": {"url": "https://example.invalid/b"}}, receipts)
@@ -53,13 +58,14 @@ def test_changed_url_rejected_without_consuming_matching_approval(tmp_path: Path
     assert not any(row["event"] == EVENT_STUB_EXECUTED for row in read_audit_events(tmp_path))
     assert rejected["error"] == "approval_request_mismatch"
     found = find_pending_by_approval_id(tmp_path, body["approval_id"])
-    assert found is not None and found[1]["used"] is False
-    matching = _execute(tmp_path, body, receipts)
-    assert matching["ok"] is True
-    assert receipts == [{"action": "open_url", "url": "https://example.invalid/a"}]
-    duplicate = _execute(tmp_path, body, receipts)
-    assert duplicate["error"] == "approval_already_used" and len(receipts) == 1
-    assert sum(row["event"] == EVENT_STUB_EXECUTED for row in read_audit_events(tmp_path)) == 1
+    assert found is not None
+    assert found[1]["status"] == "revoked"
+    assert found[1]["revoked_reason"] == "scope_change"
+    assert found[1]["used"] is True
+    original = _execute(tmp_path, body, receipts)
+    assert original["error"] == "approval_revoked_scope_change"
+    assert receipts == []
+    assert not any(row["event"] == EVENT_STUB_EXECUTED for row in read_audit_events(tmp_path))
 
 
 @pytest.mark.parametrize("change", [
@@ -73,8 +79,9 @@ def test_request_scope_changes_are_rejected(tmp_path: Path, change: dict[str, An
     receipts: list[dict[str, Any]] = []
     out = _execute(tmp_path, {**body, **change}, receipts)
     assert out["error"] == "approval_request_mismatch" and receipts == []
-    assert _execute(tmp_path, body, receipts)["status"] == "stub"
-    assert len(receipts) == 1
+    again = _execute(tmp_path, body, receipts)
+    assert again["error"] == "approval_revoked_scope_change"
+    assert receipts == []
 
 
 @pytest.mark.parametrize("text", ["different", "shorter", "same-prefix-" + "x" * 500 + "B"])
@@ -152,32 +159,47 @@ def test_binding_uses_fresh_record_at_consumption(tmp_path: Path, monkeypatch: p
     out = _execute(tmp_path, body, receipts)
     assert out["error"] == "approval_request_mismatch" and receipts == []
     found = find_pending_by_approval_id(tmp_path, body["approval_id"])
-    assert found is not None and found[1]["used"] is False
+    assert found is not None
+    assert found[1]["status"] == "revoked"
+    assert found[1]["used"] is True
 
 
-def test_concurrent_matching_and_changed_requests_only_execute_matching(tmp_path: Path) -> None:
+def test_concurrent_matching_and_changed_requests_never_execute_changed(tmp_path: Path) -> None:
     body = _approved(tmp_path)
     changed = {**body, "arguments": {"url": "https://example.invalid/b"}}
     with ThreadPoolExecutor(max_workers=2) as pool:
         jobs = [pool.submit(handle_tools_execute_body, request, repo_root=tmp_path)
                 for request in (body, changed)]
         matching, mismatch = [job.result()[1] for job in jobs]
-    assert matching["status"] == "stub"
-    assert mismatch["error"] in {"approval_request_mismatch", "approval_already_used"}
+    assert mismatch.get("status") != "stub"
+    assert mismatch["error"] in {
+        "approval_request_mismatch",
+        "approval_already_used",
+        "approval_revoked_scope_change",
+    }
     events = [row for row in read_audit_events(tmp_path) if row["event"] == EVENT_STUB_EXECUTED]
-    assert len(events) == 1
+    if mismatch["error"] == "approval_request_mismatch" and matching.get("status") != "stub":
+        assert matching["error"] == "approval_revoked_scope_change"
+        assert events == []
+    else:
+        assert matching["status"] == "stub"
+        assert len(events) == 1
+        assert events[0].get("command") == CMD_OPEN_URL
 
 
 def test_nested_keys_are_canonical_but_array_order_is_bound(tmp_path: Path) -> None:
-    body = _approved(tmp_path, arguments={
+    arguments = {
         "url": "https://example.invalid/a", "metadata": {"b": [1, 2], "a": "fixture"},
-    })
+    }
+    revoked = _approved(tmp_path, arguments=arguments)
     receipts: list[dict[str, Any]] = []
     changed = {"url": "https://example.invalid/a", "metadata": {"a": "fixture", "b": [2, 1]}}
-    assert _execute(tmp_path, {**body, "arguments": changed}, receipts)["error"] == "approval_request_mismatch"
+    assert _execute(tmp_path, {**revoked, "arguments": changed}, receipts)["error"] == "approval_request_mismatch"
     assert receipts == []
+    assert _execute(tmp_path, revoked, receipts)["error"] == "approval_revoked_scope_change"
+    fresh = _approved(tmp_path, arguments=arguments)
     reordered = {"metadata": {"a": "fixture", "b": [1, 2]}, "url": "https://example.invalid/a"}
-    assert _execute(tmp_path, {**body, "arguments": reordered}, receipts)["status"] == "stub"
+    assert _execute(tmp_path, {**fresh, "arguments": reordered}, receipts)["status"] == "stub"
     assert len(receipts) == 1
 
 
@@ -189,5 +211,5 @@ def test_binding_also_checked_without_fcntl(tmp_path: Path, monkeypatch: pytest.
     receipts: list[dict[str, Any]] = []
     out = _execute(tmp_path, {**body, "arguments": {"url": "https://example.invalid/b"}}, receipts)
     assert out["error"] == "approval_request_mismatch" and receipts == []
-    assert _execute(tmp_path, body, receipts)["status"] == "stub"
-    assert len(receipts) == 1
+    assert _execute(tmp_path, body, receipts)["error"] == "approval_revoked_scope_change"
+    assert receipts == []

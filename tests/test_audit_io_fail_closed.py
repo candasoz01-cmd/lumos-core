@@ -16,7 +16,7 @@ from kando_bridge.pc_remote_audit import (
     append_pc_remote_audit,
 )
 from kando_bridge.pc_remote_tools import CMD_OPEN_URL, approve_pc_remote_pending, execute_tool_stub
-from kando_bridge.pending_approvals import find_pending_by_approval_id
+from kando_bridge.pending_approvals import find_pending_by_approval_id, stored_approval_token
 
 
 def _block_audit_log_dir(repo_root: Path) -> None:
@@ -75,7 +75,7 @@ def test_approved_stub_execute_fail_closed_when_audit_io_fails(tmp_path: Path) -
     out = execute_tool_stub(
         CMD_OPEN_URL,
         {"url": "https://example.com"},
-        approval_token=str(pending["approval_token"]),
+        approval_token=stored_approval_token(tmp_path, str(pending["approval_id"])),
         approval_id=str(pending["approval_id"]),
         repo_root=tmp_path,
     )
