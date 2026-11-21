@@ -461,3 +461,28 @@ def test_remote_rejection_is_not_mistaken_for_initial_ref_race(
     monkeypatch.setattr(store, "_git", lambda *args, **kwargs: result)
     with pytest.raises(CentralStoreUnavailable):
         store._push(commit)
+
+
+def test_job_record_reaches_the_shared_board(remote: Path, tmp_path: Path) -> None:
+    store = _store(remote, tmp_path, "cursor")
+    claim = _claim(store, task="JOB", owner="cursor-cloud", scope="src").claim
+    assert claim is not None
+    record = store.record_job(
+        claim.claim_id,
+        owner="cursor-cloud",
+        changes=["src/core/simple_chat_task.py"],
+        test_result="passed",
+        test_command="python3 -m pytest -q",
+        approval="withheld",
+    )
+
+    seen = _store(remote, tmp_path, "mac").list_job_records(claim.claim_id)
+    assert [item.record_id for item in seen] == [record.record_id]
+    assert seen[0].agent == "cursor-cloud"
+    assert seen[0].worktree == "/work/cursor-cloud"
+    assert seen[0].changes == ("src/core/simple_chat_task.py",)
+    assert seen[0].test_result == "passed"
+    assert seen[0].approval == "withheld"
+    assert seen[0].grants_merge is False
+    assert [item.status for item in store.list_claims()] == [ClaimStatus.ACTIVE]
+    assert "JOB_RECORDED" in _git("--git-dir", str(remote), "show", f"{DEFAULT_REF}:claim_events.jsonl")

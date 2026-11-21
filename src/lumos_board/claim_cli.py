@@ -191,6 +191,18 @@ def _parser() -> argparse.ArgumentParser:
     attach_pr.add_argument("--owner", required=True)
     attach_pr.add_argument("--pr", required=True)
 
+    record_job = subparsers.add_parser("record-job")
+    record_job.add_argument("claim_id")
+    record_job.add_argument("--owner", required=True)
+    record_job.add_argument("--change", action="append", default=[], dest="changes")
+    record_job.add_argument("--test-result", required=True, choices=("passed", "failed", "not_run"))
+    record_job.add_argument("--test-command", default="")
+    record_job.add_argument("--approval", required=True, choices=("pending", "withheld", "granted"))
+    record_job.add_argument("--approval-id")
+
+    list_jobs = subparsers.add_parser("list-jobs")
+    list_jobs.add_argument("--claim")
+
     listing = subparsers.add_parser("list")
     listing.add_argument("--all", action="store_true")
 
@@ -291,6 +303,41 @@ def _approval_main(args: argparse.Namespace) -> int:
     return 0
 
 
+def _record_job(store: TaskClaimStore, args: argparse.Namespace):
+    """Cite approval state. A job record never grants merge or a new approval."""
+    if args.approval == "granted":
+        if not args.approval_id:
+            raise ClaimError("verilmiş onay için --approval-id gerekli")
+        founder = FounderApprovalStore(_store_dir(args.store))
+        cited = next(
+            (item for item in founder.list_approvals() if item.approval_id == args.approval_id),
+            None,
+        )
+        if cited is None or not cited.is_approved or not cited.approved_by:
+            raise ClaimError("onay kaydı verilmiş bir kurucu onayı değil")
+        return store.record_job(
+            args.claim_id,
+            owner=args.owner,
+            changes=args.changes,
+            test_result=args.test_result,
+            test_command=args.test_command,
+            approval="granted",
+            approval_id=cited.approval_id,
+            approved_by=cited.approved_by,
+            founder_dir=_store_dir(args.store),
+        )
+    if args.approval_id:
+        raise ClaimError("bekleyen veya verilmeyen onayda --approval-id yazılmaz")
+    return store.record_job(
+        args.claim_id,
+        owner=args.owner,
+        changes=args.changes,
+        test_result=args.test_result,
+        test_command=args.test_command,
+        approval=args.approval,
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     try:
@@ -384,6 +431,18 @@ def main(argv: Sequence[str] | None = None) -> int:
             write_gate.revoke(args.claim_id)
         elif args.command == "attach-pr":
             value = store.attach_pr(args.claim_id, owner=args.owner, pr_ref=args.pr)
+        elif args.command == "record-job":
+            value = _record_job(store, args)
+        elif args.command == "list-jobs":
+            records = store.list_job_records(args.claim)
+            print(
+                json.dumps(
+                    {"grants_merge": False, "jobs": [item.to_dict() for item in records]},
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+            )
+            return 0
         else:
             values = [claim.to_dict() for claim in store.list_claims(include_closed=args.all)]
             print(json.dumps({"claims": values}, ensure_ascii=False, sort_keys=True))
