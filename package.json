@@ -1,6 +1,9 @@
 {
   "name": "lumos-core",
   "private": true,
+  "dependencies": {
+    "@vercel/functions": "3.11.3"
+  },
   "scripts": {
     "build": "cd ui && npm install && npm run build",
     "e2e:smoke:ui": "npm run build && npm run e2e:smoke --prefix ui",
