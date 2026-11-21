@@ -1,0 +1,91 @@
+---
+import "../styles/lumos-tokens.css";
+import "../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
+
+// App Store privacy draft. Only statements that survive comparison with the
+// live site, server records, and the iOS app belong here. Chat retention,
+// memory permission, telemetry contents, model providers, and microphone or
+// camera behavior are omitted until those three sources agree.
+const contactEmail = "candasoz@welockai.com";
+const updated = "16 Kasım 2026";
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Lumos uygulaması gizlilik bildirimi — We Lock AI</title>
+    <meta
+      name="description"
+      content="Lumos iOS uygulaması için gizlilik taslağı. Doğrulanmayan saklama, hafıza, kayıt, sağlayıcı ve mikrofon veya kamera cümleleri bu sayfada yoktur."
+    />
+    <link rel="canonical" href="https://welockai.com/lumos-uygulama-gizlilik" />
+    <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow">LUMOS · GİZLİLİK</p>
+      <h1>Lumos uygulaması gizlilik bildirimi</h1>
+      <p class="umbrella-lead">
+        Bu sayfa Lumos iOS uygulaması için hazırlanan taslaktır. welockai.com sitesinin genel bildirimi
+        <a href="/privacy">ayrı sayfadadır</a>. Bu taslak App Store gizlilik adresine konmaya hazır değildir.
+      </p>
+      <p>Son güncelleme: {updated}</p>
+
+      <h2>İletişim</h2>
+      <p>
+        Gizlilikle ilgili bir talep için <a href={`mailto:${contactEmail}`}>{contactEmail}</a> adresine yazın.
+        İletiyi, uygulamada kullandığınız e-posta adresinden gönderin.
+      </p>
+
+      <h2>Bu taslakta kesin cümle yoktur</h2>
+      <p>
+        Aşağıdaki başlıklar, çalışan site, sunucu kayıtları ve yayımlanacak iOS sürümü birlikte
+        gösterilene kadar bu sayfada kesin ifade olarak yer almaz:
+      </p>
+      <ul>
+        <li>Sohbet metninin, fotoğrafın veya yanıtın nerede ve ne kadar süre tutulduğu.</li>
+        <li>Hafızanın yalnız bir uygulama izniyle çalışıp çalışmadığı.</li>
+        <li>Teknik kayıtlara iletinin, adın veya başka bir içeriğin yazılıp yazılmadığı.</li>
+        <li>İsteğin hangi yapay zekâ sağlayıcısına gittiği.</li>
+        <li>Mikrofonun, kameranın ve konuşma tanımanın ne zaman açıldığı ve sesin veya görüntünün nereye gittiği.</li>
+      </ul>
+      <p>
+        Google ile giriş bu sitede <code>openid</code>, <code>email</code> ve <code>profile</code> kapsamlarını ister.
+        Oturuma yazılan alanlar ve bunların uygulamada kullanımı bu taslakta ayrıca sayılmaz.
+      </p>
+
+      <h2>Talep</h2>
+      <ul>
+        <li>Hesabınız veya kayıtlarınız için silme talebini aynı adrese yazabilirsiniz. Bu sayfa, talebin sistemde silme olarak tamamlandığını söylemez.</li>
+        <li>Google erişimini Google hesabınızın bağlı uygulamalar sayfasından kaldırabilirsiniz.</li>
+        <li>Uygunsuz veya hatalı bir yanıtı, tarihi ve kısa açıklamasıyla aynı adrese bildirebilirsiniz.</li>
+      </ul>
+
+      <hr />
+
+      <section lang="en">
+        <h2>Lumos app privacy notice (English summary)</h2>
+        <p>
+          This is a draft for the Lumos iOS app. The site notice is on <a href="/privacy">a separate page</a>.
+          This draft is not ready to use as the App Store privacy URL.
+          Contact: <a href={`mailto:${contactEmail}`}>{contactEmail}</a>.
+        </p>
+        <p>
+          It does not state where chat, photos, or replies are kept, whether memory runs only after an
+          in-app permission, what technical logs contain, which AI provider receives a request, or when the
+          microphone, camera, or speech recognition is used. Those sentences stay out until the live site,
+          server records, and the iOS build to be submitted agree.
+        </p>
+        <p>
+          You can email a deletion request or report an inappropriate reply. This page does not say that a
+          request has already deleted records.
+        </p>
+      </section>
+    </main>
+    <WeLockSiteFooter />
+  </body>
+</html>

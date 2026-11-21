@@ -1,0 +1,90 @@
+---
+import "../styles/lumos-tokens.css";
+import "../styles/umbrella-chrome.css";
+import WeLockSiteNav from "../components/WeLockSiteNav.astro";
+import WeLockSiteFooter from "../components/WeLockSiteFooter.astro";
+
+// Public support draft for the Lumos iOS app. Microphone, camera, and live
+// voice behavior stay off this page until the submitted app shows them.
+const supportEmail = "candasoz@welockai.com";
+const updated = "16 Kasım 2026";
+---
+
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Destek — Lumos · We Lock AI</title>
+    <meta
+      name="description"
+      content="Lumos uygulaması için destek: iletişim, silme talebi ve uygunsuz içerik bildirimi. Mikrofon ve kamera davranışı doğrulanmadan yazılmaz."
+    />
+    <link rel="canonical" href="https://welockai.com/destek" />
+    <link rel="icon" href="/chat-lumos-mark.svg" type="image/svg+xml" sizes="any" />
+  </head>
+  <body class="umbrella-page">
+    <WeLockSiteNav />
+    <main class="umbrella-main">
+      <p class="umbrella-eyebrow">LUMOS · DESTEK</p>
+      <h1>Destek</h1>
+      <p class="umbrella-lead">
+        Lumos uygulamasıyla ilgili soru ve talepleriniz için bu sayfayı kullanın.
+      </p>
+      <p>Son güncelleme: {updated}</p>
+
+      <h2>Bize ulaşın</h2>
+      <p>
+        E-posta: <a href={`mailto:${supportEmail}`}>{supportEmail}</a><br />
+        Mesajınıza uygulama sürümünü ve sorunu nasıl yaşadığınızı ekleyin. Şifre, kart bilgisi veya
+        başka gizli bilgi göndermeyin.
+      </p>
+
+      <h2>Mikrofon ve kamera</h2>
+      <p>
+        Mikrofonun, kameranın ve canlı sesin ne zaman açıldığı ve kaydın tutulup tutulmadığı bu sayfada
+        yazılmaz. Bu cümleler, yayımlanacak uygulama sürümünde görülmeden konmaz. İzinleri iPhone'un
+        Ayarlar uygulamasından kapatabilirsiniz.
+      </p>
+      <p>
+        İşlenen veri için <a href="/lumos-uygulama-gizlilik">uygulama gizlilik taslağına</a> bakın.
+        O taslak da bu davranışları kesin ifade olarak yazmaz.
+      </p>
+
+      <h2>Veri silme talebi</h2>
+      <p>
+        Hesabınız veya kayıtlarınız için silme talebini yukarıdaki adrese, uygulamada kullandığınız
+        e-posta adresinden yazın. Talebi alır, sonucu size yazarız. Bu sayfa, silmenin sistemde
+        tamamlandığını söylemez.
+      </p>
+
+      <h2>Uygunsuz içerik bildirimi</h2>
+      <p>
+        Lumos yapay zekâ ile yanıt üretir ve yanıtlar hatalı ya da uygunsuz olabilir. Uygunsuz, zararlı veya hatalı
+        bir yanıtla karşılaşırsanız yanıtın tarihini ve kısa bir açıklamayı aynı adrese gönderin.
+      </p>
+
+      <h2>Önemli</h2>
+      <p>
+        Lumos'un yanıtları tıbbi, hukuki veya finansal danışmanlık yerine geçmez. Acil bir durumda bulunduğunuz
+        yerdeki acil yardım numarasını arayın.
+      </p>
+
+      <hr />
+
+      <h2 lang="en">Support (English)</h2>
+      <div lang="en">
+        <p>
+          Contact: <a href={`mailto:${supportEmail}`}>{supportEmail}</a>. Please include the app version and a short
+          description of the problem. Never send passwords or payment details.
+        </p>
+        <ul>
+          <li>This page does not describe when the microphone, camera, or a live voice call runs, or whether a recording is kept. You can turn permissions off in the iPhone Settings app.</li>
+          <li>To ask for deletion of your account or records, email us from the address you use in the app. This page does not say the deletion is already complete.</li>
+          <li>To report an inappropriate or harmful AI response, email us the date and a short description.</li>
+          <li>See the <a href="/lumos-uygulama-gizlilik">app privacy draft</a>. It also withholds those unverified statements.</li>
+        </ul>
+      </div>
+    </main>
+    <WeLockSiteFooter />
+  </body>
+</html>
