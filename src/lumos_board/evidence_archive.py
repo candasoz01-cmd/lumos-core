@@ -63,6 +63,10 @@ def _git_env() -> dict[str, str]:
     env["GIT_CONFIG_NOSYSTEM"] = "1"
     env["GIT_CONFIG_GLOBAL"] = os.devnull
     env["GIT_GRAFT_FILE"] = os.devnull
+    # Never prompt: the GIT_* scrub above also drops a caller's GIT_TERMINAL_PROMPT=0, and
+    # with global config ignored git would otherwise ask a controlling TTY for credentials
+    # (probe_remote on a private remote hung there instead of failing closed).
+    env["GIT_TERMINAL_PROMPT"] = "0"
     return env
 
 

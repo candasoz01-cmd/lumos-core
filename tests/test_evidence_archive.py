@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from lumos_board.evidence_archive import (
     DEFAULT_REMOTE,
+    _git_env,
     _worktree_paths,
     archive_dir_for,
     archive_report,
@@ -266,10 +267,53 @@ def test_local_remote_roundtrip_reads_back_independently(tmp_path):
     assert "readback" in result["archive"]
 
 
+def _fake_git_failure(stderr):
+    seen = {}
+
+    def fake_run(cmd, **kwargs):
+        seen["cmd"] = cmd
+        seen["env"] = kwargs.get("env")
+        raise subprocess.CalledProcessError(128, cmd, stderr=stderr)
+
+    return fake_run, seen
+
+
 def test_private_github_archive_is_not_claimed_verified():
-    result = probe_remote(DEFAULT_REMOTE)
+    # Hermetic: no network, no TTY. A private remote that refuses anonymous access must
+    # never be reported verified (security intent), and git must never be allowed to prompt.
+    fake_run, seen = _fake_git_failure(
+        "fatal: could not read Username for 'https://github.com': terminal prompts disabled\n"
+    )
+    with patch("lumos_board.evidence_archive.subprocess.run", fake_run):
+        result = probe_remote(DEFAULT_REMOTE)
     assert result["verified"] is False
+    assert result["reachable"] is False
     assert result["status"] in {"REMOTE_UNREACHABLE", "REMOTE_FORBIDDEN"}
+    assert seen["cmd"][:2] == ["git", "ls-remote"]
+    assert seen["env"]["GIT_TERMINAL_PROMPT"] == "0"
+
+
+def test_probe_remote_authentication_failure_is_forbidden_not_verified():
+    fake_run, _ = _fake_git_failure("remote: Authentication failed for the repository\n")
+    with patch("lumos_board.evidence_archive.subprocess.run", fake_run):
+        result = probe_remote(DEFAULT_REMOTE)
+    assert (result["status"], result["verified"], result["reachable"]) == ("REMOTE_FORBIDDEN", False, False)
+
+
+def test_probe_remote_reachable_is_still_not_verified():
+    with patch("lumos_board.evidence_archive.subprocess.run", lambda *a, **k: None):
+        result = probe_remote(DEFAULT_REMOTE)
+    assert (result["status"], result["verified"], result["reachable"]) == ("REACHABLE_NOT_VERIFIED", False, True)
+
+
+def test_git_env_never_prompts_even_if_caller_enables_prompt(monkeypatch):
+    # Regression: _git_env() strips every GIT_* variable, which used to drop a caller's
+    # GIT_TERMINAL_PROMPT=0 and let git prompt on /dev/tty (hook hung on "Username for ...").
+    monkeypatch.setenv("GIT_TERMINAL_PROMPT", "1")
+    monkeypatch.setenv("GIT_ASKPASS", "/bin/echo")
+    env = _git_env()
+    assert env["GIT_TERMINAL_PROMPT"] == "0"
+    assert "GIT_ASKPASS" not in env  # scrub of ambient GIT_* is unchanged
 
 
 def test_observer_does_not_write(tmp_path):

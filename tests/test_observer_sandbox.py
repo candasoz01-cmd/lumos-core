@@ -114,6 +114,16 @@ needs_cgroup = pytest.mark.skipif(
     reason="delegated cgroup v2 memory controller required",
 )
 
+# The sandbox motor is bubblewrap on Linux. These unit-seam tests still need Linux-only host
+# facilities (prlimit, errno.ENOKEY, keyctl/seccomp, /proc, /bin/true), so on other platforms
+# they are reported as SKIPPED with this reason -- never as a pass. On Linux the condition is
+# False and every one of them runs exactly as before.
+linux_only = pytest.mark.skipif(
+    sys.platform != "linux",
+    reason="observer sandbox requires Linux host facilities (bwrap/prlimit/ENOKEY/keyctl//proc);"
+    " verified on Linux CI, not exercised on this platform",
+)
+
 
 def _git(cwd: Path, *args: str) -> None:
     subprocess.run(
@@ -978,6 +988,7 @@ def test_user_keyring_not_searchable_after_preexec() -> None:
     assert parts[3] == "1"  # EPERM on @s
 
 
+@linux_only
 def test_key_seccomp_filter_denies_x32_syscall_bit() -> None:
     """Bugbot Medium on 5989489a: x32 keeps AUDIT_ARCH_X86_64, sets bit 30."""
     from lumos_board.observer_sandbox import (
@@ -1054,6 +1065,7 @@ def test_x32_keyctl_not_readable_after_preexec() -> None:
     assert parts[3] == "1"  # x32 bit caught by JSET, not kernel ENOSYS
 
 
+@linux_only
 def test_join_keyring_preexec_does_not_cdll_or_raise(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1090,6 +1102,7 @@ def test_join_keyring_preexec_does_not_cdll_or_raise(
     assert proc.returncode == 0
 
 
+@linux_only
 def test_join_keyring_eperm_is_noop_and_child_execs(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1129,6 +1142,7 @@ def test_join_keyring_edquot_aborts_when_seccomp_fails(
     assert proc.returncode != 0
 
 
+@linux_only
 def test_join_keyring_edquot_execs_when_seccomp_blocks_keys(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1168,6 +1182,7 @@ def test_join_keyring_eacces_aborts_when_search_live(
     assert proc.returncode != 0
 
 
+@linux_only
 def test_join_keyring_eacces_execs_when_search_blocked(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1196,6 +1211,7 @@ def test_keyctl_blocked_errnos_are_syscall_dead_only() -> None:
     assert errno.ENOTSUP not in _KEYCTL_BLOCKED
 
 
+@linux_only
 def test_join_keyring_enomem_search_aborts_child(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1217,6 +1233,7 @@ def test_join_keyring_enomem_search_aborts_child(
     assert proc.returncode != 0
 
 
+@linux_only
 def test_keyctl_denial_does_not_skip_started_sandbox(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1240,6 +1257,7 @@ def test_keyctl_denial_does_not_skip_started_sandbox(
     assert result.returncode == 0
 
 
+@linux_only
 def test_probe_seccomp_enosys_live_search_is_unavailable(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1255,6 +1273,7 @@ def test_probe_seccomp_enosys_live_search_is_unavailable(
         run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
+@linux_only
 def test_keyctl_join_edquot_is_unavailable(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1269,6 +1288,7 @@ def test_keyctl_join_edquot_is_unavailable(
         run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
+@linux_only
 def test_probe_sigsys_degrades_not_skip(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1296,6 +1316,7 @@ def test_probe_sigsys_degrades_not_skip(
     assert result.returncode == 0
 
 
+@linux_only
 def test_probe_hang_degrades_not_block(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1331,6 +1352,7 @@ def test_probe_hang_degrades_not_block(
     assert killed == [(4242, signal.SIGKILL)]
 
 
+@linux_only
 def test_probe_timeout_honours_late_success_status(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1362,6 +1384,7 @@ def test_probe_timeout_honours_late_success_status(
     assert result.returncode == 0
 
 
+@linux_only
 def test_probe_timeout_honours_late_fail_closed_status(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1385,6 +1408,7 @@ def test_probe_timeout_honours_late_fail_closed_status(
         run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
+@linux_only
 def test_nproc_limit_adds_private_headroom_to_current_uid_tasks(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1433,6 +1457,7 @@ def test_bwrap_launcher_uses_resolved_absolute_host_path(
     assert prefix[prefix.index("--remount-ro") + 1] == "/dev"
 
 
+@linux_only
 def test_setup_failure_without_sentinel_is_unavailable(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1448,6 +1473,7 @@ def test_setup_failure_without_sentinel_is_unavailable(
         run_git_sandboxed(["status"], cwd=repo, allowed_roots=[repo])
 
 
+@linux_only
 def test_git_child_failure_with_sentinel_is_result(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1490,6 +1516,7 @@ def test_git_child_failure_with_sentinel_is_result(
     assert seen_cmd[0].index("--ro-bind") < root_ro
 
 
+@linux_only
 def test_stderr_truncate_does_not_skip_started_sandbox(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1509,6 +1536,7 @@ def test_stderr_truncate_does_not_skip_started_sandbox(
     assert result.returncode == 0
 
 
+@linux_only
 def test_timeout_after_start_sentinel_is_result(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -1528,6 +1556,7 @@ def test_timeout_after_start_sentinel_is_result(
     assert "lumos-sandbox-start" not in result.stderr
 
 
+@linux_only
 def test_timeout_before_start_sentinel_is_unavailable(
     repo: Path, monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -2030,3 +2059,20 @@ def test_destroy_memory_cgroup_reaps_live_sleeper() -> None:
         if cg.exists():
             _destroy_memory_cgroup(cg)
             assert not cg.exists()
+
+
+def test_linux_only_gate_is_narrow_and_inactive_on_linux() -> None:
+    """Ratchet for the platform gate (runs on every platform, never skips).
+
+    - The set of gated tests is fixed: widening it hides tests on non-Linux hosts and must be
+      a deliberate, reviewed change to this number.
+    - On Linux the gate must be inactive, so none of those tests can be silently skipped.
+    """
+    gated = [
+        name
+        for name, fn in globals().items()
+        if name.startswith("test_") and callable(fn) and linux_only.mark in getattr(fn, "pytestmark", [])
+    ]
+    assert len(gated) == 19, sorted(gated)
+    if sys.platform == "linux":
+        assert linux_only.args[0] is False
