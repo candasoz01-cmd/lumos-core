@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd ui && npm install",
+  "installCommand": "npm ci --ignore-scripts && cd ui && npm install",
   "buildCommand": "python3 ops/publication_gate/gate.py && cd ui && npm run build",
   "outputDirectory": "ui/dist",
   "rewrites": [
