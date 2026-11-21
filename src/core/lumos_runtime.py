@@ -38,7 +38,12 @@ from policy.offline_engine import OfflineEngineV1
 from security import presence_lock as pl
 from security.aliases import load_aliases, save_aliases
 from security.keystore import FileKeyStore
-from security.session_record import write_session_record
+from security.session_record import (
+    bind_live_session,
+    invalidate_live_session,
+    remove_session_record,
+    write_session_record,
+)
 from security.permissions import PermissionManager
 from task_engine import (
     TaskStore,
@@ -345,7 +350,7 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
             except Exception:
                 pass
             try:
-                write_session_record(base_dir, True)
+                write_session_record(base_dir, True, live=bind_live_session(lumos.lock_state))
             except Exception:
                 pass
             os.environ["LUMOS_PASSPHRASE"] = p
@@ -387,10 +392,14 @@ def create_runtime(sandbox_mode: bool | None = None) -> RuntimeResult:
     def do_lock() -> None:
         nonlocal root_key
         lumos.lock_state.lock()
+        invalidate_live_session(lumos.lock_state)
         try:
             write_session_record(base_dir, False)
         except Exception:
-            pass
+            try:
+                remove_session_record(base_dir)
+            except Exception:
+                pass
         try:
             os.environ.pop("LUMOS_PASSPHRASE", None)
         except Exception:
