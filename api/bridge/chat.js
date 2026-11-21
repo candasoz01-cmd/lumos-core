@@ -1,3 +1,4 @@
+import { waitUntil } from "@vercel/functions";
 import {
   buildGeminiRequest,
   buildOpenAIRequest,
@@ -71,8 +72,8 @@ async function callGemini(body, context) {
 }
 
 // Count generated API replies by server-selected mode; never include user content or identity.
-async function successfulReply(res, payload) {
-  await logEvent(`chat.reply.${payload.mode}.success`, { route: ROUTE, status: 200 });
+function successfulReply(res, payload) {
+  waitUntil(logEvent(`chat.reply.${payload.mode}.success`, { route: ROUTE, status: 200 }));
   return res.status(200).json(payload);
 }
 
