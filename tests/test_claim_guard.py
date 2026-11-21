@@ -356,3 +356,112 @@ def test_override_takeover_flags_old_owner_commits_after_takeover(tmp_path: Path
                  commits=[_commit("late", [GATE], [a.claim_id], ["agent-a"]),
                           _commit("b1", [GATE], [b.claim_id], ["agent-b"])], now=later)
     assert _codes(v) == ["SUPERSEDED_BY_ACTIVE_CLAIM"]
+
+
+# -- hook merge (.githooks canonical) and single trailer block -------------------
+
+
+def _merged_world(tmp_path: Path, hooks_path: str):
+    """A repo carrying the REAL .githooks + ops/claim_guard, with stubbed tools."""
+    remote = tmp_path / "remote.git"
+    _git(tmp_path, "init", "--bare", "-q", "-b", "main", str(remote))
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git(repo, "init", "-q", "-b", "main")
+    shutil.copytree(REPO_ROOT / "src" / "lumos_board", repo / "src" / "lumos_board")
+    shutil.copytree(REPO_ROOT / ".githooks", repo / ".githooks")
+    shutil.copytree(REPO_ROOT / "ops" / "claim_guard", repo / "ops" / "claim_guard")
+    log = tmp_path / "ran.log"
+    gate = repo / "ops" / "publication_gate"
+    gate.mkdir(parents=True)
+    (gate / "gate.py").write_text(f"open({str(log)!r}, 'a').write('publication-gate\\n')\n", encoding="utf-8")
+    stubs = tmp_path / "bin"
+    stubs.mkdir()
+    for tool in ("ruff", "pytest"):
+        stub = stubs / tool
+        stub.write_text(f"#!/bin/sh\necho {tool} >> {log}\nexit 0\n", encoding="utf-8")
+        stub.chmod(0o755)
+    for name in ("app.py", "other.py"):
+        (repo / name).write_text("v = 1\n", encoding="utf-8")
+    _git(repo, "add", ".")
+    _git(repo, "-c", "core.hooksPath=/dev/null", "-c", "user.name=s", "-c", "user.email=s@x", "commit", "-qm", "seed")
+    _git(repo, "remote", "add", "origin", str(remote))
+    _git(repo, "push", "-q", "origin", "main")
+    _git(repo, "checkout", "-q", "-b", "claude/g1")
+    _git(repo, "config", "core.hooksPath", hooks_path)
+    _git(repo, "config", "user.name", "same-github-account")
+    _git(repo, "config", "user.email", "same@example.com")
+    env = dict(os.environ, LUMOS_AGENT="claude-cloud", LUMOS_BOARD_REMOTE=str(remote),
+               PYTHONPATH=SRC, GIT_TERMINAL_PROMPT="0", PATH=f"{stubs}:{os.environ['PATH']}")
+    env.pop("LUMOS_BOARD_DIR", None)
+    return repo, env, log
+
+
+def _ran(log: Path) -> list[str]:
+    return log.read_text(encoding="utf-8").split() if log.exists() else []
+
+
+@pytest.mark.parametrize("hooks_path", [".githooks", "ops/claim_guard/hooks"])
+def test_merged_hooks_keep_every_guard_and_claim_runs_first(tmp_path: Path, hooks_path: str) -> None:
+    repo, env, log = _merged_world(tmp_path, hooks_path)
+    (repo / "app.py").write_text("v = 2\n", encoding="utf-8")
+    _git(repo, "add", "app.py")
+
+    refused = _git(repo, "commit", "-qm", "no claim", env=env, check=False)
+    assert refused.returncode != 0 and "claim-guard" in refused.stderr
+    assert _ran(log) == []  # claim gate failed first; ruff/pytest never started
+
+    assert _cli(repo, env, "claim", "--task", "G1", "--repo", "lumos-core", "--branch", "claude/g1",
+                "--worktree", str(repo), "--owner", "claude-cloud", "--scope", "app.py").returncode == 0
+    ok = _git(repo, "commit", "-qm", "claimed", env=env, check=False)
+    assert ok.returncode == 0, ok.stderr
+    assert _ran(log) == ["ruff", "pytest"]
+    assert "Lumos-Agent: claude-cloud" in _git(repo, "log", "-1", "--format=%(trailers)").stdout
+
+    pushed = _git(repo, "push", "-q", "origin", "claude/g1", env=env, check=False)
+    assert pushed.returncode == 0, pushed.stderr
+    assert _ran(log) == ["ruff", "pytest", "publication-gate"]
+
+
+def test_partial_commit_checks_the_temporary_index_not_the_main_one(tmp_path: Path) -> None:
+    """`git commit <path>` uses a temp GIT_INDEX_FILE; the gate must see that one."""
+    repo, env, _ = _merged_world(tmp_path, ".githooks")
+    assert _cli(repo, env, "claim", "--task", "G1", "--repo", "lumos-core", "--branch", "claude/g1",
+                "--worktree", str(repo), "--owner", "claude-cloud", "--scope", "app.py").returncode == 0
+    (repo / "app.py").write_text("v = 2\n", encoding="utf-8")
+    _git(repo, "add", "app.py")  # main index: only the claimed file
+    (repo / "other.py").write_text("v = 9\n", encoding="utf-8")  # unclaimed
+    head = _git(repo, "rev-parse", "HEAD").stdout
+    sneaky = _git(repo, "commit", "-qm", "only other", "--", "other.py", env=env, check=False)
+    assert sneaky.returncode != 0
+    assert _git(repo, "rev-parse", "HEAD").stdout == head
+
+
+def test_cursor_style_split_trailers_end_up_in_one_recognised_block(world) -> None:
+    """#937: Lumos lines in their own paragraph, Co-authored-by after a blank line."""
+    remote, tmp_path = world
+    clone, env = _agent_clone(remote, tmp_path, "cursor-cloud-agent", "cursor/x")
+    claim = _cli(clone, env, "claim", "--task", "C1", "--repo", "lumos-core", "--branch", "cursor/x",
+                 "--worktree", str(clone), "--owner", "cursor-cloud-agent", "--scope", "app.py")
+    claim_id = json.loads(claim.stdout)["claim"]["claim_id"]
+    (clone / "app.py").write_text("x = 2\n", encoding="utf-8")
+    _git(clone, "add", "app.py")
+    message = (
+        "feat: x\n\nbody\n\n"
+        f"Lumos-Claim: {claim_id}\nLumos-Agent: cursor-cloud-agent\n\n"
+        "Co-authored-by: Cando <c@example.com>\n"
+    )
+    assert _git(clone, "commit", "-q", "-m", message, env=env).returncode == 0
+    block = _git(clone, "log", "-1", "--format=%(trailers)").stdout
+    assert f"Lumos-Claim: {claim_id}" in block
+    assert "Lumos-Agent: cursor-cloud-agent" in block
+    assert "Co-authored-by: Cando <c@example.com>" in block
+    base = _git(clone, "rev-parse", "origin/main").stdout.strip()
+    head = _git(clone, "rev-parse", "HEAD").stdout.strip()
+    cwd = os.getcwd()
+    try:
+        os.chdir(clone)
+        _, commits = claim_guard.collect(base, head)
+    finally:
+        os.chdir(cwd)
+    assert commits[0].claim_ids == (claim_id,) and commits[0].agents == ("cursor-cloud-agent",)

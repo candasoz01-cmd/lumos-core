@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Lumos-Claim / Lumos-Agent trailer'larını (claim kapısının doğruladığı) git'in
+# tanıdığı son trailer bloğuna yazar. Kurulum: make setup-commit-guard
+set -euo pipefail
+ROOT="$(git rev-parse --show-toplevel)"
+if [[ ! -x "$ROOT/ops/claim_guard/claim-commit-msg" ]]; then
+  echo "claim-guard: ops/claim_guard/claim-commit-msg bulunamadı; commit engellendi" >&2
+  exit 1
+fi
+exec "$ROOT/ops/claim_guard/claim-commit-msg" "$@"
