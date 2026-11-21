@@ -8,6 +8,8 @@ import hashlib
 import hmac
 import json
 import os
+import re
+import subprocess
 import tempfile
 import uuid
 from contextlib import contextmanager
@@ -15,7 +17,8 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path, PurePosixPath
-from typing import Callable, Iterator, Sequence
+from typing import Callable, Iterator, Mapping, Sequence
+from urllib.parse import urlsplit
 
 
 CLAIM_STORE_SCHEMA = "lumos.task_claim_store.v1"
@@ -26,6 +29,34 @@ OVERRIDE_VERIFICATION_METHOD = "HMAC_SHA256_ALLOWLIST"
 DELEGATION_OWNER_REGISTRY_SCHEMA = "lumos.delegation_owner_registry.v1"
 DELEGATION_TOKEN_SCHEMA = "lumos.delegation_token.v1"
 DELEGATION_VERIFICATION_METHOD = "HMAC_SHA256_OWNER_ALLOWLIST"
+_SHA40 = re.compile(r"^[0-9a-f]{40}$")
+_BRANCH_NAME = re.compile(r"^[A-Za-z0-9._][A-Za-z0-9._/-]{0,127}$")
+_TOPIC_NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+_GITHUB_SSH = re.compile(
+    r"^git@github\.com:(?P<owner>[A-Za-z0-9_.-]+)/(?P<repo>[A-Za-z0-9_.-]+?)(?:\.git)?$"
+)
+_GITHUB_SSH_URL = re.compile(
+    r"^ssh://git@github\.com/(?P<owner>[A-Za-z0-9_.-]+)/(?P<repo>[A-Za-z0-9_.-]+?)(?:\.git)?$"
+)
+CANONICAL_GITHUB_REPO = "candasoz01-cmd/lumos-core"
+# Controlled vocabulary. Aliases collapse to one canonical id so two agents
+# cannot miss each other by renaming the same subject.
+_TOPIC_CANONICAL = {
+    "founder-approval": "founder-approval",
+    "kurucu-onayi": "founder-approval",
+    "kurucu-onayı": "founder-approval",
+    "board-handoff": "board-handoff",
+    "write-attestation": "write-attestation",
+    "claim-guard": "claim-guard",
+    "publication-gate": "publication-gate",
+}
+# Names that may be offered a lease. A typo is not a recipient.
+BOARD_RECIPIENTS = frozenset({
+    "board-receiver",
+    "claude-cloud",
+    "codex-device-approval",
+    "cursor-cloud",
+})
 
 
 class ClaimStatus(str, Enum):
@@ -42,6 +73,56 @@ class ClaimError(ValueError):
 
 class ClaimStoreCorrupt(ClaimError):
     """Raised when persisted state cannot be trusted; writes fail closed."""
+
+
+@dataclass(frozen=True)
+class HandoffOffer:
+    """A lease offer. The owner does not change until the recipient accepts."""
+
+    to_owner: str
+    commit: str
+    tree: str
+    branch: str
+    command: str
+    passed: int
+    failed: int
+    skipped: int
+    ttl_seconds: int
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "to_owner": self.to_owner,
+            "commit": self.commit,
+            "tree": self.tree,
+            "branch": self.branch,
+            "command": self.command,
+            "passed": self.passed,
+            "failed": self.failed,
+            "skipped": self.skipped,
+            "ttl_seconds": self.ttl_seconds,
+        }
+
+    @classmethod
+    def from_dict(cls, value: object) -> HandoffOffer:
+        if not isinstance(value, dict):
+            raise ClaimStoreCorrupt("devir teklifi nesne değil")
+        try:
+            result = cls(
+                to_owner=_required_text(value, "to_owner"),
+                commit=_required_text(value, "commit"),
+                tree=_required_text(value, "tree"),
+                branch=_required_text(value, "branch"),
+                command=_required_text(value, "command"),
+                passed=_required_count(value, "passed"),
+                failed=_required_count(value, "failed"),
+                skipped=_required_count(value, "skipped"),
+                ttl_seconds=_required_count(value, "ttl_seconds"),
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ClaimStoreCorrupt("devir teklifi geçersiz") from exc
+        if result.ttl_seconds <= 0:
+            raise ClaimStoreCorrupt("devir teklifi geçersiz")
+        return result
 
 
 @dataclass(frozen=True)
@@ -326,6 +407,8 @@ class TaskClaim:
     parent_claim_id: str | None = None
     pr_ref: str | None = None
     closed_at: datetime | None = None
+    topics: tuple[str, ...] = ()
+    handoff_offer: HandoffOffer | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -336,6 +419,7 @@ class TaskClaim:
             "worktree": self.worktree,
             "owner": self.owner,
             "scopes": list(self.scopes),
+            "topics": list(self.topics),
             "status": self.status.value,
             "started_at": _format_time(self.started_at),
             "heartbeat_at": _format_time(self.heartbeat_at),
@@ -343,6 +427,7 @@ class TaskClaim:
             "parent_claim_id": self.parent_claim_id,
             "pr_ref": self.pr_ref,
             "closed_at": _format_time(self.closed_at) if self.closed_at else None,
+            "handoff_offer": self.handoff_offer.to_dict() if self.handoff_offer else None,
         }
 
     @classmethod
@@ -353,6 +438,11 @@ class TaskClaim:
             scopes = value["scopes"]
             if not isinstance(scopes, list) or not all(isinstance(v, str) for v in scopes):
                 raise TypeError("invalid scopes")
+            topics = value.get("topics", [])
+            if not isinstance(topics, list) or not all(isinstance(v, str) for v in topics):
+                raise TypeError("invalid topics")
+            raw_offer = value.get("handoff_offer")
+            offer = None if raw_offer is None else HandoffOffer.from_dict(raw_offer)
             return cls(
                 claim_id=_required_text(value, "claim_id"),
                 task_id=_required_text(value, "task_id"),
@@ -367,6 +457,8 @@ class TaskClaim:
                 expires_at=_parse_time(_required_text(value, "expires_at")),
                 parent_claim_id=_optional_text(value, "parent_claim_id"),
                 pr_ref=_optional_text(value, "pr_ref"),
+                topics=tuple(topics),
+                handoff_offer=offer,
                 closed_at=(
                     _parse_time(_required_text(value, "closed_at"))
                     if value.get("closed_at") is not None
@@ -419,6 +511,8 @@ class TaskClaimStore:
         clock: Callable[[], datetime] | None = None,
         override_verifier: OverrideApprovalVerifier | None = None,
         delegation_verifier: DelegationVerifier | None = None,
+        published_ref: Callable[..., None] | None = None,
+        recipients: Sequence[str] | None = None,
     ) -> None:
         self.store_dir = Path(store_dir)
         self.state_path = self.store_dir / "claims.json"
@@ -427,6 +521,8 @@ class TaskClaimStore:
         self._clock = clock or (lambda: datetime.now(timezone.utc))
         self._override_verifier = override_verifier
         self._delegation_verifier = delegation_verifier
+        self._published_ref = published_ref or verify_published_work
+        self._recipients = frozenset(recipients) if recipients is not None else BOARD_RECIPIENTS
         self._pending_events: list[dict[str, object]] = []
 
     def claim(
@@ -444,6 +540,7 @@ class TaskClaimStore:
         delegation_token: str | None = None,
         override_token: str | None = None,
         override_reason: str | None = None,
+        topics: Sequence[str] = (),
     ) -> ClaimResult:
         task_id = _clean_text(task_id, "task_id")
         repo = _clean_text(repo, "repo")
@@ -451,6 +548,7 @@ class TaskClaimStore:
         worktree = _clean_text(worktree, "worktree")
         owner = _clean_text(owner, "owner")
         normalized_scopes = _normalize_scopes(scopes)
+        normalized_topics = _normalize_topics(topics)
         if ttl_seconds <= 0:
             raise ClaimError("ttl_seconds sıfırdan büyük olmalı")
         if bool(override_token) != bool(override_reason):
@@ -492,9 +590,12 @@ class TaskClaimStore:
                 task_id=task_id,
                 repo=repo,
                 scopes=normalized_scopes,
+                topics=normalized_topics,
                 parent_claim_id=parent.claim_id if parent else None,
             )
-            conflict_records = tuple(_to_conflict(claim, task_id, normalized_scopes) for claim in conflicts)
+            conflict_records = tuple(
+                _to_conflict(claim, task_id, normalized_scopes, normalized_topics) for claim in conflicts
+            )
             overridden_claim_ids: list[str] = []
             if override_token and not conflicts:
                 raise ClaimError("override yalnız aktif conflict için kullanılabilir")
@@ -559,6 +660,7 @@ class TaskClaimStore:
                 heartbeat_at=now,
                 expires_at=now + timedelta(seconds=ttl_seconds),
                 parent_claim_id=parent_claim_id,
+                topics=normalized_topics,
             )
             claims.append(claim)
             acquire_details: dict[str, object] = {
@@ -626,13 +728,167 @@ class TaskClaimStore:
             self._audit("CLAIM_PR_ATTACHED", updated, actor=owner, at=now, details={"pr_ref": pr_ref})
             return updated
 
-    def list_claims(self, *, include_closed: bool = False) -> tuple[TaskClaim, ...]:
+    def record_result(
+        self,
+        claim_id: str,
+        *,
+        owner: str,
+        commit: str,
+        tree: str,
+        branch: str,
+        tests: Mapping[str, object],
+    ) -> TaskClaim:
+        """Record a verifiable result. Does not transfer the claim."""
+        return self._record_delivery(
+            claim_id,
+            owner=owner,
+            commit=commit,
+            tree=tree,
+            branch=branch,
+            tests=tests,
+            to_owner=None,
+            ttl_seconds=0,
+        )
+
+    def handoff(
+        self,
+        claim_id: str,
+        *,
+        owner: str,
+        to_owner: str,
+        commit: str,
+        tree: str,
+        branch: str,
+        tests: Mapping[str, object],
+        ttl_seconds: int = 1800,
+    ) -> TaskClaim:
+        """Offer the lease to a registered recipient. Ownership stays put."""
+        if ttl_seconds <= 0:
+            raise ClaimError("ttl_seconds sıfırdan büyük olmalı")
+        recipient = _clean_text(to_owner, "to_owner")
+        if recipient not in self._recipients:
+            raise ClaimError("alıcı kayıtlı değil")
+        return self._record_delivery(
+            claim_id,
+            owner=owner,
+            commit=commit,
+            tree=tree,
+            branch=branch,
+            tests=tests,
+            to_owner=recipient,
+            ttl_seconds=ttl_seconds,
+        )
+
+    def accept_handoff(self, claim_id: str, *, owner: str) -> TaskClaim:
+        """Move the lease only when the offered recipient accepts it."""
+        owner = _clean_text(owner, "owner")
+        if owner not in self._recipients:
+            raise ClaimError("alıcı kayıtlı değil")
         with self._locked_state() as claims:
-            self._expire_stale(claims, self._now())
-            selected = claims if include_closed else [
-                claim for claim in claims if claim.status in {ClaimStatus.ACTIVE, ClaimStatus.QUEUED}
-            ]
-            return tuple(sorted(selected, key=lambda item: (item.started_at, item.claim_id)))
+            now = self._now()
+            self._expire_stale(claims, now)
+            claim = _find_claim(claims, _clean_text(claim_id, "claim_id"))
+            if claim is None or claim.status is not ClaimStatus.ACTIVE:
+                raise ClaimError("claim aktif değil")
+            offer = claim.handoff_offer
+            if offer is None:
+                raise ClaimError("bekleyen devir yok")
+            if offer.to_owner != owner:
+                raise ClaimError("devir bu alıcıya değil")
+            self._published_ref(
+                repo=claim.repo, branch=offer.branch, commit=offer.commit, tree=offer.tree
+            )
+            updated = replace(
+                claim,
+                owner=owner,
+                heartbeat_at=now,
+                expires_at=now + timedelta(seconds=offer.ttl_seconds),
+                handoff_offer=None,
+            )
+            claims[claims.index(claim)] = updated
+            self._audit(
+                "CLAIM_HANDOFF_ACCEPTED",
+                updated,
+                actor=owner,
+                at=now,
+                details={
+                    "commit": offer.commit,
+                    "tree": offer.tree,
+                    "branch": offer.branch,
+                    "tests": {
+                        "command": offer.command,
+                        "passed": offer.passed,
+                        "failed": offer.failed,
+                        "skipped": offer.skipped,
+                    },
+                    "from_owner": claim.owner,
+                    "to_owner": owner,
+                },
+            )
+            return updated
+
+    def list_claims(self, *, include_closed: bool = False) -> tuple[TaskClaim, ...]:
+        # Read-only projection: a lease past expires_at is EXPIRED here even
+        # when the stored status is still ACTIVE. This path does not write.
+        claims = self._read_state() if self.state_path.exists() else []
+        return project_claims(claims, self._now(), include_closed=include_closed)
+
+    def _record_delivery(
+        self,
+        claim_id: str,
+        *,
+        owner: str,
+        commit: str,
+        tree: str,
+        branch: str,
+        tests: Mapping[str, object],
+        to_owner: str | None,
+        ttl_seconds: int,
+    ) -> TaskClaim:
+        owner = _clean_text(owner, "owner")
+        commit = _clean_text(commit, "commit").lower()
+        tree = _clean_text(tree, "tree").lower()
+        branch = _clean_text(branch, "branch")
+        test_record = _normalize_tests(tests)
+        with self._locked_state() as claims:
+            now = self._now()
+            self._expire_stale(claims, now)
+            claim = _require_owned_active(claims, claim_id, owner)
+            if branch != claim.branch:
+                raise ClaimError("sonuç dalı claim dalı ile aynı olmalı")
+            self._published_ref(repo=claim.repo, branch=branch, commit=commit, tree=tree)
+            details: dict[str, object] = {
+                "commit": commit,
+                "tree": tree,
+                "branch": branch,
+                "tests": test_record,
+            }
+            if to_owner is None:
+                self._audit("CLAIM_RESULT", claim, actor=owner, at=now, details=details)
+                return claim
+            if to_owner == owner:
+                raise ClaimError("devir alan ajan farklı olmalı")
+            if to_owner not in self._recipients:
+                raise ClaimError("alıcı kayıtlı değil")
+            if claim.handoff_offer is not None:
+                raise ClaimError("bekleyen devir var")
+            offer = HandoffOffer(
+                to_owner=to_owner,
+                commit=commit,
+                tree=tree,
+                branch=branch,
+                command=str(test_record["command"]),
+                passed=int(test_record["passed"]),
+                failed=int(test_record["failed"]),
+                skipped=int(test_record["skipped"]),
+                ttl_seconds=ttl_seconds,
+            )
+            updated = replace(claim, handoff_offer=offer)
+            claims[claims.index(claim)] = updated
+            details["from_owner"] = owner
+            details["to_owner"] = to_owner
+            self._audit("CLAIM_HANDOFF", updated, actor=owner, at=now, details=details)
+            return updated
 
     @contextmanager
     def _locked_state(self) -> Iterator[list[TaskClaim]]:
@@ -757,6 +1013,7 @@ class TaskClaimStore:
                 task_id=candidate.task_id,
                 repo=candidate.repo,
                 scopes=candidate.scopes,
+                topics=candidate.topics,
                 parent_claim_id=candidate.parent_claim_id,
                 exclude_claim_id=candidate.claim_id,
             )
@@ -818,6 +1075,13 @@ def _clean_text(value: str, field: str) -> str:
     return value.strip()
 
 
+def _required_count(value: dict[str, object], field: str) -> int:
+    item = value[field]
+    if isinstance(item, bool) or not isinstance(item, int) or item < 0:
+        raise TypeError(field)
+    return item
+
+
 def _required_text(value: dict[str, object], field: str) -> str:
     item = value[field]
     if not isinstance(item, str) or not item:
@@ -832,6 +1096,160 @@ def _optional_text(value: dict[str, object], field: str) -> str | None:
     if not isinstance(item, str) or not item:
         raise TypeError(field)
     return item
+
+
+def project_claims(
+    claims: Sequence[TaskClaim], now: datetime, *, include_closed: bool
+) -> tuple[TaskClaim, ...]:
+    """Show a past lease as EXPIRED without writing the store."""
+    projected: list[TaskClaim] = []
+    by_id = {claim.claim_id: claim for claim in claims}
+    for claim in claims:
+        status = claim.status
+        if status is ClaimStatus.ACTIVE and claim.expires_at <= now:
+            status = ClaimStatus.EXPIRED
+        if status in {ClaimStatus.ACTIVE, ClaimStatus.QUEUED} and claim.parent_claim_id:
+            parent = by_id.get(claim.parent_claim_id)
+            parent_status = parent.status if parent is not None else None
+            if parent is not None and parent.status is ClaimStatus.ACTIVE and parent.expires_at <= now:
+                parent_status = ClaimStatus.EXPIRED
+            if parent_status is not ClaimStatus.ACTIVE:
+                status = ClaimStatus.EXPIRED
+        if status is not claim.status:
+            claim = replace(claim, status=status)
+        projected.append(claim)
+    if not include_closed:
+        projected = [
+            claim
+            for claim in projected
+            if claim.status in {ClaimStatus.ACTIVE, ClaimStatus.QUEUED}
+        ]
+    return tuple(sorted(projected, key=lambda item: (item.started_at, item.claim_id)))
+
+
+def github_repo_identity(url: str) -> str | None:
+    """Return ``owner/repo`` for a GitHub remote, ignoring userinfo and ``.git``."""
+    text = url.strip()
+    for pattern in (_GITHUB_SSH, _GITHUB_SSH_URL):
+        match = pattern.fullmatch(text)
+        if match:
+            return f"{match.group('owner')}/{match.group('repo')}"
+    parsed = urlsplit(text)
+    if parsed.scheme != "https" or (parsed.hostname or "").lower() != "github.com":
+        return None
+    parts = [part for part in parsed.path.split("/") if part]
+    if len(parts) < 2:
+        return None
+    owner, repo = parts[0], parts[1]
+    if repo.endswith(".git"):
+        repo = repo[: -len(".git")]
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", owner) or not re.fullmatch(r"[A-Za-z0-9_.-]+", repo):
+        return None
+    return f"{owner}/{repo}"
+
+
+def verify_published_work(*, repo: str, branch: str, commit: str, tree: str) -> None:
+    """Reject completed work whose branch is absent or does not match the commit."""
+    if repo != "lumos-core":
+        raise ClaimError("bu depo için dal doğrulaması yok")
+    if not _SHA40.fullmatch(commit) or not _SHA40.fullmatch(tree):
+        raise ClaimError("commit ve tree tam SHA olmalı")
+    if not _BRANCH_NAME.fullmatch(branch) or ".." in branch.split("/"):
+        raise ClaimError("dal adı geçersiz")
+    listed_remote = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    identity = github_repo_identity(listed_remote.stdout.strip()) if listed_remote.returncode == 0 else None
+    if identity != CANONICAL_GITHUB_REPO:
+        raise ClaimError("uzak depo kanonik kimlik değil")
+    ref = f"refs/heads/{branch}"
+    listed = subprocess.run(
+        ["git", "ls-remote", "origin", ref],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    if listed.returncode != 0:
+        raise ClaimError("dal doğrulanamadı")
+    shas = [line.split()[0] for line in listed.stdout.splitlines() if line.strip()]
+    if shas != [commit]:
+        raise ClaimError("dal GitHub'da yok veya bildirilen commit değil")
+    kind = subprocess.run(
+        ["git", "cat-file", "-t", f"{commit}^{{tree}}"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    if kind.returncode != 0:
+        fetched = subprocess.run(
+            ["git", "fetch", "--no-tags", "--depth", "1", "origin", ref],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+        if fetched.returncode != 0:
+            raise ClaimError("commit alınamadı")
+        kind = subprocess.run(
+            ["git", "cat-file", "-t", f"{commit}^{{tree}}"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=False,
+        )
+    if kind.returncode != 0 or kind.stdout.strip() != "tree":
+        raise ClaimError("commit ağacı okunamadı")
+    shown = subprocess.run(
+        ["git", "rev-parse", f"{commit}^{{tree}}"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    if shown.returncode != 0 or shown.stdout.strip() != tree:
+        raise ClaimError("tree bildirilen commit ile uyuşmuyor")
+
+
+def _canonicalize_topic(topic: str) -> str:
+    cleaned = _clean_text(topic, "topic")
+    if not _TOPIC_NAME.fullmatch(cleaned):
+        raise ClaimError("konu açık bir belirteç olmalı")
+    canonical = _TOPIC_CANONICAL.get(cleaned) or _TOPIC_CANONICAL.get(cleaned.lower())
+    if canonical is None:
+        raise ClaimError("konu sözlükte yok")
+    return canonical
+
+
+def _normalize_topics(topics: Sequence[str] | None) -> tuple[str, ...]:
+    if not topics:
+        return ()
+    return tuple(sorted({_canonicalize_topic(topic) for topic in topics}))
+
+
+def _normalize_tests(tests: Mapping[str, object]) -> dict[str, object]:
+    if not isinstance(tests, dict) or set(tests) != {"command", "passed", "failed", "skipped"}:
+        raise ClaimError("test sonucu command, passed, failed, skipped alanlarını taşımalı")
+    command = tests["command"]
+    if not isinstance(command, str) or not command.strip():
+        raise ClaimError("tests.command boş olamaz")
+    counts: dict[str, int] = {}
+    for key in ("passed", "failed", "skipped"):
+        value = tests[key]
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ClaimError(f"tests.{key} sıfır veya daha büyük tam sayı olmalı")
+        counts[key] = value
+    return {
+        "command": command.strip(),
+        "passed": counts["passed"],
+        "failed": counts["failed"],
+        "skipped": counts["skipped"],
+    }
 
 
 def _normalize_scopes(scopes: Sequence[str]) -> tuple[str, ...]:
@@ -867,9 +1285,11 @@ def _find_conflicts(
     repo: str,
     scopes: Sequence[str],
     parent_claim_id: str | None,
+    topics: Sequence[str] = (),
     exclude_claim_id: str | None = None,
 ) -> list[TaskClaim]:
     conflicts: list[TaskClaim] = []
+    declared_topics = set(topics)
     for claim in claims:
         # QUEUED kayıtlar da yer tutar: kuyruktaki ajan sırasını kaybetmez.
         if claim.status not in {ClaimStatus.ACTIVE, ClaimStatus.QUEUED} or claim.repo != repo:
@@ -884,14 +1304,28 @@ def _find_conflicts(
                 conflicts.append(claim)
             continue
         scope_collision = any(_scope_overlap(left, right) for left in scopes for right in claim.scopes)
-        if duplicate_task or scope_collision:
+        # Yalnız iki tarafta da açıkça yazılmış konular çakışır. Boş konu
+        # listesi yeni işi engellemez.
+        topic_collision = bool(declared_topics & set(claim.topics))
+        if duplicate_task or scope_collision or topic_collision:
             conflicts.append(claim)
     return conflicts
 
 
-def _to_conflict(claim: TaskClaim, task_id: str, scopes: Sequence[str]) -> ClaimConflict:
-    reason = "DUPLICATE_TASK" if claim.task_id == task_id else "SCOPE_CONFLICT"
-    overlap = tuple(scope for scope in claim.scopes if any(_scope_overlap(scope, item) for item in scopes))
+def _to_conflict(
+    claim: TaskClaim, task_id: str, scopes: Sequence[str], topics: Sequence[str] = ()
+) -> ClaimConflict:
+    scope_hit = tuple(scope for scope in claim.scopes if any(_scope_overlap(scope, item) for item in scopes))
+    topic_hit = tuple(sorted(set(claim.topics) & set(topics)))
+    if claim.task_id == task_id:
+        reason = "DUPLICATE_TASK"
+        overlap = scope_hit
+    elif scope_hit:
+        reason = "SCOPE_CONFLICT"
+        overlap = scope_hit
+    else:
+        reason = "TOPIC_CONFLICT"
+        overlap = topic_hit
     return ClaimConflict(claim.claim_id, claim.task_id, claim.owner, reason, overlap)
 
 
