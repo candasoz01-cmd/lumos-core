@@ -1,0 +1,88 @@
+name: Write environment key match
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment_records_checked:
+        description: Confirm the secret name is listed in both environment settings
+        required: true
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: write-environment-key-match
+  cancel-in-progress: false
+
+jobs:
+  signer:
+    if: &check_context >-
+      ${{ github.repository == 'candasoz01-cmd/lumos-core' &&
+          github.ref == 'refs/heads/main' && github.run_attempt == '1' &&
+          inputs.environment_records_checked }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    environment: lumos-write-gate
+    outputs: &proof_output
+      proof: ${{ steps.proof.outputs.proof }}
+    steps: &proof_steps
+      - name: Require standard logging
+        env:
+          DEBUG_ENABLED: ${{ runner.debug }}
+        run: test "$DEBUG_ENABLED" != 1
+
+      - name: Compute an internal proof for this run
+        id: proof
+        env:
+          LUMOS_WRITE_GATE_SECRET: ${{ secrets.LUMOS_WRITE_GATE_SECRET }}
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import hmac
+          import os
+
+          key = os.environ.get("LUMOS_WRITE_GATE_SECRET", "").encode()
+          if len(key) < 32:
+              raise SystemExit(1)
+          challenge = ":".join((
+              "lumos-write-environment-key-match-v1",
+              os.environ["GITHUB_REPOSITORY"],
+              os.environ["GITHUB_SHA"],
+              os.environ["GITHUB_RUN_ID"],
+              os.environ["GITHUB_RUN_ATTEMPT"],
+          )).encode()
+          proof = hmac.new(key, challenge, hashlib.sha256).hexdigest()
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"proof={proof}\n")
+          PY
+
+  verifier:
+    if: *check_context
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    environment: lumos-write-verify
+    outputs: *proof_output
+    steps: *proof_steps
+
+  result:
+    if: >-
+      ${{ always() && github.repository == 'candasoz01-cmd/lumos-core' &&
+          github.ref == 'refs/heads/main' && github.run_attempt == '1' }}
+    needs: [signer, verifier]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Report the result
+        env:
+          MATCHED: >-
+            ${{ runner.debug != '1' && needs.signer.result == 'success' &&
+                needs.verifier.result == 'success' && needs.signer.outputs.proof != '' &&
+                needs.signer.outputs.proof == needs.verifier.outputs.proof }}
+        run: |
+          if [ "$MATCHED" = true ]; then
+            printf '%s\n' PASS >> "$GITHUB_STEP_SUMMARY"
+          else
+            printf '%s\n' FAIL >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
